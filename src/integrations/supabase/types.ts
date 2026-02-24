@@ -462,6 +462,200 @@ export type Database = {
         }
         Relationships: []
       }
+      supplier_invites: {
+        Row: {
+          created_at: string
+          id: string
+          invite_code: string
+          status: string
+          supplier_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invite_code: string
+          status?: string
+          supplier_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invite_code?: string
+          status?: string
+          supplier_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_invites_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supplier_orders: {
+        Row: {
+          created_at: string
+          id: string
+          restaurant_id: string | null
+          supplier_id: string | null
+          total: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          restaurant_id?: string | null
+          supplier_id?: string | null
+          total?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          restaurant_id?: string | null
+          supplier_id?: string | null
+          total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_orders_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_orders_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supplier_products: {
+        Row: {
+          availability: string | null
+          currency: string | null
+          id: string
+          price: number
+          product_id: string
+          supplier_id: string
+          unit: string | null
+          updated_at: string
+        }
+        Insert: {
+          availability?: string | null
+          currency?: string | null
+          id?: string
+          price: number
+          product_id: string
+          supplier_id: string
+          unit?: string | null
+          updated_at?: string
+        }
+        Update: {
+          availability?: string | null
+          currency?: string | null
+          id?: string
+          price?: number
+          product_id?: string
+          supplier_id?: string
+          unit?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_products_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supplier_restaurants: {
+        Row: {
+          created_at: string
+          id: string
+          invite_code: string
+          restaurant_id: string
+          status: string
+          supplier_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invite_code: string
+          restaurant_id: string
+          status?: string
+          supplier_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invite_code?: string
+          restaurant_id?: string
+          status?: string
+          supplier_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_restaurants_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_restaurants_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suppliers: {
+        Row: {
+          address: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          owner_user_id: string
+          phone: string | null
+          vat_number: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          owner_user_id: string
+          phone?: string | null
+          vat_number?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          owner_user_id?: string
+          phone?: string | null
+          vat_number?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -475,6 +669,7 @@ export type Database = {
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       owns_meal: { Args: { _meal_id: string }; Returns: boolean }
       owns_meal_day: { Args: { _meal_day_id: string }; Returns: boolean }
+      owns_supplier: { Args: { _supplier_id: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never

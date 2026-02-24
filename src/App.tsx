@@ -56,6 +56,7 @@ import SupplierPage from "./pages/supplier/SupplierPage";
 import SupplierRestaurantsPage from "./pages/supplier/SupplierRestaurantsPage";
 import SupplierCatalogPage from "./pages/supplier/SupplierCatalogPage";
 import SupplierReportsPage from "./pages/supplier/SupplierReportsPage";
+import SupplierInvitePage from "./pages/supplier/SupplierInvitePage";
 
 import NotFound from "./pages/NotFound";
 
@@ -103,6 +104,7 @@ const App = () => (
                 <Route path="/restaurant/products" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><RestaurantProductsPage /></RestaurantGuard></RG>} />
                 <Route path="/restaurant/recipes" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><RestaurantRecipesPage /></RestaurantGuard></RG>} />
                 <Route path="/restaurant/settings" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><RestaurantSettingsPage /></RestaurantGuard></RG>} />
+                <Route path="/supplier-invite" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><SupplierInvitePage /></RestaurantGuard></RG>} />
 
                 {/* Professional */}
                 <Route path="/pro" element={<RG roles={["professional", "admin"]}><ProPage /></RG>} />
