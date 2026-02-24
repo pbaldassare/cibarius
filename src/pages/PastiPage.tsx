@@ -6,6 +6,7 @@ import ListSkeleton from "@/components/ListSkeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Plus, UtensilsCrossed, Target } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface MealDay {
   id: string;
@@ -23,6 +24,7 @@ const mealEmoji: Record<string, string> = {
 const PastiPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [mealDay, setMealDay] = useState<MealDay | null>(null);
 
@@ -49,7 +51,10 @@ const PastiPage = () => {
       <main className="space-y-4 px-4 py-5">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-foreground">Oggi</h2>
-          <button className="flex items-center gap-1 text-sm font-medium text-primary">
+          <button
+            onClick={() => toast({ title: "In arrivo!", description: "La funzione di aggiunta pasti sarà disponibile a breve." })}
+            className="flex items-center gap-1 text-sm font-medium text-primary"
+          >
             <Plus size={16} />
             Aggiungi
           </button>
@@ -63,7 +68,7 @@ const PastiPage = () => {
             title="Nessun pasto registrato"
             description="Aggiungi il tuo primo alimento per tracciare le calorie di oggi."
             actions={[
-              { label: "Aggiungi alimento", icon: Plus, onClick: () => {} },
+              { label: "Aggiungi alimento", icon: Plus, onClick: () => toast({ title: "In arrivo!", description: "La funzione di aggiunta pasti sarà disponibile a breve." }) },
               { label: "Obiettivi", icon: Target, variant: "outline", onClick: () => navigate("/meals/targets") },
             ]}
           />
