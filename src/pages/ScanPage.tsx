@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   ScanLine, Keyboard, Camera, Loader2, Package, AlertTriangle,
-  RefreshCw, X, Plus, Search, CalendarSearch, Check,
+  RefreshCw, X, Plus, Search, CalendarSearch, Check, Flame,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────
@@ -37,6 +37,36 @@ interface ProductData {
   image_url: string | null;
   calories_100g: number | null;
   macros_100g: { protein: number; carbs: number; fats: number } | null;
+  serving_size_g?: number | null;
+}
+
+// ─── Calorie calculation helper ───────────────────────
+function calcNutrition(
+  qty: number,
+  unitVal: string,
+  cal100g: number | null,
+  macros100g: { protein: number; carbs: number; fats: number } | null,
+  servingSizeG: number | null
+): { calories: number | null; macros: { protein: number; carbs: number; fats: number } | null } {
+  if (cal100g == null) return { calories: null, macros: null };
+  let grams: number;
+  if (unitVal === "g" || unitVal === "ml") grams = qty;
+  else if (unitVal === "kg" || unitVal === "l") grams = qty * 1000;
+  else {
+    if (!servingSizeG) return { calories: null, macros: null };
+    grams = qty * servingSizeG;
+  }
+  const factor = grams / 100;
+  return {
+    calories: Math.round(factor * cal100g),
+    macros: macros100g
+      ? {
+          protein: Math.round(factor * macros100g.protein * 10) / 10,
+          carbs: Math.round(factor * macros100g.carbs * 10) / 10,
+          fats: Math.round(factor * macros100g.fats * 10) / 10,
+        }
+      : null,
+  };
 }
 
 // ─── Barcode cache (localStorage) ─────────────────────
@@ -278,13 +308,20 @@ const ScanPage = () => {
       productId = created.id;
     }
 
-    // 2) Create inventory item
+    // 2) Create inventory item with calorie calc
+    const qty = parseFloat(quantity) || 1;
+    const { calories, macros } = calcNutrition(
+      qty, unit, product.calories_100g, product.macros_100g, product.serving_size_g ?? null
+    );
+
     const insertData: any = {
       product_id: productId,
-      quantity: parseFloat(quantity) || 1,
+      quantity: qty,
       unit,
       storage_type: storage,
       expiry_date: expiry || null,
+      calories_total: calories,
+      macros_total: macros as any,
     };
 
     if (role === "restaurant_owner" && restaurant) {
@@ -488,6 +525,30 @@ const ScanPage = () => {
                   )}
                 </div>
               )}
+
+              {/* Live calorie estimate */}
+              {(() => {
+                const qty = parseFloat(quantity) || 0;
+                const { calories: liveCal, macros: liveMacros } = calcNutrition(
+                  qty, unit, product.calories_100g, product.macros_100g, product.serving_size_g ?? null
+                );
+                if (liveCal != null) return (
+                  <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 space-y-1">
+                    <p className="text-sm font-bold text-primary flex items-center gap-1">
+                      <Flame className="h-4 w-4" /> {liveCal} kcal totali
+                    </p>
+                    {liveMacros && (
+                      <p className="text-xs text-muted-foreground">
+                        P {liveMacros.protein}g · C {liveMacros.carbs}g · G {liveMacros.fats}g
+                      </p>
+                    )}
+                  </div>
+                );
+                if (product.calories_100g != null && (unit === "pezzi" || unit === "porzioni") && !product.serving_size_g) return (
+                  <p className="text-xs text-accent">⚠ Inserisci il peso per porzione per calcolare le kcal</p>
+                );
+                return null;
+              })()}
 
               {/* Inventory fields */}
               <div className="space-y-3 border-t border-border pt-4">

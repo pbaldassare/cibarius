@@ -61,6 +61,7 @@ export type Database = {
           created_at: string
           expiry_date: string | null
           id: string
+          macros_total: Json | null
           notes: string | null
           owner_user_id: string | null
           product_id: string
@@ -74,6 +75,7 @@ export type Database = {
           created_at?: string
           expiry_date?: string | null
           id?: string
+          macros_total?: Json | null
           notes?: string | null
           owner_user_id?: string | null
           product_id: string
@@ -87,6 +89,7 @@ export type Database = {
           created_at?: string
           expiry_date?: string | null
           id?: string
+          macros_total?: Json | null
           notes?: string | null
           owner_user_id?: string | null
           product_id?: string
@@ -123,6 +126,7 @@ export type Database = {
           image_url: string | null
           macros_100g: Json | null
           name: string
+          serving_size_g: number | null
           unit: string | null
         }
         Insert: {
@@ -135,6 +139,7 @@ export type Database = {
           image_url?: string | null
           macros_100g?: Json | null
           name: string
+          serving_size_g?: number | null
           unit?: string | null
         }
         Update: {
@@ -147,6 +152,7 @@ export type Database = {
           image_url?: string | null
           macros_100g?: Json | null
           name?: string
+          serving_size_g?: number | null
           unit?: string | null
         }
         Relationships: []
