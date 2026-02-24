@@ -35,10 +35,10 @@ interface InventoryItemWithProduct {
   };
 }
 
-type ExpiryStatus = "expired" | "expiring" | "ok";
+type ExpiryStatus = "expired" | "expiring" | "ok" | "nodate";
 
 const getExpiryStatus = (expiryDate: string | null): ExpiryStatus => {
-  if (!expiryDate) return "ok";
+  if (!expiryDate) return "nodate";
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const expiry = new Date(expiryDate);
@@ -52,6 +52,7 @@ const statusConfig: Record<ExpiryStatus, { label: string; className: string }> =
   expired: { label: "SCADUTO", className: "bg-destructive text-destructive-foreground" },
   expiring: { label: "IN SCADENZA", className: "bg-accent text-accent-foreground" },
   ok: { label: "OK", className: "bg-success text-success-foreground" },
+  nodate: { label: "SENZA DATA", className: "bg-muted text-muted-foreground" },
 };
 
 // ─── Calorie calculation helper ───────────────────────

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Store } from "lucide-react";
+import { Loader2, Store, Phone } from "lucide-react";
 
 const RestaurantOnboardingPage = () => {
   const { user } = useAuth();
@@ -75,12 +75,18 @@ const RestaurantOnboardingPage = () => {
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
               />
-              <Input
-                placeholder="Telefono *"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                required
-              />
+              <div className="space-y-1">
+                <Input
+                  placeholder="Telefono *"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  required
+                  type="tel"
+                />
+                <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                  <Phone className="h-3 w-3" /> Obbligatorio per le ricette pubbliche
+                </p>
+              </div>
               <Button type="submit" className="w-full" disabled={submitting}>
                 {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Crea ristorante

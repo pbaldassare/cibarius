@@ -16,7 +16,7 @@ import { useRestaurant } from "@/hooks/useRestaurant";
 import { useToast } from "@/hooks/use-toast";
 import {
   BookOpen, Plus, Loader2, Search, Pencil, Trash2, Save,
-  Clock, ChefHat, X, Eye, EyeOff, Flame,
+  Clock, ChefHat, X, Eye, EyeOff, Flame, AlertTriangle,
 } from "lucide-react";
 import EmptyState from "@/components/EmptyState";
 import ListSkeleton from "@/components/ListSkeleton";
@@ -189,6 +189,17 @@ const RestaurantRecipesPage = () => {
 
   const handleSave = async () => {
     if (!restaurant || !title.trim()) return;
+
+    // Block public if phone missing
+    if (isPublic && !restaurant.phone?.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Telefono mancante",
+        description: "Inserisci il telefono del ristorante nelle impostazioni prima di pubblicare la ricetta.",
+      });
+      return;
+    }
+
     setSaving(true);
 
     const recipeData = {
@@ -295,10 +306,18 @@ const RestaurantRecipesPage = () => {
             <Input placeholder="Porzioni" type="number" value={servings} onChange={(e) => setServings(e.target.value)} />
           </div>
 
-          <div className="flex items-center gap-3">
-            <Switch checked={isPublic} onCheckedChange={setIsPublic} id="public-switch" />
-            <Label htmlFor="public-switch" className="text-sm">Ricetta pubblica</Label>
-            {isPublic ? <Eye className="h-4 w-4 text-primary" /> : <EyeOff className="h-4 w-4 text-muted-foreground" />}
+          <div className="space-y-1">
+            <div className="flex items-center gap-3">
+              <Switch checked={isPublic} onCheckedChange={setIsPublic} id="public-switch" />
+              <Label htmlFor="public-switch" className="text-sm">Ricetta pubblica</Label>
+              {isPublic ? <Eye className="h-4 w-4 text-primary" /> : <EyeOff className="h-4 w-4 text-muted-foreground" />}
+            </div>
+            {isPublic && !restaurant?.phone?.trim() && (
+              <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-2.5">
+                <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
+                <p className="text-xs text-destructive">Inserisci il telefono nelle impostazioni ristorante per pubblicare.</p>
+              </div>
+            )}
           </div>
 
           <Textarea placeholder="Istruzioni / Procedimento" value={instructions} onChange={(e) => setInstructions(e.target.value)} className="min-h-[100px]" />
