@@ -1,0 +1,166 @@
+import { useEffect, useState } from "react";
+import AdminLayout from "@/components/AdminLayout";
+import { supabase } from "@/integrations/supabase/client";
+import { Profile, AppRole } from "@/hooks/useRole";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, Search, Save } from "lucide-react";
+
+const ROLES: AppRole[] = ["user", "restaurant_owner", "admin", "professional", "supplier"];
+
+const AdminUsersPage = () => {
+  const { toast } = useToast();
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [filterRole, setFilterRole] = useState<string>("all");
+  const [pendingChanges, setPendingChanges] = useState<Record<string, AppRole>>({});
+  const [saving, setSaving] = useState<string | null>(null);
+
+  const fetchProfiles = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (!error && data) {
+      setProfiles(data as Profile[]);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchProfiles();
+  }, []);
+
+  const handleRoleChange = (userId: string, newRole: AppRole) => {
+    setPendingChanges((prev) => ({ ...prev, [userId]: newRole }));
+  };
+
+  const handleSave = async (userId: string) => {
+    const newRole = pendingChanges[userId];
+    if (!newRole) return;
+    setSaving(userId);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ role: newRole })
+      .eq("id", userId);
+    setSaving(null);
+    if (error) {
+      toast({ variant: "destructive", title: "Errore", description: error.message });
+    } else {
+      toast({ title: "Ruolo aggiornato" });
+      setProfiles((prev) =>
+        prev.map((p) => (p.id === userId ? { ...p, role: newRole } : p))
+      );
+      setPendingChanges((prev) => {
+        const copy = { ...prev };
+        delete copy[userId];
+        return copy;
+      });
+    }
+  };
+
+  const filtered = profiles.filter((p) => {
+    const matchSearch = !search || p.email.toLowerCase().includes(search.toLowerCase()) ||
+      (p.full_name ?? "").toLowerCase().includes(search.toLowerCase());
+    const matchRole = filterRole === "all" || p.role === filterRole;
+    return matchSearch && matchRole;
+  });
+
+  return (
+    <AdminLayout>
+      <h1 className="mb-6 text-2xl font-bold text-foreground">Gestione Utenti</h1>
+
+      {/* Filters */}
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Cerca per email o nome..."
+            className="pl-9"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <Select value={filterRole} onValueChange={setFilterRole}>
+          <SelectTrigger className="w-full sm:w-48">
+            <SelectValue placeholder="Filtra per ruolo" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tutti i ruoli</SelectItem>
+            {ROLES.map((r) => (
+              <SelectItem key={r} value={r}>{r}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : (
+        <div className="rounded-xl border border-border bg-card overflow-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Email</TableHead>
+                <TableHead>Nome</TableHead>
+                <TableHead>Ruolo</TableHead>
+                <TableHead className="w-20" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map((p) => (
+                <TableRow key={p.id}>
+                  <TableCell className="text-sm">{p.email}</TableCell>
+                  <TableCell className="text-sm">{p.full_name || "—"}</TableCell>
+                  <TableCell>
+                    <Select
+                      value={pendingChanges[p.id] ?? p.role}
+                      onValueChange={(v) => handleRoleChange(p.id, v as AppRole)}
+                    >
+                      <SelectTrigger className="w-40">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ROLES.map((r) => (
+                          <SelectItem key={r} value={r}>{r}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell>
+                    {pendingChanges[p.id] && (
+                      <Button
+                        size="sm"
+                        onClick={() => handleSave(p.id)}
+                        disabled={saving === p.id}
+                      >
+                        {saving === p.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+              {filtered.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                    Nessun utente trovato
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </AdminLayout>
+  );
+};
+
+export default AdminUsersPage;
