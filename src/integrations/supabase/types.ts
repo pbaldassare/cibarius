@@ -55,6 +55,36 @@ export type Database = {
           },
         ]
       }
+      client_links: {
+        Row: {
+          activated_at: string | null
+          client_user_id: string
+          created_at: string
+          id: string
+          invite_code: string
+          professional_id: string
+          status: string
+        }
+        Insert: {
+          activated_at?: string | null
+          client_user_id: string
+          created_at?: string
+          id?: string
+          invite_code: string
+          professional_id: string
+          status?: string
+        }
+        Update: {
+          activated_at?: string | null
+          client_user_id?: string
+          created_at?: string
+          id?: string
+          invite_code?: string
+          professional_id?: string
+          status?: string
+        }
+        Relationships: []
+      }
       inventory_items: {
         Row: {
           calories_total: number | null
@@ -298,6 +328,54 @@ export type Database = {
         }
         Relationships: []
       }
+      professional_invites: {
+        Row: {
+          created_at: string
+          id: string
+          invite_code: string
+          professional_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invite_code: string
+          professional_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invite_code?: string
+          professional_id?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      professional_notes: {
+        Row: {
+          client_user_id: string
+          created_at: string
+          id: string
+          note: string
+          professional_id: string
+        }
+        Insert: {
+          client_user_id: string
+          created_at?: string
+          id?: string
+          note: string
+          professional_id: string
+        }
+        Update: {
+          client_user_id?: string
+          created_at?: string
+          id?: string
+          note?: string
+          professional_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -390,6 +468,10 @@ export type Database = {
     }
     Functions: {
       current_user_is_admin: { Args: never; Returns: boolean }
+      has_active_client_link: {
+        Args: { _client_id: string; _pro_id: string }
+        Returns: boolean
+      }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       owns_meal: { Args: { _meal_id: string }; Returns: boolean }
       owns_meal_day: { Args: { _meal_day_id: string }; Returns: boolean }
