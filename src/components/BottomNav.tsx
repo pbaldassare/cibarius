@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { useRole, AppRole } from "@/hooks/useRole";
+import { useRole } from "@/hooks/useRole";
 import {
   Home, ScanLine, ShoppingBag, UtensilsCrossed, User,
   Store, BookOpen, LayoutDashboard, Users, FileText,
@@ -48,13 +48,12 @@ const BottomNav = () => {
   const location = useLocation();
   const { role } = useRole();
 
-  // Admin doesn't use bottom nav
   if (role === "admin") return null;
 
   const tabs = tabsByRole[role ?? "user"] ?? tabsByRole.user;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/95 backdrop-blur-md safe-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-primary to-primary-dark safe-bottom">
       <div className="mx-auto flex h-[var(--nav-height)] max-w-lg items-center justify-around px-2">
         {tabs.map(({ to, icon: Icon, label }) => {
           const isActive = location.pathname === to;
@@ -66,16 +65,19 @@ const BottomNav = () => {
             >
               <Icon
                 size={22}
-                strokeWidth={isActive ? 2.2 : 1.8}
-                className={isActive ? "text-primary" : "text-muted-foreground"}
+                strokeWidth={isActive ? 2.4 : 1.8}
+                className={isActive ? "text-white" : "text-white/70"}
               />
               <span
                 className={`text-[10px] font-medium ${
-                  isActive ? "text-primary" : "text-muted-foreground"
+                  isActive ? "text-white" : "text-white/70"
                 }`}
               >
                 {label}
               </span>
+              {isActive && (
+                <div className="mt-0.5 h-0.5 w-4 rounded-full bg-white" />
+              )}
             </NavLink>
           );
         })}
