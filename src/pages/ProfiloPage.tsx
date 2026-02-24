@@ -9,9 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 
-const menuItems = [
+const menuItems: { icon: any; label: string; count?: number; path?: string }[] = [
   { icon: Heart, label: "Preferiti", count: 12 },
-  { icon: Bell, label: "Notifiche" },
+  { icon: Bell, label: "Promemoria scadenze", path: "/reminders" },
   { icon: Settings, label: "Impostazioni" },
   { icon: HelpCircle, label: "Aiuto" },
 ];
@@ -140,6 +140,7 @@ const ProfiloPage = () => {
           {menuItems.map((item, i) => (
             <button
               key={item.label}
+              onClick={() => item.path && navigate(item.path)}
               className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors active:bg-secondary ${
                 i > 0 ? "border-t border-border" : ""
               }`}
