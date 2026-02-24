@@ -42,13 +42,17 @@ const tabsByRole: Record<string, TabItem[]> = {
     { to: "/supplier/reports", icon: FileText, label: "Report" },
     { to: "/profile", icon: User, label: "Profilo" },
   ],
+  admin: [
+    { to: "/admin", icon: LayoutDashboard, label: "Dashboard" },
+    { to: "/admin/users", icon: Users, label: "Utenti" },
+    { to: "/admin/settings", icon: Archive, label: "Impostazioni" },
+    { to: "/profile", icon: User, label: "Profilo" },
+  ],
 };
 
 const BottomNav = () => {
   const location = useLocation();
   const { role } = useRole();
-
-  if (role === "admin") return null;
 
   const tabs = tabsByRole[role ?? "user"] ?? tabsByRole.user;
 
