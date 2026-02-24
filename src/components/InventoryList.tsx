@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Search, SlidersHorizontal, Package, Loader2 } from "lucide-react";
+import { Plus, Search, SlidersHorizontal, Package, Loader2, Flame } from "lucide-react";
 
 interface InventoryItemWithProduct {
   id: string;
@@ -19,12 +19,17 @@ interface InventoryItemWithProduct {
   storage_type: string;
   expiry_date: string | null;
   notes: string | null;
+  calories_total: number | null;
+  macros_total: { protein: number; carbs: number; fats: number } | null;
   product: {
     id: string;
     name: string;
     brand: string | null;
     image_url: string | null;
     category: string | null;
+    calories_100g: number | null;
+    serving_size_g: number | null;
+    macros_100g: { protein: number; carbs: number; fats: number } | null;
   };
 }
 
@@ -46,6 +51,40 @@ const statusConfig: Record<ExpiryStatus, { label: string; className: string }> =
   expiring: { label: "IN SCADENZA", className: "bg-accent text-accent-foreground" },
   ok: { label: "OK", className: "bg-success text-success-foreground" },
 };
+
+// ─── Calorie calculation helper ───────────────────────
+function calcNutrition(
+  qty: number,
+  unit: string,
+  cal100g: number | null,
+  macros100g: { protein: number; carbs: number; fats: number } | null,
+  servingSizeG: number | null
+): { calories: number | null; macros: { protein: number; carbs: number; fats: number } | null } {
+  if (cal100g == null) return { calories: null, macros: null };
+
+  let grams: number;
+  if (unit === "g" || unit === "ml") {
+    grams = qty;
+  } else if (unit === "kg" || unit === "l") {
+    grams = qty * 1000;
+  } else {
+    // pezzi / porzioni → use serving_size_g
+    if (!servingSizeG) return { calories: null, macros: null };
+    grams = qty * servingSizeG;
+  }
+
+  const factor = grams / 100;
+  const calories = Math.round(factor * cal100g);
+  const macros = macros100g
+    ? {
+        protein: Math.round(factor * macros100g.protein * 10) / 10,
+        carbs: Math.round(factor * macros100g.carbs * 10) / 10,
+        fats: Math.round(factor * macros100g.fats * 10) / 10,
+      }
+    : null;
+
+  return { calories, macros };
+}
 
 interface InventoryListProps {
   mode: "user" | "restaurant";
@@ -87,7 +126,7 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
 
     let query = supabase
       .from("inventory_items")
-      .select("id, quantity, unit, storage_type, expiry_date, notes, product:products(id, name, brand, image_url, category)")
+      .select("id, quantity, unit, storage_type, expiry_date, notes, calories_total, macros_total, product:products(id, name, brand, image_url, category, calories_100g, serving_size_g, macros_100g)")
       .order("expiry_date", { ascending: true, nullsFirst: false });
 
     if (mode === "user") {
@@ -155,7 +194,7 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
       await supabase.from("attachments").insert(attachData);
     }
 
-    // Create inventory item
+    // Create inventory item (no calorie calc for manually added products without nutrition data)
     const insertData: any = {
       product_id: product.id,
       quantity: parseFloat(newQuantity) || 1,
@@ -324,6 +363,16 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
             {filtered.map((item) => {
               const status = getExpiryStatus(item.expiry_date);
               const cfg = statusConfig[status];
+              // Compute calories for display (use stored or calculate on-the-fly)
+              const { calories: computedCal } = calcNutrition(
+                item.quantity ?? 0,
+                item.unit ?? "pezzi",
+                item.product.calories_100g,
+                item.product.macros_100g,
+                item.product.serving_size_g
+              );
+              const displayCal = item.calories_total ?? computedCal;
+
               return (
                 <div
                   key={item.id}
@@ -348,11 +397,20 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
                     <p className="text-xs text-muted-foreground">
                       x{item.quantity} {item.unit ?? ""}
                     </p>
-                    {item.expiry_date && (
-                      <p className="text-[10px] text-muted-foreground">
-                        Scad: {new Date(item.expiry_date).toLocaleDateString("it-IT")}
-                      </p>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {displayCal != null ? (
+                        <span className="flex items-center gap-0.5 text-[10px] font-semibold text-primary">
+                          <Flame className="h-3 w-3" /> {displayCal} kcal
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-muted-foreground">kcal: —</span>
+                      )}
+                      {item.expiry_date && (
+                        <span className="text-[10px] text-muted-foreground">
+                          Scad: {new Date(item.expiry_date).toLocaleDateString("it-IT")}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Badge */}
