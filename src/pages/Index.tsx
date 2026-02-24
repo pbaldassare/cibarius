@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import MobileHeader from "@/components/MobileHeader";
+import { useRole, getRoleHomePath } from "@/hooks/useRole";
 import SearchBar from "@/components/SearchBar";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,9 +18,17 @@ interface ExpiryItem {
 
 const Index = () => {
   const { user } = useAuth();
+  const { role, isLoading: roleLoading } = useRole();
   const navigate = useNavigate();
   const [alerts, setAlerts] = useState<ExpiryItem[]>([]);
   const [loadingAlerts, setLoadingAlerts] = useState(true);
+
+  // Redirect non-user roles to their home page
+  useEffect(() => {
+    if (!roleLoading && role && role !== "user") {
+      navigate(getRoleHomePath(role), { replace: true });
+    }
+  }, [role, roleLoading, navigate]);
 
   useEffect(() => {
     if (!user) return;
