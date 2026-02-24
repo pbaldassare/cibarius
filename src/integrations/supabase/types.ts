@@ -813,6 +813,14 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_restaurant_accessible: {
+        Args: { _restaurant_id: string }
+        Returns: boolean
+      }
+      is_restaurant_owner: {
+        Args: { _restaurant_id: string }
+        Returns: boolean
+      }
       owns_meal: { Args: { _meal_id: string }; Returns: boolean }
       owns_meal_day: { Args: { _meal_day_id: string }; Returns: boolean }
       owns_recipe_restaurant: { Args: { _recipe_id: string }; Returns: boolean }
