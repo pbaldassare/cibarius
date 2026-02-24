@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback, memo } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 import { useAuth } from "@/hooks/useAuth";
 import { useRestaurant } from "@/hooks/useRestaurant";
 import { supabase } from "@/integrations/supabase/client";
@@ -238,13 +239,15 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
     setNewImagePath(null);
   };
 
-  const filtered = items.filter((item) => {
-    const matchSearch = !search || item.product.name.toLowerCase().includes(search.toLowerCase());
+  const debouncedSearch = useDebounce(search, 250);
+
+  const filtered = useMemo(() => items.filter((item) => {
+    const matchSearch = !debouncedSearch || item.product.name.toLowerCase().includes(debouncedSearch.toLowerCase());
     const matchStorage = storageFilter === "all" || item.storage_type === storageFilter;
     const status = getExpiryStatus(item.expiry_date);
     const matchStatus = statusFilter === "all" || status === statusFilter;
     return matchSearch && matchStorage && matchStatus;
-  });
+  }), [items, debouncedSearch, storageFilter, statusFilter]);
 
   return (
     <div>
@@ -433,4 +436,4 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
   );
 };
 
-export default InventoryList;
+export default memo(InventoryList);

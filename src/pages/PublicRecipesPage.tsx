@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 import MobileHeader from "@/components/MobileHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -44,11 +45,12 @@ const PublicRecipesPage = () => {
     load();
   }, []);
 
-  const filtered = recipes.filter((r) => {
-    if (search && !r.title.toLowerCase().includes(search.toLowerCase())) return false;
+  const debouncedSearch = useDebounce(search, 250);
+  const filtered = useMemo(() => recipes.filter((r) => {
+    if (debouncedSearch && !r.title.toLowerCase().includes(debouncedSearch.toLowerCase())) return false;
     if (filterCat !== "all" && r.category !== filterCat) return false;
     return true;
-  });
+  }), [recipes, debouncedSearch, filterCat]);
 
   return (
     <div>

@@ -69,26 +69,41 @@ function calcNutrition(
   };
 }
 
-// ─── Barcode cache (localStorage) ─────────────────────
+// ─── Barcode cache (localStorage) with TTL ───────────
 const CACHE_KEY = "cibarius_barcode_cache";
-const getCache = (): Record<string, ProductData> => {
+const CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+interface CacheEntry { data: ProductData; ts: number }
+
+const getCache = (): Record<string, CacheEntry> => {
   try {
     return JSON.parse(localStorage.getItem(CACHE_KEY) || "{}");
   } catch { return {}; }
 };
+
+const getCached = (barcode: string): ProductData | null => {
+  const entry = getCache()[barcode];
+  if (!entry) return null;
+  if (Date.now() - entry.ts > CACHE_TTL_MS) return null;
+  return entry.data;
+};
+
 const setCache = (barcode: string, data: ProductData) => {
   const c = getCache();
-  c[barcode] = data;
-  // Keep max 200 entries
+  c[barcode] = { data, ts: Date.now() };
+  // Evict oldest if > 200 entries
   const keys = Object.keys(c);
-  if (keys.length > 200) delete c[keys[0]];
+  if (keys.length > 200) {
+    const oldest = keys.sort((a, b) => c[a].ts - c[b].ts)[0];
+    delete c[oldest];
+  }
   localStorage.setItem(CACHE_KEY, JSON.stringify(c));
 };
 
 // ─── OpenFoodFacts lookup ─────────────────────────────
 const lookupBarcode = async (barcode: string): Promise<ProductData | null> => {
   // Check cache first
-  const cached = getCache()[barcode];
+  const cached = getCached(barcode);
   if (cached) return cached;
 
   try {

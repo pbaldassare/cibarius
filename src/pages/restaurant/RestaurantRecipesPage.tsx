@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
 import MobileHeader from "@/components/MobileHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -264,11 +265,12 @@ const RestaurantRecipesPage = () => {
   }, 0);
   const servingsNum = parseInt(servings) || 1;
 
-  const filtered = recipes.filter((r) => {
-    if (search && !r.title.toLowerCase().includes(search.toLowerCase())) return false;
+  const debouncedSearch = useDebounce(search, 250);
+  const filtered = useMemo(() => recipes.filter((r) => {
+    if (debouncedSearch && !r.title.toLowerCase().includes(debouncedSearch.toLowerCase())) return false;
     if (filterCat !== "all" && r.category !== filterCat) return false;
     return true;
-  });
+  }), [recipes, debouncedSearch, filterCat]);
 
   // Editor view
   if (editing) {
