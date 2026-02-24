@@ -41,11 +41,71 @@ export type Database = {
         }
         Relationships: []
       }
+      restaurant_members: {
+        Row: {
+          created_at: string
+          id: string
+          member_role: string
+          restaurant_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          member_role?: string
+          restaurant_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          member_role?: string
+          restaurant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_members_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restaurants: {
+        Row: {
+          address: string | null
+          created_at: string
+          id: string
+          name: string
+          owner_id: string
+          phone: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          owner_id: string
+          phone: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          owner_id?: string
+          phone?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      current_user_is_admin: { Args: never; Returns: boolean }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
