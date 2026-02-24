@@ -1,1 +1,4 @@
 project_id = "dqhzopbjhxyhgcpedskl"
+
+[functions.extract-expiry]
+verify_jwt = false

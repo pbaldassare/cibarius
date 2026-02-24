@@ -11,9 +11,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   ScanLine, Keyboard, Camera, Loader2, Package, AlertTriangle,
-  RefreshCw, X, Plus, Search,
+  RefreshCw, X, Plus, Search, CalendarSearch, Check,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────
@@ -204,6 +205,14 @@ const ScanPage = () => {
   const [expiry, setExpiry] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // Expiry OCR
+  const [expiryModalOpen, setExpiryModalOpen] = useState(false);
+  const [expiryImage, setExpiryImage] = useState<string | null>(null);
+  const [expiryAnalyzing, setExpiryAnalyzing] = useState(false);
+  const [expiryCandidates, setExpiryCandidates] = useState<{ date: string; label: string; confidence: number }[]>([]);
+  const [expiryRawText, setExpiryRawText] = useState("");
+  const expiryInputRef = useRef<HTMLInputElement>(null);
+
   const handleBarcode = useCallback(async (code: string) => {
     if (loading || code === scannedCode) return;
     setScannedCode(code);
@@ -304,6 +313,62 @@ const ScanPage = () => {
     setUnit("pezzi");
     setStorage("frigo");
     setExpiry("");
+    setExpiryModalOpen(false);
+    setExpiryImage(null);
+    setExpiryCandidates([]);
+    setExpiryRawText("");
+  };
+
+  const handleExpiryPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Read as base64
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const dataUrl = reader.result as string;
+      setExpiryImage(dataUrl);
+      setExpiryModalOpen(true);
+      setExpiryAnalyzing(true);
+      setExpiryCandidates([]);
+      setExpiryRawText("");
+
+      // Extract base64 data (strip prefix)
+      const base64 = dataUrl.split(",")[1];
+      const mimeType = file.type || "image/jpeg";
+
+      try {
+        const { data, error } = await supabase.functions.invoke("extract-expiry", {
+          body: { image_base64: base64, mime_type: mimeType },
+        });
+
+        if (error) throw error;
+
+        if (data?.candidates?.length) {
+          setExpiryCandidates(data.candidates);
+          // Auto-select highest confidence "Scadenza"
+          const best = data.candidates
+            .filter((c: any) => c.label === "Scadenza")
+            .sort((a: any, b: any) => b.confidence - a.confidence)[0]
+            || data.candidates.sort((a: any, b: any) => b.confidence - a.confidence)[0];
+          if (best) setExpiry(best.date);
+        }
+        if (data?.raw_text) setExpiryRawText(data.raw_text);
+      } catch (err: any) {
+        toast({ variant: "destructive", title: "Errore OCR", description: err?.message || "Impossibile leggere la scadenza" });
+      } finally {
+        setExpiryAnalyzing(false);
+      }
+    };
+    reader.readAsDataURL(file);
+    // Reset input so same file can be re-selected
+    e.target.value = "";
+  };
+
+  const confirmExpiryDate = (date: string) => {
+    setExpiry(date);
+    setExpiryModalOpen(false);
+    toast({ title: "Scadenza impostata", description: new Date(date).toLocaleDateString("it-IT") });
   };
 
   return (
@@ -453,13 +518,39 @@ const ScanPage = () => {
                     <SelectItem value="ambiente">Dispensa</SelectItem>
                   </SelectContent>
                 </Select>
-                <Input
-                  type="date"
-                  value={expiry}
-                  onChange={(e) => setExpiry(e.target.value)}
-                  className="border-accent/30"
-                  placeholder="Scadenza"
-                />
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <Input
+                      type="date"
+                      value={expiry}
+                      onChange={(e) => setExpiry(e.target.value)}
+                      className="flex-1 border-accent/30"
+                      placeholder="Scadenza"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="shrink-0 gap-1.5 border-accent/30"
+                      onClick={() => expiryInputRef.current?.click()}
+                    >
+                      <CalendarSearch className="h-4 w-4" />
+                      <span className="hidden xs:inline">Leggi da foto</span>
+                    </Button>
+                    <input
+                      ref={expiryInputRef}
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="hidden"
+                      onChange={handleExpiryPhoto}
+                    />
+                  </div>
+                  {expiry && (
+                    <p className="text-xs text-muted-foreground">
+                      Scadenza: <span className="font-semibold">{new Date(expiry).toLocaleDateString("it-IT")}</span>
+                    </p>
+                  )}
+                </div>
               </div>
 
               <Button className="w-full h-12 text-base font-bold" onClick={handleSave} disabled={saving || (!product.name && notFound)}>
@@ -469,6 +560,86 @@ const ScanPage = () => {
             </div>
           </div>
         )}
+
+        {/* Expiry OCR Modal */}
+        <Dialog open={expiryModalOpen} onOpenChange={setExpiryModalOpen}>
+          <DialogContent className="max-w-md mx-4">
+            <DialogHeader>
+              <DialogTitle>Lettura scadenza</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              {/* Preview */}
+              {expiryImage && (
+                <div className="rounded-xl overflow-hidden border-2 border-accent bg-secondary max-h-48">
+                  <img src={expiryImage} alt="Etichetta" className="w-full h-full object-contain" />
+                </div>
+              )}
+
+              {/* Analyzing */}
+              {expiryAnalyzing && (
+                <div className="flex flex-col items-center gap-2 py-4">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <p className="text-sm text-muted-foreground">Analisi in corso…</p>
+                </div>
+              )}
+
+              {/* Results */}
+              {!expiryAnalyzing && expiryCandidates.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold text-foreground">Date trovate:</p>
+                  {expiryCandidates.map((c, i) => (
+                    <button
+                      key={i}
+                      className={`flex w-full items-center justify-between rounded-xl border-2 p-3 transition-colors ${
+                        expiry === c.date
+                          ? "border-primary bg-primary/5"
+                          : "border-accent/30 bg-card hover:border-primary/50"
+                      }`}
+                      onClick={() => setExpiry(c.date)}
+                    >
+                      <div className="text-left">
+                        <p className="font-bold text-foreground">
+                          {new Date(c.date).toLocaleDateString("it-IT")}
+                        </p>
+                        <p className="text-xs text-muted-foreground">{c.label}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant="outline"
+                          className={c.label === "Scadenza" ? "border-primary text-primary" : ""}
+                        >
+                          {Math.round(c.confidence * 100)}%
+                        </Badge>
+                        {expiry === c.date && (
+                          <Check className="h-5 w-5 text-primary" />
+                        )}
+                      </div>
+                    </button>
+                  ))}
+
+                  <Button
+                    className="w-full mt-2"
+                    onClick={() => confirmExpiryDate(expiry)}
+                    disabled={!expiry}
+                  >
+                    <Check className="mr-2 h-4 w-4" /> Conferma
+                  </Button>
+                </div>
+              )}
+
+              {/* No results */}
+              {!expiryAnalyzing && expiryCandidates.length === 0 && expiryImage && (
+                <div className="flex flex-col items-center gap-2 py-4 text-center">
+                  <AlertTriangle className="h-8 w-8 text-accent" />
+                  <p className="text-sm text-muted-foreground">Nessuna data trovata. Inserisci manualmente.</p>
+                  <Button variant="outline" onClick={() => setExpiryModalOpen(false)}>
+                    Chiudi
+                  </Button>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </main>
     </div>
   );
