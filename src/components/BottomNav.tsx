@@ -1,9 +1,9 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { useRole } from "@/hooks/useRole";
 import {
-  Home, ScanLine, ShoppingBag, UtensilsCrossed, User,
+  Home, ScanLine, ShoppingBag, User,
   Store, BookOpen, LayoutDashboard, Users, FileText,
-  MessageSquare, Building2, Package,
+  MessageSquare, Building2, Package, Snowflake, Archive,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -16,10 +16,10 @@ interface TabItem {
 const tabsByRole: Record<string, TabItem[]> = {
   user: [
     { to: "/", icon: Home, label: "Home" },
-    { to: "/scan", icon: ScanLine, label: "Scan" },
     { to: "/products", icon: ShoppingBag, label: "Prodotti" },
-    { to: "/meals", icon: UtensilsCrossed, label: "Pasti" },
-    { to: "/profile", icon: User, label: "Profilo" },
+    { to: "/scan", icon: ScanLine, label: "Scansiona" },
+    { to: "/freezer", icon: Snowflake, label: "Congelato" },
+    { to: "/pantry", icon: Archive, label: "Dispensa" },
   ],
   restaurant_owner: [
     { to: "/restaurant", icon: Store, label: "Home" },

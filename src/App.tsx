@@ -18,7 +18,9 @@ import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 // User pages
 import Index from "./pages/Index";
 import ScanPage from "./pages/ScanPage";
-import ProdottiPage from "./pages/ProdottiPage";
+import UserProductsPage from "./pages/UserProductsPage";
+import UserFreezerPage from "./pages/UserFreezerPage";
+import UserPantryPage from "./pages/UserPantryPage";
 import PastiPage from "./pages/PastiPage";
 import ProfiloPage from "./pages/ProfiloPage";
 
@@ -82,7 +84,9 @@ const App = () => (
                 {/* User */}
                 <Route path="/" element={<Index />} />
                 <Route path="/scan" element={<ScanPage />} />
-                <Route path="/products" element={<ProdottiPage />} />
+                <Route path="/products" element={<UserProductsPage />} />
+                <Route path="/freezer" element={<UserFreezerPage />} />
+                <Route path="/pantry" element={<UserPantryPage />} />
                 <Route path="/meals" element={<PastiPage />} />
                 <Route path="/profile" element={<ProfiloPage />} />
 
