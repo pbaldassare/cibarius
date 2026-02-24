@@ -115,6 +115,147 @@ export type Database = {
           },
         ]
       }
+      meal_days: {
+        Row: {
+          created_at: string
+          day_date: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          day_date: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          day_date?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      meal_items: {
+        Row: {
+          calories: number | null
+          created_at: string
+          custom_name: string | null
+          id: string
+          inventory_item_id: string | null
+          macros: Json | null
+          meal_id: string
+          product_id: string | null
+          quantity: number | null
+          source_type: string
+          unit: string | null
+        }
+        Insert: {
+          calories?: number | null
+          created_at?: string
+          custom_name?: string | null
+          id?: string
+          inventory_item_id?: string | null
+          macros?: Json | null
+          meal_id: string
+          product_id?: string | null
+          quantity?: number | null
+          source_type: string
+          unit?: string | null
+        }
+        Update: {
+          calories?: number | null
+          created_at?: string
+          custom_name?: string | null
+          id?: string
+          inventory_item_id?: string | null
+          macros?: Json | null
+          meal_id?: string
+          product_id?: string | null
+          quantity?: number | null
+          source_type?: string
+          unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meal_items_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meal_items_meal_id_fkey"
+            columns: ["meal_id"]
+            isOneToOne: false
+            referencedRelation: "meals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meal_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meals: {
+        Row: {
+          created_at: string
+          id: string
+          meal_day_id: string
+          meal_type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          meal_day_id: string
+          meal_type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          meal_day_id?: string
+          meal_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meals_meal_day_id_fkey"
+            columns: ["meal_day_id"]
+            isOneToOne: false
+            referencedRelation: "meal_days"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nutrition_targets: {
+        Row: {
+          carbs_g: number | null
+          fats_g: number | null
+          kcal_day: number
+          protein_g: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          carbs_g?: number | null
+          fats_g?: number | null
+          kcal_day?: number
+          protein_g?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          carbs_g?: number | null
+          fats_g?: number | null
+          kcal_day?: number
+          protein_g?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           barcode: string | null
@@ -250,6 +391,8 @@ export type Database = {
     Functions: {
       current_user_is_admin: { Args: never; Returns: boolean }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      owns_meal: { Args: { _meal_id: string }; Returns: boolean }
+      owns_meal_day: { Args: { _meal_day_id: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never

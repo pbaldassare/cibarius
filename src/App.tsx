@@ -22,6 +22,7 @@ import UserProductsPage from "./pages/UserProductsPage";
 import UserFreezerPage from "./pages/UserFreezerPage";
 import UserPantryPage from "./pages/UserPantryPage";
 import PastiPage from "./pages/PastiPage";
+import MealsTargetsPage from "./pages/MealsTargetsPage";
 import ProfiloPage from "./pages/ProfiloPage";
 
 // Admin pages
@@ -88,6 +89,7 @@ const App = () => (
                 <Route path="/freezer" element={<UserFreezerPage />} />
                 <Route path="/pantry" element={<UserPantryPage />} />
                 <Route path="/meals" element={<PastiPage />} />
+                <Route path="/meals/targets" element={<MealsTargetsPage />} />
                 <Route path="/profile" element={<ProfiloPage />} />
 
                 {/* Restaurant owner - onboarding (no RestaurantGuard) */}
