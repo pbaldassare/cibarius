@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Offline — Cibarius</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: #f2f2f2;
+      color: #1e2a35;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 2rem;
+      text-align: center;
+    }
+    .container { max-width: 360px; }
+    .icon {
+      width: 64px; height: 64px; margin: 0 auto 1.5rem;
+      border-radius: 50%;
+      background: #0B7DBE;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 2rem;
+    }
+    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.75rem; }
+    p { color: #6b7280; line-height: 1.6; margin-bottom: 1.5rem; }
+    button {
+      background: #22B6F2; color: #fff; border: none;
+      padding: 0.75rem 2rem; border-radius: 0.875rem;
+      font-size: 1rem; font-weight: 600; cursor: pointer;
+    }
+    button:active { opacity: 0.8; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">⚡</div>
+    <h1>Sei offline</h1>
+    <p>Controlla la connessione a Internet e riprova. I tuoi dati sono al sicuro.</p>
+    <button onclick="location.reload()">Riprova</button>
+  </div>
+</body>
+</html>
