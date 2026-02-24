@@ -18,6 +18,8 @@ import {
   BookOpen, Plus, Loader2, Search, Pencil, Trash2, Save,
   Clock, ChefHat, X, Eye, EyeOff, Flame,
 } from "lucide-react";
+import EmptyState from "@/components/EmptyState";
+import ListSkeleton from "@/components/ListSkeleton";
 
 interface Recipe {
   id: string;
@@ -413,14 +415,14 @@ const RestaurantRecipesPage = () => {
         </Select>
 
         {loading ? (
-          <div className="flex justify-center py-10"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+          <ListSkeleton count={3} variant="card" />
         ) : filtered.length === 0 ? (
-          <Card className="border-2 border-accent">
-            <CardContent className="py-8 text-center">
-              <BookOpen className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">Nessuna ricetta trovata.</p>
-            </CardContent>
-          </Card>
+          <EmptyState
+            icon={BookOpen}
+            title="Nessuna ricetta"
+            description="Crea la tua prima ricetta con ingredienti, allergeni e foto."
+            actions={[{ label: "Crea ricetta", icon: Plus, onClick: () => openEditor() }]}
+          />
         ) : (
           <div className="space-y-3">
             {filtered.map((r) => (

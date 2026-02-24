@@ -454,9 +454,10 @@ const ScanPage = () => {
 
         {/* Loading */}
         {loading && (
-          <div className="flex flex-col items-center gap-2 py-8">
+          <div className="flex flex-col items-center gap-3 py-8">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Ricerca prodotto…</p>
+            <p className="text-sm font-medium text-foreground">Ricerca in corso…</p>
+            <p className="text-xs text-muted-foreground">Controllo su OpenFoodFacts</p>
           </div>
         )}
 

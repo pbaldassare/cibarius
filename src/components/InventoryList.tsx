@@ -10,7 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Search, SlidersHorizontal, Package, Loader2, Flame } from "lucide-react";
+import { Plus, Search, SlidersHorizontal, Package, Loader2, Flame, ScanLine } from "lucide-react";
+import EmptyState from "@/components/EmptyState";
+import ListSkeleton from "@/components/ListSkeleton";
 
 interface InventoryItemWithProduct {
   id: string;
@@ -350,14 +352,17 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
 
         {/* Items list */}
         {loading ? (
-          <div className="flex justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
+          <ListSkeleton count={4} variant="card" />
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-            <Package className="mb-2 h-12 w-12" />
-            <p className="text-sm">Nessun prodotto trovato</p>
-          </div>
+          <EmptyState
+            icon={Package}
+            title="Nessun prodotto"
+            description={search ? "Nessun risultato per la tua ricerca." : "Aggiungi il primo prodotto scansionando o manualmente."}
+            actions={search ? undefined : [
+              { label: "Aggiungi prodotto", icon: Plus, onClick: () => setAddOpen(true) },
+              { label: "Scansiona", icon: ScanLine, variant: "outline" as const, onClick: () => window.location.href = "/scan" },
+            ]}
+          />
         ) : (
           <div className="space-y-2">
             {filtered.map((item) => {

@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Package, Plus, Loader2, Search, Pencil, Trash2, Save } from "lucide-react";
+import EmptyState from "@/components/EmptyState";
+import ListSkeleton from "@/components/ListSkeleton";
 
 interface CatalogItem {
   id: string;
@@ -126,14 +128,14 @@ const SupplierCatalogPage = () => {
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-10"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+          <ListSkeleton count={4} variant="card" />
         ) : filtered.length === 0 ? (
-          <Card className="border-2 border-accent">
-            <CardContent className="py-8 text-center">
-              <Package className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">Nessun prodotto in catalogo.</p>
-            </CardContent>
-          </Card>
+          <EmptyState
+            icon={Package}
+            title="Catalogo vuoto"
+            description="Aggiungi il primo prodotto al tuo listino prezzi."
+            actions={[{ label: "Aggiungi prodotto", icon: Plus, onClick: () => setAddOpen(true) }]}
+          />
         ) : (
           <div className="space-y-2">
             {filtered.map((item) => (
