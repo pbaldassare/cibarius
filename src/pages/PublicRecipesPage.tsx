@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Loader2, Search, BookOpen, Clock, Flame } from "lucide-react";
+import EmptyState from "@/components/EmptyState";
+import ListSkeleton from "@/components/ListSkeleton";
 
 interface PublicRecipe {
   id: string;
@@ -68,14 +70,13 @@ const PublicRecipesPage = () => {
         </Select>
 
         {loading ? (
-          <div className="flex justify-center py-10"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+          <ListSkeleton count={3} variant="card" />
         ) : filtered.length === 0 ? (
-          <Card className="border-2 border-accent">
-            <CardContent className="py-8 text-center">
-              <BookOpen className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">Nessuna ricetta pubblica trovata.</p>
-            </CardContent>
-          </Card>
+          <EmptyState
+            icon={BookOpen}
+            title="Nessuna ricetta pubblica"
+            description="Non ci sono ancora ricette pubblicate dai ristoranti."
+          />
         ) : (
           <div className="space-y-3">
             {filtered.map((r) => (

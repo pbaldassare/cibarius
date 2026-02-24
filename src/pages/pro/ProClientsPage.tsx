@@ -9,6 +9,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { Users, Plus, Copy, Loader2, UserX, Eye, Link2 } from "lucide-react";
+import ListSkeleton from "@/components/ListSkeleton";
+import EmptyState from "@/components/EmptyState";
 
 interface ClientLink {
   id: string;
@@ -134,9 +136,7 @@ const ProClientsPage = () => {
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-10">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
+          <ListSkeleton count={3} variant="row" />
         ) : (
           <>
             {/* Active clients */}
@@ -145,13 +145,12 @@ const ProClientsPage = () => {
                 Clienti attivi ({activeClients.length})
               </h3>
               {activeClients.length === 0 ? (
-                <Card className="border-2 border-accent">
-                  <CardContent className="py-6 text-center">
-                    <Users className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">Nessun cliente collegato.</p>
-                    <p className="text-xs text-muted-foreground mt-1">Genera un invito per collegare i tuoi clienti.</p>
-                  </CardContent>
-                </Card>
+                <EmptyState
+                  icon={Users}
+                  title="Nessun cliente collegato"
+                  description="Genera un invito per collegare i tuoi clienti."
+                  actions={[{ label: "Genera invito", icon: Plus, onClick: generateInvite }]}
+                />
               ) : (
                 <div className="space-y-2">
                   {activeClients.map((c) => (
