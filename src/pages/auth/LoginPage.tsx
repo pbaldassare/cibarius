@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, LogIn } from "lucide-react";
+import cibariusLogo from "@/assets/cibarius-logo.png";
 
 const LoginPage = () => {
   const { session, loading } = useAuth();
@@ -32,7 +33,6 @@ const LoginPage = () => {
     return null;
   }
   if (session && !role) {
-    // Profile not loaded yet or no role, go to default
     navigate("/", { replace: true });
     return null;
   }
@@ -45,51 +45,62 @@ const LoginPage = () => {
     if (error) {
       toast({ variant: "destructive", title: "Errore di accesso", description: error.message });
     }
-    // Redirect will happen via auth state change -> re-render
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="items-center text-center">
-          <div className="mb-2 text-4xl">🍏</div>
-          <CardTitle className="text-2xl">Accedi</CardTitle>
-          <CardDescription>Inserisci le tue credenziali per continuare</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <Input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-            <Input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-            <Button type="submit" className="w-full" disabled={submitting}>
-              {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogIn className="mr-2 h-4 w-4" />}
-              Accedi
-            </Button>
-          </form>
-          <div className="mt-4 space-y-2 text-center text-sm">
-            <p className="text-muted-foreground">
-              Non hai un account?{" "}
-              <Link to="/auth/signup" className="font-medium text-primary hover:underline">
-                Registrati
+    <div className="flex min-h-screen flex-col bg-background">
+      {/* Top gradient area */}
+      <div className="relative bg-gradient-to-r from-primary to-primary-dark px-4 pb-12 pt-16 text-center">
+        <img src={cibariusLogo} alt="Cibarius" className="mx-auto h-10" />
+        {/* Wave */}
+        <div className="absolute bottom-0 left-0 right-0 translate-y-[1px]">
+          <svg viewBox="0 0 1440 50" fill="none" xmlns="http://www.w3.org/2000/svg" className="block w-full">
+            <path d="M0 0C0 0 360 50 720 50C1080 50 1440 0 1440 0V50H0V0Z" className="fill-background" />
+          </svg>
+        </div>
+      </div>
+
+      <div className="flex flex-1 items-start justify-center px-4 pt-4">
+        <Card className="w-full max-w-md border-0 shadow-lg">
+          <CardHeader className="items-center text-center">
+            <CardTitle className="text-2xl text-foreground">Accedi</CardTitle>
+            <CardDescription>Inserisci le tue credenziali per continuare</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <Input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+              <Input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              <Button type="submit" className="w-full" disabled={submitting}>
+                {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogIn className="mr-2 h-4 w-4" />}
+                Accedi
+              </Button>
+            </form>
+            <div className="mt-4 space-y-2 text-center text-sm">
+              <p className="text-muted-foreground">
+                Non hai un account?{" "}
+                <Link to="/auth/signup" className="font-medium text-primary hover:underline">
+                  Registrati
+                </Link>
+              </p>
+              <Link to="/auth/forgot" className="text-muted-foreground hover:text-primary hover:underline">
+                Password dimenticata?
               </Link>
-            </p>
-            <Link to="/auth/forgot" className="text-muted-foreground hover:text-primary hover:underline">
-              Password dimenticata?
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
