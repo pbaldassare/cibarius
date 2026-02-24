@@ -25,6 +25,8 @@ import PastiPage from "./pages/PastiPage";
 import MealsTargetsPage from "./pages/MealsTargetsPage";
 import ProfiloPage from "./pages/ProfiloPage";
 import InvitePage from "./pages/InvitePage";
+import PublicRecipesPage from "./pages/PublicRecipesPage";
+import RecipeDetailPage from "./pages/RecipeDetailPage";
 
 // Admin pages
 import AdminPage from "./pages/admin/AdminPage";
@@ -95,6 +97,8 @@ const App = () => (
                 <Route path="/meals/targets" element={<MealsTargetsPage />} />
                 <Route path="/profile" element={<ProfiloPage />} />
                 <Route path="/invite" element={<InvitePage />} />
+                <Route path="/recipes" element={<PublicRecipesPage />} />
+                <Route path="/recipes/:recipeId" element={<RecipeDetailPage />} />
 
                 {/* Restaurant owner - onboarding (no RestaurantGuard) */}
                 <Route path="/restaurant/onboarding" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantOnboardingPage /></RG>} />

@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      allergens: {
+        Row: {
+          code: string
+          id: string
+          name: string
+        }
+        Insert: {
+          code: string
+          id?: string
+          name: string
+        }
+        Update: {
+          code?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       attachments: {
         Row: {
           created_at: string
@@ -403,6 +421,134 @@ export type Database = {
         }
         Relationships: []
       }
+      recipe_allergens: {
+        Row: {
+          allergen_id: string
+          id: string
+          recipe_id: string
+        }
+        Insert: {
+          allergen_id: string
+          id?: string
+          recipe_id: string
+        }
+        Update: {
+          allergen_id?: string
+          id?: string
+          recipe_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_allergens_allergen_id_fkey"
+            columns: ["allergen_id"]
+            isOneToOne: false
+            referencedRelation: "allergens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipe_allergens_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recipe_ingredients: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string
+          quantity: number | null
+          recipe_id: string
+          unit: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id: string
+          quantity?: number | null
+          recipe_id: string
+          unit?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string
+          quantity?: number | null
+          recipe_id?: string
+          unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_ingredients_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipe_ingredients_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recipes: {
+        Row: {
+          category: string | null
+          cook_time_minutes: number | null
+          created_at: string
+          difficulty: string | null
+          id: string
+          image_url: string | null
+          instructions: string | null
+          is_public: boolean | null
+          prep_time_minutes: number | null
+          restaurant_id: string
+          servings: number | null
+          title: string
+        }
+        Insert: {
+          category?: string | null
+          cook_time_minutes?: number | null
+          created_at?: string
+          difficulty?: string | null
+          id?: string
+          image_url?: string | null
+          instructions?: string | null
+          is_public?: boolean | null
+          prep_time_minutes?: number | null
+          restaurant_id: string
+          servings?: number | null
+          title: string
+        }
+        Update: {
+          category?: string | null
+          cook_time_minutes?: number | null
+          created_at?: string
+          difficulty?: string | null
+          id?: string
+          image_url?: string | null
+          instructions?: string | null
+          is_public?: boolean | null
+          prep_time_minutes?: number | null
+          restaurant_id?: string
+          servings?: number | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipes_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurant_members: {
         Row: {
           created_at: string
@@ -669,6 +815,7 @@ export type Database = {
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       owns_meal: { Args: { _meal_id: string }; Returns: boolean }
       owns_meal_day: { Args: { _meal_day_id: string }; Returns: boolean }
+      owns_recipe_restaurant: { Args: { _recipe_id: string }; Returns: boolean }
       owns_supplier: { Args: { _supplier_id: string }; Returns: boolean }
     }
     Enums: {
