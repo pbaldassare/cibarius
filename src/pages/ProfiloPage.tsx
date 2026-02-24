@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 
 const menuItems: { icon: any; label: string; count?: number; path?: string }[] = [
-  { icon: Heart, label: "Preferiti", count: 12 },
+  { icon: Heart, label: "Preferiti" },
   { icon: Bell, label: "Promemoria scadenze", path: "/reminders" },
   { icon: Settings, label: "Impostazioni" },
   { icon: HelpCircle, label: "Aiuto" },
@@ -140,7 +140,7 @@ const ProfiloPage = () => {
           {menuItems.map((item, i) => (
             <button
               key={item.label}
-              onClick={() => item.path && navigate(item.path)}
+              onClick={() => item.path ? navigate(item.path) : toast({ title: "In arrivo!", description: `${item.label} sarà disponibile a breve.` })}
               className={`flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors active:bg-secondary ${
                 i > 0 ? "border-t border-border" : ""
               }`}
