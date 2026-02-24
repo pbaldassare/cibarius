@@ -14,6 +14,102 @@ export type Database = {
   }
   public: {
     Tables: {
+      inventory_items: {
+        Row: {
+          calories_total: number | null
+          created_at: string
+          expiry_date: string | null
+          id: string
+          notes: string | null
+          owner_user_id: string | null
+          product_id: string
+          quantity: number | null
+          restaurant_id: string | null
+          storage_type: string
+          unit: string | null
+        }
+        Insert: {
+          calories_total?: number | null
+          created_at?: string
+          expiry_date?: string | null
+          id?: string
+          notes?: string | null
+          owner_user_id?: string | null
+          product_id: string
+          quantity?: number | null
+          restaurant_id?: string | null
+          storage_type?: string
+          unit?: string | null
+        }
+        Update: {
+          calories_total?: number | null
+          created_at?: string
+          expiry_date?: string | null
+          id?: string
+          notes?: string | null
+          owner_user_id?: string | null
+          product_id?: string
+          quantity?: number | null
+          restaurant_id?: string | null
+          storage_type?: string
+          unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_items_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          barcode: string | null
+          brand: string | null
+          calories_100g: number | null
+          category: string | null
+          created_at: string
+          id: string
+          image_url: string | null
+          macros_100g: Json | null
+          name: string
+          unit: string | null
+        }
+        Insert: {
+          barcode?: string | null
+          brand?: string | null
+          calories_100g?: number | null
+          category?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          macros_100g?: Json | null
+          name: string
+          unit?: string | null
+        }
+        Update: {
+          barcode?: string | null
+          brand?: string | null
+          calories_100g?: number | null
+          category?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          macros_100g?: Json | null
+          name?: string
+          unit?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
