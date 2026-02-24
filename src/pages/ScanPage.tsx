@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   ScanLine, Keyboard, Camera, Loader2, Package, AlertTriangle,
-  RefreshCw, X, Plus, Search, CalendarSearch, Check, Flame,
+  RefreshCw, X, Plus, Search, CalendarSearch, Check, Flame, Flashlight,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────
@@ -118,22 +118,53 @@ const lookupBarcode = async (barcode: string): Promise<ProductData | null> => {
 };
 
 // ─── Scanner component ────────────────────────────────
-const BarcodeScanner = ({ onDetected, active }: { onDetected: (code: string) => void; active: boolean }) => {
+const BarcodeScanner = ({
+  onDetected,
+  active,
+  onPermissionDenied,
+}: {
+  onDetected: (code: string) => void;
+  active: boolean;
+  onPermissionDenied?: () => void;
+}) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [permDenied, setPermDenied] = useState(false);
   const [running, setRunning] = useState(false);
+  const [torchOn, setTorchOn] = useState(false);
+  const [torchSupported, setTorchSupported] = useState(false);
   const onDetectedRef = useRef(onDetected);
   onDetectedRef.current = onDetected;
+
+  const stopScanner = useCallback(async () => {
+    if (scannerRef.current) {
+      try {
+        const state = scannerRef.current.getState();
+        if (state === 2 /* SCANNING */) {
+          await scannerRef.current.stop();
+        }
+        scannerRef.current.clear();
+      } catch {}
+      scannerRef.current = null;
+      setRunning(false);
+      setTorchOn(false);
+      setTorchSupported(false);
+    }
+  }, []);
 
   const startScanner = useCallback(async () => {
     if (!containerRef.current) return;
     setError(null);
+    setPermDenied(false);
+
+    // Clean up previous instance
+    await stopScanner();
 
     try {
       const devices = await Html5Qrcode.getCameras();
       if (!devices.length) {
-        setError("Nessuna fotocamera trovata");
+        setError("Nessuna fotocamera trovata sul dispositivo.");
         return;
       }
 
@@ -149,26 +180,42 @@ const BarcodeScanner = ({ onDetected, active }: { onDetected: (code: string) => 
         () => {}
       );
       setRunning(true);
+
+      // Check torch capability
+      try {
+        const track = scanner.getRunningTrackCameraCapabilities();
+        if (track && typeof (track as any).torchFeature === "function") {
+          const torch = (track as any).torchFeature();
+          if (torch && torch.isSupported()) {
+            setTorchSupported(true);
+          }
+        }
+      } catch {}
     } catch (err: any) {
       const msg = err?.message || String(err);
-      if (msg.includes("Permission")) {
-        setError("Permesso fotocamera negato. Consenti l'accesso nelle impostazioni del browser.");
+      if (msg.includes("Permission") || msg.includes("NotAllowed") || msg.includes("denied")) {
+        setPermDenied(true);
+        setError("Permesso fotocamera negato.");
+        onPermissionDenied?.();
       } else {
         setError("Impossibile avviare la fotocamera: " + msg);
       }
     }
-  }, []);
+  }, [stopScanner, onPermissionDenied]);
 
-  const stopScanner = useCallback(async () => {
-    if (scannerRef.current) {
-      try {
-        await scannerRef.current.stop();
-        scannerRef.current.clear();
-      } catch {}
-      scannerRef.current = null;
-      setRunning(false);
-    }
-  }, []);
+  const toggleTorch = useCallback(async () => {
+    if (!scannerRef.current) return;
+    try {
+      const track = scannerRef.current.getRunningTrackCameraCapabilities();
+      if (track && typeof (track as any).torchFeature === "function") {
+        const torch = (track as any).torchFeature();
+        if (torch && torch.isSupported()) {
+          await torch.apply(!torchOn);
+          setTorchOn(!torchOn);
+        }
+      }
+    } catch {}
+  }, [torchOn]);
 
   useEffect(() => {
     if (active) {
@@ -184,31 +231,71 @@ const BarcodeScanner = ({ onDetected, active }: { onDetected: (code: string) => 
       <div
         ref={containerRef}
         className="relative w-full overflow-hidden rounded-2xl border-2 border-accent bg-secondary"
-        style={{ minHeight: 220 }}
       >
         <div id="barcode-reader" className="w-full" />
         {!running && !error && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-muted-foreground">
+          <div className="flex flex-col items-center justify-center gap-2 py-16 text-muted-foreground">
             <Camera className="h-10 w-10" />
             <p className="text-sm">Avvio fotocamera…</p>
           </div>
         )}
       </div>
 
-      {error && (
+      {/* Permission denied — detailed instructions */}
+      {permDenied && (
+        <div className="w-full rounded-xl border-2 border-destructive/30 bg-destructive/5 p-4 space-y-3">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-destructive">Fotocamera non disponibile</p>
+              <p className="text-xs text-muted-foreground">
+                Per scansionare i prodotti, abilita l'accesso alla fotocamera:
+              </p>
+              <ol className="text-xs text-muted-foreground list-decimal pl-4 space-y-0.5">
+                <li>Tocca l'icona 🔒 nella barra degli indirizzi</li>
+                <li>Seleziona <strong>Impostazioni sito</strong></li>
+                <li>Abilita <strong>Fotocamera</strong></li>
+                <li>Ricarica la pagina</li>
+              </ol>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" className="flex-1 gap-1.5" onClick={startScanner}>
+              <RefreshCw className="h-4 w-4" /> Riprova
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Generic error (not permission) */}
+      {error && !permDenied && (
         <div className="flex flex-col items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-center">
           <AlertTriangle className="h-6 w-6 text-destructive" />
           <p className="text-sm text-destructive">{error}</p>
-          <Button size="sm" variant="outline" onClick={() => { stopScanner(); startScanner(); }}>
+          <Button size="sm" variant="outline" onClick={startScanner}>
             <RefreshCw className="mr-1 h-4 w-4" /> Riprova
           </Button>
         </div>
       )}
 
+      {/* Running controls */}
       {running && (
-        <Button size="sm" variant="outline" onClick={() => { stopScanner(); setTimeout(startScanner, 300); }}>
-          <RefreshCw className="mr-1 h-4 w-4" /> Riavvia fotocamera
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => { stopScanner(); setTimeout(startScanner, 300); }}>
+            <RefreshCw className="mr-1 h-4 w-4" /> Ricarica fotocamera
+          </Button>
+          {torchSupported && (
+            <Button
+              size="sm"
+              variant={torchOn ? "default" : "outline"}
+              onClick={toggleTorch}
+              className="gap-1.5"
+            >
+              <Flashlight className="h-4 w-4" />
+              {torchOn ? "Torcia ON" : "Torcia"}
+            </Button>
+          )}
+        </div>
       )}
     </div>
   );
@@ -427,7 +514,11 @@ const ScanPage = () => {
 
             {/* Scanner tab */}
             <TabsContent value="scan" className="mt-4 space-y-3">
-              <BarcodeScanner onDetected={handleBarcode} active={activeTab === "scan" && !product} />
+              <BarcodeScanner
+                onDetected={handleBarcode}
+                active={activeTab === "scan" && !product}
+                onPermissionDenied={() => setActiveTab("manual")}
+              />
               <p className="text-center text-xs text-muted-foreground">
                 Inquadra il codice a barre del prodotto
               </p>
