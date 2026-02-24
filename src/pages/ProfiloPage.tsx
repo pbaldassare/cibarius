@@ -1,4 +1,6 @@
 import MobileHeader from "@/components/MobileHeader";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import { ChevronRight, Settings, Heart, Bell, HelpCircle, LogOut } from "lucide-react";
 
 const menuItems = [
@@ -9,6 +11,14 @@ const menuItems = [
 ];
 
 const ProfiloPage = () => {
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/auth/login", { replace: true });
+  };
+
   return (
     <div>
       <MobileHeader title="Profilo" />
@@ -18,8 +28,10 @@ const ProfiloPage = () => {
           <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center text-3xl">
             👤
           </div>
-          <h2 className="mt-3 text-lg font-semibold text-foreground">Utente</h2>
-          <p className="text-sm text-muted-foreground">utente@email.com</p>
+          <h2 className="mt-3 text-lg font-semibold text-foreground">
+            {user?.user_metadata?.full_name || "Utente"}
+          </h2>
+          <p className="text-sm text-muted-foreground">{user?.email || ""}</p>
         </div>
 
         {/* Stats */}
@@ -58,7 +70,10 @@ const ProfiloPage = () => {
           ))}
         </div>
 
-        <button className="flex w-full items-center justify-center gap-2 rounded-xl border border-destructive/30 py-3 text-sm font-medium text-destructive transition-colors active:bg-destructive/5">
+        <button
+          onClick={handleLogout}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-destructive/30 py-3 text-sm font-medium text-destructive transition-colors active:bg-destructive/5"
+        >
           <LogOut size={16} />
           Esci
         </button>
