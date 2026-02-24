@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRestaurant } from "@/hooks/useRestaurant";
 import { supabase } from "@/integrations/supabase/client";
 import MobileHeader from "@/components/MobileHeader";
+import ImageUpload from "@/components/ImageUpload";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -72,6 +73,8 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
   const [newStorage, setNewStorage] = useState("frigo");
   const [newExpiry, setNewExpiry] = useState("");
   const [newNotes, setNewNotes] = useState("");
+  const [newImageUrl, setNewImageUrl] = useState<string | null>(null);
+  const [newImagePath, setNewImagePath] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
 
   useEffect(() => {
@@ -104,6 +107,17 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
     fetchItems();
   }, [user, restaurant]);
 
+  const getUploadPath = () => {
+    if (mode === "user" && user) return `users/${user.id}/products`;
+    if (mode === "restaurant" && restaurant) return `restaurants/${restaurant.id}/products`;
+    return "";
+  };
+
+  const handleImageUploaded = (publicUrl: string, filePath: string) => {
+    setNewImageUrl(publicUrl);
+    setNewImagePath(filePath);
+  };
+
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -112,7 +126,12 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
     // Create product in catalog
     const { data: product, error: productError } = await supabase
       .from("products")
-      .insert({ name: newName, category: newCategory || null, unit: newUnit })
+      .insert({
+        name: newName,
+        category: newCategory || null,
+        unit: newUnit,
+        image_url: newImageUrl,
+      })
       .select()
       .single();
 
@@ -120,6 +139,20 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
       toast({ variant: "destructive", title: "Errore", description: productError?.message ?? "Errore creazione prodotto" });
       setAdding(false);
       return;
+    }
+
+    // Create attachment if image uploaded
+    if (newImagePath && newImageUrl) {
+      const attachData: any = {
+        entity_type: "product",
+        entity_id: product.id,
+        file_path: newImagePath,
+        public_url: newImageUrl,
+      };
+      if (mode === "user") attachData.owner_user_id = user.id;
+      else if (restaurant) attachData.restaurant_id = restaurant.id;
+
+      await supabase.from("attachments").insert(attachData);
     }
 
     // Create inventory item
@@ -159,6 +192,8 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
     setNewStorage("frigo");
     setNewExpiry("");
     setNewNotes("");
+    setNewImageUrl(null);
+    setNewImagePath(null);
   };
 
   const filtered = items.filter((item) => {
@@ -174,7 +209,7 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
       <MobileHeader
         title={mode === "user" ? "I miei Prodotti" : "Magazzino"}
         right={
-          <Dialog open={addOpen} onOpenChange={setAddOpen}>
+          <Dialog open={addOpen} onOpenChange={(open) => { setAddOpen(open); if (!open) resetForm(); }}>
             <DialogTrigger asChild>
               <button className="p-1 text-primary-foreground">
                 <Plus size={22} />
@@ -185,6 +220,16 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
                 <DialogTitle>Aggiungi prodotto</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleAdd} className="space-y-3">
+                {/* Image upload */}
+                <div className="flex justify-center">
+                  <ImageUpload
+                    imageUrl={newImageUrl}
+                    onUploaded={handleImageUploaded}
+                    storagePath={getUploadPath()}
+                    className="h-24 w-24"
+                  />
+                </div>
+
                 <Input placeholder="Nome prodotto *" value={newName} onChange={(e) => setNewName(e.target.value)} required />
                 <Input placeholder="Categoria" value={newCategory} onChange={(e) => setNewCategory(e.target.value)} />
                 <div className="flex gap-2">
@@ -285,12 +330,12 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
                   className="flex items-center gap-3 rounded-2xl border-2 border-accent bg-card p-3"
                 >
                   {/* Image / placeholder */}
-                  <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-secondary">
+                  <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-secondary overflow-hidden">
                     {item.product.image_url ? (
                       <img
                         src={item.product.image_url}
                         alt={item.product.name}
-                        className="h-full w-full rounded-xl object-cover"
+                        className="h-full w-full object-cover"
                       />
                     ) : (
                       <Package className="h-8 w-8 text-muted-foreground" />
