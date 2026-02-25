@@ -16,7 +16,7 @@ interface TabItem {
 const tabsByRole: Record<string, TabItem[]> = {
   user: [
     { to: "/", icon: Home, label: "Home" },
-    { to: "/scan", icon: Plus, label: "Aggiungi prodotto" },
+    { to: "/scan", icon: Plus, label: "Aggiungi" },
     { to: "/expiry", icon: Clock, label: "Scadenze" },
     { to: "/meals", icon: UtensilsCrossed, label: "Pasti" },
     { to: "/profile", icon: User, label: "Profilo" },
@@ -57,7 +57,12 @@ const BottomNav = () => {
   const tabs = tabsByRole[role ?? "user"] ?? tabsByRole.user;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/20" style={{ backgroundColor: 'hsl(196, 88%, 54%)' }}>
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-50"
+      style={{
+        background: "linear-gradient(135deg, hsl(196, 88%, 54%) 0%, hsl(201, 89%, 39%) 100%)",
+      }}
+    >
       <div className="mx-auto flex h-[72px] max-w-lg items-center justify-around px-2">
         {tabs.map(({ to, icon: Icon, label }) => {
           const isActive = location.pathname === to;
@@ -65,22 +70,30 @@ const BottomNav = () => {
             <NavLink
               key={to}
               to={to}
-              className={`flex flex-col items-center gap-0.5 rounded-xl px-3 py-1.5 ${
-                isActive ? "bg-white/20" : ""
-              }`}
+              className="flex flex-col items-center gap-0.5 px-3 py-1.5 relative"
             >
-              <Icon
-                size={23}
-                strokeWidth={isActive ? 2.4 : 1.8}
-                className={isActive ? "text-white" : "text-white/70"}
-              />
+              <div
+                className={`flex items-center justify-center rounded-xl px-3 py-1 transition-all duration-200 ${
+                  isActive ? "bg-white/15" : ""
+                }`}
+              >
+                <Icon
+                  size={21}
+                  strokeWidth={isActive ? 2.2 : 1.6}
+                  className={`transition-colors ${isActive ? "text-white" : "text-white/60"}`}
+                />
+              </div>
               <span
-                className={`text-[12px] font-semibold ${
-                  isActive ? "text-white" : "text-white/70"
+                className={`text-[11px] transition-colors ${
+                  isActive ? "text-white font-semibold" : "text-white/60 font-medium"
                 }`}
               >
                 {label}
               </span>
+              {/* Active underline */}
+              {isActive && (
+                <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 h-[2px] w-5 rounded-full bg-white" />
+              )}
             </NavLink>
           );
         })}

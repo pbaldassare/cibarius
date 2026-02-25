@@ -208,13 +208,13 @@ const Index = () => {
 
   if (loading) {
     return (
-      <div style={{ backgroundColor: "#F5F7FA" }}>
+      <div className="bg-background">
         <MobileHeader title="" />
         <main className="space-y-3 px-4 py-3 pb-32">
           <Skeleton className="h-6 w-40" />
-          <Skeleton className="h-14 w-full rounded-2xl" />
-          <Skeleton className="h-10 w-full rounded-xl" />
-          <Skeleton className="h-64 w-full rounded-2xl" />
+          <Skeleton className="h-14 w-full rounded-[18px]" />
+          <Skeleton className="h-10 w-full rounded-[14px]" />
+          <Skeleton className="h-64 w-full rounded-[18px]" />
         </main>
       </div>
     );
@@ -223,89 +223,87 @@ const Index = () => {
   const storageChipLabel = storageTab === "all" ? "Tutto" : storageLabel[storageTab] ?? storageTab;
 
   return (
-    <div style={{ backgroundColor: "#F5F7FA" }} className="min-h-screen">
+    <div className="min-h-screen bg-background">
       <MobileHeader title="" />
       <main className="space-y-3 px-4 pt-1 pb-28">
 
         {/* ─── A) Greeting ─── */}
         <div>
-          <h2 className="text-base font-bold" style={{ color: "#111827" }}>
+          <h2 className="text-base" style={{ color: "hsl(220,20%,14%)" }}>
             {greeting}{firstName ? `, ${firstName}` : ""} 👋
           </h2>
-          <p className="text-[12px]" style={{ color: "#6B7280" }}>La tua dispensa</p>
+          <p className="text-[13px] text-muted-foreground">La tua dispensa</p>
         </div>
 
-        {/* ─── B) Counters card – single row 56px ─── */}
+        {/* ─── B) Counters card ─── */}
         <button
           onClick={() => navigate("/expiry")}
-          className="flex w-full items-center rounded-2xl bg-white px-3 py-2.5 shadow-sm active:scale-[0.98] transition-transform"
+          className="flex w-full items-center rounded-[18px] bg-card px-3.5 py-3 shadow-card active:shadow-card-hover active:scale-[0.98] transition-all"
           style={{ height: 56 }}
         >
           {[
-            { n: counts.expired, label: "Scaduti", color: "#E53935" },
-            { n: counts.expiring, label: "In scadenza", color: "#F59E0B" },
-            { n: counts.nodate, label: "Senza data", color: "#9CA3AF" },
+            { n: counts.expired, label: "Scaduti", color: "hsl(1,76%,55%)" },
+            { n: counts.expiring, label: "In scadenza", color: "hsl(37,90%,51%)" },
+            { n: counts.nodate, label: "Senza data", color: "hsl(215,10%,62%)" },
           ].map(({ n, label, color }, i) => (
-            <div key={label} className={`flex flex-1 items-center gap-1.5 ${i > 0 ? "border-l border-[#F0F0F0] pl-3" : ""}`}>
-              <span className="text-lg font-bold leading-none" style={{ color }}>{n}</span>
-              <span className="text-[10px] font-medium leading-tight" style={{ color: "#6B7280" }}>{label}</span>
+            <div key={label} className={`flex flex-1 items-center gap-1.5 ${i > 0 ? "border-l border-border pl-3" : ""}`}>
+              <span className="text-lg font-semibold leading-none" style={{ color }}>{n}</span>
+              <span className="text-[10px] font-medium leading-tight text-muted-foreground">{label}</span>
             </div>
           ))}
-          <ChevronRight className="h-4 w-4 shrink-0 ml-1" style={{ color: "#9CA3AF" }} />
+          <ChevronRight className="h-4 w-4 shrink-0 ml-1 text-muted-foreground" />
         </button>
 
         {/* ─── Risolvi tutto ─── */}
         {(counts.expired + counts.expiring + counts.nodate) > 0 && (
           <button
             onClick={() => setResolveOpen(true)}
-            className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-[13px] font-semibold transition-colors active:scale-[0.98]"
-            style={{ backgroundColor: "#EFF6FF", color: "#2563EB" }}
+            className="flex w-full items-center justify-center gap-2 rounded-[14px] py-2.5 text-[13px] font-medium transition-all active:scale-[0.98] bg-primary/8 text-primary"
           >
             <Zap className="h-4 w-4" />
             Risolvi tutto
           </button>
         )}
+
         {/* ─── Preparazioni card ─── */}
         <Link to="/preparations">
-          <div className="flex items-center gap-3 rounded-2xl bg-white px-3 py-2.5 shadow-sm active:scale-[0.98] transition-transform">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: "#EDE9FE" }}>
-              <ChefHat className="h-4.5 w-4.5" style={{ color: "#7C3AED" }} />
+          <div className="flex items-center gap-3 rounded-[18px] bg-card px-3.5 py-3 shadow-card active:shadow-card-hover active:scale-[0.98] transition-all">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px]" style={{ backgroundColor: "hsl(263,75%,95%)" }}>
+              <ChefHat className="h-[18px] w-[18px]" style={{ color: "hsl(263,60%,50%)" }} />
             </div>
             <div className="flex-1">
-              <p className="text-[13px] font-semibold" style={{ color: "#111827" }}>Preparazioni</p>
-              <p className="text-[10px]" style={{ color: "#6B7280" }}>Gestisci i tuoi piatti preparati</p>
+              <p className="text-[14px] font-medium" style={{ color: "hsl(220,20%,14%)" }}>Preparazioni</p>
+              <p className="text-[12px] text-muted-foreground">Gestisci i tuoi piatti preparati</p>
             </div>
-            <ChevronRight className="h-4 w-4" style={{ color: "#9CA3AF" }} />
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
           </div>
         </Link>
 
-
+        {/* ─── Search + filters ─── */}
         <div className="flex gap-2 items-center">
           <button
             onClick={() => setStorageSheet(true)}
-            className="flex items-center gap-1 rounded-xl bg-white px-3 py-2 text-[12px] font-semibold shadow-sm shrink-0"
-            style={{ color: "#111827" }}
+            className="flex items-center gap-1 rounded-[12px] bg-card px-3 py-2 text-[12px] font-medium shadow-card shrink-0 text-foreground"
           >
             {storageChipLabel}
-            <ChevronDown className="h-3 w-3" style={{ color: "#9CA3AF" }} />
+            <ChevronDown className="h-3 w-3 text-muted-foreground" />
           </button>
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2" style={{ color: "#9CA3AF" }} />
+            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Cerca..."
-              className="h-9 rounded-xl border-0 bg-white pl-8 text-[13px] shadow-sm"
-              style={{ color: "#111827" }}
+              className="h-9 rounded-[12px] border-0 bg-card pl-8 text-[13px] shadow-card text-foreground"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
           <button
             onClick={() => setFilterSheet(true)}
-            className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm"
+            className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-[12px] bg-card shadow-card"
           >
-            <Filter className="h-3.5 w-3.5" style={{ color: "#4B5563" }} />
+            <Filter className="h-3.5 w-3.5 text-muted-foreground" />
             {activeFilterCount > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[8px] font-bold text-white">
+              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[8px] font-semibold text-primary-foreground">
                 {activeFilterCount}
               </span>
             )}
@@ -314,54 +312,58 @@ const Index = () => {
 
         {/* ─── E) Product list ─── */}
         {filtered.length === 0 ? (
-          <div className="flex flex-col items-center gap-1.5 rounded-2xl bg-white p-8 shadow-sm">
-            <Package className="h-7 w-7" style={{ color: "#9CA3AF" }} />
-            <p className="text-[13px] font-medium" style={{ color: "#111827" }}>
+          <div className="flex flex-col items-center gap-1.5 rounded-[18px] bg-card p-8 shadow-card">
+            <Package className="h-7 w-7 text-muted-foreground" />
+            <p className="text-[14px] font-medium text-foreground">
               {search ? "Nessun risultato" : "Nessun prodotto da controllare"}
             </p>
-            <p className="text-[11px]" style={{ color: "#6B7280" }}>
+            <p className="text-[12px] text-muted-foreground">
               {search ? "Prova con un altro termine" : "Premi + per aggiungere"}
             </p>
           </div>
         ) : (
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             {filtered.map((item) => {
               const status = getStatusCustom(item.expiry_date);
               const cfg = statusCfg[status];
+              const isAlert = status === "expired" || status === "expiring" || status === "nodate";
               return (
                 <div
                   key={item.id}
-                  className="flex items-center gap-2.5 rounded-xl bg-white px-2.5 py-2 shadow-sm overflow-hidden"
+                  className="flex items-center gap-2.5 rounded-[18px] bg-card px-3 py-2.5 shadow-card overflow-hidden transition-all"
                   style={{ minHeight: 64 }}
                 >
-                  <div className={`w-1 self-stretch rounded-full ${cfg.barColor}`} />
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#F5F7FA] overflow-hidden">
+                  {/* Color bar only for alert items */}
+                  {isAlert && <div className={`w-[3px] self-stretch rounded-full ${cfg.barColor}`} />}
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-secondary overflow-hidden">
                     {item.product.image_url ? (
                       <img src={item.product.image_url} alt="" className="h-full w-full object-cover" />
                     ) : (
-                      <Package className="h-4 w-4" style={{ color: "#9CA3AF" }} />
+                      <Package className="h-4 w-4 text-muted-foreground" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-semibold truncate" style={{ color: "#111827" }}>
+                    <p className="text-[14px] font-medium truncate text-foreground">
                       {item.product.name}
                     </p>
                     <div className="flex items-center gap-1.5 mt-0.5">
                       {item.expiry_date && (
-                        <span className="text-[11px] flex items-center gap-0.5" style={{ color: "#6B7280" }}>
+                        <span className="text-[12px] flex items-center gap-0.5 text-muted-foreground">
                           <Clock className="h-2.5 w-2.5" />
                           {new Date(item.expiry_date).toLocaleDateString("it-IT")}
                         </span>
                       )}
-                      <span className="text-[10px]" style={{ color: "#9CA3AF" }}>
+                      <span className="text-[11px] text-muted-foreground">
                         {storageLabel[item.storage_type] ?? item.storage_type}
                         {item.quantity ? ` · x${item.quantity}` : ""}
                       </span>
                     </div>
                   </div>
-                  <span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-bold text-white ${cfg.badgeBg}`}>
-                    {cfg.label}
-                  </span>
+                  {isAlert && (
+                    <span className={`shrink-0 rounded-[8px] px-2 py-0.5 text-[9px] font-semibold text-white ${cfg.badgeBg}`}>
+                      {cfg.label}
+                    </span>
+                  )}
                 </div>
               );
             })}
@@ -373,10 +375,10 @@ const Index = () => {
       <div className="fixed bottom-[calc(68px+env(safe-area-inset-bottom,0px)+0.75rem)] right-3.5 z-40">
         <button
           onClick={() => setAddFoodOpen(true)}
-          className="flex h-11 w-11 items-center justify-center rounded-full shadow-lg active:scale-95 transition-transform bg-primary"
+          className="flex h-12 w-12 items-center justify-center rounded-full shadow-elevated active:scale-95 transition-all bg-primary"
           aria-label="Aggiungi"
         >
-          <Plus className="h-5 w-5 text-white" />
+          <Plus className="h-5 w-5 text-primary-foreground" strokeWidth={2.2} />
         </button>
       </div>
 
@@ -397,12 +399,12 @@ const Index = () => {
       <Sheet open={filterSheet} onOpenChange={setFilterSheet}>
         <SheetContent side="bottom" className="rounded-t-2xl">
           <SheetHeader>
-            <SheetTitle style={{ color: "#111827" }}>Filtri avanzati</SheetTitle>
+            <SheetTitle className="text-foreground">Filtri avanzati</SheetTitle>
           </SheetHeader>
           <div className="space-y-5 py-4">
             {/* Status */}
             <div>
-              <p className="text-[14px] font-semibold mb-2" style={{ color: "#111827" }}>Stato</p>
+              <p className="text-[14px] font-medium mb-2 text-foreground">Stato</p>
               <div className="flex gap-2 flex-wrap">
                 {[
                   { key: "relevant", label: "Da controllare" },
@@ -414,10 +416,10 @@ const Index = () => {
                   <button
                     key={key}
                     onClick={() => setStatusFilter(key)}
-                    className={`rounded-xl px-4 py-2 text-[13px] font-semibold transition-colors ${
+                    className={`rounded-[12px] px-4 py-2 text-[13px] font-medium transition-colors ${
                       statusFilter === key
-                        ? "bg-primary text-white"
-                        : "bg-[#F5F7FA] text-foreground"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-foreground"
                     }`}
                   >
                     {label}
@@ -428,16 +430,16 @@ const Index = () => {
 
             {/* Days range */}
             <div>
-              <p className="text-[14px] font-semibold mb-2" style={{ color: "#111827" }}>Giorni alla scadenza</p>
+              <p className="text-[14px] font-medium mb-2 text-foreground">Giorni alla scadenza</p>
               <div className="flex gap-2">
                 {[1, 2, 3, 5, 7].map((d) => (
                   <button
                     key={d}
                     onClick={() => setDaysRange(d)}
-                    className={`flex-1 rounded-xl py-2 text-[13px] font-semibold transition-colors ${
+                    className={`flex-1 rounded-[12px] py-2 text-[13px] font-medium transition-colors ${
                       daysRange === d
-                        ? "bg-primary text-white"
-                        : "bg-[#F5F7FA] text-foreground"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-foreground"
                     }`}
                   >
                     {d}g
@@ -448,16 +450,16 @@ const Index = () => {
 
             {/* Storage */}
             <div>
-              <p className="text-[14px] font-semibold mb-2" style={{ color: "#111827" }}>Conservazione</p>
+              <p className="text-[14px] font-medium mb-2 text-foreground">Conservazione</p>
               <div className="flex gap-2">
                 {storageTabs.map(({ key, label }) => (
                   <button
                     key={key}
                     onClick={() => setStorageTab(key)}
-                    className={`flex-1 rounded-xl py-2 text-[13px] font-semibold transition-colors ${
+                    className={`flex-1 rounded-[12px] py-2 text-[13px] font-medium transition-colors ${
                       storageTab === key
-                        ? "bg-primary text-white"
-                        : "bg-[#F5F7FA] text-foreground"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary text-foreground"
                     }`}
                   >
                     {label}
@@ -482,7 +484,7 @@ const Index = () => {
       <Sheet open={storageSheet} onOpenChange={setStorageSheet}>
         <SheetContent side="bottom" className="rounded-t-2xl">
           <SheetHeader>
-            <SheetTitle style={{ color: "#111827" }}>Conservazione</SheetTitle>
+            <SheetTitle className="text-foreground">Conservazione</SheetTitle>
           </SheetHeader>
           <div className="flex flex-col gap-1 py-3">
             {storageTabs.map(({ key, label, icon: Icon }) => (
