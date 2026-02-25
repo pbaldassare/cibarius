@@ -6,7 +6,7 @@ interface TabItem { to: string; icon: LucideIcon; label: string }
 
 const tabs: TabItem[] = [
   { to: "/", icon: Home, label: "Home" },
-  { to: "/scan", icon: ScanLine, label: "Scansiona" },
+  { to: "/scan", icon: ScanLine, label: "Aggiungi" },
   { to: "/expiry", icon: Clock, label: "Scadenze" },
   { to: "/meals", icon: UtensilsCrossed, label: "Pasti" },
   { to: "/profile", icon: User, label: "Profilo" },
