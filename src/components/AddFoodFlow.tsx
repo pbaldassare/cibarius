@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useDebounce } from "@/hooks/useDebounce";
 import BarcodeScanner from "@/components/BarcodeScanner";
 import { lookupBarcode, calcNutrition, type ProductData } from "@/lib/barcode";
+import { Switch } from "@/components/ui/switch";
 import {
   ArrowLeft, Search, ScanLine, Keyboard, Camera, Loader2,
   Package, Plus, Minus, Check, Flame, Archive, Thermometer, Snowflake,
@@ -105,6 +106,7 @@ const AddFoodFlow = ({
 
   // Meal-specific
   const [selectedMealType, setSelectedMealType] = useState<MealType | null>(preselectedMealType ?? null);
+  const [saveToInventory, setSaveToInventory] = useState(false);
 
   // Expiry OCR
   const [expiryModalOpen, setExpiryModalOpen] = useState(false);
@@ -140,6 +142,7 @@ const AddFoodFlow = ({
         setStorageType("frigo");
         setExpiryDate("");
         setSelectedMealType(preselectedMealType ?? null);
+        setSaveToInventory(false);
         setExpiryModalOpen(false);
         setExpiryImage(null);
         setExpiryCandidates([]);
@@ -273,7 +276,7 @@ const AddFoodFlow = ({
       toast({ variant: "destructive", title: "Inserisci un nome" });
       return;
     }
-    if (context === "inventory" && !storageType) {
+    if ((context === "inventory" || (context === "meal" && saveToInventory)) && !storageType) {
       toast({ variant: "destructive", title: "Seleziona dove conservi il prodotto" });
       return;
     }
@@ -373,6 +376,23 @@ const AddFoodFlow = ({
           macros: computed.macros as any,
         });
         if (error) throw error;
+
+        // Also save to inventory if toggle is ON
+        if (saveToInventory) {
+          const invData: any = {
+            product_id: pid,
+            quantity,
+            unit,
+            storage_type: storageType,
+            expiry_date: expiryDate || null,
+            calories_total: computed.calories,
+            macros_total: computed.macros as any,
+            owner_user_id: user.id,
+          };
+          const { error: invErr } = await supabase.from("inventory_items").insert(invData);
+          if (invErr) throw invErr;
+        }
+
         toast({ title: `Aggiunto a ${selectedMealType}! ✓` });
 
       } else if (context === "recipe") {
@@ -715,8 +735,8 @@ const AddFoodFlow = ({
 
                 {/* ─── Context-specific fields ─── */}
 
-                {/* INVENTORY: Storage + Expiry */}
-                {context === "inventory" && (
+                {/* INVENTORY or MEAL+toggle: Storage + Expiry */}
+                {(context === "inventory" || (context === "meal" && saveToInventory)) && (
                   <div className="space-y-3">
                     <p className="text-sm font-semibold" style={{ color: "#111827" }}>Dove lo conservi? *</p>
                     <div className="grid grid-cols-3 gap-2">
@@ -768,6 +788,17 @@ const AddFoodFlow = ({
                         <p className="text-xs" style={{ color: "#4B5563" }}>Se non inserisci una data, il prodotto sarà marcato "Senza data"</p>
                       )}
                     </div>
+                  </div>
+                )}
+
+                {/* MEAL: toggle "Salva anche in Magazzino" */}
+                {context === "meal" && (
+                  <div className="flex items-center justify-between rounded-2xl border border-border bg-card p-4">
+                    <div>
+                      <p className="text-sm font-semibold" style={{ color: "#111827" }}>Salva anche in Magazzino</p>
+                      <p className="text-xs" style={{ color: "#4B5563" }}>Aggiunge il prodotto all'inventario</p>
+                    </div>
+                    <Switch checked={saveToInventory} onCheckedChange={setSaveToInventory} />
                   </div>
                 )}
 
