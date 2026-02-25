@@ -7,12 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Search, Save, Trash2 } from "lucide-react";
+import { Loader2, Search, Save, Trash2, UserPlus, Eye, EyeOff } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 const ROLES: AppRole[] = ["user", "restaurant_owner", "admin", "professional", "supplier"];
 
@@ -25,6 +29,13 @@ const AdminUsersPage = () => {
   const [pendingChanges, setPendingChanges] = useState<Record<string, AppRole>>({});
   const [saving, setSaving] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [newName, setNewName] = useState("");
+  const [newRole, setNewRole] = useState<AppRole>("user");
+  const [showNewPw, setShowNewPw] = useState(false);
 
   const fetchProfiles = async () => {
     setLoading(true);
@@ -92,9 +103,34 @@ const AdminUsersPage = () => {
     return matchSearch && matchRole;
   });
 
+  const handleCreate = async () => {
+    if (!newEmail || !newPassword) {
+      toast({ variant: "destructive", title: "Errore", description: "Email e password obbligatorie" });
+      return;
+    }
+    setCreating(true);
+    const { data, error } = await supabase.functions.invoke("create-user", {
+      body: { email: newEmail, password: newPassword, full_name: newName, role: newRole },
+    });
+    setCreating(false);
+    if (error || data?.error) {
+      toast({ variant: "destructive", title: "Errore", description: data?.error || error?.message });
+    } else {
+      toast({ title: "Utente creato" });
+      setCreateOpen(false);
+      setNewEmail(""); setNewPassword(""); setNewName(""); setNewRole("user");
+      fetchProfiles();
+    }
+  };
+
   return (
     <AdminLayout>
-      <h1 className="mb-6 text-2xl font-bold text-foreground">Gestione Utenti</h1>
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-foreground">Gestione Utenti</h1>
+        <Button onClick={() => setCreateOpen(true)}>
+          <UserPlus className="mr-2 h-4 w-4" /> Nuovo utente
+        </Button>
+      </div>
 
       {/* Filters */}
       <div className="mb-4 flex flex-col gap-3 sm:flex-row">
@@ -203,6 +239,61 @@ const AdminUsersPage = () => {
           </Table>
         </div>
       )}
+
+      {/* Create user dialog */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nuovo utente</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label>Nome completo</Label>
+              <Input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Mario Rossi" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Email *</Label>
+              <Input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="email@esempio.it" required />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Password *</Label>
+              <div className="relative">
+                <Input
+                  type={showNewPw ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Minimo 6 caratteri"
+                  className="pr-10"
+                  minLength={6}
+                />
+                <button type="button" onClick={() => setShowNewPw(!showNewPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                  {showNewPw ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Ruolo</Label>
+              <Select value={newRole} onValueChange={(v) => setNewRole(v as AppRole)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ROLES.map((r) => (
+                    <SelectItem key={r} value={r}>{r}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>Annulla</Button>
+            <Button onClick={handleCreate} disabled={creating}>
+              {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
+              Crea utente
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 };
