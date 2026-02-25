@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -9,7 +9,8 @@ import {
 } from "@/components/ui/sheet";
 import {
   Package, Clock, CalendarClock, Trash2, UtensilsCrossed,
-  AlertTriangle, ChevronRight, X, Check,
+  X, Check, ArrowRightLeft,
+  Thermometer, Snowflake, Archive,
 } from "lucide-react";
 
 type ExpiryStatus = "expired" | "expiring" | "nodate";
@@ -26,15 +27,21 @@ interface ResolveItem {
   status: ExpiryStatus;
 }
 
-const statusCfg: Record<ExpiryStatus, { label: string; color: string; bg: string }> = {
-  expired:  { label: "SCADUTO",     color: "#E53935", bg: "rgba(229,57,53,0.1)" },
-  expiring: { label: "IN SCADENZA", color: "#F59E0B", bg: "rgba(245,158,11,0.1)" },
-  nodate:   { label: "SENZA DATA",  color: "#9CA3AF", bg: "rgba(156,163,175,0.1)" },
+const statusCfg: Record<ExpiryStatus, { label: string; color: string }> = {
+  expired:  { label: "SCADUTO",     color: "hsl(1,76%,55%)" },
+  expiring: { label: "IN SCADENZA", color: "hsl(37,90%,51%)" },
+  nodate:   { label: "SENZA DATA",  color: "hsl(215,10%,62%)" },
 };
 
 const storageLabel: Record<string, string> = {
   frigo: "Frigo", freezer: "Congelatore", ambiente: "Dispensa",
 };
+
+const storageOptions = [
+  { key: "frigo", label: "Frigo", icon: Thermometer },
+  { key: "freezer", label: "Congelatore", icon: Snowflake },
+  { key: "ambiente", label: "Dispensa", icon: Archive },
+];
 
 const getStatus = (d: string | null): ExpiryStatus | "ok" => {
   if (!d) return "nodate";
@@ -59,13 +66,13 @@ const ResolveExpiryFlow = ({ open, onOpenChange, onComplete }: Props) => {
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState(false);
   const [showDateInput, setShowDateInput] = useState(false);
+  const [showMovePanel, setShowMovePanel] = useState(false);
   const [newDate, setNewDate] = useState("");
   const [animDir, setAnimDir] = useState<"in" | "out">("in");
 
   const fetchItems = async () => {
     if (!user) return;
     setLoading(true);
-
     const [invRes, prepRes] = await Promise.all([
       supabase
         .from("inventory_items")
@@ -79,7 +86,6 @@ const ResolveExpiryFlow = ({ open, onOpenChange, onComplete }: Props) => {
     ]);
 
     const result: ResolveItem[] = [];
-
     if (invRes.data) {
       for (const i of invRes.data as any[]) {
         const s = getStatus(i.expiry_date);
@@ -95,7 +101,6 @@ const ResolveExpiryFlow = ({ open, onOpenChange, onComplete }: Props) => {
         });
       }
     }
-
     if (prepRes.data) {
       for (const p of prepRes.data as any[]) {
         const s = getStatus(p.use_by_date);
@@ -112,10 +117,8 @@ const ResolveExpiryFlow = ({ open, onOpenChange, onComplete }: Props) => {
       }
     }
 
-    // Sort: expired first, then expiring, then nodate
     const order: Record<ExpiryStatus, number> = { expired: 0, expiring: 1, nodate: 2 };
     result.sort((a, b) => order[a.status] - order[b.status]);
-
     setItems(result);
     setCurrentIndex(0);
     setLoading(false);
@@ -125,6 +128,7 @@ const ResolveExpiryFlow = ({ open, onOpenChange, onComplete }: Props) => {
     if (open) {
       fetchItems();
       setShowDateInput(false);
+      setShowMovePanel(false);
       setNewDate("");
       setAnimDir("in");
     }
@@ -132,15 +136,16 @@ const ResolveExpiryFlow = ({ open, onOpenChange, onComplete }: Props) => {
 
   const current = items[currentIndex] ?? null;
   const remaining = items.length - currentIndex;
+  const progress = items.length > 0 ? (currentIndex / items.length) * 100 : 0;
 
   const advance = () => {
     setShowDateInput(false);
+    setShowMovePanel(false);
     setNewDate("");
-    // Trigger exit animation
     setAnimDir("out");
     setTimeout(() => {
       if (currentIndex + 1 >= items.length) {
-        toast({ title: "Tutto risolto! 🎉", description: "Nessun altro prodotto da controllare." });
+        toast({ title: "Tutto risolto! 🎉" });
         onOpenChange(false);
         onComplete?.();
       } else {
@@ -158,7 +163,7 @@ const ResolveExpiryFlow = ({ open, onOpenChange, onComplete }: Props) => {
     } else {
       await supabase.from("preparations").update({ use_by_date: newDate }).eq("id", current.id);
     }
-    toast({ title: "Data aggiornata" });
+    toast({ title: "Data aggiornata ✓" });
     setActing(false);
     advance();
   };
@@ -171,7 +176,7 @@ const ResolveExpiryFlow = ({ open, onOpenChange, onComplete }: Props) => {
     } else {
       await supabase.from("preparations").delete().eq("id", current.id);
     }
-    toast({ title: "Segnato come consumato ✅" });
+    toast({ title: "Consumato ✅" });
     setActing(false);
     advance();
   };
@@ -184,23 +189,20 @@ const ResolveExpiryFlow = ({ open, onOpenChange, onComplete }: Props) => {
     } else {
       await supabase.from("preparations").delete().eq("id", current.id);
     }
-    toast({ title: "Segnato come buttato 🗑️" });
+    toast({ title: "Buttato 🗑️" });
     setActing(false);
     advance();
   };
 
-  const handleMarkExpired = async () => {
+  const handleMove = async (newStorage: string) => {
     if (!current) return;
     setActing(true);
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const dateStr = yesterday.toISOString().split("T")[0];
     if (current.type === "inventory") {
-      await supabase.from("inventory_items").update({ expiry_date: dateStr }).eq("id", current.id);
+      await supabase.from("inventory_items").update({ storage_type: newStorage }).eq("id", current.id);
     } else {
-      await supabase.from("preparations").update({ use_by_date: dateStr }).eq("id", current.id);
+      await supabase.from("preparations").update({ storage_type: newStorage }).eq("id", current.id);
     }
-    toast({ title: "Segnato come scaduto" });
+    toast({ title: `Spostato in ${storageLabel[newStorage]} ✓` });
     setActing(false);
     advance();
   };
@@ -209,190 +211,200 @@ const ResolveExpiryFlow = ({ open, onOpenChange, onComplete }: Props) => {
     <>
       <style>{`
         @keyframes resolveSlideIn {
-          from { opacity: 0; transform: translateX(60px) scale(0.95); }
-          to   { opacity: 1; transform: translateX(0) scale(1); }
+          from { opacity: 0; transform: translateY(24px) scale(0.97); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
         }
         @keyframes resolveSlideOut {
-          from { opacity: 1; transform: translateX(0) scale(1); }
-          to   { opacity: 0; transform: translateX(-60px) scale(0.95); }
+          from { opacity: 1; transform: translateY(0) scale(1); }
+          to   { opacity: 0; transform: translateY(-24px) scale(0.97); }
         }
       `}</style>
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="rounded-t-2xl h-[85vh] flex flex-col p-0">
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 pt-4 pb-2">
-          <div>
-            <h2 className="text-base font-bold" style={{ color: "#111827" }}>Risolvi scadenze</h2>
-            {!loading && items.length > 0 && (
-              <p className="text-xs" style={{ color: "#6B7280" }}>
-                {remaining} {remaining === 1 ? "elemento rimasto" : "elementi rimasti"}
-              </p>
-            )}
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent side="bottom" className="rounded-t-[24px] h-[92vh] flex flex-col p-0">
+          {/* Header */}
+          <div className="flex items-center justify-between px-5 pt-5 pb-2">
+            <div>
+              <h2 className="text-[17px] text-foreground">Risolvi scadenze</h2>
+              {!loading && items.length > 0 && (
+                <p className="text-[12px] text-muted-foreground mt-0.5">
+                  {remaining} {remaining === 1 ? "rimasto" : "rimasti"}
+                </p>
+              )}
+            </div>
+            <button onClick={() => onOpenChange(false)} className="p-1.5 rounded-full bg-secondary">
+              <X className="h-4 w-4 text-muted-foreground" />
+            </button>
           </div>
-          <button onClick={() => onOpenChange(false)} className="p-1">
-            <X className="h-5 w-5" style={{ color: "#9CA3AF" }} />
-          </button>
-        </div>
 
-        {/* Progress bar */}
-        {!loading && items.length > 0 && (
-          <div className="px-4 pb-2">
-            <div className="h-1.5 w-full rounded-full" style={{ backgroundColor: "#E5E7EB" }}>
-              <div
-                className="h-full rounded-full bg-primary transition-all duration-300"
-                style={{ width: `${((currentIndex) / items.length) * 100}%` }}
-              />
+          {/* Progress */}
+          {!loading && items.length > 0 && (
+            <div className="px-5 pb-3">
+              <div className="h-[5px] w-full rounded-full bg-secondary">
+                <div
+                  className="h-full rounded-full bg-primary transition-all duration-500 ease-out"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto px-4 pb-4">
-          {loading ? (
-            <div className="flex h-full items-center justify-center">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-            </div>
-          ) : items.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center gap-3">
-              <Check className="h-12 w-12 text-primary" />
-              <p className="text-base font-semibold" style={{ color: "#111827" }}>Tutto a posto!</p>
-              <p className="text-sm" style={{ color: "#6B7280" }}>Nessun prodotto da risolvere.</p>
-            </div>
-          ) : current ? (
-            <div
-              key={currentIndex}
-              className="flex flex-col items-center gap-4 pt-4 transition-all duration-250"
-              style={{
-                animation: animDir === "in"
-                  ? "resolveSlideIn 0.3s cubic-bezier(0.22,1,0.36,1)"
-                  : "resolveSlideOut 0.25s cubic-bezier(0.55,0,1,0.45) forwards",
-              }}
-            >
-              {/* Card */}
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto px-5 pb-6">
+            {loading ? (
+              <div className="flex h-full items-center justify-center">
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              </div>
+            ) : items.length === 0 ? (
+              <div className="flex h-full flex-col items-center justify-center gap-4">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
+                  <Check className="h-8 w-8 text-success" />
+                </div>
+                <p className="text-[16px] font-medium text-foreground">Tutto a posto!</p>
+                <p className="text-[13px] text-muted-foreground">Nessun prodotto da risolvere</p>
+              </div>
+            ) : current ? (
               <div
-                className="w-full rounded-2xl bg-white p-5 shadow-md"
-                style={{ border: `2px solid ${statusCfg[current.status].color}20` }}
+                key={currentIndex}
+                className="flex flex-col gap-5 pt-2"
+                style={{
+                  animation: animDir === "in"
+                    ? "resolveSlideIn 0.35s cubic-bezier(0.22,1,0.36,1)"
+                    : "resolveSlideOut 0.25s cubic-bezier(0.55,0,1,0.45) forwards",
+                }}
               >
-                {/* Status badge */}
-                <div className="flex justify-between items-start mb-4">
-                  <span
-                    className="rounded-lg px-2.5 py-1 text-[11px] font-bold text-white"
-                    style={{ backgroundColor: statusCfg[current.status].color }}
-                  >
-                    {statusCfg[current.status].label}
-                  </span>
-                  <span className="text-[11px] font-medium" style={{ color: "#6B7280" }}>
-                    {current.type === "preparation" ? "Preparazione" : "Prodotto"}
-                  </span>
-                </div>
-
-                {/* Image + info */}
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl overflow-hidden" style={{ backgroundColor: "#F5F7FA" }}>
-                    {current.image_url ? (
-                      <img src={current.image_url} alt="" className="h-full w-full object-cover" />
-                    ) : (
-                      <Package className="h-7 w-7" style={{ color: "#9CA3AF" }} />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-lg font-bold truncate" style={{ color: "#111827" }}>{current.name}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      {current.expiry_date && (
-                        <span className="flex items-center gap-1 text-xs" style={{ color: "#6B7280" }}>
-                          <Clock className="h-3 w-3" />
-                          {new Date(current.expiry_date).toLocaleDateString("it-IT")}
-                        </span>
-                      )}
-                      <span className="text-xs" style={{ color: "#9CA3AF" }}>
-                        {storageLabel[current.storage_type] ?? current.storage_type}
-                      </span>
-                    </div>
-                    {current.quantity && (
-                      <p className="text-xs mt-0.5" style={{ color: "#9CA3AF" }}>
-                        x{current.quantity} {current.unit ?? ""}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Date input (conditional) */}
-                {showDateInput && (
-                  <div className="flex gap-2 mb-2 animate-in slide-in-from-top-2">
-                    <Input
-                      type="date"
-                      value={newDate}
-                      onChange={(e) => setNewDate(e.target.value)}
-                      className="flex-1"
-                    />
-                    <Button
-                      size="sm"
-                      disabled={!newDate || acting}
-                      onClick={handleUpdateDate}
+                {/* Product card */}
+                <div className="rounded-[20px] bg-card shadow-card p-5">
+                  {/* Status pill */}
+                  <div className="flex justify-between items-center mb-4">
+                    <span
+                      className="rounded-[10px] px-3 py-1 text-[11px] font-semibold text-white"
+                      style={{ backgroundColor: statusCfg[current.status].color }}
                     >
-                      Salva
-                    </Button>
+                      {statusCfg[current.status].label}
+                    </span>
+                    <span className="text-[11px] text-muted-foreground">
+                      {current.type === "preparation" ? "Preparazione" : "Prodotto"}
+                    </span>
                   </div>
-                )}
+
+                  {/* Image + name */}
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded-[16px] bg-secondary overflow-hidden">
+                      {current.image_url ? (
+                        <img src={current.image_url} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <Package className="h-8 w-8 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[18px] font-medium truncate text-foreground">{current.name}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        {current.expiry_date && (
+                          <span className="flex items-center gap-1 text-[13px] text-muted-foreground">
+                            <Clock className="h-3.5 w-3.5" />
+                            {new Date(current.expiry_date).toLocaleDateString("it-IT")}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[12px] text-muted-foreground mt-0.5">
+                        {storageLabel[current.storage_type] ?? current.storage_type}
+                        {current.quantity ? ` · x${current.quantity} ${current.unit ?? ""}` : ""}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Date input */}
+                  {showDateInput && (
+                    <div className="flex gap-2 mt-4 animate-in slide-in-from-top-2">
+                      <Input
+                        type="date"
+                        value={newDate}
+                        onChange={(e) => setNewDate(e.target.value)}
+                        className="flex-1 rounded-[12px]"
+                      />
+                      <Button
+                        size="sm"
+                        disabled={!newDate || acting}
+                        onClick={handleUpdateDate}
+                        className="rounded-[12px]"
+                      >
+                        Salva
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Move panel */}
+                  {showMovePanel && (
+                    <div className="flex gap-2 mt-4 animate-in slide-in-from-top-2">
+                      {storageOptions
+                        .filter((s) => s.key !== current.storage_type)
+                        .map(({ key, label, icon: Icon }) => (
+                          <button
+                            key={key}
+                            onClick={() => handleMove(key)}
+                            disabled={acting}
+                            className="flex-1 flex flex-col items-center gap-1.5 rounded-[14px] py-3 bg-secondary text-foreground active:scale-[0.97] transition-all"
+                          >
+                            <Icon className="h-5 w-5 text-primary" strokeWidth={1.8} />
+                            <span className="text-[12px] font-medium">{label}</span>
+                          </button>
+                        ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Action grid – BIG buttons */}
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => { setShowDateInput(!showDateInput); setShowMovePanel(false); }}
+                    disabled={acting}
+                    className="flex flex-col items-center gap-2 rounded-[18px] py-5 bg-card shadow-card active:scale-[0.96] transition-all"
+                  >
+                    <CalendarClock className="h-7 w-7 text-primary" strokeWidth={1.6} />
+                    <span className="text-[13px] font-medium text-foreground">Aggiorna data</span>
+                  </button>
+
+                  <button
+                    onClick={handleConsumed}
+                    disabled={acting}
+                    className="flex flex-col items-center gap-2 rounded-[18px] py-5 bg-card shadow-card active:scale-[0.96] transition-all"
+                  >
+                    <UtensilsCrossed className="h-7 w-7 text-success" strokeWidth={1.6} />
+                    <span className="text-[13px] font-medium text-foreground">Consumato</span>
+                  </button>
+
+                  <button
+                    onClick={handleDiscarded}
+                    disabled={acting}
+                    className="flex flex-col items-center gap-2 rounded-[18px] py-5 bg-card shadow-card active:scale-[0.96] transition-all"
+                  >
+                    <Trash2 className="h-7 w-7 text-destructive" strokeWidth={1.6} />
+                    <span className="text-[13px] font-medium text-foreground">Buttato</span>
+                  </button>
+
+                  <button
+                    onClick={() => { setShowMovePanel(!showMovePanel); setShowDateInput(false); }}
+                    disabled={acting}
+                    className="flex flex-col items-center gap-2 rounded-[18px] py-5 bg-card shadow-card active:scale-[0.96] transition-all"
+                  >
+                    <ArrowRightLeft className="h-7 w-7 text-primary" strokeWidth={1.6} />
+                    <span className="text-[13px] font-medium text-foreground">Sposta</span>
+                  </button>
+                </div>
+
+                {/* Skip */}
+                <button
+                  onClick={advance}
+                  disabled={acting}
+                  className="text-[13px] font-medium text-muted-foreground py-2 self-center"
+                >
+                  Salta →
+                </button>
               </div>
-
-              {/* Action buttons */}
-              <div className="w-full grid grid-cols-2 gap-2.5">
-                <button
-                  onClick={() => setShowDateInput(!showDateInput)}
-                  disabled={acting}
-                  className="flex flex-col items-center gap-1.5 rounded-xl py-4 transition-colors active:scale-[0.97]"
-                  style={{ backgroundColor: "#EFF6FF", color: "#2563EB" }}
-                >
-                  <CalendarClock className="h-6 w-6" />
-                  <span className="text-xs font-semibold">Aggiorna data</span>
-                </button>
-
-                <button
-                  onClick={handleConsumed}
-                  disabled={acting}
-                  className="flex flex-col items-center gap-1.5 rounded-xl py-4 transition-colors active:scale-[0.97]"
-                  style={{ backgroundColor: "#ECFDF5", color: "#059669" }}
-                >
-                  <UtensilsCrossed className="h-6 w-6" />
-                  <span className="text-xs font-semibold">Consumato</span>
-                </button>
-
-                <button
-                  onClick={handleDiscarded}
-                  disabled={acting}
-                  className="flex flex-col items-center gap-1.5 rounded-xl py-4 transition-colors active:scale-[0.97]"
-                  style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}
-                >
-                  <Trash2 className="h-6 w-6" />
-                  <span className="text-xs font-semibold">Buttato</span>
-                </button>
-
-                <button
-                  onClick={handleMarkExpired}
-                  disabled={acting}
-                  className="flex flex-col items-center gap-1.5 rounded-xl py-4 transition-colors active:scale-[0.97]"
-                  style={{ backgroundColor: "#FFF7ED", color: "#D97706" }}
-                >
-                  <AlertTriangle className="h-6 w-6" />
-                  <span className="text-xs font-semibold">Segna scaduto</span>
-                </button>
-              </div>
-
-              {/* Skip */}
-              <button
-                onClick={advance}
-                disabled={acting}
-                className="text-xs font-medium py-2"
-                style={{ color: "#9CA3AF" }}
-              >
-                Salta →
-              </button>
-            </div>
-          ) : null}
-        </div>
-      </SheetContent>
-    </Sheet>
+            ) : null}
+          </div>
+        </SheetContent>
+      </Sheet>
     </>
   );
 };
