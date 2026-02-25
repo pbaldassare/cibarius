@@ -29,7 +29,7 @@ const RestaurantAdminLayout = ({ children }: { children: ReactNode }) => {
       {/* Sidebar */}
       <aside className="hidden w-64 flex-col bg-gradient-to-b from-primary to-primary-dark md:flex">
         <div className="flex h-16 items-center gap-2 border-b border-white/10 px-6">
-          <img src={cibariusLogo} alt="Cibarius" className="h-6" />
+          <img src={cibariusLogo} alt="Cibarius" className="h-6 brightness-0 invert" />
         </div>
         <div className="border-b border-white/10 px-6 py-3">
           <p className="text-xs text-white/60">Ristorante</p>
@@ -69,7 +69,7 @@ const RestaurantAdminLayout = ({ children }: { children: ReactNode }) => {
       {/* Content */}
       <div className="flex flex-1 flex-col">
         <header className="flex h-16 items-center gap-3 bg-gradient-to-r from-primary to-primary-dark px-4 md:hidden">
-          <img src={cibariusLogo} alt="Cibarius" className="h-6" />
+          <img src={cibariusLogo} alt="Cibarius" className="h-6 brightness-0 invert" />
           <span className="text-sm font-semibold text-white">{restaurant?.name ?? ""}</span>
         </header>
         <main className="flex-1 p-4 md:p-6">{children}</main>
