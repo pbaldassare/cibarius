@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, UserPlus } from "lucide-react";
+import { Loader2, UserPlus, Eye, EyeOff } from "lucide-react";
 import cibariusLogo from "@/assets/cibarius-logo.png";
 
 const SignupPage = () => {
@@ -16,6 +16,7 @@ const SignupPage = () => {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   if (loading) {
     return (
@@ -67,7 +68,12 @@ const SignupPage = () => {
             <form onSubmit={handleSignup} className="space-y-4">
               <Input type="text" placeholder="Nome completo" value={fullName} onChange={(e) => setFullName(e.target.value)} />
               <Input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-              <Input type="password" placeholder="Password (min. 6 caratteri)" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
+              <div className="relative">
+                <Input type={showPassword ? "text" : "password"} placeholder="Password (min. 6 caratteri)" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} className="pr-10" />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
               <Button type="submit" className="w-full" disabled={submitting}>
                 {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
                 Registrati
