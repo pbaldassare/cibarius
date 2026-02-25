@@ -10,11 +10,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { useDebounce } from "@/hooks/useDebounce";
 import AddFoodFlow from "@/components/AddFoodFlow";
+import ResolveExpiryFlow from "@/components/ResolveExpiryFlow";
 import {
   AlertTriangle, Clock, Package, Plus,
   ScanLine, Snowflake, Archive, Search,
   Thermometer, AlertCircle, HelpCircle, Filter,
-  X, ChevronRight, ChevronDown,
+  X, ChevronRight, ChevronDown, Zap,
 } from "lucide-react";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
@@ -77,6 +78,7 @@ const Index = () => {
   const [statusFilter, setStatusFilter] = useState<string>("relevant");
   const [daysRange, setDaysRange] = useState(3);
   const [addFoodOpen, setAddFoodOpen] = useState(false);
+  const [resolveOpen, setResolveOpen] = useState(false);
   const debouncedSearch = useDebounce(search, 250);
 
   // Redirect non-user roles
@@ -251,6 +253,18 @@ const Index = () => {
           <ChevronRight className="h-4 w-4 shrink-0 ml-1" style={{ color: "#9CA3AF" }} />
         </button>
 
+        {/* ─── Risolvi tutto ─── */}
+        {(counts.expired + counts.expiring + counts.nodate) > 0 && (
+          <button
+            onClick={() => setResolveOpen(true)}
+            className="flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-[13px] font-semibold transition-colors active:scale-[0.98]"
+            style={{ backgroundColor: "#EFF6FF", color: "#2563EB" }}
+          >
+            <Zap className="h-4 w-4" />
+            Risolvi tutto
+          </button>
+        )}
+
         {/* ─── C) Storage chip + Search + Filter icon ─── */}
         <div className="flex gap-2 items-center">
           <button
@@ -356,6 +370,12 @@ const Index = () => {
         open={addFoodOpen}
         onOpenChange={setAddFoodOpen}
         context="inventory"
+        onComplete={fetchItems}
+      />
+
+      <ResolveExpiryFlow
+        open={resolveOpen}
+        onOpenChange={setResolveOpen}
         onComplete={fetchItems}
       />
 
