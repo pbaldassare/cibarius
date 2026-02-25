@@ -14,7 +14,7 @@ import {
   AlertTriangle, Clock, Package, Plus,
   ScanLine, Snowflake, Archive, Search,
   Thermometer, AlertCircle, HelpCircle, Filter,
-  X,
+  X, ChevronRight, ChevronDown,
 } from "lucide-react";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
@@ -72,6 +72,7 @@ const Index = () => {
   const [storageTab, setStorageTab] = useState("all");
   const [search, setSearch] = useState("");
   const [filterSheet, setFilterSheet] = useState(false);
+  const [storageSheet, setStorageSheet] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("relevant");
   const [daysRange, setDaysRange] = useState(3);
   const [addFoodOpen, setAddFoodOpen] = useState(false);
@@ -185,10 +186,10 @@ const Index = () => {
   if (loading) {
     return (
       <div style={{ backgroundColor: "#F5F7FA" }}>
-        <MobileHeader title="Home" />
-        <main className="space-y-4 px-4 py-5 pb-32">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-[72px] w-full rounded-2xl" />
+        <MobileHeader title="" />
+        <main className="space-y-3 px-4 py-3 pb-32">
+          <Skeleton className="h-6 w-40" />
+          <Skeleton className="h-14 w-full rounded-2xl" />
           <Skeleton className="h-10 w-full rounded-xl" />
           <Skeleton className="h-64 w-full rounded-2xl" />
         </main>
@@ -196,72 +197,55 @@ const Index = () => {
     );
   }
 
+  const storageChipLabel = storageTab === "all" ? "Tutto" : storageLabel[storageTab] ?? storageTab;
+
   return (
     <div style={{ backgroundColor: "#F5F7FA" }} className="min-h-screen">
-      <MobileHeader title="Home" />
-      <main className="space-y-4 px-4 pt-2 pb-32">
+      <MobileHeader title="" />
+      <main className="space-y-3 px-4 pt-1 pb-28">
 
-        {/* ─── A) Greeting (minimal) ─── */}
-        <div className="pt-1">
-          <h2 className="text-[18px] font-bold" style={{ color: "#111827" }}>
+        {/* ─── A) Greeting ─── */}
+        <div>
+          <h2 className="text-base font-bold" style={{ color: "#111827" }}>
             {greeting}{firstName ? `, ${firstName}` : ""} 👋
           </h2>
-          <p className="text-[13px] mt-0.5" style={{ color: "#4B5563" }}>
-            Ecco la tua dispensa
-          </p>
+          <p className="text-[12px]" style={{ color: "#6B7280" }}>La tua dispensa</p>
         </div>
 
-        {/* ─── B) Card "Da controllare" COMPATTA ─── */}
+        {/* ─── B) Counters card – single row 56px ─── */}
         <button
           onClick={() => navigate("/expiry")}
-          className="flex w-full items-center gap-4 rounded-2xl bg-white p-4 shadow-sm active:scale-[0.98] transition-transform"
-          style={{ maxHeight: 72 }}
+          className="flex w-full items-center rounded-2xl bg-white px-3 py-2.5 shadow-sm active:scale-[0.98] transition-transform"
+          style={{ height: 56 }}
         >
           {[
             { n: counts.expired, label: "Scaduti", color: "#E53935" },
             { n: counts.expiring, label: "In scadenza", color: "#F59E0B" },
             { n: counts.nodate, label: "Senza data", color: "#9CA3AF" },
           ].map(({ n, label, color }, i) => (
-            <div key={label} className="flex flex-1 items-center gap-2">
-              {i > 0 && <div className="h-8 w-px" style={{ backgroundColor: "#E5E7EB" }} />}
-              <div className={`flex items-center gap-2 ${i > 0 ? "pl-2" : ""}`}>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: `${color}15` }}>
-                  <span className="text-base font-bold" style={{ color }}>{n}</span>
-                </div>
-                <span className="text-[11px] font-medium leading-tight" style={{ color: "#4B5563" }}>{label}</span>
-              </div>
+            <div key={label} className={`flex flex-1 items-center gap-1.5 ${i > 0 ? "border-l border-[#F0F0F0] pl-3" : ""}`}>
+              <span className="text-lg font-bold leading-none" style={{ color }}>{n}</span>
+              <span className="text-[10px] font-medium leading-tight" style={{ color: "#6B7280" }}>{label}</span>
             </div>
           ))}
+          <ChevronRight className="h-4 w-4 shrink-0 ml-1" style={{ color: "#9CA3AF" }} />
         </button>
 
-        {/* ─── C) Storage pills (1 row) ─── */}
-        <div className="flex gap-1.5">
-          {storageTabs.map(({ key, label, icon: Icon }) => {
-            const active = storageTab === key;
-            return (
-              <button
-                key={key}
-                onClick={() => setStorageTab(key)}
-                className={`flex flex-1 items-center justify-center gap-1 rounded-xl py-2 text-[13px] font-semibold transition-colors ${
-                  active
-                    ? "bg-primary text-white shadow-sm"
-                    : "bg-white text-foreground"
-                }`}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                {key === "all" ? "Tutto" : label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* ─── D) Search + filter icon ─── */}
-        <div className="flex gap-2">
+        {/* ─── C) Storage chip + Search + Filter icon ─── */}
+        <div className="flex gap-2 items-center">
+          <button
+            onClick={() => setStorageSheet(true)}
+            className="flex items-center gap-1 rounded-xl bg-white px-3 py-2 text-[12px] font-semibold shadow-sm shrink-0"
+            style={{ color: "#111827" }}
+          >
+            {storageChipLabel}
+            <ChevronDown className="h-3 w-3" style={{ color: "#9CA3AF" }} />
+          </button>
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: "#9CA3AF" }} />
+            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2" style={{ color: "#9CA3AF" }} />
             <Input
-              placeholder="Cerca prodotto..."
-              className="h-10 rounded-xl border-0 bg-white pl-9 text-[14px] shadow-sm"
+              placeholder="Cerca..."
+              className="h-9 rounded-xl border-0 bg-white pl-8 text-[13px] shadow-sm"
               style={{ color: "#111827" }}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -269,71 +253,65 @@ const Index = () => {
           </div>
           <button
             onClick={() => setFilterSheet(true)}
-            className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm"
+            className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm"
           >
-            <Filter className="h-4 w-4" style={{ color: "#4B5563" }} />
+            <Filter className="h-3.5 w-3.5" style={{ color: "#4B5563" }} />
             {activeFilterCount > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-white">
+              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[8px] font-bold text-white">
                 {activeFilterCount}
               </span>
             )}
           </button>
         </div>
 
-        {/* ─── E) Lista prodotti ─── */}
+        {/* ─── E) Product list ─── */}
         {filtered.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 rounded-2xl bg-white p-10 shadow-sm">
-            <Package className="h-8 w-8" style={{ color: "#9CA3AF" }} />
-            <p className="text-[14px] font-medium" style={{ color: "#111827" }}>
+          <div className="flex flex-col items-center gap-1.5 rounded-2xl bg-white p-8 shadow-sm">
+            <Package className="h-7 w-7" style={{ color: "#9CA3AF" }} />
+            <p className="text-[13px] font-medium" style={{ color: "#111827" }}>
               {search ? "Nessun risultato" : "Nessun prodotto da controllare"}
             </p>
-            <p className="text-[12px]" style={{ color: "#4B5563" }}>
+            <p className="text-[11px]" style={{ color: "#6B7280" }}>
               {search ? "Prova con un altro termine" : "Premi + per aggiungere"}
             </p>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {filtered.map((item) => {
               const status = getStatusCustom(item.expiry_date);
               const cfg = statusCfg[status];
               return (
                 <div
                   key={item.id}
-                  className="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm overflow-hidden"
+                  className="flex items-center gap-2.5 rounded-xl bg-white px-2.5 py-2 shadow-sm overflow-hidden"
+                  style={{ minHeight: 64 }}
                 >
-                  {/* Left accent bar */}
                   <div className={`w-1 self-stretch rounded-full ${cfg.barColor}`} />
-
-                  {/* Image */}
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#F5F7FA] overflow-hidden">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#F5F7FA] overflow-hidden">
                     {item.product.image_url ? (
                       <img src={item.product.image_url} alt="" className="h-full w-full object-cover" />
                     ) : (
-                      <Package className="h-5 w-5" style={{ color: "#9CA3AF" }} />
+                      <Package className="h-4 w-4" style={{ color: "#9CA3AF" }} />
                     )}
                   </div>
-
-                  {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-[14px] font-semibold truncate" style={{ color: "#111827" }}>
+                    <p className="text-[13px] font-semibold truncate" style={{ color: "#111827" }}>
                       {item.product.name}
                     </p>
-                    <div className="flex items-center gap-2 mt-0.5">
+                    <div className="flex items-center gap-1.5 mt-0.5">
                       {item.expiry_date && (
-                        <span className="text-[12px] flex items-center gap-0.5" style={{ color: "#4B5563" }}>
-                          <Clock className="h-3 w-3" />
+                        <span className="text-[11px] flex items-center gap-0.5" style={{ color: "#6B7280" }}>
+                          <Clock className="h-2.5 w-2.5" />
                           {new Date(item.expiry_date).toLocaleDateString("it-IT")}
                         </span>
                       )}
-                      <span className="text-[11px]" style={{ color: "#9CA3AF" }}>
+                      <span className="text-[10px]" style={{ color: "#9CA3AF" }}>
                         {storageLabel[item.storage_type] ?? item.storage_type}
                         {item.quantity ? ` · x${item.quantity}` : ""}
                       </span>
                     </div>
                   </div>
-
-                  {/* Badge */}
-                  <span className={`shrink-0 rounded-lg px-2 py-0.5 text-[10px] font-bold text-white ${cfg.badgeBg}`}>
+                  <span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-bold text-white ${cfg.badgeBg}`}>
                     {cfg.label}
                   </span>
                 </div>
@@ -344,11 +322,10 @@ const Index = () => {
       </main>
 
       {/* ─── FAB ─── */}
-      <div className="fixed bottom-[calc(72px+env(safe-area-inset-bottom,0px)+1rem)] right-4 z-40">
+      <div className="fixed bottom-[calc(68px+env(safe-area-inset-bottom,0px)+0.75rem)] right-3.5 z-40">
         <button
           onClick={() => setAddFoodOpen(true)}
-          className="flex h-12 w-12 items-center justify-center rounded-full shadow-lg active:scale-95 transition-transform"
-          style={{ backgroundColor: "hsl(196, 88%, 54%)" }}
+          className="flex h-11 w-11 items-center justify-center rounded-full shadow-lg active:scale-95 transition-transform bg-primary"
           aria-label="Aggiungi"
         >
           <Plus className="h-5 w-5 text-white" />
@@ -443,6 +420,29 @@ const Index = () => {
                 Applica
               </Button>
             </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* ─── Storage bottom sheet ─── */}
+      <Sheet open={storageSheet} onOpenChange={setStorageSheet}>
+        <SheetContent side="bottom" className="rounded-t-2xl">
+          <SheetHeader>
+            <SheetTitle style={{ color: "#111827" }}>Conservazione</SheetTitle>
+          </SheetHeader>
+          <div className="flex flex-col gap-1 py-3">
+            {storageTabs.map(({ key, label, icon: Icon }) => (
+              <button
+                key={key}
+                onClick={() => { setStorageTab(key); setStorageSheet(false); }}
+                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-[14px] font-medium transition-colors ${
+                  storageTab === key ? "bg-primary/10 text-primary" : "text-foreground"
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+                {key === "all" ? "Tutto" : label}
+              </button>
+            ))}
           </div>
         </SheetContent>
       </Sheet>
