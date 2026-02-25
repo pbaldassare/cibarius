@@ -162,3 +162,24 @@ h1, h2, h3, h4, h5, h6, .font-display {
     box-shadow: var(--shadow-elevated);
   }
 }
+
+/* ═══ USER APP: consumer, airy, premium ═══ */
+.user-app {
+  letter-spacing: -0.005em;
+}
+.user-app main {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+/* ═══ RESTAURANT APP: operational, dense, high-contrast ═══ */
+.restaurant-app {
+  letter-spacing: 0;
+}
+.restaurant-app main {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+.restaurant-app h1 { font-size: 20px; font-weight: 700; font-family: 'Inter', system-ui, sans-serif !important; letter-spacing: -0.02em; }
+.restaurant-app h2 { font-size: 16px; font-weight: 700; font-family: 'Inter', system-ui, sans-serif !important; }
+.restaurant-app h3 { font-size: 14px; font-weight: 700; font-family: 'Inter', system-ui, sans-serif !important; }

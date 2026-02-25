@@ -21,6 +21,7 @@ interface PublicRecipe {
   servings: number | null;
   image_url: string | null;
   restaurants?: { name: string } | null;
+  allergens?: { allergens: { name: string; code: string } }[];
 }
 
 const CATEGORIES = ["Antipasto", "Primo", "Secondo", "Contorno", "Dolce", "Bevanda", "Altro"];
@@ -36,10 +37,11 @@ const PublicRecipesPage = () => {
     const load = async () => {
       const { data } = await supabase
         .from("recipes")
-        .select("id, title, category, difficulty, prep_time_minutes, cook_time_minutes, servings, image_url, restaurants(name)")
+        .select("id, title, category, difficulty, prep_time_minutes, cook_time_minutes, servings, image_url, restaurants(name), recipe_allergens(allergens(name, code))")
         .eq("is_public", true)
         .order("created_at", { ascending: false });
-      setRecipes((data ?? []) as PublicRecipe[]);
+      const mapped = (data ?? []).map((r: any) => ({ ...r, allergens: r.recipe_allergens }));
+      setRecipes(mapped as PublicRecipe[]);
       setLoading(false);
     };
     load();
@@ -103,6 +105,9 @@ const PublicRecipesPage = () => {
                     <div className="flex gap-1 mt-1.5 flex-wrap">
                       {r.category && <Badge variant="secondary" className="text-[10px]">{r.category}</Badge>}
                       {r.difficulty && <Badge variant="outline" className="text-[10px]">{r.difficulty}</Badge>}
+                      {r.allergens?.map((a, idx) => (
+                        <Badge key={idx} variant="destructive" className="text-[9px] py-0">{a.allergens?.name}</Badge>
+                      ))}
                     </div>
                     {(r.prep_time_minutes || r.cook_time_minutes) && (
                       <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
