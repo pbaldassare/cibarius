@@ -19,7 +19,13 @@ import {
 import { Label } from "@/components/ui/label";
 
 const ROLES: AppRole[] = ["user", "restaurant_owner", "admin", "professional", "supplier"];
-
+const ROLE_LABELS: Record<AppRole, string> = {
+  user: "Utente",
+  restaurant_owner: "Ristoratore",
+  admin: "Amministratore",
+  professional: "Professionista",
+  supplier: "Fornitore",
+};
 const AdminUsersPage = () => {
   const { toast } = useToast();
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -150,7 +156,7 @@ const AdminUsersPage = () => {
           <SelectContent>
             <SelectItem value="all">Tutti i ruoli</SelectItem>
             {ROLES.map((r) => (
-              <SelectItem key={r} value={r}>{r}</SelectItem>
+              <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -186,7 +192,7 @@ const AdminUsersPage = () => {
                       </SelectTrigger>
                       <SelectContent>
                         {ROLES.map((r) => (
-                          <SelectItem key={r} value={r}>{r}</SelectItem>
+                          <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -279,7 +285,7 @@ const AdminUsersPage = () => {
                 </SelectTrigger>
                 <SelectContent>
                   {ROLES.map((r) => (
-                    <SelectItem key={r} value={r}>{r}</SelectItem>
+                    <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
