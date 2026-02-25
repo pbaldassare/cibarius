@@ -445,45 +445,43 @@ const RestaurantRecipesPage = () => {
             actions={[{ label: "Crea ricetta", icon: Plus, onClick: () => openEditor() }]}
           />
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-1.5">
             {filtered.map((r) => (
-              <Card key={r.id} className="border-2 border-accent overflow-hidden">
-                <div className="flex">
-                  {r.image_url && (
-                    <div className="w-24 h-24 shrink-0">
-                      <img src={r.image_url} alt={r.title} className="h-full w-full object-cover" />
-                    </div>
-                  )}
-                  <CardContent className="flex-1 py-3 px-4">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="text-sm font-semibold text-foreground">{r.title}</h3>
-                        <div className="flex gap-1 mt-1 flex-wrap">
-                          {r.category && <Badge variant="secondary" className="text-[10px]">{r.category}</Badge>}
-                          <Badge variant={r.is_public ? "default" : "outline"} className="text-[10px]">
-                            {r.is_public ? "Pubblica" : "Privata"}
-                          </Badge>
-                        </div>
-                      </div>
-                      <div className="flex gap-1">
-                        <Button size="icon" variant="ghost" onClick={() => openEditor(r)}>
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button size="icon" variant="ghost" className="text-destructive" onClick={() => handleDelete(r.id)}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </div>
+              <div key={r.id} className="flex items-center gap-2.5 rounded-[14px] bg-card shadow-card px-3 py-2.5 overflow-hidden">
+                {r.image_url && (
+                  <div className="w-12 h-12 shrink-0 rounded-[10px] overflow-hidden">
+                    <img src={r.image_url} alt={r.title} className="h-full w-full object-cover" />
+                  </div>
+                )}
+                {!r.image_url && (
+                  <div className="flex w-12 h-12 shrink-0 items-center justify-center rounded-[10px] bg-secondary">
+                    <BookOpen className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-[14px] font-medium text-foreground truncate">{r.title}</p>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    {r.category && <span className="text-[10px] font-medium text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">{r.category}</span>}
+                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${r.is_public ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground"}`}>
+                      {r.is_public ? "Pubblica" : "Privata"}
+                    </span>
                     {(r.prep_time_minutes || r.cook_time_minutes) && (
-                      <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        {r.prep_time_minutes && <span>Prep {r.prep_time_minutes}′</span>}
-                        {r.cook_time_minutes && <span>Cottura {r.cook_time_minutes}′</span>}
-                      </div>
+                      <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                        <Clock className="h-2.5 w-2.5" />
+                        {(r.prep_time_minutes ?? 0) + (r.cook_time_minutes ?? 0)}′
+                      </span>
                     )}
-                  </CardContent>
+                  </div>
                 </div>
-              </Card>
+                <div className="flex gap-0.5 shrink-0">
+                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEditor(r)}>
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleDelete(r.id)}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
             ))}
           </div>
         )}
