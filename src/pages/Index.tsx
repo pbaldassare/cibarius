@@ -4,52 +4,76 @@ import MobileHeader from "@/components/MobileHeader";
 import { useRole, getRoleHomePath } from "@/hooks/useRole";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { getPrefs } from "@/pages/RemindersPage";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { useDebounce } from "@/hooks/useDebounce";
 import {
-  AlertTriangle, Clock, ChevronRight, Package, Flame,
-  ScanLine, BookOpen, UtensilsCrossed, Snowflake, Archive,
-  ShoppingBag, Beef, Wheat, Droplets,
+  AlertTriangle, Clock, Package, Plus,
+  ScanLine, Snowflake, Archive, Search,
+  Thermometer, AlertCircle, HelpCircle, Filter,
+  X,
 } from "lucide-react";
+import {
+  Sheet, SheetContent, SheetHeader, SheetTitle,
+} from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 
 /* ─── types ─── */
-interface ExpiryItem {
+interface InventoryItem {
   id: string;
-  expiry_date: string;
+  expiry_date: string | null;
   storage_type: string;
+  quantity: number | null;
+  unit: string | null;
   product: { name: string; image_url: string | null };
 }
 
-interface NutritionTarget {
-  kcal_day: number;
-  protein_g: number | null;
-  carbs_g: number | null;
-  fats_g: number | null;
-}
+type ExpiryStatus = "expired" | "expiring" | "ok" | "nodate";
 
-interface MacroTotals {
-  kcal: number;
-  protein: number;
-  carbs: number;
-  fats: number;
-}
+const getStatus = (d: string | null): ExpiryStatus => {
+  if (!d) return "nodate";
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const diff = (new Date(d).getTime() - today.getTime()) / 864e5;
+  if (diff < 0) return "expired";
+  if (diff <= 3) return "expiring";
+  return "ok";
+};
 
-/* ─── helpers ─── */
-const pct = (v: number, t: number) => Math.min(Math.round((v / t) * 100), 100);
+const statusCfg: Record<ExpiryStatus, { label: string; cls: string; dot: string }> = {
+  expired:  { label: "SCADUTO",     cls: "bg-destructive text-destructive-foreground", dot: "bg-destructive" },
+  expiring: { label: "IN SCADENZA", cls: "bg-accent text-accent-foreground",           dot: "bg-accent" },
+  ok:       { label: "OK",          cls: "bg-success text-success-foreground",          dot: "bg-success" },
+  nodate:   { label: "SENZA DATA",  cls: "bg-muted text-muted-foreground",             dot: "bg-muted-foreground" },
+};
+
+const storageLabel: Record<string, string> = {
+  frigo: "Frigo",
+  freezer: "Congelatore",
+  ambiente: "Dispensa",
+};
+
+const storageTabs = [
+  { key: "all", label: "Tutto", icon: Package },
+  { key: "ambiente", label: "Dispensa", icon: Archive },
+  { key: "frigo", label: "Frigo", icon: Thermometer },
+  { key: "freezer", label: "Congelatore", icon: Snowflake },
+] as const;
 
 const Index = () => {
   const { user } = useAuth();
   const { role, profile, isLoading: roleLoading } = useRole();
   const navigate = useNavigate();
 
-  const [alerts, setAlerts] = useState<ExpiryItem[]>([]);
-  const [inventoryCounts, setInventoryCounts] = useState({ pantry: 0, fridge: 0, freezer: 0 });
-  const [target, setTarget] = useState<NutritionTarget | null>(null);
-  const [todayMacros, setTodayMacros] = useState<MacroTotals>({ kcal: 0, protein: 0, carbs: 0, fats: 0 });
+  const [items, setItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [storageTab, setStorageTab] = useState("all");
+  const [search, setSearch] = useState("");
+  const [filterSheet, setFilterSheet] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string>("relevant"); // relevant = expired+expiring+nodate
+  const [daysRange, setDaysRange] = useState(3);
+  const debouncedSearch = useDebounce(search, 250);
 
   // Redirect non-user roles
   useEffect(() => {
@@ -60,126 +84,95 @@ const Index = () => {
 
   useEffect(() => {
     if (!user) return;
-
-    const fetchAll = async () => {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const todayISO = today.toISOString().slice(0, 10);
-      const prefs = getPrefs();
-
-      // Parallel fetches
-      const [alertsRes, countsRes, targetRes, mealDayRes] = await Promise.all([
-        // 1. Expiry alerts
-        supabase
-          .from("inventory_items")
-          .select("id, expiry_date, storage_type, product:products(name, image_url)")
-          .eq("owner_user_id", user.id)
-          .not("expiry_date", "is", null)
-          .order("expiry_date", { ascending: true })
-          .limit(50),
-        // 2. Inventory counts
-        supabase
-          .from("inventory_items")
-          .select("storage_type")
-          .eq("owner_user_id", user.id),
-        // 3. Nutrition targets
-        supabase
-          .from("nutrition_targets")
-          .select("*")
-          .eq("user_id", user.id)
-          .maybeSingle(),
-        // 4. Today's meal_day
-        supabase
-          .from("meal_days")
-          .select("id")
-          .eq("user_id", user.id)
-          .eq("day_date", todayISO)
-          .maybeSingle(),
-      ]);
-
-      // Process alerts
-      if (alertsRes.data) {
-        const items = (alertsRes.data as unknown as ExpiryItem[]).filter((item) => {
-          const expiry = new Date(item.expiry_date);
-          const diffDays = (expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
-          if (diffDays < 0 && prefs.showExpired) return true;
-          if (diffDays >= 0 && diffDays <= prefs.daysBeforeExpiry && prefs.showExpiring) return true;
-          return false;
-        });
-        setAlerts(items);
-      }
-
-      // Process inventory counts
-      if (countsRes.data) {
-        const counts = { pantry: 0, fridge: 0, freezer: 0 };
-        countsRes.data.forEach((row) => {
-          if (row.storage_type === "ambiente") counts.pantry++;
-          else if (row.storage_type === "frigo") counts.fridge++;
-          else if (row.storage_type === "freezer") counts.freezer++;
-        });
-        setInventoryCounts(counts);
-      }
-
-      // Process targets
-      if (targetRes.data) setTarget(targetRes.data as NutritionTarget);
-
-      // Fetch today's meals and items
-      if (mealDayRes.data) {
-        const { data: meals } = await supabase
-          .from("meals")
-          .select("id")
-          .eq("meal_day_id", mealDayRes.data.id);
-
-        if (meals && meals.length > 0) {
-          const mealIds = meals.map((m) => m.id);
-          const { data: items } = await supabase
-            .from("meal_items")
-            .select("calories, macros")
-            .in("meal_id", mealIds);
-
-          if (items) {
-            const totals: MacroTotals = { kcal: 0, protein: 0, carbs: 0, fats: 0 };
-            items.forEach((it) => {
-              totals.kcal += it.calories ?? 0;
-              if (it.macros && typeof it.macros === "object" && !Array.isArray(it.macros)) {
-                const m = it.macros as Record<string, number>;
-                totals.protein += m.protein ?? 0;
-                totals.carbs += m.carbs ?? 0;
-                totals.fats += m.fats ?? 0;
-              }
-            });
-            setTodayMacros(totals);
-          }
-        }
-      }
-
+    const fetch = async () => {
+      const { data } = await supabase
+        .from("inventory_items")
+        .select("id, expiry_date, storage_type, quantity, unit, product:products(name, image_url)")
+        .eq("owner_user_id", user.id)
+        .order("expiry_date", { ascending: true, nullsFirst: false });
+      if (data) setItems(data as unknown as InventoryItem[]);
       setLoading(false);
     };
-
-    fetchAll();
+    fetch();
   }, [user]);
 
-  const expiredCount = alerts.filter((a) => new Date(a.expiry_date) < new Date()).length;
-  const expiringCount = alerts.length - expiredCount;
-  const totalItems = inventoryCounts.pantry + inventoryCounts.fridge + inventoryCounts.freezer;
+  // Counts
+  const counts = useMemo(() => {
+    let expired = 0, expiring = 0, nodate = 0;
+    items.forEach((i) => {
+      const s = getStatus(i.expiry_date);
+      if (s === "expired") expired++;
+      else if (s === "expiring") expiring++;
+      else if (s === "nodate") nodate++;
+    });
+    return { expired, expiring, nodate };
+  }, [items]);
+
+  // Custom status with daysRange
+  const getStatusCustom = (d: string | null): ExpiryStatus => {
+    if (!d) return "nodate";
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const diff = (new Date(d).getTime() - today.getTime()) / 864e5;
+    if (diff < 0) return "expired";
+    if (diff <= daysRange) return "expiring";
+    return "ok";
+  };
+
+  // Filtered list
+  const filtered = useMemo(() => {
+    let list = items;
+
+    // storage tab
+    if (storageTab !== "all") list = list.filter((i) => i.storage_type === storageTab);
+
+    // search
+    if (debouncedSearch) {
+      const q = debouncedSearch.toLowerCase();
+      list = list.filter((i) => i.product.name.toLowerCase().includes(q));
+    }
+
+    // status filter
+    if (statusFilter === "relevant") {
+      list = list.filter((i) => {
+        const s = getStatusCustom(i.expiry_date);
+        return s === "expired" || s === "expiring" || s === "nodate";
+      });
+    } else if (statusFilter !== "all") {
+      list = list.filter((i) => getStatusCustom(i.expiry_date) === statusFilter);
+    }
+
+    // Sort: expired first, then expiring, nodate, ok
+    const order: Record<ExpiryStatus, number> = { expired: 0, expiring: 1, nodate: 2, ok: 3 };
+    list = [...list].sort((a, b) => {
+      const sa = getStatusCustom(a.expiry_date);
+      const sb = getStatusCustom(b.expiry_date);
+      if (order[sa] !== order[sb]) return order[sa] - order[sb];
+      // within same status, sort by date
+      if (a.expiry_date && b.expiry_date) return a.expiry_date.localeCompare(b.expiry_date);
+      if (a.expiry_date) return -1;
+      return 1;
+    });
+
+    return list;
+  }, [items, storageTab, debouncedSearch, statusFilter, daysRange]);
+
   const greeting = useMemo(() => {
     const h = new Date().getHours();
     if (h < 12) return "Buongiorno";
     if (h < 18) return "Buon pomeriggio";
     return "Buonasera";
   }, []);
-
   const firstName = profile?.full_name?.split(" ")[0] ?? "";
 
   if (loading) {
     return (
       <div>
         <MobileHeader title="Home" />
-        <main className="space-y-4 px-4 py-5">
+        <main className="space-y-4 px-4 py-5 pb-28">
           <Skeleton className="h-10 w-48" />
-          <Skeleton className="h-36 w-full rounded-2xl" />
           <Skeleton className="h-28 w-full rounded-2xl" />
-          <Skeleton className="h-20 w-full rounded-2xl" />
+          <Skeleton className="h-10 w-full rounded-2xl" />
+          <Skeleton className="h-64 w-full rounded-2xl" />
         </main>
       </div>
     );
@@ -188,186 +181,265 @@ const Index = () => {
   return (
     <div>
       <MobileHeader title="Home" />
-      <main className="space-y-5 px-4 py-5">
+      <main className="space-y-4 px-4 py-4 pb-28">
         {/* Greeting */}
         <div>
-          <h2 className="text-2xl font-bold text-foreground">
+          <h2 className="text-xl font-bold" style={{ color: "#111827" }}>
             {greeting}{firstName ? `, ${firstName}` : ""} 👋
           </h2>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            Ecco il riepilogo di oggi
+          <p className="mt-0.5 text-sm" style={{ color: "#4B5563" }}>
+            Controlla le scadenze e gestisci la tua dispensa
           </p>
         </div>
 
-        {/* ─── Quick Actions ─── */}
-        <div className="grid grid-cols-3 gap-2.5">
-          {[
-            { icon: ScanLine, label: "Scansiona", to: "/scan", color: "bg-primary/10 text-primary" },
-            { icon: BookOpen, label: "Ricette", to: "/recipes", color: "bg-success/10 text-success" },
-            { icon: UtensilsCrossed, label: "Pasti", to: "/meals", color: "bg-accent/10 text-accent" },
-          ].map(({ icon: Icon, label, to, color }) => (
-            <button
-              key={to}
-              onClick={() => navigate(to)}
-              className="flex flex-col items-center gap-1.5 rounded-2xl border border-border bg-card p-3.5 active:scale-95 transition-transform"
-            >
-              <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${color}`}>
-                <Icon className="h-5 w-5" />
-              </div>
-              <span className="text-xs font-medium text-foreground">{label}</span>
-            </button>
-          ))}
-        </div>
-
-        {/* ─── Calorie / Macro Tracker ─── */}
-        {target && (
-          <Card className="border-0 shadow-sm">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10">
-                    <Flame className="h-4 w-4 text-destructive" />
-                  </div>
-                  <span className="text-sm font-semibold text-foreground">Oggi</span>
-                </div>
-                <button onClick={() => navigate("/meals")} className="text-xs font-medium text-primary">
-                  Dettagli →
-                </button>
-              </div>
-
-              {/* Calorie ring */}
-              <div className="flex items-center gap-4 mb-4">
-                <div className="relative flex h-20 w-20 shrink-0 items-center justify-center">
-                  <svg viewBox="0 0 36 36" className="h-full w-full -rotate-90">
-                    <circle cx="18" cy="18" r="15.5" fill="none" stroke="hsl(var(--muted))" strokeWidth="3" />
-                    <circle
-                      cx="18" cy="18" r="15.5" fill="none"
-                      stroke="hsl(var(--primary))" strokeWidth="3"
-                      strokeLinecap="round"
-                      strokeDasharray={`${pct(todayMacros.kcal, target.kcal_day) * 0.974} 97.4`}
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-lg font-bold text-foreground">{todayMacros.kcal}</span>
-                    <span className="text-[9px] text-muted-foreground">/ {target.kcal_day}</span>
-                  </div>
-                </div>
-
-                <div className="flex-1 space-y-2.5">
-                  {[
-                    { label: "Proteine", value: todayMacros.protein, max: target.protein_g, icon: Beef, color: "bg-destructive" },
-                    { label: "Carboidrati", value: todayMacros.carbs, max: target.carbs_g, icon: Wheat, color: "bg-accent" },
-                    { label: "Grassi", value: todayMacros.fats, max: target.fats_g, icon: Droplets, color: "bg-primary" },
-                  ].map(({ label, value, max, color }) => (
-                    max ? (
-                      <div key={label}>
-                        <div className="flex justify-between text-[10px] mb-0.5">
-                          <span className="text-muted-foreground">{label}</span>
-                          <span className="font-medium text-foreground">{Math.round(value)}g / {max}g</span>
-                        </div>
-                        <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                          <div className={`h-full rounded-full ${color} transition-all`} style={{ width: `${pct(value, max)}%` }} />
-                        </div>
-                      </div>
-                    ) : null
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* ─── Expiry Alerts ─── */}
-        {alerts.length > 0 && (
-          <div className="space-y-2.5">
-            <button
-              onClick={() => navigate("/products")}
-              className="flex w-full items-center gap-3 rounded-2xl border-2 border-destructive/30 bg-destructive/5 p-3.5 text-left active:scale-[0.98] transition-transform"
-            >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-destructive/10">
-                <AlertTriangle className="h-5 w-5 text-destructive" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-foreground">Da controllare</p>
-                <p className="text-xs text-muted-foreground">
-                  {expiredCount > 0 && (
-                    <span className="text-destructive font-medium">{expiredCount} scadut{expiredCount === 1 ? "o" : "i"}</span>
-                  )}
-                  {expiredCount > 0 && expiringCount > 0 && " · "}
-                  {expiringCount > 0 && (
-                    <span className="text-accent font-medium">{expiringCount} in scadenza</span>
-                  )}
-                </p>
-              </div>
-              <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
-            </button>
-
-            <div className="space-y-1.5">
-              {alerts.slice(0, 4).map((item) => {
-                const expiry = new Date(item.expiry_date);
-                const isExpired = expiry < new Date();
-                return (
-                  <div key={item.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-2.5">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-secondary overflow-hidden">
-                      {item.product.image_url ? (
-                        <img src={item.product.image_url} alt="" className="h-full w-full object-cover" />
-                      ) : (
-                        <Package className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground truncate">{item.product.name}</p>
-                      <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {expiry.toLocaleDateString("it-IT")}
-                      </p>
-                    </div>
-                    <Badge className={`text-[10px] font-bold rounded-lg px-2 py-0.5 ${
-                      isExpired ? "bg-destructive text-destructive-foreground" : "bg-accent text-accent-foreground"
-                    }`}>
-                      {isExpired ? "SCADUTO" : "IN SCADENZA"}
-                    </Badge>
-                  </div>
-                );
-              })}
-              {alerts.length > 4 && (
-                <button onClick={() => navigate("/products")} className="w-full text-center text-xs font-medium text-primary py-1.5">
-                  Vedi tutti ({alerts.length}) →
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ─── Inventory Summary ─── */}
-        <Card className="border-0 shadow-sm">
+        {/* ─── SEZIONE A: Da controllare ─── */}
+        <Card
+          className="cursor-pointer border-0 shadow-md active:scale-[0.98] transition-transform"
+          onClick={() => navigate("/expiry")}
+        >
           <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-semibold text-foreground">Inventario</span>
-              <span className="text-xs text-muted-foreground">{totalItems} prodott{totalItems === 1 ? "o" : "i"}</span>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10">
+                <AlertTriangle className="h-4 w-4 text-destructive" />
+              </div>
+              <h3 className="text-base font-bold" style={{ color: "#111827" }}>Da controllare</h3>
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-3">
               {[
-                { icon: Archive, label: "Dispensa", count: inventoryCounts.pantry, to: "/products", color: "bg-accent/10 text-accent" },
-                { icon: ShoppingBag, label: "Frigo", count: inventoryCounts.fridge, to: "/products", color: "bg-primary/10 text-primary" },
-                { icon: Snowflake, label: "Freezer", count: inventoryCounts.freezer, to: "/freezer", color: "bg-blue-100 text-blue-600" },
-              ].map(({ icon: Icon, label, count, to, color }) => (
-                <button
-                  key={label}
-                  onClick={() => navigate(to)}
-                  className="flex flex-col items-center gap-1 rounded-xl bg-secondary/50 p-3 active:scale-95 transition-transform"
-                >
-                  <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${color}`}>
-                    <Icon className="h-4 w-4" />
+                { n: counts.expired, label: "Scaduti", icon: AlertCircle, color: "text-destructive", bg: "bg-destructive/10" },
+                { n: counts.expiring, label: "In scadenza", icon: Clock, color: "text-accent", bg: "bg-accent/10" },
+                { n: counts.nodate, label: "Senza data", icon: HelpCircle, color: "text-muted-foreground", bg: "bg-muted" },
+              ].map(({ n, label, icon: Icon, color, bg }) => (
+                <div key={label} className="flex flex-col items-center gap-1 rounded-xl p-3" style={{ backgroundColor: "white" }}>
+                  <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${bg}`}>
+                    <Icon className={`h-4 w-4 ${color}`} />
                   </div>
-                  <span className="text-lg font-bold text-foreground">{count}</span>
-                  <span className="text-[10px] text-muted-foreground">{label}</span>
-                </button>
+                  <span className="text-2xl font-bold" style={{ color: "#111827" }}>{n}</span>
+                  <span className="text-[10px] font-medium" style={{ color: "#4B5563" }}>{label}</span>
+                </div>
               ))}
             </div>
           </CardContent>
         </Card>
+
+        {/* ─── SEZIONE B: Tab Conservazione ─── */}
+        <div className="flex gap-2 overflow-x-auto no-scrollbar">
+          {storageTabs.map(({ key, label, icon: Icon }) => {
+            const active = storageTab === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setStorageTab(key)}
+                className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                  active
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-card text-foreground border border-border"
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+                {label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* ─── Search + Filters ─── */}
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: "#4B5563" }} />
+            <Input
+              placeholder="Cerca nel tuo inventario..."
+              className="pl-9 bg-card border-border"
+              style={{ color: "#111827" }}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <Button
+            variant="outline"
+            size="icon"
+            className="border-border bg-card"
+            onClick={() => setFilterSheet(true)}
+          >
+            <Filter className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Quick status filters */}
+        <div className="flex gap-2 flex-wrap">
+          {[
+            { key: "relevant", label: "Da controllare" },
+            { key: "expired", label: "Solo scaduti" },
+            { key: "expiring", label: "Solo in scadenza" },
+            { key: "nodate", label: "Senza data" },
+            { key: "all", label: "Tutti" },
+          ].map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setStatusFilter(key)}
+              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                statusFilter === key
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-card text-foreground border border-border"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* ─── SEZIONE C: Lista prodotti ─── */}
+        {filtered.length === 0 ? (
+          <Card className="border-0 shadow-sm">
+            <CardContent className="p-8 text-center">
+              <Package className="h-10 w-10 mx-auto mb-2" style={{ color: "#4B5563" }} />
+              <p className="text-sm font-medium" style={{ color: "#111827" }}>
+                {search ? "Nessun risultato" : "Nessun prodotto da controllare"}
+              </p>
+              <p className="text-xs mt-1" style={{ color: "#4B5563" }}>
+                {search ? "Prova con un altro termine" : "Aggiungi prodotti per iniziare"}
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-2">
+            {filtered.map((item) => {
+              const status = getStatusCustom(item.expiry_date);
+              const cfg = statusCfg[status];
+              return (
+                <Card key={item.id} className="border-0 shadow-sm">
+                  <CardContent className="flex items-center gap-3 p-3">
+                    {/* Image */}
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-secondary overflow-hidden">
+                      {item.product.image_url ? (
+                        <img src={item.product.image_url} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <Package className="h-6 w-6 text-muted-foreground" />
+                      )}
+                    </div>
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold truncate" style={{ color: "#111827" }}>{item.product.name}</p>
+                      {item.expiry_date && (
+                        <p className="text-xs flex items-center gap-1 mt-0.5" style={{ color: "#4B5563" }}>
+                          <Clock className="h-3 w-3" />
+                          {new Date(item.expiry_date).toLocaleDateString("it-IT")}
+                        </p>
+                      )}
+                      <p className="text-[10px] mt-0.5" style={{ color: "#4B5563" }}>
+                        {storageLabel[item.storage_type] ?? item.storage_type}
+                        {item.quantity ? ` · x${item.quantity} ${item.unit ?? ""}` : ""}
+                      </p>
+                    </div>
+                    {/* Badge */}
+                    <Badge className={`shrink-0 rounded-lg px-2.5 py-1 text-[10px] font-bold ${cfg.cls}`}>
+                      {cfg.label}
+                    </Badge>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
       </main>
+
+      {/* ─── SEZIONE D: FAB rapide ─── */}
+      <div className="fixed bottom-[calc(var(--nav-height)+1rem)] right-4 z-40 flex flex-col gap-2">
+        <button
+          onClick={() => navigate("/scan")}
+          className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg active:scale-95 transition-transform"
+          aria-label="Scansiona"
+        >
+          <ScanLine className="h-5 w-5" />
+        </button>
+        <button
+          onClick={() => navigate("/products")}
+          className="flex h-12 w-12 items-center justify-center rounded-full bg-accent text-accent-foreground shadow-lg active:scale-95 transition-transform"
+          aria-label="Aggiungi"
+        >
+          <Plus className="h-5 w-5" />
+        </button>
+      </div>
+
+      {/* ─── Filter bottom sheet ─── */}
+      <Sheet open={filterSheet} onOpenChange={setFilterSheet}>
+        <SheetContent side="bottom" className="rounded-t-2xl">
+          <SheetHeader>
+            <SheetTitle style={{ color: "#111827" }}>Filtri avanzati</SheetTitle>
+          </SheetHeader>
+          <div className="space-y-5 py-4">
+            {/* Days range */}
+            <div>
+              <p className="text-sm font-semibold mb-2" style={{ color: "#111827" }}>Giorni alla scadenza</p>
+              <div className="flex gap-2">
+                {[1, 2, 3, 5, 7].map((d) => (
+                  <button
+                    key={d}
+                    onClick={() => setDaysRange(d)}
+                    className={`flex-1 rounded-xl py-2 text-sm font-semibold transition-colors ${
+                      daysRange === d
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-card border border-border text-foreground"
+                    }`}
+                  >
+                    {d}g
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Storage */}
+            <div>
+              <p className="text-sm font-semibold mb-2" style={{ color: "#111827" }}>Conservazione</p>
+              <div className="flex gap-2">
+                {storageTabs.map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => setStorageTab(key)}
+                    className={`flex-1 rounded-xl py-2 text-sm font-semibold transition-colors ${
+                      storageTab === key
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-card border border-border text-foreground"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Status */}
+            <div>
+              <p className="text-sm font-semibold mb-2" style={{ color: "#111827" }}>Stato</p>
+              <div className="flex gap-2 flex-wrap">
+                {[
+                  { key: "all", label: "Tutti" },
+                  { key: "expired", label: "Scaduti" },
+                  { key: "expiring", label: "In scadenza" },
+                  { key: "nodate", label: "Senza data" },
+                  { key: "ok", label: "OK" },
+                ].map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => setStatusFilter(key)}
+                    className={`rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${
+                      statusFilter === key
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-card border border-border text-foreground"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <Button className="w-full" onClick={() => setFilterSheet(false)}>
+              Applica filtri
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };

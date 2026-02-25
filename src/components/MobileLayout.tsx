@@ -3,9 +3,9 @@ import BottomNav from "./BottomNav";
 
 const MobileLayout = () => {
   return (
-    <div className="mx-auto min-h-screen max-w-lg bg-background">
+    <div className="mx-auto min-h-screen max-w-lg bg-background pb-safe">
       <Outlet />
-      <div className="h-[var(--nav-height)]" />
+      <div className="h-[calc(var(--nav-height)+env(safe-area-inset-bottom,0px))]" />
       <BottomNav />
     </div>
   );

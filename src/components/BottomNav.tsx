@@ -3,7 +3,7 @@ import { useRole } from "@/hooks/useRole";
 import {
   Home, ScanLine, ShoppingBag, User, UtensilsCrossed,
   Store, BookOpen, LayoutDashboard, Users, FileText,
-  MessageSquare, Building2, Package, Snowflake, Archive,
+  MessageSquare, Building2, Package, Snowflake, Archive, Clock,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -17,9 +17,9 @@ const tabsByRole: Record<string, TabItem[]> = {
   user: [
     { to: "/", icon: Home, label: "Home" },
     { to: "/scan", icon: ScanLine, label: "Scansiona" },
+    { to: "/expiry", icon: Clock, label: "Scadenze" },
     { to: "/recipes", icon: BookOpen, label: "Ricette" },
     { to: "/meals", icon: UtensilsCrossed, label: "Pasti" },
-    { to: "/profile", icon: User, label: "Profilo" },
   ],
   restaurant_owner: [
     { to: "/restaurant", icon: Store, label: "Home" },
