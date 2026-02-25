@@ -14,7 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import {
   ArrowLeft, Search, ScanLine, Keyboard, Camera, Loader2,
   Package, Plus, Minus, Check, Flame, Archive, Thermometer, Snowflake,
-  CalendarSearch, AlertTriangle, Sparkles, X, ImagePlus,
+  CalendarSearch, AlertTriangle, Sparkles, X, ImagePlus, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -129,6 +129,7 @@ const AddFoodFlow = ({
   const [confidence, setConfidence] = useState<{ name: number; barcode: number; nutrition: number; expiry: number }>({ name: 1, barcode: 0, nutrition: 0, expiry: 0 });
 
   const [saving, setSaving] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
 
   // Reset on close
   useEffect(() => {
@@ -162,6 +163,7 @@ const AddFoodFlow = ({
         setExpiryImage(null);
         setExpiryCandidates([]);
         setConfidence({ name: 1, barcode: 0, nutrition: 0, expiry: 0 });
+        setShowDetails(false);
       }, 300);
     }
   }, [open, preselectedMealType]);
@@ -848,10 +850,7 @@ const AddFoodFlow = ({
                       size="sm"
                       variant="outline"
                       className="w-full gap-2"
-                      onClick={() => {
-                        setMethod("photo_ai");
-                        setStep("photo_ai");
-                      }}
+                      onClick={() => { setMethod("photo_ai"); setStep("photo_ai"); }}
                     >
                       <Sparkles className="h-4 w-4" />
                       Usa Foto AI per riconoscere
@@ -859,292 +858,76 @@ const AddFoodFlow = ({
                   </div>
                 )}
 
-                {/* Product card */}
-                <div className={`rounded-2xl border bg-card p-4 space-y-3 ${isLowConfidence("name") ? "border-amber-400" : "border-border"}`}>
-                  {isLowConfidence("name") && (
-                    <Badge className="bg-amber-100 text-amber-700 border-0 text-[10px]">⚠️ Da confermare</Badge>
-                  )}
-                  <div className="flex gap-3">
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-secondary overflow-hidden">
+                {/* ── Compact product header ── */}
+                <div className="rounded-2xl border border-border bg-card p-3">
+                  <div className="flex gap-3 items-center">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-secondary overflow-hidden">
                       {imageUrl ? (
                         <img src={imageUrl} alt="" className="h-full w-full object-cover" />
                       ) : (
-                        <Package className="h-8 w-8 text-muted-foreground" />
+                        <Package className="h-6 w-6 text-muted-foreground" />
                       )}
                     </div>
-                    <div className="flex-1 space-y-1">
-                      <Input
-                        placeholder="Nome prodotto *"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        className="font-bold border-0 p-0 h-auto bg-transparent focus-visible:ring-0"
-                        style={{ color: "#111827" }}
-                      />
-                      <Input
-                        placeholder="Brand (opzionale)"
-                        value={brand}
-                        onChange={(e) => setBrand(e.target.value)}
-                        className="text-xs border-0 p-0 h-auto bg-transparent focus-visible:ring-0"
-                        style={{ color: "#4B5563" }}
-                      />
-                      {barcode && (
-                        <Badge variant="outline" className="text-[10px] font-mono">{barcode}</Badge>
-                      )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold truncate" style={{ color: "#111827" }}>{name || "Prodotto"}</p>
+                      {brand && <p className="text-[11px] truncate" style={{ color: "#4B5563" }}>{brand}</p>}
                     </div>
+                    {computed.calories != null && (
+                      <div className="text-right shrink-0">
+                        <p className="text-lg font-bold text-primary leading-tight">{computed.calories}</p>
+                        <p className="text-[10px] text-muted-foreground">kcal</p>
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                {/* Quantity */}
-                <div className="space-y-2">
-                  <p className="text-sm font-semibold" style={{ color: "#111827" }}>Quantità</p>
+                {/* ── Essential fields only ── */}
+
+                {/* Quantity (compact) */}
+                <div className="space-y-1.5">
+                  <p className="text-xs font-semibold" style={{ color: "#111827" }}>Quantità</p>
                   <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setQuantity(Math.max(1, quantity - 10))}
-                      className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card"
-                    >
-                      <Minus className="h-4 w-4" />
+                    <button onClick={() => setQuantity(Math.max(1, quantity - 10))} className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-card">
+                      <Minus className="h-3.5 w-3.5" />
                     </button>
                     <Input
                       type="number"
                       value={quantity}
                       onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 0))}
-                      className="text-center text-lg font-bold flex-1"
+                      className="text-center text-base font-bold flex-1 h-9"
                       style={{ color: "#111827" }}
                       min={1}
                     />
-                    <button
-                      onClick={() => setQuantity(quantity + 10)}
-                      className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card"
-                    >
-                      <Plus className="h-4 w-4" />
+                    <button onClick={() => setQuantity(quantity + 10)} className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-card">
+                      <Plus className="h-3.5 w-3.5" />
                     </button>
                   </div>
-                  <div className="flex gap-1.5">
+                  <div className="flex gap-1">
                     {["g", "ml", "pezzi", "kg", "porzioni"].map((u) => (
-                      <button
-                        key={u}
-                        onClick={() => setUnit(u)}
-                        className={`flex-1 rounded-lg py-1.5 text-xs font-medium transition-colors ${
-                          unit === u
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-secondary text-muted-foreground"
-                        }`}
-                      >
+                      <button key={u} onClick={() => setUnit(u)}
+                        className={`flex-1 rounded-lg py-1 text-[11px] font-medium transition-colors ${unit === u ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
                         {u}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex gap-2">
-                    {[50, 100, 150, 200, 300].map((g) => (
-                      <button
-                        key={g}
-                        onClick={() => { setQuantity(g); setUnit("g"); }}
-                        className={`flex-1 rounded-lg py-1.5 text-xs font-medium transition-colors ${
-                          quantity === g && unit === "g"
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-card border border-border text-foreground"
-                        }`}
-                      >
-                        {g}g
                       </button>
                     ))}
                   </div>
                 </div>
 
-                {/* Nutrition (editable for manual or AI with low confidence) */}
-                {(method === "manual" || (method === "photo_ai" && isLowConfidence("nutrition"))) && (
-                  <div className={`space-y-2 rounded-xl p-3 ${isLowConfidence("nutrition") ? "border border-amber-400 bg-amber-50/30" : ""}`}>
-                    {isLowConfidence("nutrition") && (
-                      <Badge className="bg-amber-100 text-amber-700 border-0 text-[10px]">⚠️ Valori incerti — verifica</Badge>
-                    )}
-                    <p className="text-sm font-semibold" style={{ color: "#111827" }}>Calorie per 100g</p>
-                    <Input
-                      type="number"
-                      placeholder="kcal / 100g"
-                      value={calories100g ?? ""}
-                      onChange={(e) => setCalories100g(e.target.value ? parseFloat(e.target.value) : null)}
-                      style={{ color: "#111827" }}
-                    />
-                    <div className="grid grid-cols-3 gap-2">
-                      <div>
-                        <label className="text-[10px] text-muted-foreground">Proteine</label>
-                        <Input
-                          type="number"
-                          placeholder="g"
-                          value={macros100g?.protein ?? ""}
-                          onChange={(e) => setMacros100g((prev) => ({ protein: parseFloat(e.target.value) || 0, carbs: prev?.carbs ?? 0, fats: prev?.fats ?? 0 }))}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] text-muted-foreground">Carbo</label>
-                        <Input
-                          type="number"
-                          placeholder="g"
-                          value={macros100g?.carbs ?? ""}
-                          onChange={(e) => setMacros100g((prev) => ({ protein: prev?.protein ?? 0, carbs: parseFloat(e.target.value) || 0, fats: prev?.fats ?? 0 }))}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] text-muted-foreground">Grassi</label>
-                        <Input
-                          type="number"
-                          placeholder="g"
-                          value={macros100g?.fats ?? ""}
-                          onChange={(e) => setMacros100g((prev) => ({ protein: prev?.protein ?? 0, carbs: prev?.carbs ?? 0, fats: parseFloat(e.target.value) || 0 }))}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Nutrition preview */}
-                {computed.calories != null && (
-                  <div className={`rounded-2xl border-2 bg-card p-4 space-y-2 ${isLowConfidence("nutrition") ? "border-amber-400" : "border-accent"}`}>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold" style={{ color: "#111827" }}>Valori nutrizionali</span>
-                      <span className="text-xs" style={{ color: "#4B5563" }}>{quantity}{unit}</span>
-                    </div>
-                    <div className="text-center">
-                      <span className="text-3xl font-bold text-primary">{computed.calories}</span>
-                      <span className="text-sm text-muted-foreground ml-1">kcal</span>
-                    </div>
-                    {computed.macros && (
-                      <div className="grid grid-cols-3 gap-2">
-                        {[
-                          { label: "Proteine", value: computed.macros.protein, color: "text-destructive" },
-                          { label: "Carbo", value: computed.macros.carbs, color: "text-accent" },
-                          { label: "Grassi", value: computed.macros.fats, color: "text-primary" },
-                        ].map(({ label, value, color }) => (
-                          <div key={label} className="flex flex-col items-center rounded-xl bg-secondary p-2">
-                            <span className={`text-lg font-bold ${color}`}>{value}g</span>
-                            <span className="text-[10px] text-muted-foreground">{label}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* ─── Context-specific fields ─── */}
-
-                {/* INVENTORY or MEAL+toggle: Storage + Expiry */}
-                {(context === "inventory" || (context === "meal" && saveToInventory)) && (
-                  <div className="space-y-3">
-                    <div className={`space-y-2 ${fusedData && fusedData.storage_confidence < 0.5 ? "" : ""}`}>
-                      <p className="text-sm font-semibold" style={{ color: "#111827" }}>
-                        Dove lo conservi? *
-                        {fusedData && fusedData.storage_confidence < 0.5 && (
-                          <Badge className="ml-2 bg-amber-100 text-amber-700 border-0 text-[9px]">scegli</Badge>
-                        )}
-                      </p>
-                      <div className="grid grid-cols-3 gap-2">
-                        {storageOptions.map(({ key, label, icon: Icon }) => (
-                          <button
-                            key={key}
-                            onClick={() => setStorageType(key)}
-                            className={`flex flex-col items-center gap-1.5 rounded-2xl p-4 text-sm font-semibold transition-colors ${
-                              storageType === key
-                                ? "bg-primary text-primary-foreground shadow-md"
-                                : "bg-card border border-border text-foreground"
-                            }`}
-                          >
-                            <Icon className="h-6 w-6" />
-                            {label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <p className="text-sm font-semibold" style={{ color: "#111827" }}>Data di scadenza</p>
-
-                      {/* Expiry candidates from AI */}
-                      {expiryCandidates.length > 1 && (
-                        <div className="space-y-1.5">
-                          <p className="text-xs text-muted-foreground">Date trovate dall'AI — seleziona:</p>
-                          {expiryCandidates.map((c, i) => (
-                            <button
-                              key={i}
-                              className={`flex w-full items-center justify-between rounded-xl border-2 p-2.5 text-left transition-colors ${
-                                expiryDate === c.date ? "border-primary bg-primary/5" : "border-border bg-card"
-                              }`}
-                              onClick={() => setExpiryDate(c.date)}
-                            >
-                              <div>
-                                <p className="text-sm font-semibold" style={{ color: "#111827" }}>
-                                  {new Date(c.date).toLocaleDateString("it-IT")}
-                                </p>
-                                <p className="text-[10px]" style={{ color: "#4B5563" }}>{c.label}</p>
-                              </div>
-                              <div className="flex items-center gap-1.5">
-                                <Badge variant="outline" className="text-[9px]">{Math.round(c.confidence * 100)}%</Badge>
-                                {expiryDate === c.date && <Check className="h-4 w-4 text-primary" />}
-                              </div>
-                            </button>
-                          ))}
-                        </div>
+                {/* Storage (only inventory/preparation) */}
+                {(context === "inventory" || context === "preparation" || (context === "meal" && saveToInventory)) && (
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-semibold" style={{ color: "#111827" }}>
+                      Conservazione *
+                      {fusedData && fusedData.storage_confidence < 0.5 && (
+                        <Badge className="ml-1.5 bg-amber-100 text-amber-700 border-0 text-[9px]">scegli</Badge>
                       )}
-
-                      <div className="flex gap-2">
-                        <Input
-                          type="date"
-                          value={expiryDate}
-                          onChange={(e) => setExpiryDate(e.target.value)}
-                          className="flex-1"
-                          style={{ color: "#111827" }}
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="shrink-0 gap-1.5"
-                          onClick={() => expiryInputRef.current?.click()}
-                        >
-                          <CalendarSearch className="h-4 w-4" />
-                          <span className="text-xs">Foto</span>
-                        </Button>
-                        <input
-                          ref={expiryInputRef}
-                          type="file"
-                          accept="image/*"
-                          capture="environment"
-                          className="hidden"
-                          onChange={handleExpiryPhoto}
-                        />
-                      </div>
-                      {!expiryDate && (
-                        <p className="text-xs" style={{ color: "#4B5563" }}>Se non inserisci una data, il prodotto sarà marcato "Senza data"</p>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* MEAL: toggle "Salva anche in Magazzino" */}
-                {context === "meal" && (
-                  <div className="flex items-center justify-between rounded-2xl border border-border bg-card p-4">
-                    <div>
-                      <p className="text-sm font-semibold" style={{ color: "#111827" }}>Salva anche in Magazzino</p>
-                      <p className="text-xs" style={{ color: "#4B5563" }}>Aggiunge il prodotto all'inventario</p>
-                    </div>
-                    <Switch checked={saveToInventory} onCheckedChange={setSaveToInventory} />
-                  </div>
-                )}
-
-                {/* MEAL: meal type if not pre-selected */}
-                {context === "meal" && !preselectedMealType && !selectedMealType && (
-                  <div className="space-y-2">
-                    <p className="text-sm font-semibold" style={{ color: "#111827" }}>Tipo di pasto</p>
-                    <div className="grid grid-cols-4 gap-2">
-                      {mealOptions.map(({ type, emoji, label }) => (
-                        <button
-                          key={type}
-                          onClick={() => setSelectedMealType(type)}
-                          className={`flex flex-col items-center gap-1 rounded-xl p-3 text-xs font-semibold transition-colors ${
-                            selectedMealType === type
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-card border border-border text-foreground"
-                          }`}
-                        >
-                          <span className="text-lg">{emoji}</span>
+                    </p>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {storageOptions.map(({ key, label, icon: Icon }) => (
+                        <button key={key} onClick={() => setStorageType(key)}
+                          className={`flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-semibold transition-colors ${
+                            storageType === key ? "bg-primary text-primary-foreground shadow-sm" : "bg-card border border-border text-foreground"
+                          }`}>
+                          <Icon className="h-4 w-4" />
                           {label}
                         </button>
                       ))}
@@ -1152,17 +935,152 @@ const AddFoodFlow = ({
                   </div>
                 )}
 
-                {/* Source badge */}
-                {fusedData && (
-                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                    <Sparkles className="h-3 w-3" />
-                    Fonte: {fusedData.source === "fused" ? "AI + OpenFoodFacts" : fusedData.source === "off" ? "OpenFoodFacts" : "AI"}
+                {/* Expiry (only inventory/preparation) */}
+                {(context === "inventory" || context === "preparation" || (context === "meal" && saveToInventory)) && (
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-semibold" style={{ color: "#111827" }}>Scadenza</p>
+
+                    {expiryCandidates.length > 1 && (
+                      <div className="flex gap-1.5 flex-wrap">
+                        {expiryCandidates.map((c, i) => (
+                          <button key={i} onClick={() => setExpiryDate(c.date)}
+                            className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
+                              expiryDate === c.date ? "bg-primary text-primary-foreground" : "bg-card border border-border text-foreground"
+                            }`}>
+                            {new Date(c.date).toLocaleDateString("it-IT")}
+                            <span className="text-[9px] ml-1 opacity-70">{c.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="flex gap-2">
+                      <Input type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)}
+                        className="flex-1 h-9 text-sm" style={{ color: "#111827" }} />
+                      <Button type="button" variant="outline" size="sm" className="shrink-0 gap-1 h-9"
+                        onClick={() => expiryInputRef.current?.click()}>
+                        <CalendarSearch className="h-3.5 w-3.5" />
+                        <span className="text-[11px]">Foto</span>
+                      </Button>
+                      <input ref={expiryInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleExpiryPhoto} />
+                    </div>
                   </div>
                 )}
 
-                {/* CTA */}
+                {/* MEAL: toggle save to inventory */}
+                {context === "meal" && (
+                  <div className="flex items-center justify-between rounded-xl border border-border bg-card px-3 py-2.5">
+                    <p className="text-xs font-medium" style={{ color: "#111827" }}>Salva anche in Magazzino</p>
+                    <Switch checked={saveToInventory} onCheckedChange={setSaveToInventory} />
+                  </div>
+                )}
+
+                {/* MEAL: meal type if not pre-selected */}
+                {context === "meal" && !preselectedMealType && !selectedMealType && (
+                  <div className="space-y-1.5">
+                    <p className="text-xs font-semibold" style={{ color: "#111827" }}>Tipo di pasto</p>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {mealOptions.map(({ type, emoji, label }) => (
+                        <button key={type} onClick={() => setSelectedMealType(type)}
+                          className={`flex flex-col items-center gap-0.5 rounded-xl py-2 text-[11px] font-semibold transition-colors ${
+                            selectedMealType === type ? "bg-primary text-primary-foreground" : "bg-card border border-border text-foreground"
+                          }`}>
+                          <span className="text-base">{emoji}</span>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Mostra dettagli (collapsible) ── */}
+                <button onClick={() => setShowDetails(!showDetails)}
+                  className="flex w-full items-center justify-center gap-1 text-xs font-medium text-muted-foreground py-1">
+                  {showDetails ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+                  {showDetails ? "Nascondi dettagli" : "Mostra dettagli"}
+                </button>
+
+                {showDetails && (
+                  <div className="space-y-3 animate-in slide-in-from-top-2 duration-200">
+                    {/* Editable name/brand */}
+                    <div className={`rounded-xl border p-3 space-y-2 ${isLowConfidence("name") ? "border-amber-400 bg-amber-50/30" : "border-border"}`}>
+                      {isLowConfidence("name") && (
+                        <Badge className="bg-amber-100 text-amber-700 border-0 text-[10px]">⚠️ Da confermare</Badge>
+                      )}
+                      <Input placeholder="Nome prodotto *" value={name} onChange={(e) => setName(e.target.value)}
+                        className="font-bold border-0 p-0 h-auto bg-transparent focus-visible:ring-0 text-sm" style={{ color: "#111827" }} />
+                      <Input placeholder="Brand (opzionale)" value={brand} onChange={(e) => setBrand(e.target.value)}
+                        className="text-xs border-0 p-0 h-auto bg-transparent focus-visible:ring-0" style={{ color: "#4B5563" }} />
+                      {barcode && <Badge variant="outline" className="text-[10px] font-mono">{barcode}</Badge>}
+                    </div>
+
+                    {/* Nutrition editable */}
+                    <div className={`rounded-xl border p-3 space-y-2 ${isLowConfidence("nutrition") ? "border-amber-400 bg-amber-50/30" : "border-border"}`}>
+                      {isLowConfidence("nutrition") && (
+                        <Badge className="bg-amber-100 text-amber-700 border-0 text-[10px]">⚠️ Valori incerti</Badge>
+                      )}
+                      <p className="text-xs font-semibold" style={{ color: "#111827" }}>Calorie / 100g</p>
+                      <Input type="number" placeholder="kcal / 100g" value={calories100g ?? ""}
+                        onChange={(e) => setCalories100g(e.target.value ? parseFloat(e.target.value) : null)}
+                        className="h-8 text-sm" style={{ color: "#111827" }} />
+                      <div className="grid grid-cols-3 gap-2">
+                        <div>
+                          <label className="text-[10px] text-muted-foreground">Proteine</label>
+                          <Input type="number" placeholder="g" className="h-8 text-sm" value={macros100g?.protein ?? ""}
+                            onChange={(e) => setMacros100g((prev) => ({ protein: parseFloat(e.target.value) || 0, carbs: prev?.carbs ?? 0, fats: prev?.fats ?? 0 }))} />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-muted-foreground">Carbo</label>
+                          <Input type="number" placeholder="g" className="h-8 text-sm" value={macros100g?.carbs ?? ""}
+                            onChange={(e) => setMacros100g((prev) => ({ protein: prev?.protein ?? 0, carbs: parseFloat(e.target.value) || 0, fats: prev?.fats ?? 0 }))} />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-muted-foreground">Grassi</label>
+                          <Input type="number" placeholder="g" className="h-8 text-sm" value={macros100g?.fats ?? ""}
+                            onChange={(e) => setMacros100g((prev) => ({ protein: prev?.protein ?? 0, carbs: prev?.carbs ?? 0, fats: parseFloat(e.target.value) || 0 }))} />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Nutrition preview */}
+                    {computed.calories != null && computed.macros && (
+                      <div className="rounded-xl border border-accent bg-card p-3">
+                        <div className="grid grid-cols-4 gap-2 text-center">
+                          <div>
+                            <p className="text-base font-bold text-primary">{computed.calories}</p>
+                            <p className="text-[9px] text-muted-foreground">kcal</p>
+                          </div>
+                          <div>
+                            <p className="text-base font-bold text-destructive">{computed.macros.protein}g</p>
+                            <p className="text-[9px] text-muted-foreground">Prot</p>
+                          </div>
+                          <div>
+                            <p className="text-base font-bold text-accent">{computed.macros.carbs}g</p>
+                            <p className="text-[9px] text-muted-foreground">Carbo</p>
+                          </div>
+                          <div>
+                            <p className="text-base font-bold text-primary">{computed.macros.fats}g</p>
+                            <p className="text-[9px] text-muted-foreground">Grassi</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Quick quantity presets */}
+                    <div className="flex gap-1.5">
+                      {[50, 100, 150, 200, 300].map((g) => (
+                        <button key={g} onClick={() => { setQuantity(g); setUnit("g"); }}
+                          className={`flex-1 rounded-lg py-1.5 text-[11px] font-medium transition-colors ${
+                            quantity === g && unit === "g" ? "bg-primary text-primary-foreground" : "bg-card border border-border text-foreground"
+                          }`}>{g}g</button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── CTA grande ── */}
                 <Button
-                  className="w-full h-12 text-base font-bold gap-2"
+                  className="w-full h-14 text-base font-bold gap-2 rounded-2xl"
                   onClick={handleSave}
                   disabled={saving || !name.trim()}
                 >
@@ -1171,7 +1089,7 @@ const AddFoodFlow = ({
                   ) : (
                     <Check className="h-5 w-5" />
                   )}
-                  {ctaLabels[context]}
+                  Conferma e salva
                 </Button>
               </div>
             )}
