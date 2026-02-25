@@ -685,6 +685,7 @@ export type Database = {
           created_at: string
           doc_date: string | null
           doc_type: string
+          extracted_data: Json | null
           file_path: string
           id: string
           public_url: string | null
@@ -695,6 +696,7 @@ export type Database = {
           created_at?: string
           doc_date?: string | null
           doc_type?: string
+          extracted_data?: Json | null
           file_path: string
           id?: string
           public_url?: string | null
@@ -705,6 +707,7 @@ export type Database = {
           created_at?: string
           doc_date?: string | null
           doc_type?: string
+          extracted_data?: Json | null
           file_path?: string
           id?: string
           public_url?: string | null
