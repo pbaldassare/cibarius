@@ -23,8 +23,8 @@ const tabsByRole: Record<string, TabItem[]> = {
   ],
   restaurant_owner: [
     { to: "/restaurant", icon: Store, label: "Home" },
-    { to: "/scan", icon: ScanLine, label: "Scan" },
-    { to: "/restaurant/products", icon: ShoppingBag, label: "Magazzino" },
+    { to: "/restaurant/products", icon: Clock, label: "Scadenze" },
+    { to: "/restaurant/preparations", icon: UtensilsCrossed, label: "Preparazioni" },
     { to: "/restaurant/recipes", icon: BookOpen, label: "Ricette" },
     { to: "/profile", icon: User, label: "Profilo" },
   ],
