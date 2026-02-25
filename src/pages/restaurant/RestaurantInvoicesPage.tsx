@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Upload, FileText, Download, Trash2, Plus } from "lucide-react";
+import { Loader2, Upload, FileText, Download, Trash2, Plus, Eye, ExternalLink, ChevronRight } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 
@@ -35,6 +35,7 @@ const RestaurantInvoicesPage = () => {
   const [loading, setLoading] = useState(true);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [detailDoc, setDetailDoc] = useState<RestaurantDocument | null>(null);
 
   // Upload form state
   const [file, setFile] = useState<File | null>(null);
@@ -137,32 +138,27 @@ const RestaurantInvoicesPage = () => {
         ) : (
           <div className="space-y-2">
             {docs.map((doc) => (
-              <Card key={doc.id} className="shadow-sm">
-                <CardContent className="flex items-center gap-3 p-3">
-                  <FileText className="h-8 w-8 shrink-0 text-primary" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold truncate" style={{ color: "#111827" }}>
-                      {doc.doc_type.charAt(0).toUpperCase() + doc.doc_type.slice(1)}
-                      {doc.supplier_name ? ` — ${doc.supplier_name}` : ""}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {doc.doc_date ? new Date(doc.doc_date).toLocaleDateString("it-IT") : "Senza data"}
-                      {" · "}
-                      {new Date(doc.created_at).toLocaleDateString("it-IT")}
-                    </p>
-                  </div>
-                  <div className="flex gap-1">
-                    {doc.public_url && (
-                      <a href={doc.public_url} target="_blank" rel="noopener noreferrer">
-                        <Button size="sm" variant="ghost"><Download className="h-4 w-4" /></Button>
-                      </a>
-                    )}
-                    <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleDelete(doc)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+              <button key={doc.id} onClick={() => setDetailDoc(doc)} className="w-full text-left">
+                <Card className="shadow-sm hover:shadow-md transition-shadow">
+                  <CardContent className="flex items-center gap-3 p-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: "#22B6F215" }}>
+                      <FileText className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate" style={{ color: "#111827" }}>
+                        {doc.doc_type.charAt(0).toUpperCase() + doc.doc_type.slice(1)}
+                        {doc.supplier_name ? ` — ${doc.supplier_name}` : ""}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {doc.doc_date ? new Date(doc.doc_date).toLocaleDateString("it-IT") : "Senza data"}
+                        {" · Caricato "}
+                        {new Date(doc.created_at).toLocaleDateString("it-IT")}
+                      </p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </CardContent>
+                </Card>
+              </button>
             ))}
           </div>
         )}
@@ -207,6 +203,85 @@ const RestaurantInvoicesPage = () => {
               Carica
             </Button>
           </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Detail sheet */}
+      <Sheet open={!!detailDoc} onOpenChange={(open) => { if (!open) setDetailDoc(null); }}>
+        <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl overflow-y-auto">
+          {detailDoc && (() => {
+            const isImage = detailDoc.file_path.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+            const isPdf = detailDoc.file_path.match(/\.pdf$/i);
+            return (
+              <>
+                <SheetHeader>
+                  <SheetTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-primary" />
+                    {detailDoc.doc_type.charAt(0).toUpperCase() + detailDoc.doc_type.slice(1)}
+                    {detailDoc.supplier_name ? ` — ${detailDoc.supplier_name}` : ""}
+                  </SheetTitle>
+                </SheetHeader>
+                <div className="space-y-4 py-4">
+                  {/* Info */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-xl bg-muted p-3">
+                      <p className="text-[10px] font-medium text-muted-foreground">Tipo</p>
+                      <p className="text-sm font-semibold capitalize">{detailDoc.doc_type}</p>
+                    </div>
+                    <div className="rounded-xl bg-muted p-3">
+                      <p className="text-[10px] font-medium text-muted-foreground">Data documento</p>
+                      <p className="text-sm font-semibold">{detailDoc.doc_date ? new Date(detailDoc.doc_date).toLocaleDateString("it-IT") : "—"}</p>
+                    </div>
+                    {detailDoc.supplier_name && (
+                      <div className="rounded-xl bg-muted p-3 col-span-2">
+                        <p className="text-[10px] font-medium text-muted-foreground">Fornitore</p>
+                        <p className="text-sm font-semibold">{detailDoc.supplier_name}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Preview */}
+                  {detailDoc.public_url && isImage && (
+                    <div className="rounded-xl overflow-hidden border">
+                      <img src={detailDoc.public_url} alt="Documento" className="w-full object-contain max-h-[50vh]" />
+                    </div>
+                  )}
+                  {detailDoc.public_url && isPdf && (
+                    <div className="rounded-xl overflow-hidden border" style={{ height: "50vh" }}>
+                      <iframe src={detailDoc.public_url} className="h-full w-full" title="Preview PDF" />
+                    </div>
+                  )}
+                  {detailDoc.public_url && !isImage && !isPdf && (
+                    <div className="rounded-xl bg-muted p-6 text-center">
+                      <FileText className="mx-auto h-10 w-10 text-muted-foreground mb-2" />
+                      <p className="text-sm text-muted-foreground">Anteprima non disponibile per questo formato</p>
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="flex gap-2">
+                    {detailDoc.public_url && (
+                      <>
+                        <a href={detailDoc.public_url} target="_blank" rel="noopener noreferrer" className="flex-1">
+                          <Button variant="outline" className="w-full gap-2">
+                            <ExternalLink className="h-4 w-4" /> Apri in nuova tab
+                          </Button>
+                        </a>
+                        <a href={detailDoc.public_url} download className="flex-1">
+                          <Button className="w-full gap-2">
+                            <Download className="h-4 w-4" /> Scarica
+                          </Button>
+                        </a>
+                      </>
+                    )}
+                  </div>
+                  <Button variant="destructive" className="w-full gap-2" onClick={() => { handleDelete(detailDoc); setDetailDoc(null); }}>
+                    <Trash2 className="h-4 w-4" /> Elimina documento
+                  </Button>
+                </div>
+              </>
+            );
+          })()}
         </SheetContent>
       </Sheet>
     </div>
