@@ -1,11 +1,12 @@
 import { useRestaurant } from "@/hooks/useRestaurant";
 import MobileHeader from "@/components/MobileHeader";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, Clock, BookOpen, FileText, Monitor, ChevronRight } from "lucide-react";
+import { Loader2, Clock, BookOpen, FileText, Monitor, ChevronRight, ChefHat } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const cards = [
   { to: "/restaurant/products", icon: Clock, label: "Scadenze / Magazzino", desc: "Controlla scadenze e inventario", color: "#F59E0B" },
+  { to: "/restaurant/preparations", icon: ChefHat, label: "Preparazioni", desc: "Piatti preparati e scadenze", color: "#8B5CF6" },
   { to: "/restaurant/recipes", icon: BookOpen, label: "Ricette", desc: "Gestisci le tue ricette", color: "#22B6F2" },
   { to: "/restaurant/invoices", icon: FileText, label: "Bolle e Documenti", desc: "Carica e consulta bolle", color: "#10B981" },
 ];

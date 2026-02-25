@@ -68,6 +68,7 @@ const Index = () => {
   const navigate = useNavigate();
 
   const [items, setItems] = useState<InventoryItem[]>([]);
+  const [prepCount, setPrepCount] = useState({ expired: 0, expiring: 0 });
   const [loading, setLoading] = useState(true);
   const [storageTab, setStorageTab] = useState("all");
   const [search, setSearch] = useState("");
@@ -87,12 +88,27 @@ const Index = () => {
 
   const fetchItems = async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from("inventory_items")
-      .select("id, expiry_date, storage_type, quantity, unit, product:products(name, image_url)")
-      .eq("owner_user_id", user.id)
-      .order("expiry_date", { ascending: true, nullsFirst: false });
-    if (data) setItems(data as unknown as InventoryItem[]);
+    const [invRes, prepRes] = await Promise.all([
+      supabase
+        .from("inventory_items")
+        .select("id, expiry_date, storage_type, quantity, unit, product:products(name, image_url)")
+        .eq("owner_user_id", user.id)
+        .order("expiry_date", { ascending: true, nullsFirst: false }),
+      supabase
+        .from("preparations")
+        .select("id, use_by_date")
+        .eq("owner_user_id", user.id),
+    ]);
+    if (invRes.data) setItems(invRes.data as unknown as InventoryItem[]);
+    if (prepRes.data) {
+      let pExp = 0, pIng = 0;
+      (prepRes.data as any[]).forEach((p) => {
+        const s = getStatus(p.use_by_date);
+        if (s === "expired") pExp++;
+        else if (s === "expiring") pIng++;
+      });
+      setPrepCount({ expired: pExp, expiring: pIng });
+    }
     setLoading(false);
   };
 
@@ -100,7 +116,7 @@ const Index = () => {
     fetchItems();
   }, [user]);
 
-  // Counts
+  // Counts (inventory + preparations)
   const counts = useMemo(() => {
     let expired = 0, expiring = 0, nodate = 0;
     items.forEach((i) => {
@@ -109,8 +125,12 @@ const Index = () => {
       else if (s === "expiring") expiring++;
       else if (s === "nodate") nodate++;
     });
-    return { expired, expiring, nodate };
-  }, [items]);
+    return {
+      expired: expired + prepCount.expired,
+      expiring: expiring + prepCount.expiring,
+      nodate,
+    };
+  }, [items, prepCount]);
 
   // Custom status with daysRange
   const getStatusCustom = (d: string | null): ExpiryStatus => {
