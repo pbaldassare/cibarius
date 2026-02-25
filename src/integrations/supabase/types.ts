@@ -304,6 +304,137 @@ export type Database = {
         }
         Relationships: []
       }
+      preparation_allergens: {
+        Row: {
+          allergen_id: string
+          id: string
+          preparation_id: string
+        }
+        Insert: {
+          allergen_id: string
+          id?: string
+          preparation_id: string
+        }
+        Update: {
+          allergen_id?: string
+          id?: string
+          preparation_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "preparation_allergens_allergen_id_fkey"
+            columns: ["allergen_id"]
+            isOneToOne: false
+            referencedRelation: "allergens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "preparation_allergens_preparation_id_fkey"
+            columns: ["preparation_id"]
+            isOneToOne: false
+            referencedRelation: "preparations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      preparation_ingredients: {
+        Row: {
+          created_at: string
+          custom_name: string | null
+          id: string
+          preparation_id: string
+          product_id: string | null
+          quantity: number | null
+          unit: string | null
+        }
+        Insert: {
+          created_at?: string
+          custom_name?: string | null
+          id?: string
+          preparation_id: string
+          product_id?: string | null
+          quantity?: number | null
+          unit?: string | null
+        }
+        Update: {
+          created_at?: string
+          custom_name?: string | null
+          id?: string
+          preparation_id?: string
+          product_id?: string | null
+          quantity?: number | null
+          unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "preparation_ingredients_preparation_id_fkey"
+            columns: ["preparation_id"]
+            isOneToOne: false
+            referencedRelation: "preparations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "preparation_ingredients_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      preparations: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          name: string
+          notes: string | null
+          owner_user_id: string | null
+          portions: number | null
+          prepared_at: string
+          restaurant_id: string | null
+          storage_type: string
+          use_by_date: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name: string
+          notes?: string | null
+          owner_user_id?: string | null
+          portions?: number | null
+          prepared_at?: string
+          restaurant_id?: string | null
+          storage_type?: string
+          use_by_date: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          notes?: string | null
+          owner_user_id?: string | null
+          portions?: number | null
+          prepared_at?: string
+          restaurant_id?: string | null
+          storage_type?: string
+          use_by_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "preparations_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           barcode: string | null

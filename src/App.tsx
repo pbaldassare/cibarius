@@ -29,6 +29,7 @@ import InvitePage from "./pages/InvitePage";
 import PublicRecipesPage from "./pages/PublicRecipesPage";
 import RecipeDetailPage from "./pages/RecipeDetailPage";
 import RemindersPage from "./pages/RemindersPage";
+import PreparationsPage from "./pages/PreparationsPage";
 
 // Admin pages
 import AdminPage from "./pages/admin/AdminPage";
@@ -42,6 +43,7 @@ import RestaurantProductsPage from "./pages/restaurant/RestaurantProductsPage";
 import RestaurantRecipesPage from "./pages/restaurant/RestaurantRecipesPage";
 import RestaurantSettingsPage from "./pages/restaurant/RestaurantSettingsPage";
 import RestaurantInvoicesPage from "./pages/restaurant/RestaurantInvoicesPage";
+import RestaurantPreparationsPage from "./pages/restaurant/RestaurantPreparationsPage";
 
 // Restaurant admin pages
 import RestaurantAdminPage from "./pages/restaurant-admin/RestaurantAdminPage";
@@ -104,6 +106,7 @@ const App = () => (
                 <Route path="/invite" element={<InvitePage />} />
                 <Route path="/recipes" element={<PublicRecipesPage />} />
                 <Route path="/recipes/:recipeId" element={<RecipeDetailPage />} />
+                <Route path="/preparations" element={<PreparationsPage />} />
 
                 {/* Restaurant owner - onboarding (no RestaurantGuard) */}
                 <Route path="/restaurant/onboarding" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantOnboardingPage /></RG>} />
@@ -114,6 +117,7 @@ const App = () => (
                 <Route path="/restaurant/recipes" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><RestaurantRecipesPage /></RestaurantGuard></RG>} />
                 <Route path="/restaurant/settings" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><RestaurantSettingsPage /></RestaurantGuard></RG>} />
                 <Route path="/restaurant/invoices" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><RestaurantInvoicesPage /></RestaurantGuard></RG>} />
+                <Route path="/restaurant/preparations" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><RestaurantPreparationsPage /></RestaurantGuard></RG>} />
                 <Route path="/supplier-invite" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><SupplierInvitePage /></RestaurantGuard></RG>} />
 
                 {/* Professional */}

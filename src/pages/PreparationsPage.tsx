@@ -1,0 +1,472 @@
+import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import MobileHeader from "@/components/MobileHeader";
+import { useAuth } from "@/hooks/useAuth";
+import { useRole } from "@/hooks/useRole";
+import { useRestaurant } from "@/hooks/useRestaurant";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
+import { useDebounce } from "@/hooks/useDebounce";
+import {
+  Sheet, SheetContent, SheetHeader, SheetTitle,
+} from "@/components/ui/sheet";
+import {
+  Clock, Plus, Search, Filter, Package, ChevronRight, ChevronDown,
+  Archive, Thermometer, Snowflake, Trash2, Loader2, X, ChefHat,
+} from "lucide-react";
+
+/* ─── Types ─── */
+interface Preparation {
+  id: string;
+  name: string;
+  description: string | null;
+  prepared_at: string;
+  storage_type: string;
+  use_by_date: string;
+  portions: number | null;
+  notes: string | null;
+  image_url: string | null;
+}
+
+interface Allergen {
+  id: string;
+  name: string;
+  code: string;
+}
+
+type ExpiryStatus = "expired" | "expiring" | "ok";
+
+const getStatus = (d: string): ExpiryStatus => {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const diff = (new Date(d).getTime() - today.getTime()) / 864e5;
+  if (diff < 0) return "expired";
+  if (diff <= 3) return "expiring";
+  return "ok";
+};
+
+const statusCfg: Record<ExpiryStatus, { label: string; badgeBg: string; barColor: string }> = {
+  expired:  { label: "SCADUTO",     badgeBg: "bg-[#E53935]", barColor: "bg-[#E53935]" },
+  expiring: { label: "IN SCADENZA", badgeBg: "bg-[#F59E0B]", barColor: "bg-[#F59E0B]" },
+  ok:       { label: "OK",          badgeBg: "bg-success",    barColor: "bg-success" },
+};
+
+const storageLabel: Record<string, string> = {
+  frigo: "Frigo", freezer: "Congelatore", ambiente: "Dispensa",
+};
+
+const storageTabs = [
+  { key: "all", label: "Tutto", icon: Package },
+  { key: "ambiente", label: "Dispensa", icon: Archive },
+  { key: "frigo", label: "Frigo", icon: Thermometer },
+  { key: "freezer", label: "Congelatore", icon: Snowflake },
+] as const;
+
+interface Props {
+  isRestaurant?: boolean;
+}
+
+const PreparationsPage = ({ isRestaurant = false }: Props) => {
+  const { user } = useAuth();
+  const { role } = useRole();
+  const { restaurant } = useRestaurant();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
+  const [items, setItems] = useState<Preparation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 250);
+  const [storageTab, setStorageTab] = useState("all");
+  const [storageSheet, setStorageSheet] = useState(false);
+  const [filterSheet, setFilterSheet] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("relevant");
+
+  // Create form
+  const [createOpen, setCreateOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [formName, setFormName] = useState("");
+  const [formDesc, setFormDesc] = useState("");
+  const [formStorage, setFormStorage] = useState("frigo");
+  const [formUseBy, setFormUseBy] = useState("");
+  const [formPortions, setFormPortions] = useState("1");
+  const [formNotes, setFormNotes] = useState("");
+
+  // Ingredients
+  const [ingredients, setIngredients] = useState<{ name: string; quantity: string; unit: string }[]>([]);
+  const [ingredientName, setIngredientName] = useState("");
+  const [ingredientQty, setIngredientQty] = useState("");
+  const [ingredientUnit, setIngredientUnit] = useState("g");
+
+  // Allergens
+  const [allergens, setAllergens] = useState<Allergen[]>([]);
+  const [selectedAllergens, setSelectedAllergens] = useState<string[]>([]);
+
+  useEffect(() => {
+    supabase.from("allergens").select("*").then(({ data }) => {
+      if (data) setAllergens(data as Allergen[]);
+    });
+  }, []);
+
+  const fetchItems = async () => {
+    if (!user) return;
+    let query = supabase.from("preparations").select("*").order("use_by_date", { ascending: true });
+    if (isRestaurant && restaurant) {
+      query = query.eq("restaurant_id", restaurant.id);
+    } else {
+      query = query.eq("owner_user_id", user.id);
+    }
+    const { data } = await query;
+    if (data) setItems(data as Preparation[]);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchItems(); }, [user, restaurant]);
+
+  const filtered = useMemo(() => {
+    let list = items;
+    if (storageTab !== "all") list = list.filter((i) => i.storage_type === storageTab);
+    if (debouncedSearch) {
+      const q = debouncedSearch.toLowerCase();
+      list = list.filter((i) => i.name.toLowerCase().includes(q));
+    }
+    if (statusFilter === "relevant") {
+      list = list.filter((i) => { const s = getStatus(i.use_by_date); return s === "expired" || s === "expiring"; });
+    } else if (statusFilter !== "all") {
+      list = list.filter((i) => getStatus(i.use_by_date) === statusFilter);
+    }
+    const order: Record<ExpiryStatus, number> = { expired: 0, expiring: 1, ok: 2 };
+    return [...list].sort((a, b) => order[getStatus(a.use_by_date)] - order[getStatus(b.use_by_date)]);
+  }, [items, storageTab, debouncedSearch, statusFilter]);
+
+  const activeFilterCount = useMemo(() => {
+    let c = 0;
+    if (statusFilter !== "relevant") c++;
+    if (storageTab !== "all") c++;
+    return c;
+  }, [statusFilter, storageTab]);
+
+  const addIngredient = () => {
+    if (!ingredientName.trim()) return;
+    setIngredients([...ingredients, { name: ingredientName.trim(), quantity: ingredientQty, unit: ingredientUnit }]);
+    setIngredientName(""); setIngredientQty(""); setIngredientUnit("g");
+  };
+
+  const handleCreate = async () => {
+    if (!formName.trim() || !formUseBy) {
+      toast({ variant: "destructive", title: "Nome e data scadenza obbligatori" });
+      return;
+    }
+    setSaving(true);
+    try {
+      const insertData: any = {
+        name: formName.trim(),
+        description: formDesc || null,
+        storage_type: formStorage,
+        use_by_date: formUseBy,
+        portions: parseInt(formPortions) || 1,
+        notes: formNotes || null,
+      };
+      if (isRestaurant && restaurant) {
+        insertData.restaurant_id = restaurant.id;
+      } else {
+        insertData.owner_user_id = user!.id;
+      }
+
+      const { data: prep, error } = await supabase.from("preparations").insert(insertData).select("id").single();
+      if (error) throw error;
+
+      // Save ingredients
+      if (ingredients.length > 0) {
+        const ingredientRows = ingredients.map((ing) => ({
+          preparation_id: prep.id,
+          custom_name: ing.name,
+          quantity: parseFloat(ing.quantity) || null,
+          unit: ing.unit || null,
+        }));
+        await supabase.from("preparation_ingredients").insert(ingredientRows);
+      }
+
+      // Save allergens
+      if (selectedAllergens.length > 0) {
+        const allergenRows = selectedAllergens.map((aid) => ({
+          preparation_id: prep.id,
+          allergen_id: aid,
+        }));
+        await supabase.from("preparation_allergens").insert(allergenRows);
+      }
+
+      toast({ title: "Preparazione creata ✓" });
+      setCreateOpen(false);
+      resetForm();
+      fetchItems();
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Errore", description: err.message });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const resetForm = () => {
+    setFormName(""); setFormDesc(""); setFormStorage("frigo"); setFormUseBy("");
+    setFormPortions("1"); setFormNotes(""); setIngredients([]);
+    setIngredientName(""); setIngredientQty(""); setIngredientUnit("g");
+    setSelectedAllergens([]);
+  };
+
+  const handleDelete = async (id: string) => {
+    await supabase.from("preparations").delete().eq("id", id);
+    toast({ title: "Preparazione eliminata" });
+    fetchItems();
+  };
+
+  const storageChipLabel = storageTab === "all" ? "Tutto" : storageLabel[storageTab] ?? storageTab;
+
+  if (loading) {
+    return (
+      <div style={{ backgroundColor: "#F5F7FA" }}>
+        <MobileHeader title="Preparazioni" showBack={isRestaurant} />
+        <main className="space-y-3 px-4 py-3 pb-32">
+          <Skeleton className="h-9 w-full rounded-xl" />
+          <Skeleton className="h-64 w-full rounded-2xl" />
+        </main>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen" style={{ backgroundColor: "#F5F7FA" }}>
+      <MobileHeader title="Preparazioni" showBack={isRestaurant} />
+      <main className="space-y-3 px-4 pt-1 pb-28">
+
+        {/* Storage chip + Search + Filter */}
+        <div className="flex gap-2 items-center">
+          <button onClick={() => setStorageSheet(true)}
+            className="flex items-center gap-1 rounded-xl bg-white px-3 py-2 text-[12px] font-semibold shadow-sm shrink-0"
+            style={{ color: "#111827" }}>
+            {storageChipLabel}
+            <ChevronDown className="h-3 w-3" style={{ color: "#9CA3AF" }} />
+          </button>
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2" style={{ color: "#9CA3AF" }} />
+            <Input placeholder="Cerca..." className="h-9 rounded-xl border-0 bg-white pl-8 text-[13px] shadow-sm"
+              value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
+          <button onClick={() => setFilterSheet(true)}
+            className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm">
+            <Filter className="h-3.5 w-3.5" style={{ color: "#4B5563" }} />
+            {activeFilterCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[8px] font-bold text-white">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* List */}
+        {filtered.length === 0 ? (
+          <div className="flex flex-col items-center gap-1.5 rounded-2xl bg-white p-8 shadow-sm">
+            <ChefHat className="h-7 w-7" style={{ color: "#9CA3AF" }} />
+            <p className="text-[13px] font-medium" style={{ color: "#111827" }}>Nessuna preparazione</p>
+            <p className="text-[11px]" style={{ color: "#6B7280" }}>Premi + per aggiungere</p>
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            {filtered.map((item) => {
+              const status = getStatus(item.use_by_date);
+              const cfg = statusCfg[status];
+              return (
+                <div key={item.id} className="flex items-center gap-2.5 rounded-xl bg-white px-2.5 py-2 shadow-sm overflow-hidden"
+                  style={{ minHeight: 64 }}>
+                  <div className={`w-1 self-stretch rounded-full ${cfg.barColor}`} />
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#F5F7FA]">
+                    <ChefHat className="h-4 w-4" style={{ color: "#9CA3AF" }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-semibold truncate" style={{ color: "#111827" }}>{item.name}</p>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="text-[11px] flex items-center gap-0.5" style={{ color: "#6B7280" }}>
+                        <Clock className="h-2.5 w-2.5" />
+                        {new Date(item.use_by_date).toLocaleDateString("it-IT")}
+                      </span>
+                      <span className="text-[10px]" style={{ color: "#9CA3AF" }}>
+                        {storageLabel[item.storage_type]}
+                        {item.portions && item.portions > 1 ? ` · ${item.portions} porz.` : ""}
+                      </span>
+                    </div>
+                  </div>
+                  <span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-bold text-white ${cfg.badgeBg}`}>
+                    {cfg.label}
+                  </span>
+                  <button onClick={() => handleDelete(item.id)} className="shrink-0 p-1 text-muted-foreground">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </main>
+
+      {/* FAB */}
+      <div className="fixed bottom-[calc(68px+env(safe-area-inset-bottom,0px)+0.75rem)] right-3.5 z-40">
+        <button onClick={() => setCreateOpen(true)}
+          className="flex h-11 w-11 items-center justify-center rounded-full shadow-lg active:scale-95 transition-transform bg-primary"
+          aria-label="Aggiungi preparazione">
+          <Plus className="h-5 w-5 text-white" />
+        </button>
+      </div>
+
+      {/* ─── Create sheet ─── */}
+      <Sheet open={createOpen} onOpenChange={setCreateOpen}>
+        <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Nuova Preparazione</SheetTitle>
+          </SheetHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-1.5">
+              <Label>Nome *</Label>
+              <Input value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="Es. Lasagne, Ragù..." />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Descrizione</Label>
+              <Input value={formDesc} onChange={(e) => setFormDesc(e.target.value)} placeholder="Descrizione opzionale" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Conservazione *</Label>
+                <Select value={formStorage} onValueChange={setFormStorage}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ambiente">Dispensa</SelectItem>
+                    <SelectItem value="frigo">Frigo</SelectItem>
+                    <SelectItem value="freezer">Congelatore</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Porzioni</Label>
+                <Input type="number" min="1" value={formPortions} onChange={(e) => setFormPortions(e.target.value)} />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Usare/Servire entro *</Label>
+              <Input type="date" value={formUseBy} onChange={(e) => setFormUseBy(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Note</Label>
+              <Input value={formNotes} onChange={(e) => setFormNotes(e.target.value)} placeholder="Note opzionali" />
+            </div>
+
+            {/* Ingredients */}
+            <div className="space-y-2">
+              <Label>Ingredienti</Label>
+              {ingredients.map((ing, i) => (
+                <div key={i} className="flex items-center gap-2 rounded-lg bg-muted p-2 text-sm">
+                  <span className="flex-1">{ing.name} {ing.quantity ? `— ${ing.quantity} ${ing.unit}` : ""}</span>
+                  <button onClick={() => setIngredients(ingredients.filter((_, j) => j !== i))}>
+                    <X className="h-3.5 w-3.5 text-muted-foreground" />
+                  </button>
+                </div>
+              ))}
+              <div className="flex gap-2">
+                <Input className="flex-1" placeholder="Ingrediente" value={ingredientName} onChange={(e) => setIngredientName(e.target.value)} />
+                <Input className="w-16" placeholder="Qtà" value={ingredientQty} onChange={(e) => setIngredientQty(e.target.value)} />
+                <Select value={ingredientUnit} onValueChange={setIngredientUnit}>
+                  <SelectTrigger className="w-20"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {["g", "kg", "ml", "l", "pz"].map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Button size="sm" variant="outline" onClick={addIngredient}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Allergens */}
+            <div className="space-y-2">
+              <Label>Allergeni</Label>
+              <div className="flex flex-wrap gap-2">
+                {allergens.map((a) => {
+                  const selected = selectedAllergens.includes(a.id);
+                  return (
+                    <button key={a.id}
+                      onClick={() => setSelectedAllergens(selected
+                        ? selectedAllergens.filter((id) => id !== a.id)
+                        : [...selectedAllergens, a.id]
+                      )}
+                      className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                        selected ? "bg-primary text-white" : "bg-muted text-foreground"
+                      }`}>
+                      {a.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <Button onClick={handleCreate} disabled={saving} className="w-full">
+              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ChefHat className="mr-2 h-4 w-4" />}
+              Crea preparazione
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Storage sheet */}
+      <Sheet open={storageSheet} onOpenChange={setStorageSheet}>
+        <SheetContent side="bottom" className="rounded-t-2xl">
+          <SheetHeader><SheetTitle>Conservazione</SheetTitle></SheetHeader>
+          <div className="flex flex-col gap-1 py-3">
+            {storageTabs.map(({ key, label, icon: Icon }) => (
+              <button key={key} onClick={() => { setStorageTab(key); setStorageSheet(false); }}
+                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-[14px] font-medium transition-colors ${
+                  storageTab === key ? "bg-primary/10 text-primary" : "text-foreground"
+                }`}>
+                <Icon className="h-4 w-4" />
+                {key === "all" ? "Tutto" : label}
+              </button>
+            ))}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Filter sheet */}
+      <Sheet open={filterSheet} onOpenChange={setFilterSheet}>
+        <SheetContent side="bottom" className="rounded-t-2xl">
+          <SheetHeader><SheetTitle>Filtri</SheetTitle></SheetHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <p className="text-[14px] font-semibold mb-2" style={{ color: "#111827" }}>Stato</p>
+              <div className="flex gap-2 flex-wrap">
+                {[
+                  { key: "relevant", label: "Da controllare" },
+                  { key: "expired", label: "Solo scaduti" },
+                  { key: "expiring", label: "In scadenza" },
+                  { key: "all", label: "Tutti" },
+                ].map(({ key, label }) => (
+                  <button key={key} onClick={() => setStatusFilter(key)}
+                    className={`rounded-xl px-4 py-2 text-[13px] font-semibold transition-colors ${
+                      statusFilter === key ? "bg-primary text-white" : "bg-[#F5F7FA] text-foreground"
+                    }`}>{label}</button>
+                ))}
+              </div>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" className="flex-1" onClick={() => { setStatusFilter("relevant"); setStorageTab("all"); setFilterSheet(false); }}>Reset</Button>
+              <Button className="flex-1" onClick={() => setFilterSheet(false)}>Applica</Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+    </div>
+  );
+};
+
+export default PreparationsPage;
