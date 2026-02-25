@@ -6,13 +6,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useDebounce } from "@/hooks/useDebounce";
 import AddFoodFlow from "@/components/AddFoodFlow";
 import ResolveExpiryFlow from "@/components/ResolveExpiryFlow";
-import { Link } from "react-router-dom";
 import {
-  Clock, Package, Plus, Search,
-  Zap, ChevronRight, AlertCircle, BookOpen,
+  Clock, Plus, Search, Zap, ChevronRight,
+  BookOpen, SlidersHorizontal, X,
 } from "lucide-react";
 
 /* ─── types ─── */
@@ -53,11 +53,14 @@ const Index = () => {
   const navigate = useNavigate();
 
   const [items, setItems] = useState<InventoryItem[]>([]);
-  const [prepItems, setPrepItems] = useState<{ id: string; name: string; use_by_date: string | null; image_url: string | null; storage_type: string }[]>([]);
+  const [prepItems, setPrepItems] = useState<{ id: string; name: string; use_by_date: string | null; image_url: string | null; storage_type: string; quantity?: number | null }[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
   const [addFoodOpen, setAddFoodOpen] = useState(false);
   const [resolveOpen, setResolveOpen] = useState(false);
+
+  // Search overlay
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 250);
 
   useEffect(() => {
@@ -103,37 +106,49 @@ const Index = () => {
     return { expired, expiring, nodate, total: expired + expiring + nodate };
   }, [items, prepItems]);
 
-  // Urgent list: max 6, expired + expiring only, mixed inv + prep
+  // Urgent list: max 3
   const urgentList = useMemo(() => {
-    type UrgentItem = { id: string; name: string; image_url: string | null; date: string | null; storage: string; status: ExpiryStatus; type: "inv" | "prep" };
+    type UrgentItem = { id: string; name: string; date: string | null; storage: string; status: ExpiryStatus; type: "inv" | "prep"; qty: number | null; unit: string | null };
     const list: UrgentItem[] = [];
 
     items.forEach((i) => {
       const s = getStatus(i.expiry_date);
       if (s === "expired" || s === "expiring") {
-        list.push({ id: i.id, name: i.product.name, image_url: i.product.image_url, date: i.expiry_date, storage: i.storage_type, status: s, type: "inv" });
+        list.push({ id: i.id, name: i.product.name, date: i.expiry_date, storage: i.storage_type, status: s, type: "inv", qty: i.quantity, unit: i.unit });
       }
     });
     prepItems.forEach((p) => {
       const s = getStatus(p.use_by_date);
       if (s === "expired" || s === "expiring") {
-        list.push({ id: p.id, name: p.name, image_url: p.image_url, date: p.use_by_date, storage: p.storage_type, status: s, type: "prep" });
+        list.push({ id: p.id, name: p.name, date: p.use_by_date, storage: p.storage_type, status: s, type: "prep", qty: null, unit: null });
       }
     });
 
-    // Sort expired first
     list.sort((a, b) => {
       if (a.status !== b.status) return a.status === "expired" ? -1 : 1;
       if (a.date && b.date) return a.date.localeCompare(b.date);
       return 0;
     });
 
-    // Filter by search
-    if (debouncedSearch) {
-      const q = debouncedSearch.toLowerCase();
-      return list.filter((i) => i.name.toLowerCase().includes(q)).slice(0, 6);
-    }
-    return list.slice(0, 6);
+    return list.slice(0, 3);
+  }, [items, prepItems]);
+
+  // Search results (all items filtered)
+  const searchResults = useMemo(() => {
+    if (!debouncedSearch) return [];
+    const q = debouncedSearch.toLowerCase();
+    const results: { id: string; name: string; date: string | null; storage: string; status: ExpiryStatus }[] = [];
+    items.forEach((i) => {
+      if (i.product.name.toLowerCase().includes(q)) {
+        results.push({ id: i.id, name: i.product.name, date: i.expiry_date, storage: i.storage_type, status: getStatus(i.expiry_date) });
+      }
+    });
+    prepItems.forEach((p) => {
+      if (p.name.toLowerCase().includes(q)) {
+        results.push({ id: p.id, name: p.name, date: p.use_by_date, storage: p.storage_type, status: getStatus(p.use_by_date) });
+      }
+    });
+    return results.slice(0, 12);
   }, [items, prepItems, debouncedSearch]);
 
   const greeting = useMemo(() => {
@@ -149,18 +164,39 @@ const Index = () => {
       <div className="bg-background min-h-screen">
         <MobileHeader title="" />
         <main className="space-y-4 px-4 py-3 pb-32">
-          <Skeleton className="h-6 w-48" />
-          <Skeleton className="h-40 w-full rounded-[18px]" />
-          <Skeleton className="h-10 w-full rounded-[12px]" />
-          <Skeleton className="h-48 w-full rounded-[18px]" />
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className="h-16 w-full rounded-[18px]" />
+          <Skeleton className="h-12 w-full rounded-[14px]" />
+          <Skeleton className="h-24 w-full rounded-[18px]" />
         </main>
       </div>
     );
   }
 
+  /* ─── Header right: search + filters ─── */
+  const headerRight = (
+    <div className="flex items-center gap-1">
+      <button
+        onClick={() => setSearchOpen(true)}
+        className="p-1.5 rounded-lg active:bg-white/10 transition-colors"
+        aria-label="Cerca"
+      >
+        <Search className="h-[18px] w-[18px] text-white" strokeWidth={2} />
+      </button>
+      <button
+        onClick={() => navigate("/expiry")}
+        className="p-1.5 rounded-lg active:bg-white/10 transition-colors"
+        aria-label="Filtri"
+      >
+        <SlidersHorizontal className="h-[18px] w-[18px] text-white" strokeWidth={2} />
+      </button>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-background">
-      <MobileHeader title="" />
+      <MobileHeader title="" right={headerRight} />
+
       <main className="space-y-4 px-4 pt-1 pb-28">
 
         {/* ─── Greeting ─── */}
@@ -168,74 +204,60 @@ const Index = () => {
           <h2 className="text-base text-foreground">
             {greeting}{firstName ? `, ${firstName}` : ""} 👋
           </h2>
-          <p className="text-[13px] text-muted-foreground">Ecco cosa serve oggi</p>
+          <p className="text-[12px] text-muted-foreground mt-0.5">Ecco cosa serve oggi</p>
         </div>
 
-        {/* ═══════ HERO: Da controllare oggi ═══════ */}
-        <div className="rounded-[20px] bg-card shadow-card overflow-hidden">
-          {/* Top section */}
-          <div className="px-4 pt-4 pb-3">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-[16px] text-foreground">Da controllare oggi</h3>
-              <button
-                onClick={() => navigate("/expiry")}
-                className="text-[12px] font-medium text-primary flex items-center gap-0.5"
-              >
-                Vedi tutto <ChevronRight className="h-3 w-3" />
-              </button>
-            </div>
-
-            {/* Counters row */}
-            <div className="flex gap-3 mb-4">
-              {[
-                { n: counts.expired, label: "Scaduti", color: "hsl(1,76%,55%)", bg: "hsl(1,76%,55%,0.08)" },
-                { n: counts.expiring, label: "In scadenza", color: "hsl(37,90%,51%)", bg: "hsl(37,90%,51%,0.08)" },
-                { n: counts.nodate, label: "Senza data", color: "hsl(215,10%,62%)", bg: "hsl(215,10%,62%,0.08)" },
-              ].map(({ n, label, color, bg }) => (
-                <div key={label} className="flex-1 rounded-[12px] px-2.5 py-2 text-center" style={{ backgroundColor: bg }}>
-                  <p className="text-[20px] font-semibold leading-none mb-0.5" style={{ color }}>{n}</p>
-                  <p className="text-[10px] font-medium text-muted-foreground">{label}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* CTA */}
-            {counts.total > 0 ? (
-              <button
-                onClick={() => setResolveOpen(true)}
-                className="flex w-full items-center justify-center gap-2.5 rounded-[14px] py-3.5 text-[15px] font-semibold text-primary-foreground bg-primary shadow-card active:scale-[0.97] transition-all"
-              >
-                <Zap className="h-5 w-5" strokeWidth={2.2} />
-                Risolvi tutto · {counts.total}
-              </button>
-            ) : (
-              <div className="flex items-center justify-center gap-2 rounded-[14px] py-3.5 bg-success/10">
-                <span className="text-[14px] font-medium text-success">✓ Tutto sotto controllo</span>
+        {/* ═══ COMPACT COUNTERS ═══ */}
+        <div className="flex items-center gap-2.5 rounded-[18px] bg-card px-4 py-3 shadow-card">
+          {[
+            { n: counts.expired, label: "Scaduti", color: "hsl(1,76%,55%)" },
+            { n: counts.expiring, label: "In scadenza", color: "hsl(37,90%,51%)" },
+            { n: counts.nodate, label: "Senza data", color: "hsl(215,10%,62%)" },
+          ].map(({ n, label, color }, idx) => (
+            <div key={label} className="flex items-center gap-2 flex-1">
+              {idx > 0 && <div className="w-px h-7 bg-border" />}
+              <div className={`${idx > 0 ? "pl-2.5" : ""} flex-1`}>
+                <p className="text-[22px] font-bold leading-none" style={{ color }}>{n}</p>
+                <p className="text-[9px] font-medium text-muted-foreground mt-0.5 uppercase tracking-wider">{label}</p>
               </div>
-            )}
+            </div>
+          ))}
+          <button
+            onClick={() => navigate("/expiry")}
+            className="text-[11px] font-medium text-primary flex items-center gap-0.5 shrink-0"
+          >
+            Vedi <ChevronRight className="h-3 w-3" />
+          </button>
+        </div>
+
+        {/* ═══ CTA RISOLVI (slim) ═══ */}
+        {counts.total > 0 ? (
+          <button
+            onClick={() => setResolveOpen(true)}
+            className="flex w-full items-center justify-center gap-2 rounded-[14px] h-11 text-[14px] font-semibold text-primary-foreground bg-primary shadow-card active:scale-[0.97] transition-all"
+          >
+            <Zap className="h-4 w-4" strokeWidth={2.2} />
+            Risolvi · {counts.total}
+          </button>
+        ) : (
+          <div className="flex items-center justify-center gap-2 rounded-[14px] h-11 bg-success/8">
+            <span className="text-[13px] font-medium text-success">✓ Tutto sotto controllo</span>
           </div>
-        </div>
+        )}
 
-        {/* ─── Search ─── */}
-        <div className="relative">
-          <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Cerca prodotti..."
-            className="h-10 rounded-[14px] border-0 bg-card pl-10 text-[14px] shadow-card text-foreground"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-
-        {/* ═══════ Urgent list ═══════ */}
-        {urgentList.length > 0 ? (
+        {/* ═══ URGENT (MAX 3) ═══ */}
+        {urgentList.length > 0 && (
           <div>
-            <div className="flex items-center justify-between mb-2 px-0.5">
-              <h3 className="text-[14px] text-foreground flex items-center gap-1.5">
-                <AlertCircle className="h-4 w-4 text-destructive" strokeWidth={2} />
-                Urgenti
-              </h3>
-              <span className="text-[11px] text-muted-foreground">{urgentList.length} elementi</span>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-[13px] font-semibold text-foreground">Urgenti</h3>
+              {counts.total > 3 && (
+                <button
+                  onClick={() => navigate("/expiry")}
+                  className="text-[11px] font-medium text-primary flex items-center gap-0.5"
+                >
+                  Vedi tutti ({counts.total}) <ChevronRight className="h-3 w-3" />
+                </button>
+              )}
             </div>
             <div className="space-y-1.5">
               {urgentList.map((item) => {
@@ -243,32 +265,20 @@ const Index = () => {
                 return (
                   <div
                     key={`${item.type}-${item.id}`}
-                    className="flex items-center gap-2.5 rounded-[16px] bg-card px-3 py-2.5 shadow-card transition-all"
+                    className="flex items-center gap-2 rounded-[14px] bg-card pl-0 pr-3 py-2 shadow-card"
                   >
-                    <div className={`w-[3px] self-stretch rounded-full ${cfg.barColor}`} />
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-secondary overflow-hidden">
-                      {item.image_url ? (
-                        <img src={item.image_url} alt="" className="h-full w-full object-cover" />
-                      ) : (
-                        <Package className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[14px] font-medium truncate text-foreground">{item.name}</p>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        {item.date && (
-                          <span className="text-[12px] flex items-center gap-0.5 text-muted-foreground">
-                            <Clock className="h-2.5 w-2.5" />
-                            {new Date(item.date).toLocaleDateString("it-IT")}
-                          </span>
-                        )}
-                        <span className="text-[11px] text-muted-foreground">
-                          {storageLabel[item.storage] ?? item.storage}
-                        </span>
-                      </div>
+                    <div className={`w-[3px] self-stretch rounded-full ml-0 ${cfg.barColor}`} />
+                    <div className="flex-1 min-w-0 ml-1.5">
+                      <p className="text-[13px] font-medium truncate text-foreground">{item.name}</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {item.date && <>Scade il {new Date(item.date).toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" })}</>}
+                        {item.date && " · "}
+                        {storageLabel[item.storage] ?? item.storage}
+                        {item.qty != null && ` · x${item.qty}`}
+                      </p>
                     </div>
                     <span
-                      className="shrink-0 rounded-[8px] px-2 py-0.5 text-[9px] font-semibold text-white"
+                      className="shrink-0 rounded-[6px] px-1.5 py-[2px] text-[8px] font-bold uppercase tracking-wider text-white"
                       style={{ backgroundColor: cfg.color }}
                     >
                       {cfg.label}
@@ -277,50 +287,45 @@ const Index = () => {
                 );
               })}
             </div>
-
-            {/* See all link */}
-            {counts.total > 6 && (
-              <button
-                onClick={() => navigate("/expiry")}
-                className="flex w-full items-center justify-center gap-1 mt-2 py-2 text-[13px] font-medium text-primary"
-              >
-                Vedi tutti i {counts.total} elementi <ChevronRight className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
-        ) : !search ? (
-          <div className="flex flex-col items-center gap-2 rounded-[18px] bg-card p-8 shadow-card">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-success/10">
-              <Package className="h-6 w-6 text-success" />
-            </div>
-            <p className="text-[14px] font-medium text-foreground">Nessun urgente</p>
-            <p className="text-[12px] text-muted-foreground text-center">Tutti i tuoi prodotti sono in regola</p>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center gap-1.5 rounded-[18px] bg-card p-8 shadow-card">
-            <Package className="h-7 w-7 text-muted-foreground" />
-            <p className="text-[14px] font-medium text-foreground">Nessun risultato per "{search}"</p>
           </div>
         )}
 
-        {/* ═══ Ricette pubbliche ═══ */}
+        {urgentList.length === 0 && (
+          <div className="flex items-center justify-center rounded-[18px] bg-card py-6 shadow-card">
+            <p className="text-[13px] text-muted-foreground">Nessun prodotto urgente 🎉</p>
+          </div>
+        )}
+
+        {/* ═══ RICETTE HERO CARD ═══ */}
         <button
           onClick={() => navigate("/recipes")}
-          className="flex w-full items-center gap-3 rounded-[18px] bg-card px-4 py-3.5 shadow-card active:scale-[0.98] transition-transform"
+          className="relative w-full overflow-hidden rounded-[18px] shadow-card active:scale-[0.98] transition-transform"
+          style={{
+            background: "linear-gradient(135deg, hsl(196, 88%, 54%) 0%, hsl(201, 89%, 39%) 100%)",
+          }}
         >
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-            <BookOpen className="h-5 w-5 text-primary" />
+          <div className="flex items-center gap-4 px-5 py-5">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/15 backdrop-blur-sm">
+              <BookOpen className="h-6 w-6 text-white" strokeWidth={1.8} />
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-[15px] font-bold text-white">Ricette dai ristoranti</p>
+              <p className="text-[12px] text-white/70 mt-0.5">Scopri e replica ricette pubbliche</p>
+            </div>
+            <div className="flex items-center gap-1 shrink-0 rounded-[10px] bg-white/20 px-3 py-1.5">
+              <span className="text-[12px] font-semibold text-white">Sfoglia</span>
+              <ChevronRight className="h-3.5 w-3.5 text-white" />
+            </div>
           </div>
-          <div className="flex-1 text-left">
-            <p className="text-[14px] font-semibold text-foreground">Ricette dai ristoranti</p>
-            <p className="text-[12px] text-muted-foreground">Scopri e replica ricette pubbliche</p>
-          </div>
-          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          {/* Decorative circles */}
+          <div className="absolute -top-4 -right-4 h-20 w-20 rounded-full bg-white/5" />
+          <div className="absolute -bottom-6 -left-6 h-24 w-24 rounded-full bg-white/5" />
         </button>
+
       </main>
 
       {/* ─── FAB ─── */}
-      <div className="fixed bottom-[calc(68px+env(safe-area-inset-bottom,0px)+0.75rem)] right-3.5 z-40">
+      <div className="fixed bottom-[calc(76px+env(safe-area-inset-bottom,0px))] right-4 z-40">
         <button
           onClick={() => setAddFoodOpen(true)}
           className="flex h-12 w-12 items-center justify-center rounded-full shadow-elevated active:scale-95 transition-all bg-primary"
@@ -329,6 +334,63 @@ const Index = () => {
           <Plus className="h-5 w-5 text-primary-foreground" strokeWidth={2.2} />
         </button>
       </div>
+
+      {/* ─── SEARCH OVERLAY ─── */}
+      {searchOpen && (
+        <div className="fixed inset-0 z-[60] bg-background">
+          <div className="flex items-center gap-2 px-4 pt-3 pb-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                autoFocus
+                placeholder="Cerca nei tuoi prodotti..."
+                className="h-10 rounded-[12px] border-border bg-card pl-9 text-[14px] text-foreground"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <button
+              onClick={() => { setSearchOpen(false); setSearch(""); }}
+              className="p-2 text-muted-foreground"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="px-4 pt-2 pb-8 overflow-y-auto" style={{ maxHeight: "calc(100vh - 60px)" }}>
+            {!debouncedSearch && (
+              <p className="text-[13px] text-muted-foreground text-center py-12">Digita per cercare tra i tuoi prodotti</p>
+            )}
+            {debouncedSearch && searchResults.length === 0 && (
+              <p className="text-[13px] text-muted-foreground text-center py-12">Nessun risultato per "{search}"</p>
+            )}
+            {searchResults.length > 0 && (
+              <div className="space-y-1.5">
+                {searchResults.map((r) => {
+                  const cfg = statusCfg[r.status];
+                  return (
+                    <div key={r.id} className="flex items-center gap-2 rounded-[14px] bg-card pl-0 pr-3 py-2 shadow-card">
+                      <div className={`w-[3px] self-stretch rounded-full ${cfg.barColor}`} />
+                      <div className="flex-1 min-w-0 ml-1.5">
+                        <p className="text-[13px] font-medium truncate text-foreground">{r.name}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {r.date ? new Date(r.date).toLocaleDateString("it-IT") : "Senza data"} · {storageLabel[r.storage] ?? r.storage}
+                        </p>
+                      </div>
+                      <span
+                        className="shrink-0 rounded-[6px] px-1.5 py-[2px] text-[8px] font-bold uppercase text-white"
+                        style={{ backgroundColor: cfg.color }}
+                      >
+                        {cfg.label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <AddFoodFlow
         open={addFoodOpen}
