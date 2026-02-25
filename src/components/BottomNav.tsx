@@ -18,8 +18,8 @@ const tabsByRole: Record<string, TabItem[]> = {
     { to: "/", icon: Home, label: "Home" },
     { to: "/scan", icon: ScanLine, label: "Scansiona" },
     { to: "/expiry", icon: Clock, label: "Scadenze" },
-    { to: "/recipes", icon: BookOpen, label: "Ricette" },
     { to: "/meals", icon: UtensilsCrossed, label: "Pasti" },
+    { to: "/profile", icon: User, label: "Profilo" },
   ],
   restaurant_owner: [
     { to: "/restaurant", icon: Store, label: "Home" },
