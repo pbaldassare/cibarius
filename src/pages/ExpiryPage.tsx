@@ -3,14 +3,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import MobileHeader from "@/components/MobileHeader";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import AddFoodFlow from "@/components/AddFoodFlow";
 import {
   Package, Clock, AlertCircle, HelpCircle, Check, Trash2, CalendarClock,
-  Archive, Thermometer, Snowflake, Plus, ChefHat,
+  Plus, ChefHat, SlidersHorizontal, X,
 } from "lucide-react";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
@@ -39,36 +38,23 @@ const getStatus = (d: string | null): ExpiryStatus => {
   return "ok";
 };
 
-const statusCfg: Record<ExpiryStatus, { label: string; cls: string }> = {
-  expired:  { label: "SCADUTO",     cls: "bg-destructive text-destructive-foreground" },
-  expiring: { label: "IN SCADENZA", cls: "bg-accent text-accent-foreground" },
-  ok:       { label: "OK",          cls: "bg-success text-success-foreground" },
-  nodate:   { label: "SENZA DATA",  cls: "bg-muted text-muted-foreground" },
+const statusCfg: Record<ExpiryStatus, { label: string; color: string; barColor: string }> = {
+  expired:  { label: "Scaduto",     color: "hsl(1,76%,55%)",   barColor: "bg-destructive" },
+  expiring: { label: "In scadenza", color: "hsl(37,90%,51%)",  barColor: "bg-warning" },
+  ok:       { label: "OK",          color: "hsl(152,56%,46%)", barColor: "bg-success" },
+  nodate:   { label: "Senza data",  color: "hsl(215,10%,62%)", barColor: "bg-muted-foreground" },
 };
 
 const storageLabel: Record<string, string> = {
   frigo: "Frigo", freezer: "Congelatore", ambiente: "Dispensa",
 };
 
-const tabs = [
+const statusTabs = [
   { key: "expired", label: "Scaduti", icon: AlertCircle },
   { key: "expiring", label: "In scadenza", icon: Clock },
   { key: "nodate", label: "Senza data", icon: HelpCircle },
   { key: "all", label: "Tutti", icon: Package },
 ] as const;
-
-const storageTabs = [
-  { key: "all", label: "Tutti" },
-  { key: "ambiente", label: "Dispensa" },
-  { key: "frigo", label: "Frigo" },
-  { key: "freezer", label: "Congelatore" },
-];
-
-const typeTabs = [
-  { key: "all", label: "Tutto" },
-  { key: "product", label: "Prodotti" },
-  { key: "preparation", label: "Preparazioni" },
-];
 
 const ExpiryPage = () => {
   const { user } = useAuth();
@@ -78,6 +64,7 @@ const ExpiryPage = () => {
   const [activeTab, setActiveTab] = useState<string>("expired");
   const [storageFilter, setStorageFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [actionSheet, setActionSheet] = useState<ExpiryItem | null>(null);
   const [addFoodOpen, setAddFoodOpen] = useState(false);
   const [newDate, setNewDate] = useState("");
@@ -184,6 +171,8 @@ const ExpiryPage = () => {
     return c;
   }, [items]);
 
+  const activeFilterCount = (storageFilter !== "all" ? 1 : 0) + (typeFilter !== "all" ? 1 : 0);
+
   if (loading) {
     return (
       <div>
@@ -197,145 +186,201 @@ const ExpiryPage = () => {
   }
 
   return (
-    <div>
+    <div className="min-h-screen bg-background">
       <MobileHeader title="Scadenze" showBack />
-      <main className="space-y-4 px-4 py-4 pb-28">
-        {/* Tabs */}
-        <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
-          {tabs.map(({ key, label, icon: Icon }) => {
-            const active = activeTab === key;
-            return (
-              <button
-                key={key}
-                onClick={() => setActiveTab(key)}
-                className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-                  active
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "bg-card text-foreground border border-border"
-                }`}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                {label}
-                <span className={`ml-0.5 text-xs ${active ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
-                  ({tabCounts[key] ?? 0})
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Type filter: Tutto | Prodotti | Preparazioni */}
-        <div className="flex gap-2">
-          {typeTabs.map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setTypeFilter(key)}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                typeFilter === key
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-card text-foreground border border-border"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {/* Storage filter */}
-        <div className="flex gap-2">
-          {storageTabs.map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setStorageFilter(key)}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                storageFilter === key
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-card text-foreground border border-border"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
+      <main className="space-y-3 px-4 py-4 pb-28">
+        {/* Status tabs + filter button */}
+        <div className="flex items-center gap-2">
+          <div className="flex-1 flex gap-1.5 overflow-x-auto no-scrollbar">
+            {statusTabs.map(({ key, label, icon: Icon }) => {
+              const active = activeTab === key;
+              return (
+                <button
+                  key={key}
+                  onClick={() => setActiveTab(key)}
+                  className={`flex items-center gap-1 whitespace-nowrap rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors ${
+                    active
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "bg-card text-foreground border border-border"
+                  }`}
+                >
+                  <Icon className="h-3 w-3" />
+                  {label}
+                  <span className={`text-[11px] ${active ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                    {tabCounts[key] ?? 0}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <button
+            onClick={() => setFilterSheetOpen(true)}
+            className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-[13px] font-medium border transition-colors shrink-0 ${
+              activeFilterCount > 0 ? "bg-primary text-primary-foreground border-primary" : "bg-card text-foreground border-border"
+            }`}
+          >
+            <SlidersHorizontal className="h-3.5 w-3.5" />
+            {activeFilterCount > 0 && <span>{activeFilterCount}</span>}
+          </button>
         </div>
 
         {/* List */}
         {filtered.length === 0 ? (
-          <Card className="border-0 shadow-sm">
-            <CardContent className="p-8 text-center">
-              <Check className="h-10 w-10 mx-auto mb-2 text-success" />
-              <p className="text-sm font-medium" style={{ color: "#111827" }}>Tutto in ordine!</p>
-              <p className="text-xs mt-1" style={{ color: "#4B5563" }}>Nessun elemento in questa categoria</p>
-            </CardContent>
-          </Card>
+          <div className="flex flex-col items-center gap-2 rounded-[18px] bg-card p-8 shadow-card">
+            <Check className="h-10 w-10 text-success" />
+            <p className="text-[14px] font-medium text-foreground">Tutto in ordine!</p>
+            <p className="text-[12px] text-muted-foreground">Nessun elemento in questa categoria</p>
+          </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {filtered.map((item) => {
               const status = getStatus(item.expiry_date);
               const cfg = statusCfg[status];
               const isPrep = item.type === "preparation";
               return (
-                <Card
+                <button
                   key={`${item.type}-${item.id}`}
-                  className="border-0 shadow-sm cursor-pointer active:scale-[0.98] transition-transform"
+                  className="flex w-full items-center gap-2.5 rounded-[16px] bg-card px-3 py-2.5 shadow-card text-left active:scale-[0.98] transition-all"
                   onClick={() => { setActionSheet(item); setNewDate(item.expiry_date ?? ""); }}
                 >
-                  <CardContent className="flex items-center gap-3 p-3">
-                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-secondary overflow-hidden">
-                      {item.image_url ? (
-                        <img src={item.image_url} alt="" className="h-full w-full object-cover" />
-                      ) : isPrep ? (
-                        <ChefHat className="h-6 w-6 text-muted-foreground" />
-                      ) : (
-                        <Package className="h-6 w-6 text-muted-foreground" />
+                  {/* Left accent bar */}
+                  <div className={`w-[3px] self-stretch rounded-full ${cfg.barColor}`} />
+                  {/* Image */}
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] bg-secondary overflow-hidden">
+                    {item.image_url ? (
+                      <img src={item.image_url} alt="" className="h-full w-full object-cover" />
+                    ) : isPrep ? (
+                      <ChefHat className="h-5 w-5 text-muted-foreground" />
+                    ) : (
+                      <Package className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </div>
+                  {/* Text */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-[15px] font-medium truncate text-foreground">{item.name}</p>
+                      {isPrep && (
+                        <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-accent/10 text-accent">
+                          PREP
+                        </span>
                       )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <p className="text-sm font-bold truncate" style={{ color: "#111827" }}>{item.name}</p>
-                        {isPrep && (
-                          <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-[#EDE9FE]" style={{ color: "#7C3AED" }}>
-                            PREP
-                          </span>
-                        )}
-                      </div>
+                    <div className="flex items-center gap-2 mt-0.5">
                       {item.expiry_date && (
-                        <p className="text-xs flex items-center gap-1 mt-0.5" style={{ color: "#4B5563" }}>
-                          <Clock className="h-3 w-3" />
+                        <span className="text-[12px] flex items-center gap-0.5 text-muted-foreground">
+                          <Clock className="h-2.5 w-2.5" />
                           {new Date(item.expiry_date).toLocaleDateString("it-IT")}
-                        </p>
+                        </span>
                       )}
-                      <p className="text-[10px] mt-0.5" style={{ color: "#4B5563" }}>
+                      <span className="text-[11px] text-muted-foreground">
                         {storageLabel[item.storage_type] ?? item.storage_type}
                         {item.quantity ? ` · x${item.quantity}` : ""}
-                      </p>
+                      </span>
                     </div>
-                    <Badge className={`shrink-0 rounded-lg px-2.5 py-1 text-[10px] font-bold ${cfg.cls}`}>
-                      {cfg.label}
-                    </Badge>
-                  </CardContent>
-                </Card>
+                  </div>
+                  {/* Badge */}
+                  <span
+                    className="shrink-0 rounded-[8px] px-2 py-0.5 text-[9px] font-semibold text-white"
+                    style={{ backgroundColor: cfg.color }}
+                  >
+                    {cfg.label}
+                  </span>
+                </button>
               );
             })}
           </div>
         )}
       </main>
 
-      {/* Action sheet */}
+      {/* ═══ Filter Bottom Sheet ═══ */}
+      <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
+        <SheetContent side="bottom" className="rounded-t-3xl">
+          <SheetHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <SheetTitle className="text-foreground">Filtri</SheetTitle>
+              {activeFilterCount > 0 && (
+                <button
+                  onClick={() => { setStorageFilter("all"); setTypeFilter("all"); }}
+                  className="text-xs font-medium text-primary"
+                >
+                  Resetta
+                </button>
+              )}
+            </div>
+          </SheetHeader>
+          <div className="space-y-5 py-2 pb-6">
+            {/* Type toggle */}
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-foreground">Tipo</p>
+              <div className="flex gap-2">
+                {[
+                  { key: "all", label: "Tutto" },
+                  { key: "product", label: "Prodotti" },
+                  { key: "preparation", label: "Preparazioni" },
+                ].map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => setTypeFilter(key)}
+                    className={`flex-1 rounded-xl py-2.5 text-sm font-medium transition-colors ${
+                      typeFilter === key
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-card border border-border text-foreground"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Storage filter */}
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-foreground">Conservazione</p>
+              <div className="flex gap-2">
+                {[
+                  { key: "all", label: "Tutti" },
+                  { key: "ambiente", label: "Dispensa" },
+                  { key: "frigo", label: "Frigo" },
+                  { key: "freezer", label: "Congelatore" },
+                ].map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => setStorageFilter(key)}
+                    className={`flex-1 rounded-xl py-2.5 text-sm font-medium transition-colors ${
+                      storageFilter === key
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-card border border-border text-foreground"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <Button className="w-full h-12 rounded-2xl text-base font-semibold" onClick={() => setFilterSheetOpen(false)}>
+              Applica filtri
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* ═══ Action sheet ═══ */}
       <Sheet open={!!actionSheet} onOpenChange={(o) => { if (!o) setActionSheet(null); }}>
-        <SheetContent side="bottom" className="rounded-t-2xl">
+        <SheetContent side="bottom" className="rounded-t-3xl">
           <SheetHeader>
-            <SheetTitle style={{ color: "#111827" }}>{actionSheet?.name}</SheetTitle>
+            <SheetTitle className="text-foreground">{actionSheet?.name}</SheetTitle>
           </SheetHeader>
           <div className="space-y-3 py-4">
             <Button
-              className="w-full justify-start gap-3"
+              className="w-full justify-start gap-3 h-12 rounded-xl"
               variant="outline"
               onClick={() => actionSheet && handleConsume(actionSheet)}
             >
               <Check className="h-4 w-4 text-success" /> Consumato
             </Button>
             <Button
-              className="w-full justify-start gap-3"
+              className="w-full justify-start gap-3 h-12 rounded-xl"
               variant="outline"
               onClick={() => actionSheet && handleTrash(actionSheet)}
             >
@@ -346,10 +391,10 @@ const ExpiryPage = () => {
                 type="date"
                 value={newDate}
                 onChange={(e) => setNewDate(e.target.value)}
-                className="flex-1"
+                className="flex-1 h-12 rounded-xl"
               />
-              <Button onClick={() => actionSheet && handleUpdateDate(actionSheet)}>
-                <CalendarClock className="h-4 w-4 mr-1" /> Aggiorna data
+              <Button className="h-12 rounded-xl" onClick={() => actionSheet && handleUpdateDate(actionSheet)}>
+                <CalendarClock className="h-4 w-4 mr-1" /> Aggiorna
               </Button>
             </div>
           </div>
@@ -360,10 +405,10 @@ const ExpiryPage = () => {
       <div className="fixed bottom-[calc(72px+env(safe-area-inset-bottom,0px)+1rem)] right-4 z-40">
         <button
           onClick={() => setAddFoodOpen(true)}
-          className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg active:scale-95 transition-transform"
+          className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-elevated active:scale-95 transition-transform"
           aria-label="Aggiungi"
         >
-          <Plus className="h-6 w-6" />
+          <Plus className="h-5 w-5" strokeWidth={2.2} />
         </button>
       </div>
 
