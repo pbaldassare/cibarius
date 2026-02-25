@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { LayoutDashboard, Users, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, Settings, LogOut, Sprout } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import cibariusLogo from "@/assets/cibarius-logo.png";
@@ -10,6 +10,7 @@ const sidebarItems = [
   { to: "/admin", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/admin/users", icon: Users, label: "Utenti" },
   { to: "/admin/settings", icon: Settings, label: "Impostazioni" },
+  { to: "/admin/seed", icon: Sprout, label: "Dati Demo" },
 ];
 
 const AdminLayout = ({ children }: { children: ReactNode }) => {
