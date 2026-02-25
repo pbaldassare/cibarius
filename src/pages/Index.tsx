@@ -42,11 +42,11 @@ const getStatus = (d: string | null): ExpiryStatus => {
   return "ok";
 };
 
-const statusCfg: Record<ExpiryStatus, { label: string; cls: string; dot: string }> = {
-  expired:  { label: "SCADUTO",     cls: "bg-destructive text-destructive-foreground", dot: "bg-destructive" },
-  expiring: { label: "IN SCADENZA", cls: "bg-accent text-accent-foreground",           dot: "bg-accent" },
-  ok:       { label: "OK",          cls: "bg-success text-success-foreground",          dot: "bg-success" },
-  nodate:   { label: "SENZA DATA",  cls: "bg-muted text-muted-foreground",             dot: "bg-muted-foreground" },
+const statusCfg: Record<ExpiryStatus, { label: string; badgeBg: string; barColor: string }> = {
+  expired:  { label: "SCADUTO",     badgeBg: "bg-[#E53935]",  barColor: "bg-[#E53935]" },
+  expiring: { label: "IN SCADENZA", badgeBg: "bg-[#F59E0B]",  barColor: "bg-[#F59E0B]" },
+  ok:       { label: "OK",          badgeBg: "bg-success",     barColor: "bg-success" },
+  nodate:   { label: "SENZA DATA",  badgeBg: "bg-[#9CA3AF]",  barColor: "bg-[#9CA3AF]" },
 };
 
 const storageLabel: Record<string, string> = {
@@ -167,14 +167,29 @@ const Index = () => {
   }, []);
   const firstName = profile?.full_name?.split(" ")[0] ?? "";
 
+  // Count active filters
+  const activeFilterCount = useMemo(() => {
+    let c = 0;
+    if (statusFilter !== "relevant") c++;
+    if (daysRange !== 3) c++;
+    if (storageTab !== "all") c++;
+    return c;
+  }, [statusFilter, daysRange, storageTab]);
+
+  const resetFilters = () => {
+    setStatusFilter("relevant");
+    setDaysRange(3);
+    setStorageTab("all");
+  };
+
   if (loading) {
     return (
-      <div>
+      <div style={{ backgroundColor: "#F5F7FA" }}>
         <MobileHeader title="Home" />
-        <main className="space-y-4 px-4 py-5 pb-28">
-          <Skeleton className="h-10 w-48" />
-          <Skeleton className="h-28 w-full rounded-2xl" />
-          <Skeleton className="h-10 w-full rounded-2xl" />
+        <main className="space-y-4 px-4 py-5 pb-32">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-[72px] w-full rounded-2xl" />
+          <Skeleton className="h-10 w-full rounded-xl" />
           <Skeleton className="h-64 w-full rounded-2xl" />
         </main>
       </div>
@@ -182,178 +197,161 @@ const Index = () => {
   }
 
   return (
-    <div>
+    <div style={{ backgroundColor: "#F5F7FA" }} className="min-h-screen">
       <MobileHeader title="Home" />
-      <main className="space-y-4 px-4 py-4 pb-28">
-        {/* Greeting */}
-        <div>
-          <h2 className="text-xl font-bold" style={{ color: "#111827" }}>
+      <main className="space-y-4 px-4 pt-2 pb-32">
+
+        {/* ─── A) Greeting (minimal) ─── */}
+        <div className="pt-1">
+          <h2 className="text-[18px] font-bold" style={{ color: "#111827" }}>
             {greeting}{firstName ? `, ${firstName}` : ""} 👋
           </h2>
-          <p className="mt-0.5 text-sm" style={{ color: "#4B5563" }}>
-            Controlla le scadenze e gestisci la tua dispensa
+          <p className="text-[13px] mt-0.5" style={{ color: "#4B5563" }}>
+            Ecco la tua dispensa
           </p>
         </div>
 
-        {/* ─── SEZIONE A: Da controllare ─── */}
-        <Card
-          className="cursor-pointer border-0 shadow-md active:scale-[0.98] transition-transform"
+        {/* ─── B) Card "Da controllare" COMPATTA ─── */}
+        <button
           onClick={() => navigate("/expiry")}
+          className="flex w-full items-center gap-4 rounded-2xl bg-white p-4 shadow-sm active:scale-[0.98] transition-transform"
+          style={{ maxHeight: 72 }}
         >
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10">
-                <AlertTriangle className="h-4 w-4 text-destructive" />
-              </div>
-              <h3 className="text-base font-bold" style={{ color: "#111827" }}>Da controllare</h3>
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                { n: counts.expired, label: "Scaduti", icon: AlertCircle, color: "text-destructive", bg: "bg-destructive/10" },
-                { n: counts.expiring, label: "In scadenza", icon: Clock, color: "text-accent", bg: "bg-accent/10" },
-                { n: counts.nodate, label: "Senza data", icon: HelpCircle, color: "text-muted-foreground", bg: "bg-muted" },
-              ].map(({ n, label, icon: Icon, color, bg }) => (
-                <div key={label} className="flex flex-col items-center gap-1 rounded-xl p-3" style={{ backgroundColor: "white" }}>
-                  <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${bg}`}>
-                    <Icon className={`h-4 w-4 ${color}`} />
-                  </div>
-                  <span className="text-2xl font-bold" style={{ color: "#111827" }}>{n}</span>
-                  <span className="text-[10px] font-medium" style={{ color: "#4B5563" }}>{label}</span>
+          {[
+            { n: counts.expired, label: "Scaduti", color: "#E53935" },
+            { n: counts.expiring, label: "In scadenza", color: "#F59E0B" },
+            { n: counts.nodate, label: "Senza data", color: "#9CA3AF" },
+          ].map(({ n, label, color }, i) => (
+            <div key={label} className="flex flex-1 items-center gap-2">
+              {i > 0 && <div className="h-8 w-px" style={{ backgroundColor: "#E5E7EB" }} />}
+              <div className={`flex items-center gap-2 ${i > 0 ? "pl-2" : ""}`}>
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: `${color}15` }}>
+                  <span className="text-base font-bold" style={{ color }}>{n}</span>
                 </div>
-              ))}
+                <span className="text-[11px] font-medium leading-tight" style={{ color: "#4B5563" }}>{label}</span>
+              </div>
             </div>
-          </CardContent>
-        </Card>
+          ))}
+        </button>
 
-        {/* ─── SEZIONE B: Tab Conservazione ─── */}
-        <div className="flex gap-2 overflow-x-auto no-scrollbar">
+        {/* ─── C) Storage pills (1 row) ─── */}
+        <div className="flex gap-1.5">
           {storageTabs.map(({ key, label, icon: Icon }) => {
             const active = storageTab === key;
             return (
               <button
                 key={key}
                 onClick={() => setStorageTab(key)}
-                className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                className={`flex flex-1 items-center justify-center gap-1 rounded-xl py-2 text-[13px] font-semibold transition-colors ${
                   active
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "bg-card text-foreground border border-border"
+                    ? "bg-primary text-white shadow-sm"
+                    : "bg-white text-foreground"
                 }`}
               >
-                <Icon className="h-4 w-4" />
-                {label}
+                <Icon className="h-3.5 w-3.5" />
+                {key === "all" ? "Tutto" : label}
               </button>
             );
           })}
         </div>
 
-        {/* ─── Search + Filters ─── */}
+        {/* ─── D) Search + filter icon ─── */}
         <div className="flex gap-2">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: "#4B5563" }} />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: "#9CA3AF" }} />
             <Input
-              placeholder="Cerca nel tuo inventario..."
-              className="pl-9 bg-card border-border"
+              placeholder="Cerca prodotto..."
+              className="h-10 rounded-xl border-0 bg-white pl-9 text-[14px] shadow-sm"
               style={{ color: "#111827" }}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <Button
-            variant="outline"
-            size="icon"
-            className="border-border bg-card"
+          <button
             onClick={() => setFilterSheet(true)}
+            className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm"
           >
-            <Filter className="h-4 w-4" />
-          </Button>
+            <Filter className="h-4 w-4" style={{ color: "#4B5563" }} />
+            {activeFilterCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-white">
+                {activeFilterCount}
+              </span>
+            )}
+          </button>
         </div>
 
-        {/* Quick status filters */}
-        <div className="flex gap-2 flex-wrap">
-          {[
-            { key: "relevant", label: "Da controllare" },
-            { key: "expired", label: "Solo scaduti" },
-            { key: "expiring", label: "Solo in scadenza" },
-            { key: "nodate", label: "Senza data" },
-            { key: "all", label: "Tutti" },
-          ].map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setStatusFilter(key)}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                statusFilter === key
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-card text-foreground border border-border"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {/* ─── SEZIONE C: Lista prodotti ─── */}
+        {/* ─── E) Lista prodotti ─── */}
         {filtered.length === 0 ? (
-          <Card className="border-0 shadow-sm">
-            <CardContent className="p-8 text-center">
-              <Package className="h-10 w-10 mx-auto mb-2" style={{ color: "#4B5563" }} />
-              <p className="text-sm font-medium" style={{ color: "#111827" }}>
-                {search ? "Nessun risultato" : "Nessun prodotto da controllare"}
-              </p>
-              <p className="text-xs mt-1" style={{ color: "#4B5563" }}>
-                {search ? "Prova con un altro termine" : "Aggiungi prodotti per iniziare"}
-              </p>
-            </CardContent>
-          </Card>
+          <div className="flex flex-col items-center gap-2 rounded-2xl bg-white p-10 shadow-sm">
+            <Package className="h-8 w-8" style={{ color: "#9CA3AF" }} />
+            <p className="text-[14px] font-medium" style={{ color: "#111827" }}>
+              {search ? "Nessun risultato" : "Nessun prodotto da controllare"}
+            </p>
+            <p className="text-[12px]" style={{ color: "#4B5563" }}>
+              {search ? "Prova con un altro termine" : "Premi + per aggiungere"}
+            </p>
+          </div>
         ) : (
           <div className="space-y-2">
             {filtered.map((item) => {
               const status = getStatusCustom(item.expiry_date);
               const cfg = statusCfg[status];
               return (
-                <Card key={item.id} className="border-0 shadow-sm">
-                  <CardContent className="flex items-center gap-3 p-3">
-                    {/* Image */}
-                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-secondary overflow-hidden">
-                      {item.product.image_url ? (
-                        <img src={item.product.image_url} alt="" className="h-full w-full object-cover" />
-                      ) : (
-                        <Package className="h-6 w-6 text-muted-foreground" />
-                      )}
-                    </div>
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold truncate" style={{ color: "#111827" }}>{item.product.name}</p>
+                <div
+                  key={item.id}
+                  className="flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm overflow-hidden"
+                >
+                  {/* Left accent bar */}
+                  <div className={`w-1 self-stretch rounded-full ${cfg.barColor}`} />
+
+                  {/* Image */}
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#F5F7FA] overflow-hidden">
+                    {item.product.image_url ? (
+                      <img src={item.product.image_url} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <Package className="h-5 w-5" style={{ color: "#9CA3AF" }} />
+                    )}
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[14px] font-semibold truncate" style={{ color: "#111827" }}>
+                      {item.product.name}
+                    </p>
+                    <div className="flex items-center gap-2 mt-0.5">
                       {item.expiry_date && (
-                        <p className="text-xs flex items-center gap-1 mt-0.5" style={{ color: "#4B5563" }}>
+                        <span className="text-[12px] flex items-center gap-0.5" style={{ color: "#4B5563" }}>
                           <Clock className="h-3 w-3" />
                           {new Date(item.expiry_date).toLocaleDateString("it-IT")}
-                        </p>
+                        </span>
                       )}
-                      <p className="text-[10px] mt-0.5" style={{ color: "#4B5563" }}>
+                      <span className="text-[11px]" style={{ color: "#9CA3AF" }}>
                         {storageLabel[item.storage_type] ?? item.storage_type}
-                        {item.quantity ? ` · x${item.quantity} ${item.unit ?? ""}` : ""}
-                      </p>
+                        {item.quantity ? ` · x${item.quantity}` : ""}
+                      </span>
                     </div>
-                    {/* Badge */}
-                    <Badge className={`shrink-0 rounded-lg px-2.5 py-1 text-[10px] font-bold ${cfg.cls}`}>
-                      {cfg.label}
-                    </Badge>
-                  </CardContent>
-                </Card>
+                  </div>
+
+                  {/* Badge */}
+                  <span className={`shrink-0 rounded-lg px-2 py-0.5 text-[10px] font-bold text-white ${cfg.badgeBg}`}>
+                    {cfg.label}
+                  </span>
+                </div>
               );
             })}
           </div>
         )}
       </main>
 
-      {/* ─── SEZIONE D: FAB rapide ─── */}
-      <div className="fixed bottom-[calc(72px+env(safe-area-inset-bottom,0px)+1rem)] right-4 z-40 flex flex-col gap-2">
+      {/* ─── FAB ─── */}
+      <div className="fixed bottom-[calc(72px+env(safe-area-inset-bottom,0px)+1rem)] right-4 z-40">
         <button
           onClick={() => setAddFoodOpen(true)}
-          className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg active:scale-95 transition-transform"
+          className="flex h-12 w-12 items-center justify-center rounded-full shadow-lg active:scale-95 transition-transform"
+          style={{ backgroundColor: "hsl(196, 88%, 54%)" }}
           aria-label="Aggiungi"
         >
-          <Plus className="h-6 w-6" />
+          <Plus className="h-5 w-5 text-white" />
         </button>
       </div>
 
@@ -371,18 +369,44 @@ const Index = () => {
             <SheetTitle style={{ color: "#111827" }}>Filtri avanzati</SheetTitle>
           </SheetHeader>
           <div className="space-y-5 py-4">
+            {/* Status */}
+            <div>
+              <p className="text-[14px] font-semibold mb-2" style={{ color: "#111827" }}>Stato</p>
+              <div className="flex gap-2 flex-wrap">
+                {[
+                  { key: "relevant", label: "Da controllare" },
+                  { key: "expired", label: "Solo scaduti" },
+                  { key: "expiring", label: "Solo in scadenza" },
+                  { key: "nodate", label: "Senza data" },
+                  { key: "all", label: "Tutti" },
+                ].map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => setStatusFilter(key)}
+                    className={`rounded-xl px-4 py-2 text-[13px] font-semibold transition-colors ${
+                      statusFilter === key
+                        ? "bg-primary text-white"
+                        : "bg-[#F5F7FA] text-foreground"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Days range */}
             <div>
-              <p className="text-sm font-semibold mb-2" style={{ color: "#111827" }}>Giorni alla scadenza</p>
+              <p className="text-[14px] font-semibold mb-2" style={{ color: "#111827" }}>Giorni alla scadenza</p>
               <div className="flex gap-2">
                 {[1, 2, 3, 5, 7].map((d) => (
                   <button
                     key={d}
                     onClick={() => setDaysRange(d)}
-                    className={`flex-1 rounded-xl py-2 text-sm font-semibold transition-colors ${
+                    className={`flex-1 rounded-xl py-2 text-[13px] font-semibold transition-colors ${
                       daysRange === d
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-card border border-border text-foreground"
+                        ? "bg-primary text-white"
+                        : "bg-[#F5F7FA] text-foreground"
                     }`}
                   >
                     {d}g
@@ -393,16 +417,16 @@ const Index = () => {
 
             {/* Storage */}
             <div>
-              <p className="text-sm font-semibold mb-2" style={{ color: "#111827" }}>Conservazione</p>
+              <p className="text-[14px] font-semibold mb-2" style={{ color: "#111827" }}>Conservazione</p>
               <div className="flex gap-2">
                 {storageTabs.map(({ key, label }) => (
                   <button
                     key={key}
                     onClick={() => setStorageTab(key)}
-                    className={`flex-1 rounded-xl py-2 text-sm font-semibold transition-colors ${
+                    className={`flex-1 rounded-xl py-2 text-[13px] font-semibold transition-colors ${
                       storageTab === key
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-card border border-border text-foreground"
+                        ? "bg-primary text-white"
+                        : "bg-[#F5F7FA] text-foreground"
                     }`}
                   >
                     {label}
@@ -411,35 +435,14 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Status */}
-            <div>
-              <p className="text-sm font-semibold mb-2" style={{ color: "#111827" }}>Stato</p>
-              <div className="flex gap-2 flex-wrap">
-                {[
-                  { key: "all", label: "Tutti" },
-                  { key: "expired", label: "Scaduti" },
-                  { key: "expiring", label: "In scadenza" },
-                  { key: "nodate", label: "Senza data" },
-                  { key: "ok", label: "OK" },
-                ].map(({ key, label }) => (
-                  <button
-                    key={key}
-                    onClick={() => setStatusFilter(key)}
-                    className={`rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${
-                      statusFilter === key
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-card border border-border text-foreground"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" className="flex-1" onClick={() => { resetFilters(); setFilterSheet(false); }}>
+                Reset
+              </Button>
+              <Button className="flex-1" onClick={() => setFilterSheet(false)}>
+                Applica
+              </Button>
             </div>
-
-            <Button className="w-full" onClick={() => setFilterSheet(false)}>
-              Applica filtri
-            </Button>
           </div>
         </SheetContent>
       </Sheet>
