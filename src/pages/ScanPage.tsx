@@ -7,7 +7,7 @@ const ScanPage = () => {
 
   return (
     <div>
-      <MobileHeader title="Aggiungi prodotto" />
+      <MobileHeader title="Aggiungi" />
       <main className="px-4 py-8 pb-28 text-center space-y-4">
         <p className="text-sm text-muted-foreground">
           Usa Foto AI, barcode o cerca per aggiungere un prodotto al magazzino.
