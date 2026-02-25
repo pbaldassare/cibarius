@@ -290,6 +290,18 @@ const RestaurantInvoicesPage = () => {
                 </SheetHeader>
                 <div className="space-y-4 py-4">
 
+                  {/* Document preview — always visible at top */}
+                  {detailDoc.public_url && isImage && (
+                    <div className="rounded-xl overflow-hidden border">
+                      <img src={detailDoc.public_url} alt="Documento" className="w-full object-contain max-h-[50vh]" />
+                    </div>
+                  )}
+                  {detailDoc.public_url && isPdf && (
+                    <div className="rounded-xl overflow-hidden border" style={{ height: "50vh" }}>
+                      <iframe src={detailDoc.public_url} className="h-full w-full" title="Preview PDF" />
+                    </div>
+                  )}
+
                   {/* AI Extract button */}
                   {!ed && (
                     <Button variant="outline" className="w-full gap-2" onClick={() => extractInvoiceData(detailDoc)} disabled={extracting}>
@@ -413,17 +425,7 @@ const RestaurantInvoicesPage = () => {
                     </div>
                   )}
 
-                  {/* Preview */}
-                  {detailDoc.public_url && isImage && (
-                    <div className="rounded-xl overflow-hidden border">
-                      <img src={detailDoc.public_url} alt="Documento" className="w-full object-contain max-h-[40vh]" />
-                    </div>
-                  )}
-                  {detailDoc.public_url && isPdf && (
-                    <div className="rounded-xl overflow-hidden border" style={{ height: "40vh" }}>
-                      <iframe src={detailDoc.public_url} className="h-full w-full" title="Preview PDF" />
-                    </div>
-                  )}
+                  {/* Preview moved to top */}
 
                   {/* Actions */}
                   <div className="flex gap-2">
