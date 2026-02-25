@@ -195,7 +195,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <MobileHeader title="" right={headerRight} />
+      <MobileHeader title="" showBack={false} right={headerRight} />
 
       <main className="space-y-4 px-4 pt-1 pb-28">
 

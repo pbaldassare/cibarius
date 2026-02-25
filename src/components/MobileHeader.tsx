@@ -8,7 +8,7 @@ interface MobileHeaderProps {
   right?: React.ReactNode;
 }
 
-const MobileHeader = ({ title, showBack = false, right }: MobileHeaderProps) => {
+const MobileHeader = ({ title, showBack = true, right }: MobileHeaderProps) => {
   const navigate = useNavigate();
 
   return (
