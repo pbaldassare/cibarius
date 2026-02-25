@@ -10,20 +10,22 @@ import { useToast } from "@/hooks/use-toast";
 import AddFoodFlow from "@/components/AddFoodFlow";
 import {
   Package, Clock, AlertCircle, HelpCircle, Check, Trash2, CalendarClock,
-  Archive, Thermometer, Snowflake, Plus,
+  Archive, Thermometer, Snowflake, Plus, ChefHat,
 } from "lucide-react";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 
-interface InventoryItem {
+interface ExpiryItem {
   id: string;
+  type: "product" | "preparation";
+  name: string;
+  image_url: string | null;
   expiry_date: string | null;
   storage_type: string;
   quantity: number | null;
   unit: string | null;
-  product: { name: string; image_url: string | null };
 }
 
 type ExpiryStatus = "expired" | "expiring" | "ok" | "nodate";
@@ -62,25 +64,65 @@ const storageTabs = [
   { key: "freezer", label: "Congelatore" },
 ];
 
+const typeTabs = [
+  { key: "all", label: "Tutto" },
+  { key: "product", label: "Prodotti" },
+  { key: "preparation", label: "Preparazioni" },
+];
+
 const ExpiryPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [items, setItems] = useState<InventoryItem[]>([]);
+  const [items, setItems] = useState<ExpiryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>("expired");
   const [storageFilter, setStorageFilter] = useState("all");
-  const [actionSheet, setActionSheet] = useState<InventoryItem | null>(null);
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [actionSheet, setActionSheet] = useState<ExpiryItem | null>(null);
   const [addFoodOpen, setAddFoodOpen] = useState(false);
   const [newDate, setNewDate] = useState("");
 
   const fetchItems = async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from("inventory_items")
-      .select("id, expiry_date, storage_type, quantity, unit, product:products(name, image_url)")
-      .eq("owner_user_id", user.id)
-      .order("expiry_date", { ascending: true, nullsFirst: false });
-    if (data) setItems(data as unknown as InventoryItem[]);
+    const [invRes, prepRes] = await Promise.all([
+      supabase
+        .from("inventory_items")
+        .select("id, expiry_date, storage_type, quantity, unit, product:products(name, image_url)")
+        .eq("owner_user_id", user.id)
+        .order("expiry_date", { ascending: true, nullsFirst: false }),
+      supabase
+        .from("preparations")
+        .select("id, name, use_by_date, storage_type, portions, image_url")
+        .eq("owner_user_id", user.id),
+    ]);
+
+    const result: ExpiryItem[] = [];
+    if (invRes.data) {
+      for (const i of invRes.data as any[]) {
+        result.push({
+          id: i.id, type: "product",
+          name: i.product?.name ?? "Prodotto",
+          image_url: i.product?.image_url ?? null,
+          expiry_date: i.expiry_date,
+          storage_type: i.storage_type,
+          quantity: i.quantity, unit: i.unit,
+        });
+      }
+    }
+    if (prepRes.data) {
+      for (const p of prepRes.data as any[]) {
+        result.push({
+          id: p.id, type: "preparation",
+          name: p.name,
+          image_url: p.image_url ?? null,
+          expiry_date: p.use_by_date,
+          storage_type: p.storage_type ?? "frigo",
+          quantity: p.portions, unit: "porzioni",
+        });
+      }
+    }
+
+    setItems(result);
     setLoading(false);
   };
 
@@ -90,6 +132,7 @@ const ExpiryPage = () => {
     let list = items;
     if (activeTab !== "all") list = list.filter((i) => getStatus(i.expiry_date) === activeTab);
     if (storageFilter !== "all") list = list.filter((i) => i.storage_type === storageFilter);
+    if (typeFilter !== "all") list = list.filter((i) => i.type === typeFilter);
 
     const order: Record<ExpiryStatus, number> = { expired: 0, expiring: 1, nodate: 2, ok: 3 };
     return [...list].sort((a, b) => {
@@ -98,25 +141,37 @@ const ExpiryPage = () => {
       if (a.expiry_date && b.expiry_date) return a.expiry_date.localeCompare(b.expiry_date);
       return a.expiry_date ? -1 : 1;
     });
-  }, [items, activeTab, storageFilter]);
+  }, [items, activeTab, storageFilter, typeFilter]);
 
-  const handleConsume = async (item: InventoryItem) => {
-    await supabase.from("inventory_items").delete().eq("id", item.id);
+  const handleConsume = async (item: ExpiryItem) => {
+    if (item.type === "product") {
+      await supabase.from("inventory_items").delete().eq("id", item.id);
+    } else {
+      await supabase.from("preparations").delete().eq("id", item.id);
+    }
     toast({ title: "Segnato come consumato ✓" });
     setActionSheet(null);
     fetchItems();
   };
 
-  const handleTrash = async (item: InventoryItem) => {
-    await supabase.from("inventory_items").delete().eq("id", item.id);
+  const handleTrash = async (item: ExpiryItem) => {
+    if (item.type === "product") {
+      await supabase.from("inventory_items").delete().eq("id", item.id);
+    } else {
+      await supabase.from("preparations").delete().eq("id", item.id);
+    }
     toast({ title: "Segnato come buttato 🗑" });
     setActionSheet(null);
     fetchItems();
   };
 
-  const handleUpdateDate = async (item: InventoryItem) => {
+  const handleUpdateDate = async (item: ExpiryItem) => {
     if (!newDate) return;
-    await supabase.from("inventory_items").update({ expiry_date: newDate }).eq("id", item.id);
+    if (item.type === "product") {
+      await supabase.from("inventory_items").update({ expiry_date: newDate }).eq("id", item.id);
+    } else {
+      await supabase.from("preparations").update({ use_by_date: newDate }).eq("id", item.id);
+    }
     toast({ title: "Data aggiornata ✓" });
     setActionSheet(null);
     setNewDate("");
@@ -169,6 +224,23 @@ const ExpiryPage = () => {
           })}
         </div>
 
+        {/* Type filter: Tutto | Prodotti | Preparazioni */}
+        <div className="flex gap-2">
+          {typeTabs.map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setTypeFilter(key)}
+              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                typeFilter === key
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-card text-foreground border border-border"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
         {/* Storage filter */}
         <div className="flex gap-2">
           {storageTabs.map(({ key, label }) => (
@@ -192,7 +264,7 @@ const ExpiryPage = () => {
             <CardContent className="p-8 text-center">
               <Check className="h-10 w-10 mx-auto mb-2 text-success" />
               <p className="text-sm font-medium" style={{ color: "#111827" }}>Tutto in ordine!</p>
-              <p className="text-xs mt-1" style={{ color: "#4B5563" }}>Nessun prodotto in questa categoria</p>
+              <p className="text-xs mt-1" style={{ color: "#4B5563" }}>Nessun elemento in questa categoria</p>
             </CardContent>
           </Card>
         ) : (
@@ -200,22 +272,32 @@ const ExpiryPage = () => {
             {filtered.map((item) => {
               const status = getStatus(item.expiry_date);
               const cfg = statusCfg[status];
+              const isPrep = item.type === "preparation";
               return (
                 <Card
-                  key={item.id}
+                  key={`${item.type}-${item.id}`}
                   className="border-0 shadow-sm cursor-pointer active:scale-[0.98] transition-transform"
                   onClick={() => { setActionSheet(item); setNewDate(item.expiry_date ?? ""); }}
                 >
                   <CardContent className="flex items-center gap-3 p-3">
                     <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-secondary overflow-hidden">
-                      {item.product.image_url ? (
-                        <img src={item.product.image_url} alt="" className="h-full w-full object-cover" />
+                      {item.image_url ? (
+                        <img src={item.image_url} alt="" className="h-full w-full object-cover" />
+                      ) : isPrep ? (
+                        <ChefHat className="h-6 w-6 text-muted-foreground" />
                       ) : (
                         <Package className="h-6 w-6 text-muted-foreground" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold truncate" style={{ color: "#111827" }}>{item.product.name}</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-sm font-bold truncate" style={{ color: "#111827" }}>{item.name}</p>
+                        {isPrep && (
+                          <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-[#EDE9FE]" style={{ color: "#7C3AED" }}>
+                            PREP
+                          </span>
+                        )}
+                      </div>
                       {item.expiry_date && (
                         <p className="text-xs flex items-center gap-1 mt-0.5" style={{ color: "#4B5563" }}>
                           <Clock className="h-3 w-3" />
@@ -224,6 +306,7 @@ const ExpiryPage = () => {
                       )}
                       <p className="text-[10px] mt-0.5" style={{ color: "#4B5563" }}>
                         {storageLabel[item.storage_type] ?? item.storage_type}
+                        {item.quantity ? ` · x${item.quantity}` : ""}
                       </p>
                     </div>
                     <Badge className={`shrink-0 rounded-lg px-2.5 py-1 text-[10px] font-bold ${cfg.cls}`}>
@@ -241,7 +324,7 @@ const ExpiryPage = () => {
       <Sheet open={!!actionSheet} onOpenChange={(o) => { if (!o) setActionSheet(null); }}>
         <SheetContent side="bottom" className="rounded-t-2xl">
           <SheetHeader>
-            <SheetTitle style={{ color: "#111827" }}>{actionSheet?.product.name}</SheetTitle>
+            <SheetTitle style={{ color: "#111827" }}>{actionSheet?.name}</SheetTitle>
           </SheetHeader>
           <div className="space-y-3 py-4">
             <Button

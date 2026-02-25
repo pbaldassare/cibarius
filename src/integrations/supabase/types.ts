@@ -388,6 +388,7 @@ export type Database = {
           description: string | null
           id: string
           image_url: string | null
+          label_code: string | null
           name: string
           notes: string | null
           owner_user_id: string | null
@@ -402,6 +403,7 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          label_code?: string | null
           name: string
           notes?: string | null
           owner_user_id?: string | null
@@ -416,6 +418,7 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          label_code?: string | null
           name?: string
           notes?: string | null
           owner_user_id?: string | null
