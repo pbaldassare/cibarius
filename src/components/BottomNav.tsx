@@ -57,35 +57,35 @@ const BottomNav = () => {
   const tabs = tabsByRole[role ?? "user"] ?? tabsByRole.user;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-primary to-primary-dark safe-bottom">
-      <div className="mx-auto flex h-[var(--nav-height)] max-w-lg items-center justify-around px-2">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/20" style={{ backgroundColor: 'hsl(196, 88%, 54%)' }}>
+      <div className="mx-auto flex h-[72px] max-w-lg items-center justify-around px-2">
         {tabs.map(({ to, icon: Icon, label }) => {
           const isActive = location.pathname === to;
           return (
             <NavLink
               key={to}
               to={to}
-              className="flex flex-col items-center gap-0.5 px-3 py-2"
+              className={`flex flex-col items-center gap-0.5 rounded-xl px-3 py-1.5 ${
+                isActive ? "bg-white/20" : ""
+              }`}
             >
               <Icon
-                size={22}
+                size={23}
                 strokeWidth={isActive ? 2.4 : 1.8}
                 className={isActive ? "text-white" : "text-white/70"}
               />
               <span
-                className={`text-[10px] font-medium ${
+                className={`text-[12px] font-semibold ${
                   isActive ? "text-white" : "text-white/70"
                 }`}
               >
                 {label}
               </span>
-              {isActive && (
-                <div className="mt-0.5 h-0.5 w-4 rounded-full bg-white" />
-              )}
             </NavLink>
           );
         })}
       </div>
+      <div className="safe-bottom" />
     </nav>
   );
 };
