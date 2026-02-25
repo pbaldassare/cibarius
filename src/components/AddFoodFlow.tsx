@@ -232,6 +232,33 @@ const AddFoodFlow = ({
 
     const data = await lookupBarcode(code);
     if (data && data.name) {
+      // Upsert product by barcode
+      const { data: existing } = await supabase
+        .from("products").select("id").eq("barcode", code).maybeSingle();
+      if (existing) {
+        setProductId(existing.id);
+        // Update product with latest OFF data
+        await supabase.from("products").update({
+          name: data.name,
+          brand: data.brand || null,
+          image_url: data.image_url,
+          calories_100g: data.calories_100g,
+          macros_100g: data.macros_100g as any,
+          serving_size_g: data.serving_size_g ?? null,
+        }).eq("id", existing.id);
+      } else {
+        const { data: created } = await supabase.from("products").insert({
+          name: data.name,
+          brand: data.brand || null,
+          barcode: code,
+          image_url: data.image_url,
+          calories_100g: data.calories_100g,
+          macros_100g: data.macros_100g as any,
+          serving_size_g: data.serving_size_g ?? null,
+        }).select("id").single();
+        if (created) setProductId(created.id);
+      }
+
       setName(data.name);
       setBrand(data.brand);
       setImageUrl(data.image_url);
