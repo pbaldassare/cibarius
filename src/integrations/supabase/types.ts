@@ -549,6 +549,47 @@ export type Database = {
           },
         ]
       }
+      restaurant_documents: {
+        Row: {
+          created_at: string
+          doc_date: string | null
+          doc_type: string
+          file_path: string
+          id: string
+          public_url: string | null
+          restaurant_id: string
+          supplier_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          doc_date?: string | null
+          doc_type?: string
+          file_path: string
+          id?: string
+          public_url?: string | null
+          restaurant_id: string
+          supplier_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          doc_date?: string | null
+          doc_type?: string
+          file_path?: string
+          id?: string
+          public_url?: string | null
+          restaurant_id?: string
+          supplier_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_documents_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurant_members: {
         Row: {
           created_at: string
