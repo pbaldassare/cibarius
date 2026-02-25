@@ -7,7 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Search, Save } from "lucide-react";
+import { Loader2, Search, Save, Trash2 } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const ROLES: AppRole[] = ["user", "restaurant_owner", "admin", "professional", "supplier"];
 
@@ -19,6 +24,7 @@ const AdminUsersPage = () => {
   const [filterRole, setFilterRole] = useState<string>("all");
   const [pendingChanges, setPendingChanges] = useState<Record<string, AppRole>>({});
   const [saving, setSaving] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   const fetchProfiles = async () => {
     setLoading(true);
@@ -62,6 +68,20 @@ const AdminUsersPage = () => {
         delete copy[userId];
         return copy;
       });
+    }
+  };
+
+  const handleDelete = async (userId: string) => {
+    setDeleting(userId);
+    const { data, error } = await supabase.functions.invoke("delete-user", {
+      body: { user_id: userId },
+    });
+    setDeleting(null);
+    if (error || data?.error) {
+      toast({ variant: "destructive", title: "Errore", description: data?.error || error?.message });
+    } else {
+      toast({ title: "Utente eliminato" });
+      setProfiles((prev) => prev.filter((p) => p.id !== userId));
     }
   };
 
@@ -135,7 +155,7 @@ const AdminUsersPage = () => {
                       </SelectContent>
                     </Select>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="flex items-center gap-1">
                     {pendingChanges[p.id] && (
                       <Button
                         size="sm"
@@ -145,6 +165,30 @@ const AdminUsersPage = () => {
                         {saving === p.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                       </Button>
                     )}
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive">
+                          {deleting === p.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Elimina utente</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Stai per eliminare <strong>{p.email}</strong>. Questa azione è irreversibile.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Annulla</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDelete(p.id)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Elimina
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </TableCell>
                 </TableRow>
               ))}
