@@ -17,6 +17,7 @@ import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 
 // User pages
 import Index from "./pages/Index";
+import ExpiryPage from "./pages/ExpiryPage";
 import ScanPage from "./pages/ScanPage";
 import UserProductsPage from "./pages/UserProductsPage";
 import UserFreezerPage from "./pages/UserFreezerPage";
@@ -90,6 +91,7 @@ const App = () => (
               <Route element={<MobileLayout />}>
                 {/* User */}
                 <Route path="/" element={<Index />} />
+                <Route path="/expiry" element={<ExpiryPage />} />
                 <Route path="/scan" element={<ScanPage />} />
                 <Route path="/products" element={<UserProductsPage />} />
                 <Route path="/freezer" element={<UserFreezerPage />} />
