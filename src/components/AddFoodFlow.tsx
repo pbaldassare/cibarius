@@ -13,10 +13,12 @@ import { lookupBarcode, calcNutrition, type ProductData } from "@/lib/barcode";
 import { searchFood, type FoodSearchResult } from "@/lib/search-food";
 import { analyzeFoodPhotos, fuseWithOFF, fileToImageFile, type ImageFile, type FusedFoodData } from "@/lib/ai-food";
 import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
 import {
   ArrowLeft, Search, ScanLine, Keyboard, Camera, Loader2,
   Package, Plus, Minus, Check, Flame, Archive, Thermometer, Snowflake,
   CalendarSearch, AlertTriangle, Sparkles, X, ImagePlus, ChevronDown, ChevronUp, ChefHat,
+  CheckCircle2, HelpCircle, Zap,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -132,7 +134,9 @@ const AddFoodFlow = ({
   const [confidence, setConfidence] = useState<{ name: number; barcode: number; nutrition: number; expiry: number }>({ name: 1, barcode: 0, nutrition: 0, expiry: 0 });
 
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [editingChip, setEditingChip] = useState<"qty" | "storage" | "expiry" | "serving" | null>(null);
 
   // Reset on close
   useEffect(() => {
@@ -167,6 +171,8 @@ const AddFoodFlow = ({
         setExpiryCandidates([]);
         setConfidence({ name: 1, barcode: 0, nutrition: 0, expiry: 0 });
         setShowDetails(false);
+        setSaved(false);
+        setEditingChip(null);
       }, 300);
     }
   }, [open, preselectedMealType]);
@@ -205,6 +211,7 @@ const AddFoodFlow = ({
 
   // Calcs
   const computed = calcNutrition(quantity, unit, calories100g, macros100g, servingSizeG);
+  const needsServingSize = (unit === "pezzi" || unit === "porzioni") && !servingSizeG;
 
   // ─── Method handlers ───
   const selectMethod = (m: Method) => {
@@ -636,6 +643,11 @@ const AddFoodFlow = ({
       // Save product attachments
       if (pid) await saveAttachments(pid, "product");
 
+      // Micro feedback: vibration + animation
+      setSaved(true);
+      if (navigator.vibrate) navigator.vibrate(50);
+      await new Promise((r) => setTimeout(r, 600));
+
       onComplete();
       onOpenChange(false);
     } catch (err: any) {
@@ -948,14 +960,14 @@ const AddFoodFlow = ({
               </div>
             )}
 
-            {/* ─── STEP: Summary ─── */}
+            {/* ─── STEP: Summary — "1 tap → confirm" ─── */}
             {step === "summary" && (
-              <div className="space-y-4">
+              <div className="space-y-4 pb-20">
                 {notFound && (
                   <div className="rounded-xl border border-accent/30 bg-accent/5 p-3 space-y-2">
                     <div className="flex items-center gap-2">
                       <AlertTriangle className="h-5 w-5 text-accent shrink-0" />
-                      <p className="text-xs" style={{ color: "#4B5563" }}>
+                      <p className="text-xs text-muted-foreground">
                         Barcode non trovato su OpenFoodFacts.
                       </p>
                     </div>
@@ -971,74 +983,149 @@ const AddFoodFlow = ({
                   </div>
                 )}
 
-                {/* ── Compact product header ── */}
-                <div className="rounded-2xl border border-border bg-card p-3">
+                {/* ── Product hero card ── */}
+                <div className="rounded-2xl bg-card shadow-card p-4">
                   <div className="flex gap-3 items-center">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-secondary overflow-hidden">
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-secondary overflow-hidden">
                       {imageUrl ? (
                         <img src={imageUrl} alt="" className="h-full w-full object-cover" />
                       ) : (
-                        <Package className="h-6 w-6 text-muted-foreground" />
+                        <Package className="h-7 w-7 text-muted-foreground" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold truncate" style={{ color: "#111827" }}>{name || "Prodotto"}</p>
-                      {brand && <p className="text-[11px] truncate" style={{ color: "#4B5563" }}>{brand}</p>}
+                      <p className="text-base font-semibold text-foreground truncate">{name || "Prodotto"}</p>
+                      {brand && <p className="text-xs text-muted-foreground truncate">{brand}</p>}
                     </div>
                     {computed.calories != null && (
                       <div className="text-right shrink-0">
-                        <p className="text-lg font-bold text-primary leading-tight">{computed.calories}</p>
+                        <p className="text-xl font-bold text-primary leading-tight">{computed.calories}</p>
                         <p className="text-[10px] text-muted-foreground">kcal</p>
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* ── Essential fields only ── */}
+                {/* ── AI confidence indicator ── */}
+                {(method === "photo_ai" || method === "scan") && (
+                  <div className="rounded-2xl bg-primary/5 border border-primary/10 px-3 py-2.5">
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <Sparkles className="h-3.5 w-3.5 text-primary" />
+                      <span className="text-[11px] font-semibold text-primary">Letto automaticamente</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {[
+                        { key: "name" as const, label: "Nome", has: !!name },
+                        { key: "barcode" as const, label: "Barcode", has: !!barcode },
+                        { key: "nutrition" as const, label: "Nutrienti", has: calories100g != null },
+                        { key: "expiry" as const, label: "Scadenza", has: !!expiryDate },
+                      ].map(({ key, label, has }) => {
+                        const conf = confidence[key];
+                        const isUncertain = conf > 0 && conf < CONFIDENCE_LOW;
+                        if (!has && conf === 0) return null;
+                        return (
+                          <span key={key} className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                            isUncertain
+                              ? "bg-amber-100 text-amber-700"
+                              : has
+                              ? "bg-emerald-50 text-emerald-700"
+                              : "bg-secondary text-muted-foreground"
+                          }`}>
+                            {isUncertain ? <HelpCircle className="h-3 w-3" /> : has ? <CheckCircle2 className="h-3 w-3" /> : null}
+                            {label} {isUncertain ? "?" : has ? "✓" : ""}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
-                {/* Quantity (compact) */}
-                <div className="space-y-1.5">
-                  <p className="text-xs font-semibold" style={{ color: "#111827" }}>Quantità</p>
-                  <div className="flex items-center gap-2">
-                    <button onClick={() => setQuantity(Math.max(1, quantity - 10))} className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-card">
-                      <Minus className="h-3.5 w-3.5" />
+                {/* ── Editable chips row ── */}
+                <div className="flex gap-2 flex-wrap">
+                  {/* Quantity chip */}
+                  <button
+                    onClick={() => setEditingChip(editingChip === "qty" ? null : "qty")}
+                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition-all ${
+                      editingChip === "qty" ? "bg-primary text-primary-foreground shadow-sm" : "bg-card border border-border text-foreground shadow-card"
+                    }`}
+                  >
+                    <Package className="h-3.5 w-3.5" />
+                    {quantity} {unit}
+                  </button>
+
+                  {/* Storage chip (inventory/prep only) */}
+                  {(context === "inventory" || context === "preparation" || (context === "meal" && saveToInventory)) && (
+                    <button
+                      onClick={() => setEditingChip(editingChip === "storage" ? null : "storage")}
+                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition-all ${
+                        editingChip === "storage" ? "bg-primary text-primary-foreground shadow-sm" : "bg-card border border-border text-foreground shadow-card"
+                      }`}
+                    >
+                      {storageType === "frigo" ? <Thermometer className="h-3.5 w-3.5" /> : storageType === "freezer" ? <Snowflake className="h-3.5 w-3.5" /> : <Archive className="h-3.5 w-3.5" />}
+                      {storageOptions.find(s => s.key === storageType)?.label || "Conservazione"}
                     </button>
-                    <Input
-                      type="number"
-                      value={quantity}
-                      onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 0))}
-                      className="text-center text-base font-bold flex-1 h-9"
-                      style={{ color: "#111827" }}
-                      min={1}
-                    />
-                    <button onClick={() => setQuantity(quantity + 10)} className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-card">
-                      <Plus className="h-3.5 w-3.5" />
+                  )}
+
+                  {/* Expiry chip (inventory/prep only) */}
+                  {(context === "inventory" || context === "preparation" || (context === "meal" && saveToInventory)) && (
+                    <button
+                      onClick={() => setEditingChip(editingChip === "expiry" ? null : "expiry")}
+                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition-all ${
+                        editingChip === "expiry" ? "bg-primary text-primary-foreground shadow-sm"
+                        : expiryDate ? "bg-card border border-border text-foreground shadow-card"
+                        : "bg-amber-50 border border-amber-200 text-amber-700"
+                      }`}
+                    >
+                      <CalendarSearch className="h-3.5 w-3.5" />
+                      {expiryDate ? new Date(expiryDate).toLocaleDateString("it-IT") : "Scadenza?"}
                     </button>
-                  </div>
-                  <div className="flex gap-1">
-                    {["g", "ml", "pezzi", "kg", "porzioni"].map((u) => (
-                      <button key={u} onClick={() => setUnit(u)}
-                        className={`flex-1 rounded-lg py-1 text-[11px] font-medium transition-colors ${unit === u ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
-                        {u}
-                      </button>
-                    ))}
-                  </div>
+                  )}
                 </div>
 
-                {/* Storage (only inventory/preparation) */}
-                {(context === "inventory" || context === "preparation" || (context === "meal" && saveToInventory)) && (
-                  <div className="space-y-1.5">
-                    <p className="text-xs font-semibold" style={{ color: "#111827" }}>
-                      Conservazione *
-                      {fusedData && fusedData.storage_confidence < 0.5 && (
-                        <Badge className="ml-1.5 bg-amber-100 text-amber-700 border-0 text-[9px]">scegli</Badge>
-                      )}
-                    </p>
+                {/* ── Expanded chip editors ── */}
+                {editingChip === "qty" && (
+                  <div className="rounded-2xl border border-border bg-card p-3 space-y-3 animate-in slide-in-from-top-2 duration-200">
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => setQuantity(Math.max(1, quantity - 10))} className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-card">
+                        <Minus className="h-3.5 w-3.5" />
+                      </button>
+                      <Input
+                        type="number"
+                        value={quantity}
+                        onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 0))}
+                        className="text-center text-base font-bold flex-1 h-9"
+                        min={1}
+                      />
+                      <button onClick={() => setQuantity(quantity + 10)} className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-card">
+                        <Plus className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                    <div className="flex gap-1">
+                      {["g", "ml", "pezzi", "kg", "porzioni"].map((u) => (
+                        <button key={u} onClick={() => setUnit(u)}
+                          className={`flex-1 rounded-lg py-1.5 text-[11px] font-medium transition-colors ${unit === u ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
+                          {u}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex gap-1.5">
+                      {[50, 100, 150, 200, 300].map((g) => (
+                        <button key={g} onClick={() => { setQuantity(g); setUnit("g"); }}
+                          className={`flex-1 rounded-lg py-1.5 text-[11px] font-medium transition-colors ${
+                            quantity === g && unit === "g" ? "bg-primary text-primary-foreground" : "bg-card border border-border text-foreground"
+                          }`}>{g}g</button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {editingChip === "storage" && (
+                  <div className="rounded-2xl border border-border bg-card p-3 animate-in slide-in-from-top-2 duration-200">
                     <div className="grid grid-cols-3 gap-1.5">
                       {storageOptions.map(({ key, label, icon: Icon }) => (
-                        <button key={key} onClick={() => setStorageType(key)}
+                        <button key={key} onClick={() => { setStorageType(key); setEditingChip(null); }}
                           className={`flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-semibold transition-colors ${
-                            storageType === key ? "bg-primary text-primary-foreground shadow-sm" : "bg-card border border-border text-foreground"
+                            storageType === key ? "bg-primary text-primary-foreground shadow-sm" : "bg-secondary text-foreground"
                           }`}>
                           <Icon className="h-4 w-4" />
                           {label}
@@ -1048,17 +1135,14 @@ const AddFoodFlow = ({
                   </div>
                 )}
 
-                {/* Expiry (only inventory/preparation) */}
-                {(context === "inventory" || context === "preparation" || (context === "meal" && saveToInventory)) && (
-                  <div className="space-y-1.5">
-                    <p className="text-xs font-semibold" style={{ color: "#111827" }}>Scadenza</p>
-
+                {editingChip === "expiry" && (
+                  <div className="rounded-2xl border border-border bg-card p-3 space-y-2 animate-in slide-in-from-top-2 duration-200">
                     {expiryCandidates.length > 1 && (
                       <div className="flex gap-1.5 flex-wrap">
                         {expiryCandidates.map((c, i) => (
-                          <button key={i} onClick={() => setExpiryDate(c.date)}
+                          <button key={i} onClick={() => { setExpiryDate(c.date); setEditingChip(null); }}
                             className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
-                              expiryDate === c.date ? "bg-primary text-primary-foreground" : "bg-card border border-border text-foreground"
+                              expiryDate === c.date ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"
                             }`}>
                             {new Date(c.date).toLocaleDateString("it-IT")}
                             <span className="text-[9px] ml-1 opacity-70">{c.label}</span>
@@ -1066,10 +1150,9 @@ const AddFoodFlow = ({
                         ))}
                       </div>
                     )}
-
                     <div className="flex gap-2">
                       <Input type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)}
-                        className="flex-1 h-9 text-sm" style={{ color: "#111827" }} />
+                        className="flex-1 h-9 text-sm" />
                       <Button type="button" variant="outline" size="sm" className="shrink-0 gap-1 h-9"
                         onClick={() => expiryInputRef.current?.click()}>
                         <CalendarSearch className="h-3.5 w-3.5" />
@@ -1080,10 +1163,44 @@ const AddFoodFlow = ({
                   </div>
                 )}
 
+                {/* ── Serving size slider (when unit=pezzi/porzioni and no grams) ── */}
+                {needsServingSize && (
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-3 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <HelpCircle className="h-4 w-4 text-amber-600" />
+                      <p className="text-xs font-semibold text-amber-800">Quanto pesa 1 {unit === "pezzi" ? "pezzo" : "porzione"}?</p>
+                    </div>
+                    <div className="flex gap-2">
+                      {[30, 80, 150].map((g) => (
+                        <button key={g} onClick={() => setServingSizeG(g)}
+                          className={`flex-1 rounded-xl py-2.5 text-sm font-semibold transition-colors ${
+                            servingSizeG === g ? "bg-primary text-primary-foreground" : "bg-card border border-border text-foreground"
+                          }`}>
+                          {g}g
+                        </button>
+                      ))}
+                    </div>
+                    <div className="space-y-1">
+                      <Slider
+                        value={[servingSizeG || 80]}
+                        onValueChange={([v]) => setServingSizeG(v)}
+                        min={10}
+                        max={500}
+                        step={5}
+                      />
+                      <div className="flex justify-between text-[10px] text-muted-foreground">
+                        <span>10g</span>
+                        <span className="font-semibold text-foreground">{servingSizeG || 80}g</span>
+                        <span>500g</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* MEAL: toggle save to inventory */}
                 {context === "meal" && (
                   <div className="flex items-center justify-between rounded-xl border border-border bg-card px-3 py-2.5">
-                    <p className="text-xs font-medium" style={{ color: "#111827" }}>Salva anche in Magazzino</p>
+                    <p className="text-xs font-medium text-foreground">Salva anche in Magazzino</p>
                     <Switch checked={saveToInventory} onCheckedChange={setSaveToInventory} />
                   </div>
                 )}
@@ -1091,7 +1208,7 @@ const AddFoodFlow = ({
                 {/* MEAL: meal type if not pre-selected */}
                 {context === "meal" && !preselectedMealType && !selectedMealType && (
                   <div className="space-y-1.5">
-                    <p className="text-xs font-semibold" style={{ color: "#111827" }}>Tipo di pasto</p>
+                    <p className="text-xs font-semibold text-foreground">Tipo di pasto</p>
                     <div className="grid grid-cols-4 gap-1.5">
                       {mealOptions.map(({ type, emoji, label }) => (
                         <button key={type} onClick={() => setSelectedMealType(type)}
@@ -1106,11 +1223,11 @@ const AddFoodFlow = ({
                   </div>
                 )}
 
-                {/* ── Mostra dettagli (collapsible) ── */}
+                {/* ── Dettagli (collapsible) ── */}
                 <button onClick={() => setShowDetails(!showDetails)}
                   className="flex w-full items-center justify-center gap-1 text-xs font-medium text-muted-foreground py-1">
                   {showDetails ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                  {showDetails ? "Nascondi dettagli" : "Mostra dettagli"}
+                  {showDetails ? "Nascondi dettagli" : "Dettagli"}
                 </button>
 
                 {showDetails && (
@@ -1121,9 +1238,9 @@ const AddFoodFlow = ({
                         <Badge className="bg-amber-100 text-amber-700 border-0 text-[10px]">⚠️ Da confermare</Badge>
                       )}
                       <Input placeholder="Nome prodotto *" value={name} onChange={(e) => setName(e.target.value)}
-                        className="font-bold border-0 p-0 h-auto bg-transparent focus-visible:ring-0 text-sm" style={{ color: "#111827" }} />
+                        className="font-bold border-0 p-0 h-auto bg-transparent focus-visible:ring-0 text-sm" />
                       <Input placeholder="Brand (opzionale)" value={brand} onChange={(e) => setBrand(e.target.value)}
-                        className="text-xs border-0 p-0 h-auto bg-transparent focus-visible:ring-0" style={{ color: "#4B5563" }} />
+                        className="text-xs border-0 p-0 h-auto bg-transparent focus-visible:ring-0 text-muted-foreground" />
                       {barcode && <Badge variant="outline" className="text-[10px] font-mono">{barcode}</Badge>}
                     </div>
 
@@ -1132,10 +1249,10 @@ const AddFoodFlow = ({
                       {isLowConfidence("nutrition") && (
                         <Badge className="bg-amber-100 text-amber-700 border-0 text-[10px]">⚠️ Valori incerti</Badge>
                       )}
-                      <p className="text-xs font-semibold" style={{ color: "#111827" }}>Calorie / 100g</p>
+                      <p className="text-xs font-semibold text-foreground">Calorie / 100g</p>
                       <Input type="number" placeholder="kcal / 100g" value={calories100g ?? ""}
                         onChange={(e) => setCalories100g(e.target.value ? parseFloat(e.target.value) : null)}
-                        className="h-8 text-sm" style={{ color: "#111827" }} />
+                        className="h-8 text-sm" />
                       <div className="grid grid-cols-3 gap-2">
                         <div>
                           <label className="text-[10px] text-muted-foreground">Proteine</label>
@@ -1157,7 +1274,7 @@ const AddFoodFlow = ({
 
                     {/* Nutrition preview */}
                     {computed.calories != null && computed.macros && (
-                      <div className="rounded-xl border border-accent bg-card p-3">
+                      <div className="rounded-xl border border-border bg-card p-3">
                         <div className="grid grid-cols-4 gap-2 text-center">
                           <div>
                             <p className="text-base font-bold text-primary">{computed.calories}</p>
@@ -1178,35 +1295,38 @@ const AddFoodFlow = ({
                         </div>
                       </div>
                     )}
-
-                    {/* Quick quantity presets */}
-                    <div className="flex gap-1.5">
-                      {[50, 100, 150, 200, 300].map((g) => (
-                        <button key={g} onClick={() => { setQuantity(g); setUnit("g"); }}
-                          className={`flex-1 rounded-lg py-1.5 text-[11px] font-medium transition-colors ${
-                            quantity === g && unit === "g" ? "bg-primary text-primary-foreground" : "bg-card border border-border text-foreground"
-                          }`}>{g}g</button>
-                      ))}
-                    </div>
                   </div>
                 )}
-
-                {/* ── CTA grande ── */}
-                <Button
-                  className="w-full h-14 text-base font-bold gap-2 rounded-2xl"
-                  onClick={handleSave}
-                  disabled={saving || !name.trim()}
-                >
-                  {saving ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <Check className="h-5 w-5" />
-                  )}
-                  Conferma e salva
-                </Button>
               </div>
             )}
           </div>
+
+          {/* ── Fixed bottom CTA ── */}
+          {step === "summary" && (
+            <div className="shrink-0 px-4 pb-4 pt-2 border-t border-border bg-background">
+              <Button
+                className={`w-full h-14 text-base font-bold gap-2 rounded-2xl transition-all duration-300 ${
+                  saved ? "bg-emerald-500 hover:bg-emerald-500 scale-95" : ""
+                }`}
+                onClick={handleSave}
+                disabled={saving || !name.trim() || saved}
+              >
+                {saved ? (
+                  <>
+                    <CheckCircle2 className="h-6 w-6 animate-scale-in" />
+                    Salvato!
+                  </>
+                ) : saving ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <>
+                    <Zap className="h-5 w-5" />
+                    Conferma e salva
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
         </SheetContent>
       </Sheet>
 
