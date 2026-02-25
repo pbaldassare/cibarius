@@ -6,7 +6,8 @@ import ListSkeleton from "@/components/ListSkeleton";
 import AddFoodFlow from "@/components/AddFoodFlow";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Plus, UtensilsCrossed, Target, Trash2 } from "lucide-react";
+import { Plus, UtensilsCrossed, Target, Trash2, Flame } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 
 interface MealItem {
   id: string;
@@ -43,6 +44,7 @@ const PastiPage = () => {
   const [loading, setLoading] = useState(true);
   const [mealDay, setMealDay] = useState<MealDay | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [targetKcal, setTargetKcal] = useState<number | null>(null);
 
   const fetchMeals = useCallback(async () => {
     if (!user) return;
@@ -58,6 +60,13 @@ const PastiPage = () => {
   }, [user]);
 
   useEffect(() => { fetchMeals(); }, [fetchMeals]);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("nutrition_targets").select("kcal_day").eq("user_id", user.id).maybeSingle().then(({ data }) => {
+      if (data) setTargetKcal(data.kcal_day);
+    });
+  }, [user]);
 
   const handleDeleteItem = async (itemId: string) => {
     await supabase.from("meal_items").delete().eq("id", itemId);
@@ -99,6 +108,26 @@ const PastiPage = () => {
             </button>
           </div>
         </div>
+
+        {/* Calorie progress card */}
+        {targetKcal && meals.length > 0 && (
+          <div className="rounded-xl border-2 border-accent bg-card p-4 space-y-2">
+            <div className="flex items-center gap-2">
+              <Flame size={18} className="text-primary" />
+              <span className="text-sm font-semibold text-foreground">Bilancio calorie</span>
+            </div>
+            <Progress value={Math.min((totalKcal / targetKcal) * 100, 100)} className="h-2.5" />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>{totalKcal} assunte</span>
+              <span className={`font-semibold ${totalKcal >= targetKcal ? "text-destructive" : "text-primary"}`}>
+                {totalKcal >= targetKcal
+                  ? `+${totalKcal - targetKcal} kcal in eccesso`
+                  : `${targetKcal - totalKcal} kcal rimanenti`}
+              </span>
+              <span>{targetKcal} obiettivo</span>
+            </div>
+          </div>
+        )}
 
         {loading ? (
           <ListSkeleton count={3} variant="row" />
