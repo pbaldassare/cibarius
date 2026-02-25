@@ -11,11 +11,12 @@ import { Input } from "@/components/ui/input";
 import { useDebounce } from "@/hooks/useDebounce";
 import AddFoodFlow from "@/components/AddFoodFlow";
 import ResolveExpiryFlow from "@/components/ResolveExpiryFlow";
+import { Link } from "react-router-dom";
 import {
   AlertTriangle, Clock, Package, Plus,
   ScanLine, Snowflake, Archive, Search,
   Thermometer, AlertCircle, HelpCircle, Filter,
-  X, ChevronRight, ChevronDown, Zap,
+  X, ChevronRight, ChevronDown, Zap, ChefHat,
 } from "lucide-react";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
@@ -264,8 +265,21 @@ const Index = () => {
             Risolvi tutto
           </button>
         )}
+        {/* ─── Preparazioni card ─── */}
+        <Link to="/preparations">
+          <div className="flex items-center gap-3 rounded-2xl bg-white px-3 py-2.5 shadow-sm active:scale-[0.98] transition-transform">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: "#EDE9FE" }}>
+              <ChefHat className="h-4.5 w-4.5" style={{ color: "#7C3AED" }} />
+            </div>
+            <div className="flex-1">
+              <p className="text-[13px] font-semibold" style={{ color: "#111827" }}>Preparazioni</p>
+              <p className="text-[10px]" style={{ color: "#6B7280" }}>Gestisci i tuoi piatti preparati</p>
+            </div>
+            <ChevronRight className="h-4 w-4" style={{ color: "#9CA3AF" }} />
+          </div>
+        </Link>
 
-        {/* ─── C) Storage chip + Search + Filter icon ─── */}
+
         <div className="flex gap-2 items-center">
           <button
             onClick={() => setStorageSheet(true)}

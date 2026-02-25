@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/sheet";
 import {
   Clock, Plus, Search, Filter, Package, ChevronRight, ChevronDown,
-  Archive, Thermometer, Snowflake, Trash2, Loader2, X, ChefHat,
+  Archive, Thermometer, Snowflake, Trash2, Loader2, X, ChefHat, Tag, Lightbulb,
 } from "lucide-react";
 
 /* ─── Types ─── */
@@ -32,6 +32,7 @@ interface Preparation {
   portions: number | null;
   notes: string | null;
   image_url: string | null;
+  label_code: string | null;
 }
 
 interface PrepIngredient {
@@ -80,6 +81,27 @@ const storageTabs = [
   { key: "freezer", label: "Congelatore", icon: Snowflake },
 ] as const;
 
+/* ─── Smart defaults ─── */
+const STORAGE_DAYS: Record<string, number> = {
+  frigo: 3,
+  freezer: 30,
+  ambiente: 2,
+};
+
+const suggestUseByDate = (storage: string): string => {
+  const days = STORAGE_DAYS[storage] ?? 3;
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split("T")[0];
+};
+
+const generateLabelCode = (): string => {
+  const chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  let code = "PREP-";
+  for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return code;
+};
+
 interface Props {
   isRestaurant?: boolean;
 }
@@ -117,6 +139,7 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
   const [formUseBy, setFormUseBy] = useState("");
   const [formPortions, setFormPortions] = useState("1");
   const [formNotes, setFormNotes] = useState("");
+  const [useByManuallySet, setUseByManuallySet] = useState(false);
 
   // Ingredients
   const [ingredients, setIngredients] = useState<{ name: string; quantity: string; unit: string }[]>([]);
@@ -134,6 +157,13 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
     });
   }, []);
 
+  // Auto-suggest use_by_date when storage changes (only if not manually set)
+  useEffect(() => {
+    if (!useByManuallySet && !editingId) {
+      setFormUseBy(suggestUseByDate(formStorage));
+    }
+  }, [formStorage, useByManuallySet, editingId]);
+
   const fetchItems = async () => {
     if (!user) return;
     let query = supabase.from("preparations").select("*").order("use_by_date", { ascending: true });
@@ -143,7 +173,7 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
       query = query.eq("owner_user_id", user.id);
     }
     const { data } = await query;
-    if (data) setItems(data as Preparation[]);
+    if (data) setItems(data as unknown as Preparation[]);
     setLoading(false);
   };
 
@@ -197,14 +227,13 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
       let prepId = editingId;
 
       if (editingId) {
-        // Update
         const { error } = await supabase.from("preparations").update(payload).eq("id", editingId);
         if (error) throw error;
-        // Replace ingredients & allergens
         await supabase.from("preparation_ingredients").delete().eq("preparation_id", editingId);
         await supabase.from("preparation_allergens").delete().eq("preparation_id", editingId);
       } else {
-        // Insert
+        // Generate label_code for new preparations
+        payload.label_code = generateLabelCode();
         if (isRestaurant && restaurant) {
           payload.restaurant_id = restaurant.id;
         } else {
@@ -254,6 +283,7 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
     setFormPortions("1"); setFormNotes(""); setIngredients([]);
     setIngredientName(""); setIngredientQty(""); setIngredientUnit("g");
     setSelectedAllergens([]); setEditingId(null);
+    setUseByManuallySet(false);
   };
 
   const openEditForm = () => {
@@ -265,13 +295,13 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
     setFormUseBy(detailPrep.use_by_date);
     setFormPortions(String(detailPrep.portions ?? 1));
     setFormNotes(detailPrep.notes ?? "");
+    setUseByManuallySet(true); // Don't auto-suggest when editing
     setIngredients(detailIngredients.map(ing => ({
       name: ing.product?.name ?? ing.custom_name ?? "",
       quantity: ing.quantity ? String(ing.quantity) : "",
       unit: ing.unit ?? "g",
     })));
-    setSelectedAllergens(detailAllergens.map(a => a.allergen ? detailAllergens.find(x => x.id === a.id)! : a).map(a => {
-      // Find allergen id from the allergens list by matching name
+    setSelectedAllergens(detailAllergens.map(a => {
       const match = allergens.find(al => al.name === a.allergen.name);
       return match?.id ?? "";
     }).filter(Boolean));
@@ -372,6 +402,11 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
                         {storageLabel[item.storage_type]}
                         {item.portions && item.portions > 1 ? ` · ${item.portions} porz.` : ""}
                       </span>
+                      {item.label_code && (
+                        <span className="text-[9px] font-mono px-1 py-0.5 rounded bg-[#F3F4F6]" style={{ color: "#6B7280" }}>
+                          {item.label_code}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-bold text-white ${cfg.badgeBg}`}>
@@ -387,7 +422,7 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
 
       {/* FAB */}
       <div className="fixed bottom-[calc(68px+env(safe-area-inset-bottom,0px)+0.75rem)] right-3.5 z-40">
-        <button onClick={() => setCreateOpen(true)}
+        <button onClick={() => { resetForm(); setCreateOpen(true); }}
           className="flex h-11 w-11 items-center justify-center rounded-full shadow-lg active:scale-95 transition-transform bg-primary"
           aria-label="Aggiungi preparazione">
           <Plus className="h-5 w-5 text-white" />
@@ -412,7 +447,10 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Conservazione *</Label>
-                <Select value={formStorage} onValueChange={setFormStorage}>
+                <Select value={formStorage} onValueChange={(v) => {
+                  setFormStorage(v);
+                  if (!useByManuallySet) setFormUseBy(suggestUseByDate(v));
+                }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ambiente">Dispensa</SelectItem>
@@ -426,10 +464,24 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
                 <Input type="number" min="1" value={formPortions} onChange={(e) => setFormPortions(e.target.value)} />
               </div>
             </div>
+
+            {/* Use-by date with smart suggestion */}
             <div className="space-y-1.5">
               <Label>Usare/Servire entro *</Label>
-              <Input type="date" value={formUseBy} onChange={(e) => setFormUseBy(e.target.value)} />
+              <Input type="date" value={formUseBy} onChange={(e) => {
+                setFormUseBy(e.target.value);
+                setUseByManuallySet(true);
+              }} />
+              {!useByManuallySet && formUseBy && (
+                <div className="flex items-center gap-1.5 mt-1">
+                  <Lightbulb className="h-3 w-3" style={{ color: "#F59E0B" }} />
+                  <span className="text-[11px]" style={{ color: "#92400E" }}>
+                    Suggerito: +{STORAGE_DAYS[formStorage] ?? 3} giorni ({storageLabel[formStorage]})
+                  </span>
+                </div>
+              )}
             </div>
+
             <div className="space-y-1.5">
               <Label>Note</Label>
               <Input value={formNotes} onChange={(e) => setFormNotes(e.target.value)} placeholder="Note opzionali" />
@@ -509,6 +561,34 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
         </SheetContent>
       </Sheet>
 
+      {/* Filter sheet */}
+      <Sheet open={filterSheet} onOpenChange={setFilterSheet}>
+        <SheetContent side="bottom" className="rounded-t-2xl">
+          <SheetHeader><SheetTitle>Filtri</SheetTitle></SheetHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <p className="text-sm font-semibold mb-2" style={{ color: "#111827" }}>Stato</p>
+              <div className="flex gap-2 flex-wrap">
+                {[
+                  { key: "relevant", label: "Da controllare" },
+                  { key: "expired", label: "Scadute" },
+                  { key: "expiring", label: "In scadenza" },
+                  { key: "all", label: "Tutte" },
+                ].map(({ key, label }) => (
+                  <button key={key} onClick={() => setStatusFilter(key)}
+                    className={`rounded-xl px-4 py-2 text-[13px] font-semibold transition-colors ${
+                      statusFilter === key ? "bg-primary text-white" : "bg-[#F5F7FA] text-foreground"
+                    }`}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <Button className="w-full" onClick={() => setFilterSheet(false)}>Applica</Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
       {/* Detail sheet */}
       <Sheet open={detailOpen} onOpenChange={setDetailOpen}>
         <SheetContent side="bottom" className="h-[80vh] rounded-t-2xl overflow-y-auto">
@@ -529,6 +609,12 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
                     <span className={`rounded-md px-2 py-1 text-xs font-bold text-white ${cfg.badgeBg}`}>{cfg.label}</span>
                     <span className="rounded-md bg-muted px-2 py-1 text-xs font-medium">{storageLabel[detailPrep.storage_type]}</span>
                     {detailPrep.portions && <span className="rounded-md bg-muted px-2 py-1 text-xs font-medium">{detailPrep.portions} porzioni</span>}
+                    {detailPrep.label_code && (
+                      <span className="rounded-md bg-muted px-2 py-1 text-xs font-mono font-medium flex items-center gap-1">
+                        <Tag className="h-3 w-3" />
+                        {detailPrep.label_code}
+                      </span>
+                    )}
                   </div>
 
                   {/* Dates */}

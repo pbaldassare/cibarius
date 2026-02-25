@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import {
   ArrowLeft, Search, ScanLine, Keyboard, Camera, Loader2,
   Package, Plus, Minus, Check, Flame, Archive, Thermometer, Snowflake,
-  CalendarSearch, AlertTriangle, Sparkles, X, ImagePlus, ChevronDown, ChevronUp,
+  CalendarSearch, AlertTriangle, Sparkles, X, ImagePlus, ChevronDown, ChevronUp, ChefHat,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -72,6 +73,7 @@ const AddFoodFlow = ({
 }: AddFoodFlowProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Flow state
   const [step, setStep] = useState<Step>("method");
@@ -667,6 +669,26 @@ const AddFoodFlow = ({
                       </div>
                     </button>
                   ))}
+
+                  {/* Crea Preparazione link */}
+                  {(context === "inventory" || context === "preparation") && (
+                    <button
+                      onClick={() => {
+                        onOpenChange(false);
+                        // Navigate to preparations page (the FAB there opens the creation form)
+                        navigate(defaultRestaurantId ? "/restaurant/preparations" : "/preparations");
+                      }}
+                      className="flex items-center gap-3 rounded-2xl border border-dashed border-[#7C3AED]/30 bg-[#EDE9FE]/30 p-4 text-left active:scale-[0.98] transition-transform"
+                    >
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: "#EDE9FE" }}>
+                        <ChefHat className="h-5 w-5" style={{ color: "#7C3AED" }} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold" style={{ color: "#111827" }}>🍳 Crea Preparazione</p>
+                        <p className="text-xs" style={{ color: "#4B5563" }}>Piatto preparato con scadenza</p>
+                      </div>
+                    </button>
+                  )}
                 </div>
               </div>
             )}
