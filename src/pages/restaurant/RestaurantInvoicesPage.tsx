@@ -301,6 +301,13 @@ const RestaurantInvoicesPage = () => {
                       <iframe src={detailDoc.public_url} className="h-full w-full" title="Preview PDF" />
                     </div>
                   )}
+                  {!detailDoc.public_url && (
+                    <div className="rounded-xl border border-dashed border-muted-foreground/30 bg-muted/50 flex flex-col items-center justify-center gap-2 py-10">
+                      <FileText className="h-10 w-10 text-muted-foreground/40" />
+                      <p className="text-xs text-muted-foreground">Nessun file allegato</p>
+                      <p className="text-[10px] text-muted-foreground/60">I documenti demo non hanno un file fisico</p>
+                    </div>
+                  )}
 
                   {/* AI Extract button */}
                   {!ed && (
