@@ -7,9 +7,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import AddFoodFlow from "@/components/AddFoodFlow";
 import {
   Package, Clock, AlertCircle, HelpCircle, Check, Trash2, CalendarClock,
-  Archive, Thermometer, Snowflake,
+  Archive, Thermometer, Snowflake, Plus,
 } from "lucide-react";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
@@ -69,6 +70,7 @@ const ExpiryPage = () => {
   const [activeTab, setActiveTab] = useState<string>("expired");
   const [storageFilter, setStorageFilter] = useState("all");
   const [actionSheet, setActionSheet] = useState<InventoryItem | null>(null);
+  const [addFoodOpen, setAddFoodOpen] = useState(false);
   const [newDate, setNewDate] = useState("");
 
   const fetchItems = async () => {
@@ -270,6 +272,24 @@ const ExpiryPage = () => {
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* FAB */}
+      <div className="fixed bottom-[calc(72px+env(safe-area-inset-bottom,0px)+1rem)] right-4 z-40">
+        <button
+          onClick={() => setAddFoodOpen(true)}
+          className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg active:scale-95 transition-transform"
+          aria-label="Aggiungi"
+        >
+          <Plus className="h-6 w-6" />
+        </button>
+      </div>
+
+      <AddFoodFlow
+        open={addFoodOpen}
+        onOpenChange={setAddFoodOpen}
+        context="inventory"
+        onComplete={fetchItems}
+      />
     </div>
   );
 };

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import MobileHeader from "@/components/MobileHeader";
 import EmptyState from "@/components/EmptyState";
 import ListSkeleton from "@/components/ListSkeleton";
-import AddMealSheet from "@/components/AddMealSheet";
+import AddFoodFlow from "@/components/AddFoodFlow";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Plus, UtensilsCrossed, Target, Trash2 } from "lucide-react";
@@ -164,10 +164,11 @@ const PastiPage = () => {
         )}
       </main>
 
-      <AddMealSheet
+      <AddFoodFlow
         open={sheetOpen}
         onOpenChange={setSheetOpen}
-        onSaved={fetchMeals}
+        context="meal"
+        onComplete={fetchMeals}
       />
     </div>
   );
