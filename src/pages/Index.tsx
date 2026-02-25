@@ -12,7 +12,7 @@ import ResolveExpiryFlow from "@/components/ResolveExpiryFlow";
 import { Link } from "react-router-dom";
 import {
   Clock, Package, Plus, Search,
-  Zap, ChevronRight, AlertCircle,
+  Zap, ChevronRight, AlertCircle, BookOpen,
 } from "lucide-react";
 
 /* ─── types ─── */
@@ -302,6 +302,21 @@ const Index = () => {
             <p className="text-[14px] font-medium text-foreground">Nessun risultato per "{search}"</p>
           </div>
         )}
+
+        {/* ═══ Ricette pubbliche ═══ */}
+        <button
+          onClick={() => navigate("/recipes")}
+          className="flex w-full items-center gap-3 rounded-[18px] bg-card px-4 py-3.5 shadow-card active:scale-[0.98] transition-transform"
+        >
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+            <BookOpen className="h-5 w-5 text-primary" />
+          </div>
+          <div className="flex-1 text-left">
+            <p className="text-[14px] font-semibold text-foreground">Ricette dai ristoranti</p>
+            <p className="text-[12px] text-muted-foreground">Scopri e replica ricette pubbliche</p>
+          </div>
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        </button>
       </main>
 
       {/* ─── FAB ─── */}
