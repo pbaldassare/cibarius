@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useRestaurant } from "@/hooks/useRestaurant";
-import { LayoutDashboard, Store, Users, FileText, LogOut } from "lucide-react";
+import { LayoutDashboard, Store, Users, FileText, LogOut, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import cibariusLogo from "@/assets/cibarius-logo.png";
 
@@ -54,7 +54,15 @@ const RestaurantAdminLayout = ({ children }: { children: ReactNode }) => {
             );
           })}
         </nav>
-        <div className="border-t border-white/10 p-3">
+        <div className="border-t border-white/10 p-3 space-y-1">
+          <Button
+            variant="ghost"
+            className="w-full justify-start gap-3 text-white/70 hover:bg-white/10 hover:text-white"
+            onClick={() => navigate("/restaurant")}
+          >
+            <ArrowLeft size={18} />
+            Vai all'App operativa
+          </Button>
           <Button
             variant="ghost"
             className="w-full justify-start gap-3 text-white/70 hover:bg-white/10 hover:text-white"

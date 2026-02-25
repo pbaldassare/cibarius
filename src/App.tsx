@@ -41,6 +41,7 @@ import RestaurantPage from "./pages/restaurant/RestaurantPage";
 import RestaurantProductsPage from "./pages/restaurant/RestaurantProductsPage";
 import RestaurantRecipesPage from "./pages/restaurant/RestaurantRecipesPage";
 import RestaurantSettingsPage from "./pages/restaurant/RestaurantSettingsPage";
+import RestaurantInvoicesPage from "./pages/restaurant/RestaurantInvoicesPage";
 
 // Restaurant admin pages
 import RestaurantAdminPage from "./pages/restaurant-admin/RestaurantAdminPage";
@@ -112,6 +113,7 @@ const App = () => (
                 <Route path="/restaurant/products" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><RestaurantProductsPage /></RestaurantGuard></RG>} />
                 <Route path="/restaurant/recipes" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><RestaurantRecipesPage /></RestaurantGuard></RG>} />
                 <Route path="/restaurant/settings" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><RestaurantSettingsPage /></RestaurantGuard></RG>} />
+                <Route path="/restaurant/invoices" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><RestaurantInvoicesPage /></RestaurantGuard></RG>} />
                 <Route path="/supplier-invite" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><SupplierInvitePage /></RestaurantGuard></RG>} />
 
                 {/* Professional */}
