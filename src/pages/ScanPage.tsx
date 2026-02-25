@@ -16,7 +16,7 @@ const ScanPage = () => {
           onClick={() => setOpen(true)}
           className="mx-auto flex items-center gap-2 rounded-2xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground"
         >
-          Aggiungi prodotto
+          Aggiungi alimento
         </button>
       </main>
 
