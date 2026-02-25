@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { useDebounce } from "@/hooks/useDebounce";
+import AddFoodFlow from "@/components/AddFoodFlow";
 import {
   AlertTriangle, Clock, Package, Plus,
   ScanLine, Snowflake, Archive, Search,
@@ -71,8 +72,9 @@ const Index = () => {
   const [storageTab, setStorageTab] = useState("all");
   const [search, setSearch] = useState("");
   const [filterSheet, setFilterSheet] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<string>("relevant"); // relevant = expired+expiring+nodate
+  const [statusFilter, setStatusFilter] = useState<string>("relevant");
   const [daysRange, setDaysRange] = useState(3);
+  const [addFoodOpen, setAddFoodOpen] = useState(false);
   const debouncedSearch = useDebounce(search, 250);
 
   // Redirect non-user roles
@@ -82,18 +84,19 @@ const Index = () => {
     }
   }, [role, roleLoading, navigate]);
 
-  useEffect(() => {
+  const fetchItems = async () => {
     if (!user) return;
-    const fetch = async () => {
-      const { data } = await supabase
-        .from("inventory_items")
-        .select("id, expiry_date, storage_type, quantity, unit, product:products(name, image_url)")
-        .eq("owner_user_id", user.id)
-        .order("expiry_date", { ascending: true, nullsFirst: false });
-      if (data) setItems(data as unknown as InventoryItem[]);
-      setLoading(false);
-    };
-    fetch();
+    const { data } = await supabase
+      .from("inventory_items")
+      .select("id, expiry_date, storage_type, quantity, unit, product:products(name, image_url)")
+      .eq("owner_user_id", user.id)
+      .order("expiry_date", { ascending: true, nullsFirst: false });
+    if (data) setItems(data as unknown as InventoryItem[]);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchItems();
   }, [user]);
 
   // Counts
@@ -344,22 +347,22 @@ const Index = () => {
       </main>
 
       {/* ─── SEZIONE D: FAB rapide ─── */}
-      <div className="fixed bottom-[calc(var(--nav-height)+1rem)] right-4 z-40 flex flex-col gap-2">
+      <div className="fixed bottom-[calc(72px+env(safe-area-inset-bottom,0px)+1rem)] right-4 z-40 flex flex-col gap-2">
         <button
-          onClick={() => navigate("/scan")}
-          className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg active:scale-95 transition-transform"
-          aria-label="Scansiona"
-        >
-          <ScanLine className="h-5 w-5" />
-        </button>
-        <button
-          onClick={() => navigate("/products")}
-          className="flex h-12 w-12 items-center justify-center rounded-full bg-accent text-accent-foreground shadow-lg active:scale-95 transition-transform"
+          onClick={() => setAddFoodOpen(true)}
+          className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg active:scale-95 transition-transform"
           aria-label="Aggiungi"
         >
-          <Plus className="h-5 w-5" />
+          <Plus className="h-6 w-6" />
         </button>
       </div>
+
+      <AddFoodFlow
+        open={addFoodOpen}
+        onOpenChange={setAddFoodOpen}
+        context="inventory"
+        onComplete={fetchItems}
+      />
 
       {/* ─── Filter bottom sheet ─── */}
       <Sheet open={filterSheet} onOpenChange={setFilterSheet}>
