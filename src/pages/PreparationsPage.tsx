@@ -34,6 +34,19 @@ interface Preparation {
   image_url: string | null;
 }
 
+interface PrepIngredient {
+  id: string;
+  custom_name: string | null;
+  quantity: number | null;
+  unit: string | null;
+  product: { name: string } | null;
+}
+
+interface PrepAllergen {
+  id: string;
+  allergen: { name: string; code: string };
+}
+
 interface Allergen {
   id: string;
   name: string;
@@ -86,6 +99,13 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
   const [storageSheet, setStorageSheet] = useState(false);
   const [filterSheet, setFilterSheet] = useState(false);
   const [statusFilter, setStatusFilter] = useState("relevant");
+
+  // Detail view
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailPrep, setDetailPrep] = useState<Preparation | null>(null);
+  const [detailIngredients, setDetailIngredients] = useState<PrepIngredient[]>([]);
+  const [detailAllergens, setDetailAllergens] = useState<PrepAllergen[]>([]);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   // Create form
   const [createOpen, setCreateOpen] = useState(false);
@@ -222,7 +242,21 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
   const handleDelete = async (id: string) => {
     await supabase.from("preparations").delete().eq("id", id);
     toast({ title: "Preparazione eliminata" });
+    setDetailOpen(false);
     fetchItems();
+  };
+
+  const openDetail = async (prep: Preparation) => {
+    setDetailPrep(prep);
+    setDetailOpen(true);
+    setDetailLoading(true);
+    const [ingRes, allRes] = await Promise.all([
+      supabase.from("preparation_ingredients").select("id, custom_name, quantity, unit, product:products(name)").eq("preparation_id", prep.id),
+      supabase.from("preparation_allergens").select("id, allergen:allergens(name, code)").eq("preparation_id", prep.id),
+    ]);
+    setDetailIngredients((ingRes.data ?? []) as unknown as PrepIngredient[]);
+    setDetailAllergens((allRes.data ?? []) as unknown as PrepAllergen[]);
+    setDetailLoading(false);
   };
 
   const storageChipLabel = storageTab === "all" ? "Tutto" : storageLabel[storageTab] ?? storageTab;
@@ -281,7 +315,7 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
               const status = getStatus(item.use_by_date);
               const cfg = statusCfg[status];
               return (
-                <div key={item.id} className="flex items-center gap-2.5 rounded-xl bg-white px-2.5 py-2 shadow-sm overflow-hidden"
+              <button key={item.id} onClick={() => openDetail(item)} className="flex w-full items-center gap-2.5 rounded-xl bg-white px-2.5 py-2 shadow-sm overflow-hidden text-left"
                   style={{ minHeight: 64 }}>
                   <div className={`w-1 self-stretch rounded-full ${cfg.barColor}`} />
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#F5F7FA]">
@@ -303,10 +337,8 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
                   <span className={`shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-bold text-white ${cfg.badgeBg}`}>
                     {cfg.label}
                   </span>
-                  <button onClick={() => handleDelete(item.id)} className="shrink-0 p-1 text-muted-foreground">
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                </div>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </button>
               );
             })}
           </div>
@@ -437,32 +469,101 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
         </SheetContent>
       </Sheet>
 
-      {/* Filter sheet */}
-      <Sheet open={filterSheet} onOpenChange={setFilterSheet}>
-        <SheetContent side="bottom" className="rounded-t-2xl">
-          <SheetHeader><SheetTitle>Filtri</SheetTitle></SheetHeader>
-          <div className="space-y-4 py-4">
-            <div>
-              <p className="text-[14px] font-semibold mb-2" style={{ color: "#111827" }}>Stato</p>
-              <div className="flex gap-2 flex-wrap">
-                {[
-                  { key: "relevant", label: "Da controllare" },
-                  { key: "expired", label: "Solo scaduti" },
-                  { key: "expiring", label: "In scadenza" },
-                  { key: "all", label: "Tutti" },
-                ].map(({ key, label }) => (
-                  <button key={key} onClick={() => setStatusFilter(key)}
-                    className={`rounded-xl px-4 py-2 text-[13px] font-semibold transition-colors ${
-                      statusFilter === key ? "bg-primary text-white" : "bg-[#F5F7FA] text-foreground"
-                    }`}>{label}</button>
-                ))}
-              </div>
-            </div>
-            <div className="flex gap-2 pt-2">
-              <Button variant="outline" className="flex-1" onClick={() => { setStatusFilter("relevant"); setStorageTab("all"); setFilterSheet(false); }}>Reset</Button>
-              <Button className="flex-1" onClick={() => setFilterSheet(false)}>Applica</Button>
-            </div>
-          </div>
+      {/* Detail sheet */}
+      <Sheet open={detailOpen} onOpenChange={setDetailOpen}>
+        <SheetContent side="bottom" className="h-[80vh] rounded-t-2xl overflow-y-auto">
+          {detailPrep && (() => {
+            const status = getStatus(detailPrep.use_by_date);
+            const cfg = statusCfg[status];
+            return (
+              <>
+                <SheetHeader>
+                  <SheetTitle className="flex items-center gap-2">
+                    <ChefHat className="h-5 w-5 text-primary" />
+                    {detailPrep.name}
+                  </SheetTitle>
+                </SheetHeader>
+                <div className="space-y-4 py-4">
+                  {/* Status + info */}
+                  <div className="flex flex-wrap gap-2">
+                    <span className={`rounded-md px-2 py-1 text-xs font-bold text-white ${cfg.badgeBg}`}>{cfg.label}</span>
+                    <span className="rounded-md bg-muted px-2 py-1 text-xs font-medium">{storageLabel[detailPrep.storage_type]}</span>
+                    {detailPrep.portions && <span className="rounded-md bg-muted px-2 py-1 text-xs font-medium">{detailPrep.portions} porzioni</span>}
+                  </div>
+
+                  {/* Dates */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-xl bg-muted p-3">
+                      <p className="text-[10px] font-medium text-muted-foreground">Preparato il</p>
+                      <p className="text-sm font-semibold">{new Date(detailPrep.prepared_at).toLocaleDateString("it-IT")}</p>
+                    </div>
+                    <div className="rounded-xl bg-muted p-3">
+                      <p className="text-[10px] font-medium text-muted-foreground">Usare entro</p>
+                      <p className="text-sm font-semibold">{new Date(detailPrep.use_by_date).toLocaleDateString("it-IT")}</p>
+                    </div>
+                  </div>
+
+                  {detailPrep.description && (
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground mb-1">Descrizione</p>
+                      <p className="text-sm">{detailPrep.description}</p>
+                    </div>
+                  )}
+
+                  {detailPrep.notes && (
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground mb-1">Note</p>
+                      <p className="text-sm">{detailPrep.notes}</p>
+                    </div>
+                  )}
+
+                  {/* Ingredients */}
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground mb-2">Ingredienti</p>
+                    {detailLoading ? (
+                      <Skeleton className="h-16 w-full rounded-xl" />
+                    ) : detailIngredients.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">Nessun ingrediente registrato</p>
+                    ) : (
+                      <div className="space-y-1">
+                        {detailIngredients.map((ing) => (
+                          <div key={ing.id} className="flex items-center justify-between rounded-lg bg-muted px-3 py-2">
+                            <span className="text-sm font-medium">{ing.product?.name ?? ing.custom_name ?? "—"}</span>
+                            {ing.quantity && (
+                              <span className="text-xs text-muted-foreground">{ing.quantity} {ing.unit}</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Allergens */}
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground mb-2">Allergeni</p>
+                    {detailLoading ? (
+                      <Skeleton className="h-8 w-full rounded-xl" />
+                    ) : detailAllergens.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">Nessun allergene</p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {detailAllergens.map((a) => (
+                          <span key={a.id} className="rounded-lg bg-[#FEF3C7] px-3 py-1.5 text-xs font-semibold" style={{ color: "#92400E" }}>
+                            {a.allergen.name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Delete */}
+                  <Button variant="destructive" className="w-full gap-2" onClick={() => handleDelete(detailPrep.id)}>
+                    <Trash2 className="h-4 w-4" /> Elimina preparazione
+                  </Button>
+                </div>
+              </>
+            );
+          })()}
         </SheetContent>
       </Sheet>
     </div>
