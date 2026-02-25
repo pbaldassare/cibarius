@@ -16,7 +16,7 @@ interface TabItem {
 const tabsByRole: Record<string, TabItem[]> = {
   user: [
     { to: "/", icon: Home, label: "Home" },
-    { to: "/scan", icon: Plus, label: "Aggiungi" },
+    { to: "/scan", icon: Plus, label: "Aggiungi prodotto" },
     { to: "/expiry", icon: Clock, label: "Scadenze" },
     { to: "/meals", icon: UtensilsCrossed, label: "Pasti" },
     { to: "/profile", icon: User, label: "Profilo" },
