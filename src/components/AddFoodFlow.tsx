@@ -222,8 +222,8 @@ const AddFoodFlow = ({
       setMacros100g(data.macros_100g);
       setBarcode(data.barcode);
       setServingSizeG(data.serving_size_g ?? null);
-      setQuantity(1);
-      setUnit("pezzi");
+      setQuantity(data.serving_size_g ?? 100);
+      setUnit(data.serving_size_g ? "g" : "pezzi");
       setStep("summary");
     } else {
       setNotFound(true);
