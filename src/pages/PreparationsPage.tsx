@@ -107,8 +107,9 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
   const [detailAllergens, setDetailAllergens] = useState<PrepAllergen[]>([]);
   const [detailLoading, setDetailLoading] = useState(false);
 
-  // Create form
+  // Create/Edit form
   const [createOpen, setCreateOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [formName, setFormName] = useState("");
   const [formDesc, setFormDesc] = useState("");
@@ -177,14 +178,14 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
     setIngredientName(""); setIngredientQty(""); setIngredientUnit("g");
   };
 
-  const handleCreate = async () => {
+  const handleSave = async () => {
     if (!formName.trim() || !formUseBy) {
       toast({ variant: "destructive", title: "Nome e data scadenza obbligatori" });
       return;
     }
     setSaving(true);
     try {
-      const insertData: any = {
+      const payload: any = {
         name: formName.trim(),
         description: formDesc || null,
         storage_type: formStorage,
@@ -192,37 +193,53 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
         portions: parseInt(formPortions) || 1,
         notes: formNotes || null,
       };
-      if (isRestaurant && restaurant) {
-        insertData.restaurant_id = restaurant.id;
-      } else {
-        insertData.owner_user_id = user!.id;
-      }
 
-      const { data: prep, error } = await supabase.from("preparations").insert(insertData).select("id").single();
-      if (error) throw error;
+      let prepId = editingId;
+
+      if (editingId) {
+        // Update
+        const { error } = await supabase.from("preparations").update(payload).eq("id", editingId);
+        if (error) throw error;
+        // Replace ingredients & allergens
+        await supabase.from("preparation_ingredients").delete().eq("preparation_id", editingId);
+        await supabase.from("preparation_allergens").delete().eq("preparation_id", editingId);
+      } else {
+        // Insert
+        if (isRestaurant && restaurant) {
+          payload.restaurant_id = restaurant.id;
+        } else {
+          payload.owner_user_id = user!.id;
+        }
+        const { data: prep, error } = await supabase.from("preparations").insert(payload).select("id").single();
+        if (error) throw error;
+        prepId = prep.id;
+      }
 
       // Save ingredients
       if (ingredients.length > 0) {
-        const ingredientRows = ingredients.map((ing) => ({
-          preparation_id: prep.id,
-          custom_name: ing.name,
-          quantity: parseFloat(ing.quantity) || null,
-          unit: ing.unit || null,
-        }));
-        await supabase.from("preparation_ingredients").insert(ingredientRows);
+        await supabase.from("preparation_ingredients").insert(
+          ingredients.map((ing) => ({
+            preparation_id: prepId!,
+            custom_name: ing.name,
+            quantity: parseFloat(ing.quantity) || null,
+            unit: ing.unit || null,
+          }))
+        );
       }
 
       // Save allergens
       if (selectedAllergens.length > 0) {
-        const allergenRows = selectedAllergens.map((aid) => ({
-          preparation_id: prep.id,
-          allergen_id: aid,
-        }));
-        await supabase.from("preparation_allergens").insert(allergenRows);
+        await supabase.from("preparation_allergens").insert(
+          selectedAllergens.map((aid) => ({
+            preparation_id: prepId!,
+            allergen_id: aid,
+          }))
+        );
       }
 
-      toast({ title: "Preparazione creata ✓" });
+      toast({ title: editingId ? "Preparazione aggiornata ✓" : "Preparazione creata ✓" });
       setCreateOpen(false);
+      setDetailOpen(false);
       resetForm();
       fetchItems();
     } catch (err: any) {
@@ -236,7 +253,30 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
     setFormName(""); setFormDesc(""); setFormStorage("frigo"); setFormUseBy("");
     setFormPortions("1"); setFormNotes(""); setIngredients([]);
     setIngredientName(""); setIngredientQty(""); setIngredientUnit("g");
-    setSelectedAllergens([]);
+    setSelectedAllergens([]); setEditingId(null);
+  };
+
+  const openEditForm = () => {
+    if (!detailPrep) return;
+    setEditingId(detailPrep.id);
+    setFormName(detailPrep.name);
+    setFormDesc(detailPrep.description ?? "");
+    setFormStorage(detailPrep.storage_type);
+    setFormUseBy(detailPrep.use_by_date);
+    setFormPortions(String(detailPrep.portions ?? 1));
+    setFormNotes(detailPrep.notes ?? "");
+    setIngredients(detailIngredients.map(ing => ({
+      name: ing.product?.name ?? ing.custom_name ?? "",
+      quantity: ing.quantity ? String(ing.quantity) : "",
+      unit: ing.unit ?? "g",
+    })));
+    setSelectedAllergens(detailAllergens.map(a => a.allergen ? detailAllergens.find(x => x.id === a.id)! : a).map(a => {
+      // Find allergen id from the allergens list by matching name
+      const match = allergens.find(al => al.name === a.allergen.name);
+      return match?.id ?? "";
+    }).filter(Boolean));
+    setDetailOpen(false);
+    setCreateOpen(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -358,7 +398,7 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
       <Sheet open={createOpen} onOpenChange={setCreateOpen}>
         <SheetContent side="bottom" className="h-[85vh] rounded-t-2xl overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>Nuova Preparazione</SheetTitle>
+            <SheetTitle>{editingId ? "Modifica Preparazione" : "Nuova Preparazione"}</SheetTitle>
           </SheetHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-1.5">
@@ -443,9 +483,9 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
               </div>
             </div>
 
-            <Button onClick={handleCreate} disabled={saving} className="w-full">
+            <Button onClick={handleSave} disabled={saving} className="w-full">
               {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ChefHat className="mr-2 h-4 w-4" />}
-              Crea preparazione
+              {editingId ? "Salva modifiche" : "Crea preparazione"}
             </Button>
           </div>
         </SheetContent>
@@ -556,10 +596,15 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
                     )}
                   </div>
 
-                  {/* Delete */}
-                  <Button variant="destructive" className="w-full gap-2" onClick={() => handleDelete(detailPrep.id)}>
-                    <Trash2 className="h-4 w-4" /> Elimina preparazione
-                  </Button>
+                  {/* Actions */}
+                  <div className="flex gap-2">
+                    <Button variant="outline" className="flex-1 gap-2" onClick={openEditForm}>
+                      <ChefHat className="h-4 w-4" /> Modifica
+                    </Button>
+                    <Button variant="destructive" className="flex-1 gap-2" onClick={() => handleDelete(detailPrep.id)}>
+                      <Trash2 className="h-4 w-4" /> Elimina
+                    </Button>
+                  </div>
                 </div>
               </>
             );
