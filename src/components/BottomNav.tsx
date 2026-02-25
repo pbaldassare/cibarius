@@ -3,7 +3,7 @@ import { useRole } from "@/hooks/useRole";
 import {
   Home, ScanLine, ShoppingBag, User, UtensilsCrossed,
   Store, BookOpen, LayoutDashboard, Users, FileText,
-  MessageSquare, Building2, Package, Snowflake, Archive, Clock,
+  MessageSquare, Building2, Package, Snowflake, Archive, Clock, ChefHat,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -22,11 +22,11 @@ const tabsByRole: Record<string, TabItem[]> = {
     { to: "/profile", icon: User, label: "Profilo" },
   ],
   restaurant_owner: [
-    { to: "/restaurant", icon: Store, label: "Home" },
+    { to: "/restaurant", icon: LayoutDashboard, label: "Dashboard" },
     { to: "/restaurant/products", icon: Clock, label: "Scadenze" },
-    { to: "/restaurant/preparations", icon: UtensilsCrossed, label: "Preparazioni" },
+    { to: "/restaurant/preparations", icon: ChefHat, label: "Preparaz." },
     { to: "/restaurant/recipes", icon: BookOpen, label: "Ricette" },
-    { to: "/profile", icon: User, label: "Profilo" },
+    { to: "/restaurant/invoices", icon: FileText, label: "Bolle" },
   ],
   professional: [
     { to: "/pro", icon: LayoutDashboard, label: "Dashboard" },
