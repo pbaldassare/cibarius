@@ -60,6 +60,7 @@ const ResolveExpiryFlow = ({ open, onOpenChange, onComplete }: Props) => {
   const [acting, setActing] = useState(false);
   const [showDateInput, setShowDateInput] = useState(false);
   const [newDate, setNewDate] = useState("");
+  const [animDir, setAnimDir] = useState<"in" | "out">("in");
 
   const fetchItems = async () => {
     if (!user) return;
@@ -125,6 +126,7 @@ const ResolveExpiryFlow = ({ open, onOpenChange, onComplete }: Props) => {
       fetchItems();
       setShowDateInput(false);
       setNewDate("");
+      setAnimDir("in");
     }
   }, [open, user]);
 
@@ -134,13 +136,18 @@ const ResolveExpiryFlow = ({ open, onOpenChange, onComplete }: Props) => {
   const advance = () => {
     setShowDateInput(false);
     setNewDate("");
-    if (currentIndex + 1 >= items.length) {
-      toast({ title: "Tutto risolto! 🎉", description: "Nessun altro prodotto da controllare." });
-      onOpenChange(false);
-      onComplete?.();
-    } else {
-      setCurrentIndex((i) => i + 1);
-    }
+    // Trigger exit animation
+    setAnimDir("out");
+    setTimeout(() => {
+      if (currentIndex + 1 >= items.length) {
+        toast({ title: "Tutto risolto! 🎉", description: "Nessun altro prodotto da controllare." });
+        onOpenChange(false);
+        onComplete?.();
+      } else {
+        setCurrentIndex((i) => i + 1);
+        setAnimDir("in");
+      }
+    }, 250);
   };
 
   const handleUpdateDate = async () => {
@@ -199,6 +206,17 @@ const ResolveExpiryFlow = ({ open, onOpenChange, onComplete }: Props) => {
   };
 
   return (
+    <>
+      <style>{`
+        @keyframes resolveSlideIn {
+          from { opacity: 0; transform: translateX(60px) scale(0.95); }
+          to   { opacity: 1; transform: translateX(0) scale(1); }
+        }
+        @keyframes resolveSlideOut {
+          from { opacity: 1; transform: translateX(0) scale(1); }
+          to   { opacity: 0; transform: translateX(-60px) scale(0.95); }
+        }
+      `}</style>
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="rounded-t-2xl h-[85vh] flex flex-col p-0">
         {/* Header */}
@@ -241,7 +259,15 @@ const ResolveExpiryFlow = ({ open, onOpenChange, onComplete }: Props) => {
               <p className="text-sm" style={{ color: "#6B7280" }}>Nessun prodotto da risolvere.</p>
             </div>
           ) : current ? (
-            <div className="flex flex-col items-center gap-4 pt-4">
+            <div
+              key={currentIndex}
+              className="flex flex-col items-center gap-4 pt-4 transition-all duration-250"
+              style={{
+                animation: animDir === "in"
+                  ? "resolveSlideIn 0.3s cubic-bezier(0.22,1,0.36,1)"
+                  : "resolveSlideOut 0.25s cubic-bezier(0.55,0,1,0.45) forwards",
+              }}
+            >
               {/* Card */}
               <div
                 className="w-full rounded-2xl bg-white p-5 shadow-md"
@@ -367,6 +393,7 @@ const ResolveExpiryFlow = ({ open, onOpenChange, onComplete }: Props) => {
         </div>
       </SheetContent>
     </Sheet>
+    </>
   );
 };
 
