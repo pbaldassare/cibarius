@@ -9,19 +9,20 @@ import { useToast } from "@/hooks/use-toast";
 import { useDebounce } from "@/hooks/useDebounce";
 import BarcodeScanner from "@/components/BarcodeScanner";
 import { lookupBarcode, calcNutrition, type ProductData } from "@/lib/barcode";
+import { analyzeFoodPhotos, fuseWithOFF, fileToImageFile, type ImageFile, type FusedFoodData } from "@/lib/ai-food";
 import { Switch } from "@/components/ui/switch";
 import {
   ArrowLeft, Search, ScanLine, Keyboard, Camera, Loader2,
   Package, Plus, Minus, Check, Flame, Archive, Thermometer, Snowflake,
-  CalendarSearch, AlertTriangle, Sparkles,
+  CalendarSearch, AlertTriangle, Sparkles, X, ImagePlus,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 /* ─── Types ─── */
-export type AddFoodContext = "inventory" | "meal" | "recipe";
+export type AddFoodContext = "inventory" | "meal" | "recipe" | "preparation";
 type MealType = "colazione" | "pranzo" | "cena" | "spuntino";
-type Method = "search" | "scan" | "manual";
-type Step = "method" | "scan" | "search" | "summary";
+type Method = "photo_ai" | "search" | "scan" | "manual";
+type Step = "method" | "photo_ai" | "scan" | "search" | "summary";
 
 interface SearchProduct {
   id: string;
@@ -37,8 +38,8 @@ interface AddFoodFlowProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   context: AddFoodContext;
-  contextId?: string; // meal_id or recipe_id
-  mealType?: MealType; // pre-selected meal type for context=meal
+  contextId?: string;
+  mealType?: MealType;
   defaultRestaurantId?: string;
   onComplete: () => void;
 }
@@ -60,7 +61,10 @@ const ctaLabels: Record<AddFoodContext, string> = {
   inventory: "Salva in magazzino",
   meal: "Aggiungi al pasto",
   recipe: "Aggiungi ingrediente",
+  preparation: "Aggiungi alla preparazione",
 };
+
+const CONFIDENCE_LOW = 0.6;
 
 const AddFoodFlow = ({
   open, onOpenChange, context, contextId, mealType: preselectedMealType,
@@ -108,6 +112,12 @@ const AddFoodFlow = ({
   const [selectedMealType, setSelectedMealType] = useState<MealType | null>(preselectedMealType ?? null);
   const [saveToInventory, setSaveToInventory] = useState(false);
 
+  // Multi-photo AI
+  const [aiPhotos, setAiPhotos] = useState<ImageFile[]>([]);
+  const [aiAnalyzing, setAiAnalyzing] = useState(false);
+  const [fusedData, setFusedData] = useState<FusedFoodData | null>(null);
+  const aiPhotoInputRef = useRef<HTMLInputElement>(null);
+
   // Expiry OCR
   const [expiryModalOpen, setExpiryModalOpen] = useState(false);
   const [expiryImage, setExpiryImage] = useState<string | null>(null);
@@ -115,9 +125,8 @@ const AddFoodFlow = ({
   const [expiryCandidates, setExpiryCandidates] = useState<{ date: string; label: string; confidence: number }[]>([]);
   const expiryInputRef = useRef<HTMLInputElement>(null);
 
-  // AI product photo
-  const [aiAnalyzing, setAiAnalyzing] = useState(false);
-  const aiPhotoRef = useRef<HTMLInputElement>(null);
+  // Confidence flags
+  const [confidence, setConfidence] = useState<{ name: number; barcode: number; nutrition: number; expiry: number }>({ name: 1, barcode: 0, nutrition: 0, expiry: 0 });
 
   const [saving, setSaving] = useState(false);
 
@@ -147,9 +156,12 @@ const AddFoodFlow = ({
         setExpiryDate("");
         setSelectedMealType(preselectedMealType ?? null);
         setSaveToInventory(false);
+        setAiPhotos([]);
+        setFusedData(null);
         setExpiryModalOpen(false);
         setExpiryImage(null);
         setExpiryCandidates([]);
+        setConfidence({ name: 1, barcode: 0, nutrition: 0, expiry: 0 });
       }, 300);
     }
   }, [open, preselectedMealType]);
@@ -180,6 +192,7 @@ const AddFoodFlow = ({
     setMethod(m);
     if (m === "search") setStep("search");
     else if (m === "scan") setStep("scan");
+    else if (m === "photo_ai") setStep("photo_ai");
     else if (m === "manual") {
       setName("");
       setBrand("");
@@ -235,7 +248,89 @@ const AddFoodFlow = ({
     setScanLoading(false);
   }, [scanLoading, scannedCode]);
 
-  // ─── Expiry OCR ───
+  // ─── Multi-photo AI ───
+  const handleAddAiPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    const newPhotos: ImageFile[] = [];
+    for (let i = 0; i < files.length && aiPhotos.length + newPhotos.length < 5; i++) {
+      const img = await fileToImageFile(files[i]);
+      newPhotos.push(img);
+    }
+    setAiPhotos((prev) => [...prev, ...newPhotos].slice(0, 5));
+    e.target.value = "";
+  };
+
+  const removeAiPhoto = (idx: number) => {
+    setAiPhotos((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleAnalyzePhotos = async () => {
+    if (aiPhotos.length === 0) return;
+    setAiAnalyzing(true);
+    try {
+      const aiResult = await analyzeFoodPhotos(aiPhotos, context);
+      if (!aiResult || !aiResult.product?.name) {
+        toast({
+          variant: "destructive",
+          title: "Non riesco a leggere il prodotto",
+          description: "Prova con foto più ravvicinate o con inquadratura diversa.",
+        });
+        setAiAnalyzing(false);
+        return;
+      }
+
+      const fused = await fuseWithOFF(aiResult);
+      setFusedData(fused);
+
+      // Apply fused data to form
+      setName(fused.name);
+      setBrand(fused.brand);
+      setImageUrl(fused.image_url);
+      setBarcode(fused.barcode);
+      setCalories100g(fused.calories_100g);
+      setMacros100g(fused.macros_100g);
+      setServingSizeG(fused.serving_size_g);
+      setConfidence(fused.confidence);
+
+      // Quantity
+      if (fused.quantity_value) {
+        setQuantity(fused.quantity_value);
+        setUnit(fused.quantity_unit || "g");
+      } else if (fused.serving_size_g) {
+        setQuantity(fused.serving_size_g);
+        setUnit("g");
+      } else {
+        setQuantity(100);
+        setUnit("g");
+      }
+
+      // Expiry
+      if (fused.expiry_candidates.length > 0) {
+        setExpiryCandidates(fused.expiry_candidates);
+        if (fused.best_expiry) setExpiryDate(fused.best_expiry);
+      }
+
+      // Storage hint
+      if (fused.storage_hint && fused.storage_confidence > 0.5) {
+        setStorageType(fused.storage_hint);
+      }
+
+      setNotFound(false);
+      setStep("summary");
+      toast({ title: "Prodotto analizzato dall'AI ✓" });
+    } catch (err: any) {
+      toast({
+        variant: "destructive",
+        title: "Errore analisi AI",
+        description: err?.message || "Riprova con foto diverse.",
+      });
+    } finally {
+      setAiAnalyzing(false);
+    }
+  };
+
+  // ─── Expiry OCR (unchanged) ───
   const handleExpiryPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -273,51 +368,41 @@ const AddFoodFlow = ({
     e.target.value = "";
   };
 
-  // ─── AI Product Photo ───
-  const handleAiPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setAiAnalyzing(true);
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const dataUrl = reader.result as string;
-      const base64 = dataUrl.split(",")[1];
-      const mimeType = file.type || "image/jpeg";
+  // ─── Save attachments ───
+  const saveAttachments = async (entityId: string, entityType: string) => {
+    if (aiPhotos.length === 0) return;
+    try {
+      for (const photo of aiPhotos) {
+        const ext = photo.mime_type.split("/")[1] || "jpg";
+        const filePath = `ai-photos/${entityType}/${entityId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
-      try {
-        const { data, error } = await supabase.functions.invoke("extract-product", {
-          body: { image_base64: base64, mime_type: mimeType },
-        });
-        if (error) throw error;
-        if (data?.product) {
-          const p = data.product;
-          if (p.product_name) setName(p.product_name);
-          if (p.brand) setBrand(p.brand);
-          if (p.barcode) setBarcode(p.barcode);
-          if (p.calories_100g != null) setCalories100g(p.calories_100g);
-          if (p.protein_100g != null || p.carbs_100g != null || p.fat_100g != null) {
-            setMacros100g({
-              protein: p.protein_100g ?? 0,
-              carbs: p.carbs_100g ?? 0,
-              fats: p.fat_100g ?? 0,
-            });
-          }
-          if (p.serving_size_g != null) setServingSizeG(p.serving_size_g);
-          if (p.expiry_date) setExpiryDate(p.expiry_date);
-          setNotFound(false);
-          setStep("summary");
-          toast({ title: "Prodotto riconosciuto dall'AI ✓" });
-        } else {
-          toast({ variant: "destructive", title: "AI non ha riconosciuto il prodotto" });
+        // Convert base64 to Uint8Array
+        const binaryStr = atob(photo.base64);
+        const bytes = new Uint8Array(binaryStr.length);
+        for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+
+        const { error: uploadErr } = await supabase.storage
+          .from("media")
+          .upload(filePath, bytes, { contentType: photo.mime_type, upsert: false });
+        if (uploadErr) {
+          console.error("Upload attachment error:", uploadErr);
+          continue;
         }
-      } catch (err: any) {
-        toast({ variant: "destructive", title: "Errore AI", description: err?.message });
-      } finally {
-        setAiAnalyzing(false);
+
+        const { data: urlData } = supabase.storage.from("media").getPublicUrl(filePath);
+
+        await supabase.from("attachments").insert({
+          entity_id: entityId,
+          entity_type: entityType,
+          file_path: filePath,
+          public_url: urlData.publicUrl,
+          owner_user_id: user?.id ?? null,
+          restaurant_id: defaultRestaurantId ?? null,
+        });
       }
-    };
-    reader.readAsDataURL(file);
-    e.target.value = "";
+    } catch (err) {
+      console.error("Error saving attachments:", err);
+    }
   };
 
   // ─── SAVE ───
@@ -342,7 +427,6 @@ const AddFoodFlow = ({
       // 1) Ensure product exists
       let pid = productId;
       if (!pid) {
-        // Check by barcode first
         if (barcode) {
           const { data: existing } = await supabase
             .from("products").select("id").eq("barcode", barcode).maybeSingle();
@@ -382,12 +466,12 @@ const AddFoodFlow = ({
         } else {
           insertData.owner_user_id = user.id;
         }
-        const { error } = await supabase.from("inventory_items").insert(insertData);
+        const { data: invItem, error } = await supabase.from("inventory_items").insert(insertData).select("id").single();
         if (error) throw error;
+        await saveAttachments(invItem.id, "inventory_item");
         toast({ title: "Prodotto aggiunto al magazzino! ✓" });
 
       } else if (context === "meal") {
-        // Get or create meal_day + meal
         const today = new Date().toISOString().slice(0, 10);
         let mealId = contextId;
 
@@ -428,7 +512,6 @@ const AddFoodFlow = ({
         });
         if (error) throw error;
 
-        // Also save to inventory if toggle is ON
         if (saveToInventory) {
           const invData: any = {
             product_id: pid,
@@ -456,7 +539,14 @@ const AddFoodFlow = ({
         });
         if (error) throw error;
         toast({ title: "Ingrediente aggiunto! ✓" });
+
+      } else if (context === "preparation") {
+        // For preparation context, just return via onComplete - the parent handles saving
+        toast({ title: "Ingrediente aggiunto! ✓" });
       }
+
+      // Save product attachments
+      if (pid) await saveAttachments(pid, "product");
 
       onComplete();
       onOpenChange(false);
@@ -468,17 +558,20 @@ const AddFoodFlow = ({
   };
 
   const goBack = () => {
-    if (step === "summary") setStep(method === "manual" ? "method" : method === "scan" ? "scan" : "search");
-    else if (step === "search" || step === "scan") setStep("method");
+    if (step === "summary") setStep(method === "manual" ? "method" : method === "photo_ai" ? "photo_ai" : method === "scan" ? "scan" : "search");
+    else if (step === "search" || step === "scan" || step === "photo_ai") setStep("method");
     else onOpenChange(false);
   };
 
   const stepTitle = () => {
     if (step === "method") return "Aggiungi alimento";
+    if (step === "photo_ai") return "Foto AI";
     if (step === "scan") return "Scansiona barcode";
     if (step === "search") return "Cerca prodotto";
     return "Riepilogo";
   };
+
+  const isLowConfidence = (field: keyof typeof confidence) => confidence[field] > 0 && confidence[field] < CONFIDENCE_LOW;
 
   return (
     <>
@@ -524,9 +617,32 @@ const AddFoodFlow = ({
 
                 <p className="text-sm font-semibold" style={{ color: "#111827" }}>Come vuoi aggiungere?</p>
                 <div className="grid grid-cols-1 gap-2">
+                  {/* Foto AI (first, recommended) */}
+                  <button
+                    onClick={() => {
+                      if (context === "meal" && !preselectedMealType && !selectedMealType) {
+                        toast({ variant: "destructive", title: "Seleziona prima il tipo di pasto" });
+                        return;
+                      }
+                      selectMethod("photo_ai");
+                    }}
+                    className="flex items-center gap-3 rounded-2xl border-2 border-primary/30 bg-primary/5 p-4 text-left active:scale-[0.98] transition-transform"
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/20">
+                      <Sparkles className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-bold" style={{ color: "#111827" }}>📸 Foto AI</p>
+                        <Badge className="text-[9px] bg-primary/20 text-primary border-0">consigliato</Badge>
+                      </div>
+                      <p className="text-xs" style={{ color: "#4B5563" }}>Scatta 1-5 foto e l'AI legge tutto</p>
+                    </div>
+                  </button>
+
                   {[
-                    { m: "search" as Method, icon: Search, label: "Cerca prodotto", desc: "Cerca nel database" },
                     { m: "scan" as Method, icon: ScanLine, label: "Scansiona barcode", desc: "Usa la fotocamera" },
+                    { m: "search" as Method, icon: Search, label: "Cerca prodotto", desc: "Cerca nel database" },
                     { m: "manual" as Method, icon: Keyboard, label: "Inserisci manualmente", desc: "Scrivi nome e valori" },
                   ].map(({ m, icon: Icon, label, desc }) => (
                     <button
@@ -549,30 +665,83 @@ const AddFoodFlow = ({
                       </div>
                     </button>
                   ))}
-                  {/* AI Photo button */}
-                  <button
-                    onClick={() => {
-                      if (context === "meal" && !preselectedMealType && !selectedMealType) {
-                        toast({ variant: "destructive", title: "Seleziona prima il tipo di pasto" });
-                        return;
-                      }
-                      aiPhotoRef.current?.click();
-                    }}
-                    disabled={aiAnalyzing}
-                    className="flex items-center gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-4 text-left active:scale-[0.98] transition-transform"
-                  >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/20">
-                      {aiAnalyzing ? <Loader2 className="h-5 w-5 text-primary animate-spin" /> : <Sparkles className="h-5 w-5 text-primary" />}
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold" style={{ color: "#111827" }}>
-                        {aiAnalyzing ? "Analisi AI in corso..." : "📸 Foto etichetta (AI)"}
-                      </p>
-                      <p className="text-xs" style={{ color: "#4B5563" }}>Scatta foto e l'AI legge tutto</p>
-                    </div>
-                  </button>
-                  <input ref={aiPhotoRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleAiPhoto} />
                 </div>
+              </div>
+            )}
+
+            {/* ─── STEP: Photo AI (multi-photo) ─── */}
+            {step === "photo_ai" && (
+              <div className="space-y-4">
+                <div className="rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Camera className="h-5 w-5 text-primary" />
+                    <p className="text-sm font-semibold" style={{ color: "#111827" }}>
+                      Aggiungi foto del prodotto
+                    </p>
+                    <span className="text-xs text-muted-foreground ml-auto">{aiPhotos.length}/5</span>
+                  </div>
+                  <p className="text-xs" style={{ color: "#4B5563" }}>
+                    Scatta foto di: fronte confezione, retro ingredienti, tabella nutrizionale, data scadenza
+                  </p>
+
+                  {/* Photo grid */}
+                  <div className="grid grid-cols-3 gap-2">
+                    {aiPhotos.map((photo, idx) => (
+                      <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-border">
+                        <img src={photo.preview} alt={`Foto ${idx + 1}`} className="h-full w-full object-cover" />
+                        <button
+                          onClick={() => removeAiPhoto(idx)}
+                          className="absolute top-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-white"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+
+                    {aiPhotos.length < 5 && (
+                      <button
+                        onClick={() => aiPhotoInputRef.current?.click()}
+                        className="flex aspect-square items-center justify-center rounded-xl border-2 border-dashed border-border bg-card"
+                      >
+                        <ImagePlus className="h-6 w-6 text-muted-foreground" />
+                      </button>
+                    )}
+                  </div>
+
+                  <input
+                    ref={aiPhotoInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={handleAddAiPhoto}
+                  />
+                </div>
+
+                {/* Analyze CTA */}
+                <Button
+                  className="w-full h-12 text-base font-bold gap-2"
+                  onClick={handleAnalyzePhotos}
+                  disabled={aiPhotos.length === 0 || aiAnalyzing}
+                >
+                  {aiAnalyzing ? (
+                    <>
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Analisi in corso...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-5 w-5" />
+                      Analizza con AI ({aiPhotos.length} foto)
+                    </>
+                  )}
+                </Button>
+
+                {aiPhotos.length === 0 && (
+                  <p className="text-center text-xs" style={{ color: "#4B5563" }}>
+                    Aggiungi almeno una foto per procedere
+                  </p>
+                )}
               </div>
             )}
 
@@ -679,18 +848,22 @@ const AddFoodFlow = ({
                       size="sm"
                       variant="outline"
                       className="w-full gap-2"
-                      onClick={() => aiPhotoRef.current?.click()}
-                      disabled={aiAnalyzing}
+                      onClick={() => {
+                        setMethod("photo_ai");
+                        setStep("photo_ai");
+                      }}
                     >
-                      {aiAnalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                      {aiAnalyzing ? "Analisi in corso..." : "📸 Scatta foto etichetta (AI)"}
+                      <Sparkles className="h-4 w-4" />
+                      Usa Foto AI per riconoscere
                     </Button>
-                    <input ref={aiPhotoRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleAiPhoto} />
                   </div>
                 )}
 
                 {/* Product card */}
-                <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
+                <div className={`rounded-2xl border bg-card p-4 space-y-3 ${isLowConfidence("name") ? "border-amber-400" : "border-border"}`}>
+                  {isLowConfidence("name") && (
+                    <Badge className="bg-amber-100 text-amber-700 border-0 text-[10px]">⚠️ Da confermare</Badge>
+                  )}
                   <div className="flex gap-3">
                     <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-secondary overflow-hidden">
                       {imageUrl ? (
@@ -778,10 +951,13 @@ const AddFoodFlow = ({
                   </div>
                 </div>
 
-                {/* Nutrition (editable for manual) */}
-                {method === "manual" && (
-                  <div className="space-y-2">
-                    <p className="text-sm font-semibold" style={{ color: "#111827" }}>Calorie per 100g (opzionale)</p>
+                {/* Nutrition (editable for manual or AI with low confidence) */}
+                {(method === "manual" || (method === "photo_ai" && isLowConfidence("nutrition"))) && (
+                  <div className={`space-y-2 rounded-xl p-3 ${isLowConfidence("nutrition") ? "border border-amber-400 bg-amber-50/30" : ""}`}>
+                    {isLowConfidence("nutrition") && (
+                      <Badge className="bg-amber-100 text-amber-700 border-0 text-[10px]">⚠️ Valori incerti — verifica</Badge>
+                    )}
+                    <p className="text-sm font-semibold" style={{ color: "#111827" }}>Calorie per 100g</p>
                     <Input
                       type="number"
                       placeholder="kcal / 100g"
@@ -789,12 +965,41 @@ const AddFoodFlow = ({
                       onChange={(e) => setCalories100g(e.target.value ? parseFloat(e.target.value) : null)}
                       style={{ color: "#111827" }}
                     />
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <label className="text-[10px] text-muted-foreground">Proteine</label>
+                        <Input
+                          type="number"
+                          placeholder="g"
+                          value={macros100g?.protein ?? ""}
+                          onChange={(e) => setMacros100g((prev) => ({ protein: parseFloat(e.target.value) || 0, carbs: prev?.carbs ?? 0, fats: prev?.fats ?? 0 }))}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-muted-foreground">Carbo</label>
+                        <Input
+                          type="number"
+                          placeholder="g"
+                          value={macros100g?.carbs ?? ""}
+                          onChange={(e) => setMacros100g((prev) => ({ protein: prev?.protein ?? 0, carbs: parseFloat(e.target.value) || 0, fats: prev?.fats ?? 0 }))}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-muted-foreground">Grassi</label>
+                        <Input
+                          type="number"
+                          placeholder="g"
+                          value={macros100g?.fats ?? ""}
+                          onChange={(e) => setMacros100g((prev) => ({ protein: prev?.protein ?? 0, carbs: prev?.carbs ?? 0, fats: parseFloat(e.target.value) || 0 }))}
+                        />
+                      </div>
+                    </div>
                   </div>
                 )}
 
                 {/* Nutrition preview */}
                 {computed.calories != null && (
-                  <div className="rounded-2xl border-2 border-accent bg-card p-4 space-y-2">
+                  <div className={`rounded-2xl border-2 bg-card p-4 space-y-2 ${isLowConfidence("nutrition") ? "border-amber-400" : "border-accent"}`}>
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-semibold" style={{ color: "#111827" }}>Valori nutrizionali</span>
                       <span className="text-xs" style={{ color: "#4B5563" }}>{quantity}{unit}</span>
@@ -825,26 +1030,61 @@ const AddFoodFlow = ({
                 {/* INVENTORY or MEAL+toggle: Storage + Expiry */}
                 {(context === "inventory" || (context === "meal" && saveToInventory)) && (
                   <div className="space-y-3">
-                    <p className="text-sm font-semibold" style={{ color: "#111827" }}>Dove lo conservi? *</p>
-                    <div className="grid grid-cols-3 gap-2">
-                      {storageOptions.map(({ key, label, icon: Icon }) => (
-                        <button
-                          key={key}
-                          onClick={() => setStorageType(key)}
-                          className={`flex flex-col items-center gap-1.5 rounded-2xl p-4 text-sm font-semibold transition-colors ${
-                            storageType === key
-                              ? "bg-primary text-primary-foreground shadow-md"
-                              : "bg-card border border-border text-foreground"
-                          }`}
-                        >
-                          <Icon className="h-6 w-6" />
-                          {label}
-                        </button>
-                      ))}
+                    <div className={`space-y-2 ${fusedData && fusedData.storage_confidence < 0.5 ? "" : ""}`}>
+                      <p className="text-sm font-semibold" style={{ color: "#111827" }}>
+                        Dove lo conservi? *
+                        {fusedData && fusedData.storage_confidence < 0.5 && (
+                          <Badge className="ml-2 bg-amber-100 text-amber-700 border-0 text-[9px]">scegli</Badge>
+                        )}
+                      </p>
+                      <div className="grid grid-cols-3 gap-2">
+                        {storageOptions.map(({ key, label, icon: Icon }) => (
+                          <button
+                            key={key}
+                            onClick={() => setStorageType(key)}
+                            className={`flex flex-col items-center gap-1.5 rounded-2xl p-4 text-sm font-semibold transition-colors ${
+                              storageType === key
+                                ? "bg-primary text-primary-foreground shadow-md"
+                                : "bg-card border border-border text-foreground"
+                            }`}
+                          >
+                            <Icon className="h-6 w-6" />
+                            {label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
 
                     <div className="space-y-2">
                       <p className="text-sm font-semibold" style={{ color: "#111827" }}>Data di scadenza</p>
+
+                      {/* Expiry candidates from AI */}
+                      {expiryCandidates.length > 1 && (
+                        <div className="space-y-1.5">
+                          <p className="text-xs text-muted-foreground">Date trovate dall'AI — seleziona:</p>
+                          {expiryCandidates.map((c, i) => (
+                            <button
+                              key={i}
+                              className={`flex w-full items-center justify-between rounded-xl border-2 p-2.5 text-left transition-colors ${
+                                expiryDate === c.date ? "border-primary bg-primary/5" : "border-border bg-card"
+                              }`}
+                              onClick={() => setExpiryDate(c.date)}
+                            >
+                              <div>
+                                <p className="text-sm font-semibold" style={{ color: "#111827" }}>
+                                  {new Date(c.date).toLocaleDateString("it-IT")}
+                                </p>
+                                <p className="text-[10px]" style={{ color: "#4B5563" }}>{c.label}</p>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <Badge variant="outline" className="text-[9px]">{Math.round(c.confidence * 100)}%</Badge>
+                                {expiryDate === c.date && <Check className="h-4 w-4 text-primary" />}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
                       <div className="flex gap-2">
                         <Input
                           type="date"
@@ -909,6 +1149,14 @@ const AddFoodFlow = ({
                         </button>
                       ))}
                     </div>
+                  </div>
+                )}
+
+                {/* Source badge */}
+                {fusedData && (
+                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                    <Sparkles className="h-3 w-3" />
+                    Fonte: {fusedData.source === "fused" ? "AI + OpenFoodFacts" : fusedData.source === "off" ? "OpenFoodFacts" : "AI"}
                   </div>
                 )}
 
