@@ -91,18 +91,19 @@ export const lookupBarcode = async (barcode: string): Promise<ProductData | null
     const json = await res.json();
     if (json.status !== 1 || !json.product) return null;
 
-    const p: OFFProduct = json.product;
+    const p = json.product as any;
     const n = p.nutriments;
     const data: ProductData = {
-      name: p.product_name || "",
+      name: p.product_name || p.product_name_it || "",
       brand: p.brands || "",
       barcode,
-      image_url: p.image_url || null,
+      image_url: p.image_front_url || p.image_url || null,
       calories_100g: n?.["energy-kcal_100g"] ?? null,
       macros_100g:
         n?.proteins_100g != null
           ? { protein: n.proteins_100g ?? 0, carbs: n.carbohydrates_100g ?? 0, fats: n.fat_100g ?? 0 }
           : null,
+      serving_size_g: p.serving_quantity ? Number(p.serving_quantity) : null,
     };
     setCache(barcode, data);
     return data;
