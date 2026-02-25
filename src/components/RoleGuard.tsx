@@ -1,5 +1,5 @@
 import { Navigate } from "react-router-dom";
-import { useRole, AppRole } from "@/hooks/useRole";
+import { useRole, AppRole, getRoleHomePath } from "@/hooks/useRole";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2, ShieldX } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -28,22 +28,9 @@ const RoleGuard = ({ allowedRoles, children }: RoleGuardProps) => {
   }
 
   if (!role || !allowedRoles.includes(role)) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-4">
-        <Card className="w-full max-w-md text-center">
-          <CardHeader className="items-center">
-            <ShieldX className="mb-2 h-12 w-12 text-destructive" />
-            <CardTitle className="text-xl">Accesso non consentito</CardTitle>
-            <CardDescription>Non hai i permessi per accedere a questa sezione.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link to="/">
-              <Button className="w-full">Torna alla Home</Button>
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    // Redirect to role-appropriate home instead of showing error
+    const homePath = getRoleHomePath(role);
+    return <Navigate to={homePath} replace />;
   }
 
   return <>{children}</>;

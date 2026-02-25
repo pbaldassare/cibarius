@@ -7,6 +7,8 @@ import { AuthProvider } from "./hooks/useAuth";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RoleGuard from "./components/RoleGuard";
 import RestaurantGuard from "./components/RestaurantGuard";
+import UserLayout from "./components/UserLayout";
+import RestaurantLayout from "./components/RestaurantLayout";
 import MobileLayout from "./components/MobileLayout";
 
 // Auth pages
@@ -93,9 +95,8 @@ const App = () => (
             {/* Protected routes */}
             <Route element={<ProtectedRoute />}>
 
-              {/* Mobile layout routes */}
-              <Route element={<MobileLayout />}>
-                {/* User */}
+              {/* ═══ USER APP (UserLayout) ═══ */}
+              <Route element={<RG roles={["user", "admin"]}><UserLayout /></RG>}>
                 <Route path="/" element={<Index />} />
                 <Route path="/expiry" element={<ExpiryPage />} />
                 <Route path="/scan" element={<ScanPage />} />
@@ -110,27 +111,38 @@ const App = () => (
                 <Route path="/recipes" element={<PublicRecipesPage />} />
                 <Route path="/recipes/:recipeId" element={<RecipeDetailPage />} />
                 <Route path="/preparations" element={<PreparationsPage />} />
+              </Route>
 
-                {/* Restaurant owner - onboarding (no RestaurantGuard) */}
-                <Route path="/restaurant/onboarding" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantOnboardingPage /></RG>} />
+              {/* ═══ RESTAURANT APP (RestaurantLayout) ═══ */}
+              <Route path="/restaurant/onboarding" element={<RG roles={["restaurant_owner", "admin"]}><MobileLayout /></RG>}>
+                <Route index element={<RestaurantOnboardingPage />} />
+              </Route>
 
-                {/* Restaurant owner - app pages (with RestaurantGuard) */}
-                <Route path="/restaurant" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><RestaurantPage /></RestaurantGuard></RG>} />
-                <Route path="/restaurant/products" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><RestaurantProductsPage /></RestaurantGuard></RG>} />
-                <Route path="/restaurant/recipes" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><RestaurantRecipesPage /></RestaurantGuard></RG>} />
-                <Route path="/restaurant/settings" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><RestaurantSettingsPage /></RestaurantGuard></RG>} />
-                <Route path="/restaurant/invoices" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><RestaurantInvoicesPage /></RestaurantGuard></RG>} />
-                <Route path="/restaurant/preparations" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><RestaurantPreparationsPage /></RestaurantGuard></RG>} />
+              <Route element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><RestaurantLayout /></RestaurantGuard></RG>}>
+                <Route path="/restaurant" element={<RestaurantPage />} />
+                <Route path="/restaurant/products" element={<RestaurantProductsPage />} />
+                <Route path="/restaurant/recipes" element={<RestaurantRecipesPage />} />
+                <Route path="/restaurant/settings" element={<RestaurantSettingsPage />} />
+                <Route path="/restaurant/invoices" element={<RestaurantInvoicesPage />} />
+                <Route path="/restaurant/preparations" element={<RestaurantPreparationsPage />} />
+              </Route>
+
+              {/* Supplier invite (restaurant context) */}
+              <Route element={<MobileLayout />}>
                 <Route path="/supplier-invite" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><SupplierInvitePage /></RestaurantGuard></RG>} />
+              </Route>
 
-                {/* Professional */}
+              {/* ═══ PROFESSIONAL ═══ */}
+              <Route element={<MobileLayout />}>
                 <Route path="/pro" element={<RG roles={["professional", "admin"]}><ProPage /></RG>} />
                 <Route path="/pro/clients" element={<RG roles={["professional", "admin"]}><ProClientsPage /></RG>} />
                 <Route path="/pro/client/:clientId" element={<RG roles={["professional", "admin"]}><ProClientDetailPage /></RG>} />
                 <Route path="/pro/reports" element={<RG roles={["professional", "admin"]}><ProReportsPage /></RG>} />
                 <Route path="/pro/notes" element={<RG roles={["professional", "admin"]}><ProNotesPage /></RG>} />
+              </Route>
 
-                {/* Supplier */}
+              {/* ═══ SUPPLIER ═══ */}
+              <Route element={<MobileLayout />}>
                 <Route path="/supplier" element={<RG roles={["supplier", "admin"]}><SupplierPage /></RG>} />
                 <Route path="/supplier/restaurants" element={<RG roles={["supplier", "admin"]}><SupplierRestaurantsPage /></RG>} />
                 <Route path="/supplier/catalog" element={<RG roles={["supplier", "admin"]}><SupplierCatalogPage /></RG>} />
