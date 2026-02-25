@@ -109,12 +109,6 @@
     @apply border-border;
   }
 
-  html, body, input, textarea, select, button, table, th, td,
-  p, span, div, a, li, label, option, fieldset, legend,
-  [class*="sidebar"], [class*="nav"], [class*="menu"] {
-    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif !important;
-  }
-
   body {
     @apply bg-background text-foreground antialiased;
     font-size: 14px;
@@ -122,25 +116,19 @@
     -webkit-tap-highlight-color: transparent;
   }
 
-  h1, h2, h3, h4, h5, h6,
-  .font-display {
-    font-family: 'Fredoka', 'Baloo 2', 'Nunito', sans-serif !important;
-  }
+  h1 { font-size: 22px; font-weight: 700; }
+  h2 { font-size: 18px; font-weight: 700; }
+  h3 { font-size: 16px; font-weight: 600; }
+}
 
-  h1 {
-    font-size: 22px;
-    font-weight: 700;
-  }
+/* Force Inter on EVERYTHING — outside @layer for max specificity */
+*, *::before, *::after {
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
 
-  h2 {
-    font-size: 18px;
-    font-weight: 700;
-  }
-
-  h3 {
-    font-size: 16px;
-    font-weight: 600;
-  }
+/* Force Fredoka on headings only */
+h1, h2, h3, h4, h5, h6, .font-display {
+  font-family: 'Fredoka', 'Baloo 2', 'Nunito', sans-serif !important;
 }
 
 @layer utilities {
