@@ -27,7 +27,7 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
       {/* Sidebar */}
       <aside className="hidden w-64 flex-col bg-gradient-to-b from-primary to-primary-dark md:flex">
         <div className="flex h-16 items-center gap-2 border-b border-white/10 px-6">
-          <img src={cibariusLogo} alt="Cibarius" className="h-6" />
+          <img src={cibariusLogo} alt="Cibarius" className="h-6 brightness-0 invert" />
         </div>
         <nav className="flex-1 space-y-1 p-3">
           {sidebarItems.map(({ to, icon: Icon, label }) => {
@@ -63,7 +63,7 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
       {/* Mobile header for admin */}
       <div className="flex flex-1 flex-col">
         <header className="flex h-16 items-center gap-3 bg-gradient-to-r from-primary to-primary-dark px-4 md:hidden">
-          <img src={cibariusLogo} alt="Cibarius" className="h-6" />
+          <img src={cibariusLogo} alt="Cibarius" className="h-6 brightness-0 invert" />
         </header>
         <main className="flex-1 p-4 md:p-6">{children}</main>
       </div>
