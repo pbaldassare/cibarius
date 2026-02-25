@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.analyze-food-photos]
 verify_jwt = false
+
+[functions.search-food]
+verify_jwt = false

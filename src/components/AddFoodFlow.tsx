@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useDebounce } from "@/hooks/useDebounce";
 import BarcodeScanner from "@/components/BarcodeScanner";
 import { lookupBarcode, calcNutrition, type ProductData } from "@/lib/barcode";
+import { searchFood, type FoodSearchResult } from "@/lib/search-food";
 import { analyzeFoodPhotos, fuseWithOFF, fileToImageFile, type ImageFile, type FusedFoodData } from "@/lib/ai-food";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -170,22 +171,36 @@ const AddFoodFlow = ({
     }
   }, [open, preselectedMealType]);
 
-  // Search products
+  // Search products (unified: local + OFF + USDA)
   useEffect(() => {
     if (step !== "search" || !debouncedQuery.trim()) {
       if (!debouncedQuery.trim()) setSearchResults([]);
       return;
     }
+    let cancelled = false;
     setSearching(true);
-    supabase
-      .from("products")
-      .select("id, name, brand, calories_100g, macros_100g, image_url, serving_size_g")
-      .ilike("name", `%${debouncedQuery}%`)
-      .limit(20)
-      .then(({ data }) => {
-        setSearchResults((data as SearchProduct[]) ?? []);
-        setSearching(false);
-      });
+    searchFood(debouncedQuery).then((results) => {
+      if (cancelled) return;
+      // Map FoodSearchResult to SearchProduct shape for the list
+      setSearchResults(
+        results.map((r) => ({
+          id: r.local_product_id || `${r.source}:${r.barcode || r.name}`,
+          name: r.name,
+          brand: r.brand,
+          calories_100g: r.calories_100g,
+          macros_100g:
+            r.protein_100g != null
+              ? { protein: r.protein_100g, carbs: r.carbs_100g ?? 0, fats: r.fats_100g ?? 0 }
+              : null,
+          image_url: r.image_url,
+          serving_size_g: null,
+          _source: r.source,
+          _barcode: r.barcode,
+        })) as any
+      );
+      setSearching(false);
+    });
+    return () => { cancelled = true; };
   }, [debouncedQuery, step]);
 
   // Calcs
@@ -209,15 +224,57 @@ const AddFoodFlow = ({
   };
 
   // ─── Search select ───
-  const handleSelectSearchProduct = (p: SearchProduct) => {
+  const handleSelectSearchProduct = async (p: SearchProduct) => {
+    const src = (p as any)._source as string | undefined;
+    const bc = (p as any)._barcode as string | undefined;
+
+    // If it's from OFF/USDA, upsert into products first
+    let pid = p.id;
+    if (src === "off" || src === "usda") {
+      if (bc) {
+        const { data: existing } = await supabase
+          .from("products").select("id").eq("barcode", bc).maybeSingle();
+        if (existing) {
+          pid = existing.id;
+          await supabase.from("products").update({
+            name: p.name,
+            brand: p.brand || null,
+            image_url: p.image_url,
+            calories_100g: p.calories_100g,
+            macros_100g: p.macros_100g as any,
+          }).eq("id", existing.id);
+        } else {
+          const { data: created } = await supabase.from("products").insert({
+            name: p.name,
+            brand: p.brand || null,
+            barcode: bc,
+            image_url: p.image_url,
+            calories_100g: p.calories_100g,
+            macros_100g: p.macros_100g as any,
+          }).select("id").single();
+          if (created) pid = created.id;
+        }
+      } else {
+        const { data: created } = await supabase.from("products").insert({
+          name: p.name,
+          brand: p.brand || null,
+          image_url: p.image_url,
+          calories_100g: p.calories_100g,
+          macros_100g: p.macros_100g as any,
+        }).select("id").single();
+        if (created) pid = created.id;
+      }
+    }
+
     setSelectedProduct(p);
-    setProductId(p.id);
+    setProductId(pid);
     setName(p.name);
     setBrand(p.brand ?? "");
     setImageUrl(p.image_url);
     setCalories100g(p.calories_100g);
     setMacros100g(p.macros_100g as any);
     setServingSizeG(p.serving_size_g);
+    setBarcode(bc || null);
     setQuantity(100);
     setUnit("g");
     setStep("summary");
@@ -851,7 +908,14 @@ const AddFoodFlow = ({
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate" style={{ color: "#111827" }}>{p.name}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-sm font-medium truncate" style={{ color: "#111827" }}>{p.name}</p>
+                          {(p as any)._source && (p as any)._source !== "local" && (
+                            <Badge variant="outline" className="text-[9px] px-1 py-0 shrink-0 uppercase">
+                              {(p as any)._source}
+                            </Badge>
+                          )}
+                        </div>
                         {p.brand && <p className="text-xs" style={{ color: "#4B5563" }}>{p.brand}</p>}
                       </div>
                       {p.calories_100g != null && (
