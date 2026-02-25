@@ -14,7 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["Inter", "system-ui", "-apple-system", "sans-serif"],
+        sans: ["Inter", "Nunito Sans", "Roboto", "sans-serif"],
+        display: ["Fredoka", "Baloo 2", "Nunito", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",
