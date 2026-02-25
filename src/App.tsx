@@ -67,6 +67,7 @@ import SupplierReportsPage from "./pages/supplier/SupplierReportsPage";
 import SupplierInvitePage from "./pages/supplier/SupplierInvitePage";
 
 import NotFound from "./pages/NotFound";
+import PwaInstallBanner from "./components/PwaInstallBanner";
 
 const queryClient = new QueryClient();
 
@@ -79,6 +80,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <PwaInstallBanner />
       <BrowserRouter>
         <AuthProvider>
           <Routes>
