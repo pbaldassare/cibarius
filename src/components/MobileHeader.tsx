@@ -24,7 +24,7 @@ const MobileHeader = ({ title, showBack = false, right }: MobileHeaderProps) => 
             )}
           </div>
           <div className="flex flex-1 items-center justify-center gap-2">
-            <img src={cibariusLogo} alt="Cibarius" className="h-6" />
+            <img src={cibariusLogo} alt="Cibarius" className="h-6 brightness-0 invert" />
           </div>
           <div className="flex w-10 items-center justify-end text-primary-foreground">{right}</div>
         </div>
