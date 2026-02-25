@@ -13,7 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import {
   ArrowLeft, Search, ScanLine, Keyboard, Camera, Loader2,
   Package, Plus, Minus, Check, Flame, Archive, Thermometer, Snowflake,
-  CalendarSearch, AlertTriangle,
+  CalendarSearch, AlertTriangle, Sparkles,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -114,6 +114,10 @@ const AddFoodFlow = ({
   const [expiryAnalyzing, setExpiryAnalyzing] = useState(false);
   const [expiryCandidates, setExpiryCandidates] = useState<{ date: string; label: string; confidence: number }[]>([]);
   const expiryInputRef = useRef<HTMLInputElement>(null);
+
+  // AI product photo
+  const [aiAnalyzing, setAiAnalyzing] = useState(false);
+  const aiPhotoRef = useRef<HTMLInputElement>(null);
 
   const [saving, setSaving] = useState(false);
 
@@ -263,6 +267,53 @@ const AddFoodFlow = ({
         toast({ variant: "destructive", title: "Errore OCR", description: err?.message || "Impossibile leggere la scadenza" });
       } finally {
         setExpiryAnalyzing(false);
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  // ─── AI Product Photo ───
+  const handleAiPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAiAnalyzing(true);
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const dataUrl = reader.result as string;
+      const base64 = dataUrl.split(",")[1];
+      const mimeType = file.type || "image/jpeg";
+
+      try {
+        const { data, error } = await supabase.functions.invoke("extract-product", {
+          body: { image_base64: base64, mime_type: mimeType },
+        });
+        if (error) throw error;
+        if (data?.product) {
+          const p = data.product;
+          if (p.product_name) setName(p.product_name);
+          if (p.brand) setBrand(p.brand);
+          if (p.barcode) setBarcode(p.barcode);
+          if (p.calories_100g != null) setCalories100g(p.calories_100g);
+          if (p.protein_100g != null || p.carbs_100g != null || p.fat_100g != null) {
+            setMacros100g({
+              protein: p.protein_100g ?? 0,
+              carbs: p.carbs_100g ?? 0,
+              fats: p.fat_100g ?? 0,
+            });
+          }
+          if (p.serving_size_g != null) setServingSizeG(p.serving_size_g);
+          if (p.expiry_date) setExpiryDate(p.expiry_date);
+          setNotFound(false);
+          setStep("summary");
+          toast({ title: "Prodotto riconosciuto dall'AI ✓" });
+        } else {
+          toast({ variant: "destructive", title: "AI non ha riconosciuto il prodotto" });
+        }
+      } catch (err: any) {
+        toast({ variant: "destructive", title: "Errore AI", description: err?.message });
+      } finally {
+        setAiAnalyzing(false);
       }
     };
     reader.readAsDataURL(file);
@@ -498,6 +549,29 @@ const AddFoodFlow = ({
                       </div>
                     </button>
                   ))}
+                  {/* AI Photo button */}
+                  <button
+                    onClick={() => {
+                      if (context === "meal" && !preselectedMealType && !selectedMealType) {
+                        toast({ variant: "destructive", title: "Seleziona prima il tipo di pasto" });
+                        return;
+                      }
+                      aiPhotoRef.current?.click();
+                    }}
+                    disabled={aiAnalyzing}
+                    className="flex items-center gap-3 rounded-2xl border border-primary/30 bg-primary/5 p-4 text-left active:scale-[0.98] transition-transform"
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/20">
+                      {aiAnalyzing ? <Loader2 className="h-5 w-5 text-primary animate-spin" /> : <Sparkles className="h-5 w-5 text-primary" />}
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold" style={{ color: "#111827" }}>
+                        {aiAnalyzing ? "Analisi AI in corso..." : "📸 Foto etichetta (AI)"}
+                      </p>
+                      <p className="text-xs" style={{ color: "#4B5563" }}>Scatta foto e l'AI legge tutto</p>
+                    </div>
+                  </button>
+                  <input ref={aiPhotoRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleAiPhoto} />
                 </div>
               </div>
             )}
@@ -594,11 +668,24 @@ const AddFoodFlow = ({
             {step === "summary" && (
               <div className="space-y-4">
                 {notFound && (
-                  <div className="flex items-center gap-2 rounded-xl border border-accent/30 bg-accent/5 p-3">
-                    <AlertTriangle className="h-5 w-5 text-accent shrink-0" />
-                    <p className="text-xs" style={{ color: "#4B5563" }}>
-                      Barcode non trovato. Compila manualmente.
-                    </p>
+                  <div className="rounded-xl border border-accent/30 bg-accent/5 p-3 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5 text-accent shrink-0" />
+                      <p className="text-xs" style={{ color: "#4B5563" }}>
+                        Barcode non trovato su OpenFoodFacts.
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full gap-2"
+                      onClick={() => aiPhotoRef.current?.click()}
+                      disabled={aiAnalyzing}
+                    >
+                      {aiAnalyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                      {aiAnalyzing ? "Analisi in corso..." : "📸 Scatta foto etichetta (AI)"}
+                    </Button>
+                    <input ref={aiPhotoRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleAiPhoto} />
                   </div>
                 )}
 
