@@ -234,7 +234,7 @@ const Index = () => {
         {counts.total > 0 ? (
           <button
             onClick={() => setResolveOpen(true)}
-            className="flex w-full items-center justify-center gap-2 rounded-[14px] h-11 text-[14px] font-semibold text-primary-foreground bg-primary shadow-card active:scale-[0.97] transition-all"
+            className="flex w-full items-center justify-center gap-2 rounded-[14px] h-11 text-[14px] font-semibold text-white btn-brand active:scale-[0.97] transition-all"
           >
             <Zap className="h-4 w-4" strokeWidth={2.2} />
             Risolvi · {counts.total}
@@ -299,27 +299,23 @@ const Index = () => {
         {/* ═══ RICETTE HERO CARD ═══ */}
         <button
           onClick={() => navigate("/recipes")}
-          className="relative w-full overflow-hidden rounded-[18px] shadow-card active:scale-[0.98] transition-transform"
-          style={{
-            background: "linear-gradient(135deg, hsl(196, 88%, 54%) 0%, hsl(201, 89%, 39%) 100%)",
-          }}
+          className="relative w-full overflow-hidden rounded-[18px] bg-card shadow-card active:scale-[0.98] transition-transform text-left"
         >
-          <div className="flex items-center gap-4 px-5 py-5">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/15 backdrop-blur-sm">
+          {/* Top gradient strip */}
+          <div className="h-2 w-full bg-brand-gradient" />
+          <div className="flex items-center gap-4 px-5 py-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-gradient shadow-brand">
               <BookOpen className="h-6 w-6 text-white" strokeWidth={1.8} />
             </div>
-            <div className="flex-1 text-left">
-              <p className="text-[15px] font-bold text-white">Ricette dai ristoranti</p>
-              <p className="text-[12px] text-white/70 mt-0.5">Scopri e replica ricette pubbliche</p>
+            <div className="flex-1">
+              <p className="text-[15px] font-bold text-foreground">Ricette dai ristoranti</p>
+              <p className="text-[12px] text-muted-foreground mt-0.5">Scopri e replica ricette pubbliche</p>
             </div>
-            <div className="flex items-center gap-1 shrink-0 rounded-[10px] bg-white/20 px-3 py-1.5">
-              <span className="text-[12px] font-semibold text-white">Sfoglia</span>
-              <ChevronRight className="h-3.5 w-3.5 text-white" />
+            <div className="flex items-center gap-1 shrink-0 rounded-[10px] btn-brand px-3 py-1.5">
+              <span className="text-[12px] font-semibold">Sfoglia</span>
+              <ChevronRight className="h-3.5 w-3.5" />
             </div>
           </div>
-          {/* Decorative circles */}
-          <div className="absolute -top-4 -right-4 h-20 w-20 rounded-full bg-white/5" />
-          <div className="absolute -bottom-6 -left-6 h-24 w-24 rounded-full bg-white/5" />
         </button>
 
       </main>
@@ -328,10 +324,10 @@ const Index = () => {
       <div className="fixed bottom-[calc(76px+env(safe-area-inset-bottom,0px))] right-4 z-40">
         <button
           onClick={() => setAddFoodOpen(true)}
-          className="flex h-12 w-12 items-center justify-center rounded-full shadow-elevated active:scale-95 transition-all bg-primary"
+          className="flex h-12 w-12 items-center justify-center rounded-full btn-brand active:scale-95 transition-all"
           aria-label="Aggiungi"
         >
-          <Plus className="h-5 w-5 text-primary-foreground" strokeWidth={2.2} />
+          <Plus className="h-5 w-5" strokeWidth={2.2} />
         </button>
       </div>
 
