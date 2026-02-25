@@ -1,12 +1,12 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Home, ScanLine, Clock, UtensilsCrossed, User } from "lucide-react";
+import { Home, Plus, Clock, UtensilsCrossed, User } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
 interface TabItem { to: string; icon: LucideIcon; label: string }
 
 const tabs: TabItem[] = [
   { to: "/", icon: Home, label: "Home" },
-  { to: "/scan", icon: ScanLine, label: "Aggiungi" },
+  { to: "/scan", icon: Plus, label: "Aggiungi" },
   { to: "/expiry", icon: Clock, label: "Scadenze" },
   { to: "/meals", icon: UtensilsCrossed, label: "Pasti" },
   { to: "/profile", icon: User, label: "Profilo" },
