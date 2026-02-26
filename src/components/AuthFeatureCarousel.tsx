@@ -1,30 +1,29 @@
 import { useState, useEffect, useCallback } from "react";
-import Lottie from "lottie-react";
-import calendarAnim from "@/assets/lottie/calendar.json";
-import scanAnim from "@/assets/lottie/scan.json";
-import nutritionAnim from "@/assets/lottie/nutrition.json";
+import expiryIllustration from "@/assets/illustrations/expiry.svg";
+import scanIllustration from "@/assets/illustrations/scan.svg";
+import nutritionIllustration from "@/assets/illustrations/nutrition.svg";
 
 interface Slide {
-  animation: object;
+  image: string;
   title: string;
   text: string;
 }
 
 const DEFAULT_SLIDES: Slide[] = [
   {
-    animation: calendarAnim,
+    image: expiryIllustration,
     title: "Scadenze sotto controllo",
-    text: "Prodotti e preparazioni in frigo, dispensa e congelatore.",
+    text: "Tieni sotto controllo prodotti e preparazioni.",
   },
   {
-    animation: scanAnim,
+    image: scanIllustration,
     title: "Foto o barcode",
     text: "L'AI legge etichetta, calorie, macro e scadenza.",
   },
   {
-    animation: nutritionAnim,
+    image: nutritionIllustration,
     title: "Piano e ricette",
-    text: "Segui la posologia e ricevi ricette bilanciate dal professionista.",
+    text: "Segui il piano del professionista e ricevi ricette su misura.",
   },
 ];
 
@@ -65,29 +64,27 @@ const AuthFeatureCarousel = ({ slides = DEFAULT_SLIDES, intervalMs = 5000 }: Pro
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
-      <div className="relative h-[240px] flex items-center justify-center overflow-hidden">
+      <div className="relative h-[260px] flex items-center justify-center overflow-hidden">
         {slides.map((slide, i) => (
           <div
             key={i}
-            className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center transition-all duration-600 ease-in-out"
+            className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center"
             style={{
               opacity: i === active ? 1 : 0,
-              transform: i === active ? "translateY(0) scale(1)" : "translateY(12px) scale(0.97)",
+              transform: i === active ? "translateY(0) scale(1)" : "translateY(16px) scale(0.96)",
+              transition: "opacity 0.6s ease, transform 0.6s ease",
               pointerEvents: i === active ? "auto" : "none",
             }}
           >
-            <div className="h-[140px] w-[140px] mb-3 drop-shadow-lg">
-              <Lottie
-                animationData={slide.animation}
-                loop
-                autoplay
-                style={{ width: 140, height: 140 }}
-              />
-            </div>
+            <img
+              src={slide.image}
+              alt={slide.title}
+              className="h-[160px] w-auto object-contain mb-4 animate-float drop-shadow-md"
+            />
             <h3 className="font-display text-lg font-semibold text-primary-foreground leading-tight">
               {slide.title}
             </h3>
-            <p className="mt-1 text-sm text-primary-foreground/75 leading-snug max-w-[280px]">
+            <p className="mt-1 text-sm text-primary-foreground/70 leading-snug max-w-[280px]">
               {slide.text}
             </p>
           </div>
@@ -95,7 +92,7 @@ const AuthFeatureCarousel = ({ slides = DEFAULT_SLIDES, intervalMs = 5000 }: Pro
       </div>
 
       {/* Pill dots */}
-      <div className="flex items-center justify-center gap-2 mt-2">
+      <div className="flex items-center justify-center gap-2 mt-1">
         {slides.map((_, i) => (
           <button
             key={i}
@@ -104,7 +101,7 @@ const AuthFeatureCarousel = ({ slides = DEFAULT_SLIDES, intervalMs = 5000 }: Pro
             className={`rounded-full transition-all duration-300 ${
               i === active
                 ? "w-6 h-[5px] bg-primary-foreground"
-                : "w-[5px] h-[5px] bg-primary-foreground/35 hover:bg-primary-foreground/55"
+                : "w-[5px] h-[5px] bg-primary-foreground/30 hover:bg-primary-foreground/50"
             }`}
             aria-label={`Slide ${i + 1}`}
           />
