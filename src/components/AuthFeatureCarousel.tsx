@@ -1,32 +1,30 @@
 import { useState, useEffect, useCallback } from "react";
-import { ShieldCheck, Camera, Target, ChefHat } from "lucide-react";
+import Lottie from "lottie-react";
+import calendarAnim from "@/assets/lottie/calendar.json";
+import scanAnim from "@/assets/lottie/scan.json";
+import nutritionAnim from "@/assets/lottie/nutrition.json";
 
 interface Slide {
-  icon: typeof ShieldCheck;
+  animation: object;
   title: string;
   text: string;
 }
 
 const DEFAULT_SLIDES: Slide[] = [
   {
-    icon: ShieldCheck,
+    animation: calendarAnim,
     title: "Scadenze sotto controllo",
     text: "Prodotti e preparazioni in frigo, dispensa e congelatore.",
   },
   {
-    icon: Camera,
-    title: "Aggiungi con foto o barcode",
+    animation: scanAnim,
+    title: "Foto o barcode",
     text: "L'AI legge etichetta, calorie, macro e scadenza.",
   },
   {
-    icon: Target,
-    title: "Pasti e obiettivi",
-    text: "Registra i pasti e segui la posologia del tuo piano.",
-  },
-  {
-    icon: ChefHat,
-    title: "Ricette dai ristoranti",
-    text: "Scopri ricette pubbliche e replicale a casa.",
+    animation: nutritionAnim,
+    title: "Piano e ricette",
+    text: "Segui la posologia e ricevi ricette bilanciate dal professionista.",
   },
 ];
 
@@ -35,27 +33,21 @@ interface Props {
   intervalMs?: number;
 }
 
-const AuthFeatureCarousel = ({ slides = DEFAULT_SLIDES, intervalMs = 4500 }: Props) => {
+const AuthFeatureCarousel = ({ slides = DEFAULT_SLIDES, intervalMs = 5000 }: Props) => {
   const [active, setActive] = useState(0);
-  const [direction, setDirection] = useState(1);
 
-  const goTo = useCallback(
-    (idx: number) => {
-      setDirection(idx > active ? 1 : -1);
-      setActive(idx);
-    },
-    [active],
-  );
+  const goTo = useCallback((idx: number) => {
+    setActive(idx);
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setDirection(1);
       setActive((prev) => (prev + 1) % slides.length);
     }, intervalMs);
     return () => clearInterval(timer);
   }, [slides.length, intervalMs]);
 
-  // Touch / swipe support
+  // Touch / swipe
   const [touchStart, setTouchStart] = useState<number | null>(null);
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -66,16 +58,11 @@ const AuthFeatureCarousel = ({ slides = DEFAULT_SLIDES, intervalMs = 4500 }: Pro
     if (touchStart === null) return;
     const diff = e.changedTouches[0].clientX - touchStart;
     if (Math.abs(diff) > 50) {
-      if (diff < 0) {
-        goTo((active + 1) % slides.length);
-      } else {
-        goTo((active - 1 + slides.length) % slides.length);
-      }
+      if (diff < 0) goTo((active + 1) % slides.length);
+      else goTo((active - 1 + slides.length) % slides.length);
     }
     setTouchStart(null);
   };
-
-  const Icon = slides[active].icon;
 
   return (
     <div
@@ -83,26 +70,37 @@ const AuthFeatureCarousel = ({ slides = DEFAULT_SLIDES, intervalMs = 4500 }: Pro
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Slide content */}
-      <div className="relative h-[130px] flex items-center justify-center overflow-hidden">
-        <div
-          key={active}
-          className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center animate-fade-in"
-        >
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 mb-3">
-            <Icon className="h-5 w-5 text-primary" />
+      <div className="relative h-[190px] flex items-center justify-center overflow-hidden rounded-2xl bg-card shadow-card mx-2">
+        {slides.map((slide, i) => (
+          <div
+            key={i}
+            className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center transition-all duration-500 ease-in-out"
+            style={{
+              opacity: i === active ? 1 : 0,
+              transform: i === active ? "translateY(0)" : "translateY(8px)",
+              pointerEvents: i === active ? "auto" : "none",
+            }}
+          >
+            <div className="h-[100px] w-[100px] mb-1">
+              <Lottie
+                animationData={slide.animation}
+                loop
+                autoplay={i === active}
+                style={{ width: 100, height: 100 }}
+              />
+            </div>
+            <h3 className="font-display text-base font-semibold text-foreground leading-tight">
+              {slide.title}
+            </h3>
+            <p className="mt-0.5 text-sm text-muted-foreground leading-snug max-w-[280px]">
+              {slide.text}
+            </p>
           </div>
-          <h3 className="text-base font-semibold text-foreground leading-tight">
-            {slides[active].title}
-          </h3>
-          <p className="mt-1 text-sm text-muted-foreground leading-snug max-w-[280px]">
-            {slides[active].text}
-          </p>
-        </div>
+        ))}
       </div>
 
       {/* Dots */}
-      <div className="flex items-center justify-center gap-1.5 mt-1">
+      <div className="flex items-center justify-center gap-1.5 mt-3">
         {slides.map((_, i) => (
           <button
             key={i}
