@@ -3,7 +3,7 @@ import MobileHeader from "@/components/MobileHeader";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { ChevronRight, Settings, Heart, Bell, HelpCircle, LogOut, UserX, Stethoscope, Sparkles } from "lucide-react";
+import { ChevronRight, Settings, Heart, Bell, HelpCircle, LogOut, UserX, Stethoscope, Sparkles, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -15,6 +15,7 @@ const ProfiloPage = () => {
   const [proLink, setProLink] = useState<any>(null);
   const [proProfile, setProProfile] = useState<any>(null);
   const [loadingPro, setLoadingPro] = useState(true);
+  const [hasPlan, setHasPlan] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -29,12 +30,12 @@ const ProfiloPage = () => {
 
       if (link) {
         setProLink(link);
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("full_name, email")
-          .eq("id", link.professional_id)
-          .single();
-        setProProfile(profile);
+        const [profileRes, planRes] = await Promise.all([
+          supabase.from("profiles").select("full_name, email").eq("id", link.professional_id).single(),
+          supabase.from("diet_plans").select("id").eq("client_user_id", user.id).eq("is_active", true).maybeSingle(),
+        ]);
+        setProProfile(profileRes.data);
+        setHasPlan(!!planRes.data);
       }
       setLoadingPro(false);
     };
@@ -106,6 +107,11 @@ const ProfiloPage = () => {
                 <Button variant="outline" size="sm" className="w-full text-destructive border-destructive/30 gap-2 rounded-xl" onClick={revokeAccess}>
                   <UserX className="h-4 w-4" /> Revoca accesso
                 </Button>
+                {hasPlan && (
+                  <Button variant="outline" size="sm" className="w-full gap-2 rounded-xl" onClick={() => navigate("/diet")}>
+                    <ClipboardList className="h-4 w-4" /> Vedi il mio piano
+                  </Button>
+                )}
               </div>
             ) : (
               <button

@@ -6,7 +6,7 @@ import ListSkeleton from "@/components/ListSkeleton";
 import AddFoodFlow from "@/components/AddFoodFlow";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Plus, UtensilsCrossed, Target, Trash2, Flame } from "lucide-react";
+import { Plus, UtensilsCrossed, Target, Trash2, Flame, ClipboardList } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
 interface MealItem {
@@ -15,6 +15,7 @@ interface MealItem {
   calories: number | null;
   quantity: number | null;
   unit: string | null;
+  macros: any;
 }
 
 interface Meal {
@@ -27,6 +28,14 @@ interface MealDay {
   id: string;
   day_date: string;
   meals: Meal[];
+}
+
+interface MealTarget {
+  meal_type: string;
+  kcal_target: number;
+  protein_g: number;
+  carbs_g: number;
+  fats_g: number;
 }
 
 const mealEmoji: Record<string, string> = {
@@ -45,13 +54,15 @@ const PastiPage = () => {
   const [mealDay, setMealDay] = useState<MealDay | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [targetKcal, setTargetKcal] = useState<number | null>(null);
+  const [dietPlan, setDietPlan] = useState<any>(null);
+  const [mealTargets, setMealTargets] = useState<MealTarget[]>([]);
 
   const fetchMeals = useCallback(async () => {
     if (!user) return;
     const today = new Date().toISOString().slice(0, 10);
     const { data } = await supabase
       .from("meal_days")
-      .select("id, day_date, meals(id, meal_type, meal_items(id, custom_name, calories, quantity, unit))")
+      .select("id, day_date, meals(id, meal_type, meal_items(id, custom_name, calories, quantity, unit, macros))")
       .eq("user_id", user.id)
       .eq("day_date", today)
       .maybeSingle();
@@ -63,9 +74,24 @@ const PastiPage = () => {
 
   useEffect(() => {
     if (!user) return;
+    // Load nutrition targets
     supabase.from("nutrition_targets").select("kcal_day").eq("user_id", user.id).maybeSingle().then(({ data }) => {
       if (data) setTargetKcal(data.kcal_day);
     });
+    // Load diet plan + meal targets
+    supabase
+      .from("diet_plans")
+      .select("*, diet_plan_meal_targets(*)")
+      .eq("client_user_id", user.id)
+      .eq("is_active", true)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setDietPlan(data);
+          setMealTargets((data as any).diet_plan_meal_targets ?? []);
+          if (!targetKcal) setTargetKcal((data as any).kcal_day);
+        }
+      });
   }, [user]);
 
   const handleDeleteItem = async (itemId: string) => {
@@ -94,6 +120,12 @@ const PastiPage = () => {
           </div>
           <div className="flex items-center gap-2">
             <button
+              onClick={() => navigate("/diet")}
+              className="flex items-center gap-1 text-sm font-medium text-muted-foreground"
+            >
+              <ClipboardList size={16} />
+            </button>
+            <button
               onClick={() => navigate("/meals/targets")}
               className="flex items-center gap-1 text-sm font-medium text-muted-foreground"
             >
@@ -109,7 +141,21 @@ const PastiPage = () => {
           </div>
         </div>
 
-        {/* Calorie progress card */}
+        {/* Diet plan box */}
+        {dietPlan && (
+          <button
+            onClick={() => navigate("/diet")}
+            className="w-full rounded-xl border-2 border-primary/20 bg-primary/5 p-3 text-left flex items-center gap-3 active:scale-[0.98] transition-transform"
+          >
+            <ClipboardList className="h-5 w-5 text-primary shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-foreground">{dietPlan.title}</p>
+              <p className="text-xs text-muted-foreground">{dietPlan.kcal_day} kcal · P{dietPlan.protein_g_day} C{dietPlan.carbs_g_day} G{dietPlan.fats_g_day}</p>
+            </div>
+            <span className="text-xs text-primary font-medium">Vedi →</span>
+          </button>
+        )}
+
         {targetKcal && meals.length > 0 && (
           <div className="rounded-xl border-2 border-accent bg-card p-4 space-y-2">
             <div className="flex items-center gap-2">
@@ -145,6 +191,15 @@ const PastiPage = () => {
           <div className="space-y-3">
             {meals.map((meal) => {
               const mealKcal = meal.meal_items.reduce((s, i) => s + (i.calories ?? 0), 0);
+              const mealMacros = meal.meal_items.reduce(
+                (acc, i) => {
+                  const m = i.macros as any;
+                  if (m) { acc.p += m.protein ?? 0; acc.c += m.carbs ?? 0; acc.f += m.fats ?? 0; }
+                  return acc;
+                },
+                { p: 0, c: 0, f: 0 }
+              );
+              const mt = mealTargets.find((t) => t.meal_type === meal.meal_type);
               return (
                 <div key={meal.id} className="rounded-xl border-2 border-accent bg-card p-4 space-y-2.5">
                   <div className="flex items-center justify-between">
@@ -152,8 +207,22 @@ const PastiPage = () => {
                       <span>{mealEmoji[meal.meal_type] ?? "🍽️"}</span>
                       {meal.meal_type.charAt(0).toUpperCase() + meal.meal_type.slice(1)}
                     </span>
-                    <span className="text-sm font-medium text-primary">{mealKcal} kcal</span>
+                    <span className="text-sm font-medium text-primary">
+                      {mealKcal}{mt ? ` / ${mt.kcal_target}` : ""} kcal
+                    </span>
                   </div>
+
+                  {/* Per-meal progress if diet plan exists */}
+                  {mt && (
+                    <div className="space-y-1">
+                      <Progress value={mt.kcal_target > 0 ? Math.min((mealKcal / mt.kcal_target) * 100, 100) : 0} className="h-1.5" />
+                      <div className="flex justify-between text-[10px] text-muted-foreground">
+                        <span>P: {Math.round(mealMacros.p)}/{mt.protein_g}g</span>
+                        <span>C: {Math.round(mealMacros.c)}/{mt.carbs_g}g</span>
+                        <span>G: {Math.round(mealMacros.f)}/{mt.fats_g}g</span>
+                      </div>
+                    </div>
+                  )}
 
                   {meal.meal_items.length === 0 ? (
                     <p className="text-sm text-muted-foreground">Nessun alimento</p>

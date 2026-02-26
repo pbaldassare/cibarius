@@ -103,6 +103,131 @@ export type Database = {
         }
         Relationships: []
       }
+      diet_plan_meal_targets: {
+        Row: {
+          carbs_g: number
+          diet_plan_id: string
+          fats_g: number
+          id: string
+          kcal_target: number
+          meal_type: string
+          protein_g: number
+        }
+        Insert: {
+          carbs_g: number
+          diet_plan_id: string
+          fats_g: number
+          id?: string
+          kcal_target: number
+          meal_type: string
+          protein_g: number
+        }
+        Update: {
+          carbs_g?: number
+          diet_plan_id?: string
+          fats_g?: number
+          id?: string
+          kcal_target?: number
+          meal_type?: string
+          protein_g?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diet_plan_meal_targets_diet_plan_id_fkey"
+            columns: ["diet_plan_id"]
+            isOneToOne: false
+            referencedRelation: "diet_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      diet_plans: {
+        Row: {
+          carbs_g_day: number
+          client_user_id: string
+          created_at: string
+          end_date: string | null
+          fats_g_day: number
+          id: string
+          is_active: boolean
+          kcal_day: number
+          notes: string | null
+          professional_id: string
+          protein_g_day: number
+          start_date: string
+          title: string
+        }
+        Insert: {
+          carbs_g_day: number
+          client_user_id: string
+          created_at?: string
+          end_date?: string | null
+          fats_g_day: number
+          id?: string
+          is_active?: boolean
+          kcal_day: number
+          notes?: string | null
+          professional_id: string
+          protein_g_day: number
+          start_date?: string
+          title?: string
+        }
+        Update: {
+          carbs_g_day?: number
+          client_user_id?: string
+          created_at?: string
+          end_date?: string | null
+          fats_g_day?: number
+          id?: string
+          is_active?: boolean
+          kcal_day?: number
+          notes?: string | null
+          professional_id?: string
+          protein_g_day?: number
+          start_date?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      generated_recipes: {
+        Row: {
+          client_user_id: string
+          created_at: string
+          id: string
+          ingredients: Json
+          instructions: string | null
+          kcal_total: number | null
+          macros: Json | null
+          meal_type: string | null
+          professional_id: string
+          title: string
+        }
+        Insert: {
+          client_user_id: string
+          created_at?: string
+          id?: string
+          ingredients?: Json
+          instructions?: string | null
+          kcal_total?: number | null
+          macros?: Json | null
+          meal_type?: string | null
+          professional_id: string
+          title: string
+        }
+        Update: {
+          client_user_id?: string
+          created_at?: string
+          id?: string
+          ingredients?: Json
+          instructions?: string | null
+          kcal_total?: number | null
+          macros?: Json | null
+          meal_type?: string | null
+          professional_id?: string
+          title?: string
+        }
+        Relationships: []
+      }
       inventory_items: {
         Row: {
           calories_total: number | null
@@ -437,6 +562,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pro_suggestions: {
+        Row: {
+          client_user_id: string
+          created_at: string
+          id: string
+          payload: Json | null
+          professional_id: string
+          seen_at: string | null
+          type: string
+        }
+        Insert: {
+          client_user_id: string
+          created_at?: string
+          id?: string
+          payload?: Json | null
+          professional_id: string
+          seen_at?: string | null
+          type: string
+        }
+        Update: {
+          client_user_id?: string
+          created_at?: string
+          id?: string
+          payload?: Json | null
+          professional_id?: string
+          seen_at?: string | null
+          type?: string
+        }
+        Relationships: []
       }
       products: {
         Row: {
@@ -987,6 +1142,10 @@ export type Database = {
     Functions: {
       current_user_is_admin: { Args: never; Returns: boolean }
       has_active_client_link: {
+        Args: { _client_id: string; _pro_id: string }
+        Returns: boolean
+      }
+      has_active_pro_link: {
         Args: { _client_id: string; _pro_id: string }
         Returns: boolean
       }
