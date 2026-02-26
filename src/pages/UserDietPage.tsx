@@ -302,6 +302,23 @@ const UserDietPage = () => {
           </Card>
         )}
 
+        {/* ═══ SMART RECIPES CTA ═══ */}
+        <Card
+          className="border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10 cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => navigate("/my-recipes")}
+        >
+          <CardContent className="py-3.5 flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
+              <Sparkles className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-foreground">Genera ricette smart</p>
+              <p className="text-[11px] text-muted-foreground">Crea ricette bilanciate con quello che hai in dispensa</p>
+            </div>
+            <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+          </CardContent>
+        </Card>
+
         {/* ═══ 4. MEAL TARGETS – ACTION-ORIENTED ═══ */}
         <div className="space-y-2">
           <h3 className="text-sm font-bold text-foreground">🍽️ Posologia per pasto</h3>
