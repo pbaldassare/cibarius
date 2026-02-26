@@ -90,7 +90,9 @@ const ProClientsPage = () => {
     if (error) {
       toast({ variant: "destructive", title: "Errore", description: error.message });
     } else {
-      toast({ title: "Invito creato!", description: `Codice: ${code}` });
+      const url = `${window.location.origin}/invite?code=${code}`;
+      await navigator.clipboard.writeText(url);
+      toast({ title: "Invito creato e link copiato!", description: `Codice: ${code}` });
       loadData();
     }
   };
