@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Wand2, ChevronRight, ChevronLeft, Check } from "lucide-react";
+import { Loader2, Wand2, ChevronRight, ChevronLeft, Check, AlertTriangle, RefreshCw } from "lucide-react";
 
 const MEAL_TYPES = ["colazione", "pranzo", "cena", "spuntino"] as const;
 const MEAL_LABELS: Record<string, string> = {
@@ -17,7 +18,6 @@ const MEAL_LABELS: Record<string, string> = {
   cena: "🌙 Cena",
   spuntino: "🍎 Spuntino",
 };
-const DEFAULT_SPLIT = [0.25, 0.35, 0.30, 0.10];
 
 interface MealTarget {
   meal_type: string;
@@ -45,16 +45,20 @@ const ProClientPlanPage = () => {
   const [carbsDay, setCarbsDay] = useState("220");
   const [fatsDay, setFatsDay] = useState("70");
 
-  // Step 2
+  // Step 2 — all zeros by default, nutrizionista fills in
   const [mealTargets, setMealTargets] = useState<MealTarget[]>(
-    MEAL_TYPES.map((mt, i) => ({
+    MEAL_TYPES.map((mt) => ({
       meal_type: mt,
-      kcal_target: Math.round(2000 * DEFAULT_SPLIT[i]),
-      protein_g: Math.round(120 * DEFAULT_SPLIT[i]),
-      carbs_g: Math.round(220 * DEFAULT_SPLIT[i]),
-      fats_g: Math.round(70 * DEFAULT_SPLIT[i]),
+      kcal_target: 0,
+      protein_g: 0,
+      carbs_g: 0,
+      fats_g: 0,
     }))
   );
+
+  // Balance dialog
+  const [showBalanceDialog, setShowBalanceDialog] = useState(false);
+  const [balanceProposal, setBalanceProposal] = useState<MealTarget[] | null>(null);
 
   // Step 3
   const [notes, setNotes] = useState("");
@@ -100,24 +104,63 @@ const ProClientPlanPage = () => {
     load();
   }, [clientId, user]);
 
-  const autoSplit = () => {
-    const k = parseFloat(kcalDay) || 0;
-    const p = parseFloat(proteinDay) || 0;
-    const c = parseFloat(carbsDay) || 0;
-    const f = parseFloat(fatsDay) || 0;
-    setMealTargets(
-      MEAL_TYPES.map((mt, i) => ({
-        meal_type: mt,
-        kcal_target: Math.round(k * DEFAULT_SPLIT[i]),
-        protein_g: Math.round(p * DEFAULT_SPLIT[i]),
-        carbs_g: Math.round(c * DEFAULT_SPLIT[i]),
-        fats_g: Math.round(f * DEFAULT_SPLIT[i]),
-      }))
-    );
-  };
-
   const updateMealTarget = (idx: number, field: keyof MealTarget, value: string) => {
     setMealTargets((prev) => prev.map((mt, i) => (i === idx ? { ...mt, [field]: parseFloat(value) || 0 } : mt)));
+  };
+
+  // Computed totals
+  const sumKcal = mealTargets.reduce((s, m) => s + m.kcal_target, 0);
+  const sumProtein = mealTargets.reduce((s, m) => s + m.protein_g, 0);
+  const sumCarbs = mealTargets.reduce((s, m) => s + m.carbs_g, 0);
+  const sumFats = mealTargets.reduce((s, m) => s + m.fats_g, 0);
+
+  const targetKcal = parseFloat(kcalDay) || 0;
+  const targetProtein = parseFloat(proteinDay) || 0;
+  const targetCarbs = parseFloat(carbsDay) || 0;
+  const targetFats = parseFloat(fatsDay) || 0;
+
+  const kcalMatch = sumKcal === targetKcal;
+  const proteinMatch = sumProtein === targetProtein;
+  const carbsMatch = sumCarbs === targetCarbs;
+  const fatsMatch = sumFats === targetFats;
+  const allMatch = kcalMatch && proteinMatch && carbsMatch && fatsMatch;
+
+  // "Bilancia automaticamente" — minimal correction proposal
+  const proposeBalance = () => {
+    // Distribute the difference evenly across meals that have values > 0
+    // If all are 0, distribute evenly across all 4
+    const filledIndices = mealTargets
+      .map((mt, i) => (mt.kcal_target > 0 ? i : -1))
+      .filter((i) => i >= 0);
+    const indices = filledIndices.length > 0 ? filledIndices : mealTargets.map((_, i) => i);
+    const n = indices.length;
+
+    const diffKcal = targetKcal - sumKcal;
+    const diffProtein = targetProtein - sumProtein;
+    const diffCarbs = targetCarbs - sumCarbs;
+    const diffFats = targetFats - sumFats;
+
+    const proposal = mealTargets.map((mt, i) => {
+      if (!indices.includes(i)) return { ...mt };
+      return {
+        ...mt,
+        kcal_target: mt.kcal_target + Math.round(diffKcal / n),
+        protein_g: mt.protein_g + Math.round(diffProtein / n),
+        carbs_g: mt.carbs_g + Math.round(diffCarbs / n),
+        fats_g: mt.fats_g + Math.round(diffFats / n),
+      };
+    });
+
+    setBalanceProposal(proposal);
+    setShowBalanceDialog(true);
+  };
+
+  const applyBalance = () => {
+    if (balanceProposal) {
+      setMealTargets(balanceProposal);
+    }
+    setShowBalanceDialog(false);
+    setBalanceProposal(null);
   };
 
   const handlePublish = async () => {
@@ -125,22 +168,20 @@ const ProClientPlanPage = () => {
     setSaving(true);
 
     try {
-      // Deactivate existing plan if any
       if (existingPlanId) {
         await supabase.from("diet_plans").update({ is_active: false }).eq("id", existingPlanId);
       }
 
-      // Create new plan
       const { data: plan, error: planErr } = await supabase
         .from("diet_plans")
         .insert({
           professional_id: user.id,
           client_user_id: clientId,
           title,
-          kcal_day: parseFloat(kcalDay),
-          protein_g_day: parseFloat(proteinDay),
-          carbs_g_day: parseFloat(carbsDay),
-          fats_g_day: parseFloat(fatsDay),
+          kcal_day: targetKcal,
+          protein_g_day: targetProtein,
+          carbs_g_day: targetCarbs,
+          fats_g_day: targetFats,
           notes: notes || null,
           is_active: true,
         })
@@ -149,7 +190,6 @@ const ProClientPlanPage = () => {
 
       if (planErr || !plan) throw planErr;
 
-      // Insert meal targets
       const { error: mtErr } = await supabase.from("diet_plan_meal_targets").insert(
         mealTargets.map((mt) => ({
           diet_plan_id: plan.id,
@@ -163,13 +203,12 @@ const ProClientPlanPage = () => {
 
       if (mtErr) throw mtErr;
 
-      // Update client's nutrition_targets to match
       await supabase.from("nutrition_targets").upsert({
         user_id: clientId,
-        kcal_day: parseFloat(kcalDay),
-        protein_g: parseFloat(proteinDay),
-        carbs_g: parseFloat(carbsDay),
-        fats_g: parseFloat(fatsDay),
+        kcal_day: targetKcal,
+        protein_g: targetProtein,
+        carbs_g: targetCarbs,
+        fats_g: targetFats,
       }, { onConflict: "user_id" });
 
       toast({ title: "Piano pubblicato! ✅" });
@@ -188,6 +227,17 @@ const ProClientPlanPage = () => {
       </div>
     );
   }
+
+  // Mismatch summary line helper
+  const mismatchLine = (label: string, sum: number, target: number) => {
+    const diff = sum - target;
+    if (diff === 0) return null;
+    return (
+      <span className="text-destructive text-[10px]">
+        {label}: {sum} vs {target} ({diff > 0 ? "+" : ""}{diff})
+      </span>
+    );
+  };
 
   return (
     <div>
@@ -232,15 +282,40 @@ const ProClientPlanPage = () => {
           </Card>
         )}
 
-        {/* Step 2: Meal posology */}
+        {/* Step 2: Meal posology — fully manual */}
         {step === 2 && (
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-foreground">🍽️ Posologia per pasto</h3>
-              <Button size="sm" variant="outline" className="gap-1" onClick={autoSplit}>
-                <Wand2 className="h-3.5 w-3.5" /> Auto-split
-              </Button>
+            <h3 className="text-sm font-semibold text-foreground">🍽️ Posologia per pasto</h3>
+
+            {/* Live totals bar */}
+            <div className={`rounded-lg p-3 text-xs space-y-1 ${allMatch ? "bg-green-500/10 border border-green-500/20" : "bg-destructive/10 border border-destructive/20"}`}>
+              <div className="flex items-center gap-2 font-semibold">
+                {allMatch ? <Check className="h-3.5 w-3.5 text-green-600" /> : <AlertTriangle className="h-3.5 w-3.5 text-destructive" />}
+                <span className={allMatch ? "text-green-700" : "text-destructive"}>
+                  Totale inserito
+                </span>
+              </div>
+              <div className="grid grid-cols-4 gap-2 text-center">
+                <div>
+                  <p className="text-muted-foreground">Kcal</p>
+                  <p className={`font-bold ${kcalMatch ? "" : "text-destructive"}`}>{sumKcal} / {targetKcal}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Prot</p>
+                  <p className={`font-bold ${proteinMatch ? "" : "text-destructive"}`}>{sumProtein} / {targetProtein}g</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Carbo</p>
+                  <p className={`font-bold ${carbsMatch ? "" : "text-destructive"}`}>{sumCarbs} / {targetCarbs}g</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Grassi</p>
+                  <p className={`font-bold ${fatsMatch ? "" : "text-destructive"}`}>{sumFats} / {targetFats}g</p>
+                </div>
+              </div>
             </div>
+
+            {/* Meal cards */}
             {mealTargets.map((mt, idx) => (
               <Card key={mt.meal_type} className="border border-border">
                 <CardContent className="py-3 space-y-2">
@@ -248,28 +323,31 @@ const ProClientPlanPage = () => {
                   <div className="grid grid-cols-4 gap-2">
                     <div>
                       <label className="text-[10px] text-muted-foreground">Kcal</label>
-                      <Input type="number" value={mt.kcal_target} onChange={(e) => updateMealTarget(idx, "kcal_target", e.target.value)} className="h-8 text-xs" />
+                      <Input type="number" value={mt.kcal_target || ""} onChange={(e) => updateMealTarget(idx, "kcal_target", e.target.value)} className="h-8 text-xs" placeholder="0" />
                     </div>
                     <div>
                       <label className="text-[10px] text-muted-foreground">Prot.</label>
-                      <Input type="number" value={mt.protein_g} onChange={(e) => updateMealTarget(idx, "protein_g", e.target.value)} className="h-8 text-xs" />
+                      <Input type="number" value={mt.protein_g || ""} onChange={(e) => updateMealTarget(idx, "protein_g", e.target.value)} className="h-8 text-xs" placeholder="0" />
                     </div>
                     <div>
                       <label className="text-[10px] text-muted-foreground">Carbo</label>
-                      <Input type="number" value={mt.carbs_g} onChange={(e) => updateMealTarget(idx, "carbs_g", e.target.value)} className="h-8 text-xs" />
+                      <Input type="number" value={mt.carbs_g || ""} onChange={(e) => updateMealTarget(idx, "carbs_g", e.target.value)} className="h-8 text-xs" placeholder="0" />
                     </div>
                     <div>
                       <label className="text-[10px] text-muted-foreground">Grassi</label>
-                      <Input type="number" value={mt.fats_g} onChange={(e) => updateMealTarget(idx, "fats_g", e.target.value)} className="h-8 text-xs" />
+                      <Input type="number" value={mt.fats_g || ""} onChange={(e) => updateMealTarget(idx, "fats_g", e.target.value)} className="h-8 text-xs" placeholder="0" />
                     </div>
                   </div>
                 </CardContent>
               </Card>
             ))}
-            {/* Summary check */}
-            <div className="text-xs text-muted-foreground text-center">
-              Totale pasti: {mealTargets.reduce((s, m) => s + m.kcal_target, 0)} kcal / {kcalDay} target
-            </div>
+
+            {/* Action buttons */}
+            {!allMatch && (
+              <Button size="sm" variant="outline" className="w-full gap-2" onClick={proposeBalance}>
+                <Wand2 className="h-3.5 w-3.5" /> Bilancia automaticamente
+              </Button>
+            )}
           </div>
         )}
 
@@ -295,6 +373,23 @@ const ProClientPlanPage = () => {
         {/* Step 4: Review & Publish */}
         {step === 4 && (
           <div className="space-y-3">
+            {/* Mismatch warning */}
+            {!allMatch && (
+              <div className="flex items-start gap-2 rounded-lg bg-amber-500/10 border border-amber-500/20 p-3">
+                <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                <div className="text-xs space-y-0.5">
+                  <p className="font-semibold text-amber-700">I macro per pasto non sommano ai target giornalieri</p>
+                  <div className="flex flex-wrap gap-x-3">
+                    {mismatchLine("Kcal", sumKcal, targetKcal)}
+                    {mismatchLine("Prot", sumProtein, targetProtein)}
+                    {mismatchLine("Carbo", sumCarbs, targetCarbs)}
+                    {mismatchLine("Grassi", sumFats, targetFats)}
+                  </div>
+                  <p className="text-muted-foreground">Puoi comunque pubblicare. Il nutrizionista decide.</p>
+                </div>
+              </div>
+            )}
+
             <Card className="border-2 border-primary/30">
               <CardHeader>
                 <CardTitle className="text-base">🚀 Riepilogo piano</CardTitle>
@@ -359,6 +454,57 @@ const ProClientPlanPage = () => {
           )}
         </div>
       </main>
+
+      {/* Balance proposal dialog */}
+      <Dialog open={showBalanceDialog} onOpenChange={setShowBalanceDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Proposta di bilanciamento</DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-muted-foreground mb-3">
+            Correzione minima per allineare i totali ai target giornalieri. Controlla e conferma.
+          </p>
+          {balanceProposal && (
+            <div className="space-y-2">
+              {balanceProposal.map((mt, idx) => {
+                const orig = mealTargets[idx];
+                const changed = mt.kcal_target !== orig.kcal_target || mt.protein_g !== orig.protein_g || mt.carbs_g !== orig.carbs_g || mt.fats_g !== orig.fats_g;
+                return (
+                  <div key={mt.meal_type} className={`rounded-lg p-2.5 text-xs ${changed ? "bg-primary/5 border border-primary/20" : "bg-secondary/50"}`}>
+                    <p className="font-semibold mb-1">{MEAL_LABELS[mt.meal_type]}</p>
+                    <div className="grid grid-cols-4 gap-1 text-center">
+                      <div>
+                        <p className="text-muted-foreground">Kcal</p>
+                        <p className="font-bold">{mt.kcal_target}</p>
+                        {mt.kcal_target !== orig.kcal_target && <p className="text-[9px] text-muted-foreground">era {orig.kcal_target}</p>}
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">P</p>
+                        <p className="font-bold">{mt.protein_g}</p>
+                        {mt.protein_g !== orig.protein_g && <p className="text-[9px] text-muted-foreground">era {orig.protein_g}</p>}
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">C</p>
+                        <p className="font-bold">{mt.carbs_g}</p>
+                        {mt.carbs_g !== orig.carbs_g && <p className="text-[9px] text-muted-foreground">era {orig.carbs_g}</p>}
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">G</p>
+                        <p className="font-bold">{mt.fats_g}</p>
+                        {mt.fats_g !== orig.fats_g && <p className="text-[9px] text-muted-foreground">era {orig.fats_g}</p>}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowBalanceDialog(false)}>Annulla</Button>
+            <Button onClick={applyBalance}>Applica correzione</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
