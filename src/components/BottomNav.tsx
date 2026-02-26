@@ -33,7 +33,7 @@ const tabsByRole: Record<string, TabItem[]> = {
     { to: "/pro/clients", icon: Users, label: "Clienti" },
     { to: "/pro/reports", icon: FileText, label: "Report" },
     { to: "/pro/notes", icon: MessageSquare, label: "Note" },
-    { to: "/profile", icon: User, label: "Profilo" },
+    { to: "/pro/profile", icon: User, label: "Profilo" },
   ],
   supplier: [
     { to: "/supplier", icon: LayoutDashboard, label: "Dashboard" },

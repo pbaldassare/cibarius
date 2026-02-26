@@ -151,6 +151,7 @@ const App = () => (
                 <Route path="/pro/client/:clientId/pantry" element={<RG roles={["professional", "admin"]}><ProClientPantryPage /></RG>} />
                 <Route path="/pro/reports" element={<RG roles={["professional", "admin"]}><ProReportsPage /></RG>} />
                 <Route path="/pro/notes" element={<RG roles={["professional", "admin"]}><ProNotesPage /></RG>} />
+                <Route path="/pro/profile" element={<RG roles={["professional", "admin"]}><ProfiloPage /></RG>} />
               </Route>
 
               {/* ═══ SUPPLIER ═══ */}
