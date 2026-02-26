@@ -733,6 +733,39 @@ export type Database = {
         }
         Relationships: []
       }
+      professional_profiles: {
+        Row: {
+          bio: string | null
+          city: string | null
+          created_at: string
+          display_name: string
+          id: string
+          photo_url: string | null
+          specialization: string
+          user_id: string
+        }
+        Insert: {
+          bio?: string | null
+          city?: string | null
+          created_at?: string
+          display_name: string
+          id?: string
+          photo_url?: string | null
+          specialization?: string
+          user_id: string
+        }
+        Update: {
+          bio?: string | null
+          city?: string | null
+          created_at?: string
+          display_name?: string
+          id?: string
+          photo_url?: string | null
+          specialization?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
