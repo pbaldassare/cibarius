@@ -19,7 +19,7 @@ const ProPage = () => {
     const load = async () => {
       const [linksRes, notesRes] = await Promise.all([
         supabase.from("client_links").select("id", { count: "exact" }).eq("professional_id", user.id).eq("status", "active"),
-        supabase.from("professional_notes").select("*, profiles!professional_notes_client_user_id_fkey(full_name, email)").eq("professional_id", user.id).order("created_at", { ascending: false }).limit(5),
+        supabase.from("professional_notes").select("*").eq("professional_id", user.id).order("created_at", { ascending: false }).limit(5),
       ]);
       setClientCount(linksRes.count ?? 0);
       setRecentNotes(notesRes.data ?? []);
