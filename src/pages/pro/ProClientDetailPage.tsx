@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import MobileHeader from "@/components/MobileHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Send, Flame, ChevronLeft, ChevronRight, MessageSquare } from "lucide-react";
+import { Loader2, Send, Flame, ChevronLeft, ChevronRight, MessageSquare, ClipboardList, Activity, Lightbulb, ChefHat } from "lucide-react";
 
 const MEAL_LABELS: Record<string, string> = {
   colazione: "🌅 Colazione",
@@ -21,6 +21,7 @@ const ProClientDetailPage = () => {
   const { clientId } = useParams<{ clientId: string }>();
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const [clientProfile, setClientProfile] = useState<any>(null);
   const [targets, setTargets] = useState<any>(null);
@@ -141,7 +142,22 @@ const ProClientDetailPage = () => {
           </div>
         </div>
 
-        {/* Day selector */}
+        {/* Quick actions */}
+        <div className="grid grid-cols-4 gap-2">
+          <Button size="sm" variant="outline" className="flex-col h-auto py-2.5 gap-1 text-[10px]" onClick={() => navigate(`/pro/client/${clientId}/plan`)}>
+            <ClipboardList className="h-4 w-4" /> Piano
+          </Button>
+          <Button size="sm" variant="outline" className="flex-col h-auto py-2.5 gap-1 text-[10px]" onClick={() => navigate(`/pro/client/${clientId}/monitor`)}>
+            <Activity className="h-4 w-4" /> Monitor
+          </Button>
+          <Button size="sm" variant="outline" className="flex-col h-auto py-2.5 gap-1 text-[10px]" onClick={() => navigate(`/pro/client/${clientId}/suggest`)}>
+            <Lightbulb className="h-4 w-4" /> Suggerisci
+          </Button>
+          <Button size="sm" variant="outline" className="flex-col h-auto py-2.5 gap-1 text-[10px]" onClick={() => navigate(`/pro/client/${clientId}/pantry`)}>
+            <ChefHat className="h-4 w-4" /> Dispensa
+          </Button>
+        </div>
+
         <div className="flex items-center justify-between">
           <Button variant="ghost" size="icon" onClick={() => shiftDay(-1)}><ChevronLeft className="h-5 w-5" /></Button>
           <span className="text-sm font-semibold text-foreground">

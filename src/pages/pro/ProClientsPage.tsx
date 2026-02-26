@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { Users, Plus, Copy, Loader2, UserX, Eye, Link2 } from "lucide-react";
+import { Users, Plus, Copy, Loader2, UserX, Eye, Link2, ClipboardList, Activity, Lightbulb, ChefHat } from "lucide-react";
 import ListSkeleton from "@/components/ListSkeleton";
 import EmptyState from "@/components/EmptyState";
 
@@ -19,6 +19,7 @@ interface ClientLink {
   invite_code: string;
   created_at: string;
   profiles?: { full_name: string | null; email: string } | null;
+  hasPlan?: boolean;
 }
 
 interface Invite {
@@ -55,16 +56,18 @@ const ProClientsPage = () => {
     ]);
 
     const links = linksRes.data ?? [];
-    // Fetch client profiles
+    // Fetch client profiles and plan status
     if (links.length > 0) {
       const clientIds = links.map((l) => l.client_user_id);
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, full_name, email")
-        .in("id", clientIds);
-      const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
+      const [profilesRes, plansRes] = await Promise.all([
+        supabase.from("profiles").select("id, full_name, email").in("id", clientIds),
+        supabase.from("diet_plans").select("client_user_id").eq("professional_id", user.id).eq("is_active", true),
+      ]);
+      const profileMap = new Map((profilesRes.data ?? []).map((p) => [p.id, p]));
+      const planSet = new Set((plansRes.data ?? []).map((p) => p.client_user_id));
       links.forEach((l: any) => {
         l.profiles = profileMap.get(l.client_user_id) ?? null;
+        l.hasPlan = planSet.has(l.client_user_id);
       });
     }
 
@@ -152,25 +155,51 @@ const ProClientsPage = () => {
                   actions={[{ label: "Genera invito", icon: Plus, onClick: generateInvite }]}
                 />
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {activeClients.map((c) => (
                     <Card key={c.id} className="border-2 border-accent">
-                      <CardContent className="flex items-center gap-3 py-3">
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-lg">
-                          👤
+                      <CardContent className="py-3 space-y-2">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-lg">
+                            👤
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate">
+                              {c.profiles?.full_name || "Senza nome"}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">{c.profiles?.email}</p>
+                          </div>
+                          <Badge variant={c.hasPlan ? "default" : "secondary"} className="text-[10px]">
+                            {c.hasPlan ? "Piano attivo" : "No piano"}
+                          </Badge>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate">
-                            {c.profiles?.full_name || "Senza nome"}
-                          </p>
-                          <p className="text-xs text-muted-foreground truncate">{c.profiles?.email}</p>
+                        {/* Action buttons */}
+                        <div className="grid grid-cols-4 gap-1.5">
+                          <Button size="sm" variant="outline" className="flex-col h-auto py-2 gap-1 text-[10px]" onClick={() => navigate(`/pro/client/${c.client_user_id}/plan`)}>
+                            <ClipboardList className="h-4 w-4" />
+                            Piano
+                          </Button>
+                          <Button size="sm" variant="outline" className="flex-col h-auto py-2 gap-1 text-[10px]" onClick={() => navigate(`/pro/client/${c.client_user_id}/monitor`)}>
+                            <Activity className="h-4 w-4" />
+                            Monitor
+                          </Button>
+                          <Button size="sm" variant="outline" className="flex-col h-auto py-2 gap-1 text-[10px]" onClick={() => navigate(`/pro/client/${c.client_user_id}/suggest`)}>
+                            <Lightbulb className="h-4 w-4" />
+                            Suggerisci
+                          </Button>
+                          <Button size="sm" variant="outline" className="flex-col h-auto py-2 gap-1 text-[10px]" onClick={() => navigate(`/pro/client/${c.client_user_id}/pantry`)}>
+                            <ChefHat className="h-4 w-4" />
+                            Dispensa
+                          </Button>
                         </div>
-                        <Button size="sm" variant="ghost" onClick={() => navigate(`/pro/client/${c.client_user_id}`)}>
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => revokeClient(c.id)}>
-                          <UserX className="h-4 w-4" />
-                        </Button>
+                        <div className="flex gap-1.5 justify-end">
+                          <Button size="sm" variant="ghost" onClick={() => navigate(`/pro/client/${c.client_user_id}`)}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button size="sm" variant="ghost" className="text-destructive" onClick={() => revokeClient(c.id)}>
+                            <UserX className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </CardContent>
                     </Card>
                   ))}
