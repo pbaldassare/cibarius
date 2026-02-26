@@ -91,10 +91,15 @@ const ProClientsPage = () => {
       toast({ variant: "destructive", title: "Errore", description: error.message });
     } else {
       const url = `${window.location.origin}/invite?code=${code}`;
-      await navigator.clipboard.writeText(url);
-      toast({ title: "Invito creato e link copiato!", description: `Codice: ${code}` });
+      await navigator.clipboard.writeText(code);
+      toast({ title: "Invito creato e codice copiato!", description: `Codice: ${code}` });
       loadData();
     }
+  };
+
+  const copyCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    toast({ title: "Codice copiato!" });
   };
 
   const copyInviteLink = (code: string) => {
@@ -252,8 +257,11 @@ const ProClientsPage = () => {
                     </Badge>
                     {inv.status === "active" && (
                       <>
-                        <Button size="icon" variant="ghost" onClick={() => copyInviteLink(inv.invite_code)}>
+                        <Button size="icon" variant="ghost" onClick={() => copyCode(inv.invite_code)} title="Copia codice">
                           <Copy className="h-4 w-4" />
+                        </Button>
+                        <Button size="icon" variant="ghost" onClick={() => copyInviteLink(inv.invite_code)} title="Copia link">
+                          <Link2 className="h-4 w-4" />
                         </Button>
                         <Button size="icon" variant="ghost" className="text-destructive" onClick={() => disableInvite(inv.id)}>
                           <UserX className="h-4 w-4" />
