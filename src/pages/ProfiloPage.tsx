@@ -28,7 +28,7 @@ const ProfiloPage = () => {
         .eq("client_user_id", user.id)
         .eq("status", "active")
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (link) {
         setProLink(link);
