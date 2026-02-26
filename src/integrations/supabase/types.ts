@@ -189,6 +189,45 @@ export type Database = {
         }
         Relationships: []
       }
+      food_templates: {
+        Row: {
+          calories_100g: number
+          carbs_100g: number
+          category: string | null
+          created_at: string | null
+          default_unit: string | null
+          fats_100g: number
+          id: string
+          keywords: string[] | null
+          name: string
+          protein_100g: number
+        }
+        Insert: {
+          calories_100g: number
+          carbs_100g?: number
+          category?: string | null
+          created_at?: string | null
+          default_unit?: string | null
+          fats_100g?: number
+          id?: string
+          keywords?: string[] | null
+          name: string
+          protein_100g?: number
+        }
+        Update: {
+          calories_100g?: number
+          carbs_100g?: number
+          category?: string | null
+          created_at?: string | null
+          default_unit?: string | null
+          fats_100g?: number
+          id?: string
+          keywords?: string[] | null
+          name?: string
+          protein_100g?: number
+        }
+        Relationships: []
+      }
       generated_recipes: {
         Row: {
           client_user_id: string
@@ -605,6 +644,7 @@ export type Database = {
           macros_100g: Json | null
           name: string
           serving_size_g: number | null
+          template_id: string | null
           unit: string | null
         }
         Insert: {
@@ -618,6 +658,7 @@ export type Database = {
           macros_100g?: Json | null
           name: string
           serving_size_g?: number | null
+          template_id?: string | null
           unit?: string | null
         }
         Update: {
@@ -631,9 +672,18 @@ export type Database = {
           macros_100g?: Json | null
           name?: string
           serving_size_g?: number | null
+          template_id?: string | null
           unit?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "products_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "food_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       professional_invites: {
         Row: {

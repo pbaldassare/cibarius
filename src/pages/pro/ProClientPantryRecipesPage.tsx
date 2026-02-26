@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { loadTemplates, getNutritionPer100g } from "@/lib/nutrition";
 import {
   Loader2, Wand2, Send, Package, Flame, AlertTriangle,
   RefreshCw, ShoppingCart, ChefHat, Trophy
@@ -34,6 +35,7 @@ interface InventoryItem {
     brand: string | null;
     calories_100g: number | null;
     macros_100g: any;
+    template_id: string | null;
   };
 }
 
@@ -72,7 +74,7 @@ const ProClientPantryRecipesPage = () => {
   const [generating, setGenerating] = useState(false);
   const [recipes, setRecipes] = useState<GeneratedRecipe[]>([]);
   const [sendingIdx, setSendingIdx] = useState<number | null>(null);
-
+  const [templates, setTemplates] = useState<Map<string, any>>(new Map());
   // Load data
   useEffect(() => {
     if (!clientId || !user) return;
@@ -81,7 +83,7 @@ const ProClientPantryRecipesPage = () => {
         supabase.from("profiles").select("full_name").eq("id", clientId).single(),
         supabase
           .from("inventory_items")
-          .select("id, quantity, unit, storage_type, expiry_date, product:products(id, name, brand, calories_100g, macros_100g)")
+          .select("id, quantity, unit, storage_type, expiry_date, product:products(id, name, brand, calories_100g, macros_100g, template_id)")
           .eq("owner_user_id", clientId)
           .order("expiry_date", { ascending: true, nullsFirst: false }),
         supabase
@@ -95,6 +97,10 @@ const ProClientPantryRecipesPage = () => {
       setClientName(profileRes.data?.full_name || "Cliente");
       const loadedItems = (invRes.data as unknown as InventoryItem[]) ?? [];
       setItems(loadedItems);
+
+      // Load food templates
+      const tmpl = await loadTemplates();
+      setTemplates(tmpl);
 
       if (planRes.data) {
         const targets = (planRes.data as any).diet_plan_meal_targets ?? [];
@@ -173,8 +179,6 @@ const ProClientPantryRecipesPage = () => {
     setGenerating(true);
 
     const target = mealTarget;
-    const withNutrition = selectedItems.filter((i) => i.product.calories_100g != null);
-    const withoutNutrition = selectedItems.filter((i) => i.product.calories_100g == null);
 
     const generated: GeneratedRecipe[] = [];
 
@@ -191,10 +195,12 @@ const ProClientPantryRecipesPage = () => {
       let totalKcal = 0, totalP = 0, totalC = 0, totalF = 0;
       let partial = false;
 
-      // Sort items: prioritize expiring + with nutrition
+      // Sort items: prioritize those with nutrition (product or template) + expiring
       const sorted = [...selectedItems].sort((a, b) => {
-        const aScore = (a.product.calories_100g ? 10 : 0) + (getExpiryStatus(a.expiry_date) === "expiring" ? 5 : 0);
-        const bScore = (b.product.calories_100g ? 10 : 0) + (getExpiryStatus(b.expiry_date) === "expiring" ? 5 : 0);
+        const aNut = getNutritionPer100g(a.product, templates);
+        const bNut = getNutritionPer100g(b.product, templates);
+        const aScore = (aNut.source !== "none" ? 10 : 0) + (getExpiryStatus(a.expiry_date) === "expiring" ? 5 : 0);
+        const bScore = (bNut.source !== "none" ? 10 : 0) + (getExpiryStatus(b.expiry_date) === "expiring" ? 5 : 0);
         return bScore - aScore;
       });
 
@@ -211,26 +217,26 @@ const ProClientPantryRecipesPage = () => {
       for (let i = 0; i < count; i++) {
         const item = shuffled[i];
         const p = item.product;
-        const mac = p.macros_100g as any;
+        const nut = getNutritionPer100g(p, templates);
 
         let portionG: number;
-        if (p.calories_100g && p.calories_100g > 0) {
-          portionG = Math.round((perIngKcal / p.calories_100g) * 100);
-          // Clamp to reasonable and available
+        if (nut.source !== "none" && nut.calories > 0) {
+          portionG = Math.round((perIngKcal / nut.calories) * 100);
           const maxAvail = (item.quantity ?? 1) * (item.unit === "kg" ? 1000 : item.unit === "g" ? 1 : 150);
           portionG = Math.max(20, Math.min(portionG, maxAvail, 500));
         } else {
-          portionG = 80; // conservative default
+          portionG = 80;
           partial = true;
         }
 
         const factor = portionG / 100;
-        if (p.calories_100g) totalKcal += Math.round(p.calories_100g * factor);
-        if (mac) {
-          totalP += (mac.protein ?? 0) * factor;
-          totalC += (mac.carbs ?? 0) * factor;
-          totalF += (mac.fats ?? 0) * factor;
+        if (nut.source !== "none") {
+          totalKcal += Math.round(nut.calories * factor);
+          totalP += nut.protein * factor;
+          totalC += nut.carbs * factor;
+          totalF += nut.fats * factor;
         }
+        if (nut.source === "template") partial = true; // mark as template-based
 
         ingredients.push({ name: p.name, product_id: p.id, qty: portionG, unit: "g" });
       }
@@ -250,7 +256,7 @@ const ProClientPantryRecipesPage = () => {
       if (totalF < target.fats_g * 0.8) notes.push("Leggera nei grassi");
       if (totalKcal <= target.kcal_target * 1.05 && totalKcal >= target.kcal_target * 0.95)
         notes.push("Calorie centrate sul target");
-      if (partial) notes.push("Stima parziale: alcuni ingredienti senza dati nutrizionali");
+      if (partial) notes.push("Stima parziale: alcuni valori da template alimenti base");
 
       // Generate instructions
       const steps = ingredients.map((ing, idx) => `${idx + 1}. Prepara ${ing.qty}g di ${ing.name}`);
@@ -429,10 +435,18 @@ const ProClientPantryRecipesPage = () => {
                     <Package className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium truncate">{item.product.name}</p>
-                      <p className="text-[10px] text-muted-foreground">
-                        x{item.quantity} {item.unit || ""} · {item.storage_type}
-                        {item.product.calories_100g ? ` · ${item.product.calories_100g} kcal/100g` : " · ⚠️ no kcal"}
-                      </p>
+                      {(() => {
+                        const nut = getNutritionPer100g(item.product, templates);
+                        return (
+                          <p className="text-[10px] text-muted-foreground">
+                            x{item.quantity} {item.unit || ""} · {item.storage_type}
+                            {nut.source !== "none"
+                              ? ` · ${nut.calories} kcal/100g`
+                              : " · ⚠️ no kcal"}
+                            {nut.source === "template" && " 📋"}
+                          </p>
+                        );
+                      })()}
                     </div>
                     {status === "expired" && <Badge variant="destructive" className="text-[8px] px-1 py-0">Scaduto</Badge>}
                     {status === "expiring" && <Badge className="bg-amber-500/20 text-amber-700 border-0 text-[8px] px-1 py-0">In scadenza</Badge>}
