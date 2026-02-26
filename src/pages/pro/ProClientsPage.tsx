@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { Users, Plus, Copy, Loader2, UserX, Eye, Link2, ClipboardList, Activity, Lightbulb, ChefHat } from "lucide-react";
+import { Users, Plus, Copy, Loader2, UserX, Eye, Link2, ClipboardList, Activity, Lightbulb, ChefHat, Salad } from "lucide-react";
 import ListSkeleton from "@/components/ListSkeleton";
 import EmptyState from "@/components/EmptyState";
 
@@ -181,7 +181,7 @@ const ProClientsPage = () => {
                           </Badge>
                         </div>
                         {/* Action buttons */}
-                        <div className="grid grid-cols-4 gap-1.5">
+                        <div className="grid grid-cols-5 gap-1.5">
                           <Button size="sm" variant="outline" className="flex-col h-auto py-2 gap-1 text-[10px]" onClick={() => navigate(`/pro/client/${c.client_user_id}/plan`)}>
                             <ClipboardList className="h-4 w-4" />
                             Piano
@@ -197,6 +197,10 @@ const ProClientsPage = () => {
                           <Button size="sm" variant="outline" className="flex-col h-auto py-2 gap-1 text-[10px]" onClick={() => navigate(`/pro/client/${c.client_user_id}/pantry`)}>
                             <ChefHat className="h-4 w-4" />
                             Dispensa
+                          </Button>
+                          <Button size="sm" variant="outline" className="flex-col h-auto py-2 gap-1 text-[10px] border-primary/30 text-primary" onClick={() => navigate(`/pro/client/${c.client_user_id}/pantry-recipes`)}>
+                            <Salad className="h-4 w-4" />
+                            Ricette
                           </Button>
                         </div>
                         <div className="flex gap-1.5 justify-end">

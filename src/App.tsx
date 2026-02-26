@@ -62,6 +62,7 @@ import ProClientPlanPage from "./pages/pro/ProClientPlanPage";
 import ProClientMonitorPage from "./pages/pro/ProClientMonitorPage";
 import ProClientSuggestPage from "./pages/pro/ProClientSuggestPage";
 import ProClientPantryPage from "./pages/pro/ProClientPantryPage";
+import ProClientPantryRecipesPage from "./pages/pro/ProClientPantryRecipesPage";
 import ProReportsPage from "./pages/pro/ProReportsPage";
 import ProNotesPage from "./pages/pro/ProNotesPage";
 
@@ -149,6 +150,7 @@ const App = () => (
                 <Route path="/pro/client/:clientId/monitor" element={<RG roles={["professional", "admin"]}><ProClientMonitorPage /></RG>} />
                 <Route path="/pro/client/:clientId/suggest" element={<RG roles={["professional", "admin"]}><ProClientSuggestPage /></RG>} />
                 <Route path="/pro/client/:clientId/pantry" element={<RG roles={["professional", "admin"]}><ProClientPantryPage /></RG>} />
+                <Route path="/pro/client/:clientId/pantry-recipes" element={<RG roles={["professional", "admin"]}><ProClientPantryRecipesPage /></RG>} />
                 <Route path="/pro/reports" element={<RG roles={["professional", "admin"]}><ProReportsPage /></RG>} />
                 <Route path="/pro/notes" element={<RG roles={["professional", "admin"]}><ProNotesPage /></RG>} />
                 <Route path="/pro/profile" element={<RG roles={["professional", "admin"]}><ProfiloPage /></RG>} />
