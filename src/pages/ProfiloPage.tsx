@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import MobileHeader from "@/components/MobileHeader";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
+import { useRole } from "@/hooks/useRole";
 import { supabase } from "@/integrations/supabase/client";
 import { ChevronRight, Settings, Heart, Bell, HelpCircle, LogOut, UserX, Stethoscope, Sparkles, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 
 const ProfiloPage = () => {
   const { user, signOut } = useAuth();
+  const { role } = useRole();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [proLink, setProLink] = useState<any>(null);
@@ -80,7 +82,7 @@ const ProfiloPage = () => {
         </div>
 
         {/* ═══ Nutrizionista card — PROMINENT ═══ */}
-        <div className="rounded-[18px] bg-card shadow-card overflow-hidden">
+        {role !== "professional" && <div className="rounded-[18px] bg-card shadow-card overflow-hidden">
           <div className="px-4 pt-4 pb-3">
             <div className="flex items-center gap-2 mb-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
@@ -129,7 +131,7 @@ const ProfiloPage = () => {
               </button>
             )}
           </div>
-        </div>
+        </div>}
 
         {/* ═══ Menu items ═══ */}
         <div className="rounded-[18px] bg-card shadow-card overflow-hidden">
