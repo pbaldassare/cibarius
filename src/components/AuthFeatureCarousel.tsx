@@ -47,13 +47,8 @@ const AuthFeatureCarousel = ({ slides = DEFAULT_SLIDES, intervalMs = 5000 }: Pro
     return () => clearInterval(timer);
   }, [slides.length, intervalMs]);
 
-  // Touch / swipe
   const [touchStart, setTouchStart] = useState<number | null>(null);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStart(e.touches[0].clientX);
-  };
-
+  const handleTouchStart = (e: React.TouchEvent) => setTouchStart(e.touches[0].clientX);
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (touchStart === null) return;
     const diff = e.changedTouches[0].clientX - touchStart;
@@ -66,41 +61,41 @@ const AuthFeatureCarousel = ({ slides = DEFAULT_SLIDES, intervalMs = 5000 }: Pro
 
   return (
     <div
-      className="w-full max-w-md mx-auto select-none"
+      className="w-full select-none"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
-      <div className="relative h-[190px] flex items-center justify-center overflow-hidden rounded-2xl bg-card shadow-card mx-2">
+      <div className="relative h-[240px] flex items-center justify-center overflow-hidden">
         {slides.map((slide, i) => (
           <div
             key={i}
-            className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center transition-all duration-500 ease-in-out"
+            className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center transition-all duration-600 ease-in-out"
             style={{
               opacity: i === active ? 1 : 0,
-              transform: i === active ? "translateY(0)" : "translateY(8px)",
+              transform: i === active ? "translateY(0) scale(1)" : "translateY(12px) scale(0.97)",
               pointerEvents: i === active ? "auto" : "none",
             }}
           >
-            <div className="h-[100px] w-[100px] mb-1">
+            <div className="h-[140px] w-[140px] mb-3 drop-shadow-lg">
               <Lottie
                 animationData={slide.animation}
                 loop
-                autoplay={i === active}
-                style={{ width: 100, height: 100 }}
+                autoplay
+                style={{ width: 140, height: 140 }}
               />
             </div>
-            <h3 className="font-display text-base font-semibold text-foreground leading-tight">
+            <h3 className="font-display text-lg font-semibold text-primary-foreground leading-tight">
               {slide.title}
             </h3>
-            <p className="mt-0.5 text-sm text-muted-foreground leading-snug max-w-[280px]">
+            <p className="mt-1 text-sm text-primary-foreground/75 leading-snug max-w-[280px]">
               {slide.text}
             </p>
           </div>
         ))}
       </div>
 
-      {/* Dots */}
-      <div className="flex items-center justify-center gap-1.5 mt-3">
+      {/* Pill dots */}
+      <div className="flex items-center justify-center gap-2 mt-2">
         {slides.map((_, i) => (
           <button
             key={i}
@@ -108,8 +103,8 @@ const AuthFeatureCarousel = ({ slides = DEFAULT_SLIDES, intervalMs = 5000 }: Pro
             onClick={() => goTo(i)}
             className={`rounded-full transition-all duration-300 ${
               i === active
-                ? "w-5 h-1.5 bg-primary"
-                : "w-1.5 h-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/50"
+                ? "w-6 h-[5px] bg-primary-foreground"
+                : "w-[5px] h-[5px] bg-primary-foreground/35 hover:bg-primary-foreground/55"
             }`}
             aria-label={`Slide ${i + 1}`}
           />
