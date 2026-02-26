@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, Sparkles, ClipboardList } from "lucide-react";
+import { Loader2, Sparkles, ClipboardList, ChefHat, Trophy, Flame } from "lucide-react";
 
 const MEAL_LABELS: Record<string, string> = {
   colazione: "☀️ Colazione",
@@ -159,20 +159,60 @@ const UserDietPage = () => {
             <h3 className="text-sm font-semibold text-foreground">💡 Suggerimenti del professionista</h3>
             {suggestions.map((s) => {
               const p = s.payload as any;
+              const isRecipe = s.type === "recipe" && p?.ingredients;
               return (
                 <Card key={s.id} className={`border ${s.seen_at ? "border-border opacity-70" : "border-primary/30"}`}>
-                  <CardContent className="py-2.5 flex items-center gap-2">
-                    <span className="text-lg">{s.type === "food" ? "🍎" : s.type === "recipe" ? "📖" : "💬"}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{p?.name || p?.title || "Suggerimento"}</p>
-                      {p?.message && <p className="text-xs text-muted-foreground truncate">{p.message}</p>}
-                      {p?.calories != null && <p className="text-[10px] text-muted-foreground">{p.calories} kcal</p>}
-                      <p className="text-[10px] text-muted-foreground">{new Date(s.created_at).toLocaleDateString("it-IT")}</p>
+                  <CardContent className="py-3 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{isRecipe ? "🍽️" : s.type === "food" ? "🍎" : "💬"}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">{p?.title || p?.name || "Suggerimento"}</p>
+                        {p?.message && <p className="text-xs text-muted-foreground truncate">{p.message}</p>}
+                        <p className="text-[10px] text-muted-foreground">{new Date(s.created_at).toLocaleDateString("it-IT")}</p>
+                      </div>
+                      {p?.fit_score && (
+                        <Badge className="gap-1 text-[10px] bg-green-500/15 text-green-700 border-green-500/30">
+                          <Trophy className="h-3 w-3" /> {p.fit_score}%
+                        </Badge>
+                      )}
+                      {!s.seen_at && (
+                        <Button size="sm" variant="ghost" onClick={() => markSeen(s.id)} className="text-xs shrink-0">
+                          ✓ Letto
+                        </Button>
+                      )}
                     </div>
-                    {!s.seen_at && (
-                      <Button size="sm" variant="ghost" onClick={() => markSeen(s.id)} className="text-xs">
-                        ✓ Letto
-                      </Button>
+
+                    {/* Recipe details */}
+                    {isRecipe && (
+                      <>
+                        {p.kcal_total && (
+                          <div className="flex gap-3 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-0.5"><Flame className="h-3 w-3" /> {p.kcal_total} kcal</span>
+                            {p.macros && <>
+                              <span>P: {p.macros.protein}g</span>
+                              <span>C: {p.macros.carbs}g</span>
+                              <span>G: {p.macros.fats}g</span>
+                            </>}
+                          </div>
+                        )}
+                        {p.notes && <p className="text-[11px] text-muted-foreground italic">{p.notes}</p>}
+                        <details className="text-xs">
+                          <summary className="font-medium text-foreground cursor-pointer">Ingredienti e istruzioni</summary>
+                          <div className="mt-1 space-y-1">
+                            {(p.ingredients ?? []).map((ing: any, i: number) => (
+                              <p key={i} className="text-muted-foreground">• {ing.qty}{ing.unit} {ing.name}</p>
+                            ))}
+                            {p.instructions && (
+                              <p className="text-muted-foreground whitespace-pre-line mt-2 border-t border-border pt-2">{p.instructions}</p>
+                            )}
+                          </div>
+                        </details>
+                      </>
+                    )}
+
+                    {/* Food details */}
+                    {!isRecipe && p?.calories != null && (
+                      <p className="text-[10px] text-muted-foreground">{p.calories} kcal · {p.quantity}{p.unit}</p>
                     )}
                   </CardContent>
                 </Card>
