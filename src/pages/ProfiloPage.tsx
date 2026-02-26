@@ -96,13 +96,15 @@ const ProfiloPage = () => {
 
             {loadingPro ? (
               <p className="text-sm text-muted-foreground py-2">Caricamento…</p>
-            ) : proLink && proProfile ? (
+            ) : proLink ? (
               <div className="space-y-3">
                 <div className="flex items-center gap-3 rounded-[14px] bg-success/5 border border-success/20 p-3">
-                  <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center">🩺</div>
+                  <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center text-lg font-semibold text-success">
+                    {proProfile?.full_name ? proProfile.full_name.charAt(0).toUpperCase() : "🩺"}
+                  </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{proProfile.full_name || "Professionista"}</p>
-                    <p className="text-xs text-muted-foreground truncate">{proProfile.email}</p>
+                    <p className="text-sm font-medium text-foreground truncate">{proProfile?.full_name || "Professionista"}</p>
+                    <p className="text-xs text-muted-foreground truncate">{proProfile?.email || ""}</p>
                   </div>
                   <Badge className="bg-success/10 text-success border-0 text-[10px]">Attivo</Badge>
                 </div>
