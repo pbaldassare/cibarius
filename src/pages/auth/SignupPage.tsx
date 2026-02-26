@@ -11,11 +11,6 @@ import { Loader2, UserPlus, Eye, EyeOff, User, UtensilsCrossed, Stethoscope, Arr
 import cibariusLogo from "@/assets/cibarius-logo.png";
 import AuthFeatureCarousel from "@/components/AuthFeatureCarousel";
 
-const SIGNUP_SLIDES = [
-  { icon: User, title: "Il tuo profilo", text: "Crea il tuo account e inizia a gestire la tua alimentazione." },
-  { icon: UtensilsCrossed, title: "Per ristoratori", text: "Gestisci magazzino, ricette e scadenze del tuo locale." },
-  { icon: Stethoscope, title: "Per professionisti", text: "Segui i piani nutrizionali e monitora i tuoi clienti." },
-];
 
 type AccountType = "user" | "restaurant_owner" | "professional";
 
@@ -144,7 +139,7 @@ const SignupPage = () => {
 
       {/* Feature carousel */}
       <div className="px-4 pt-6 pb-2">
-        <AuthFeatureCarousel slides={SIGNUP_SLIDES} />
+        <AuthFeatureCarousel />
       </div>
 
       <div className="flex flex-1 items-start justify-center px-4 pt-2 pb-8">
