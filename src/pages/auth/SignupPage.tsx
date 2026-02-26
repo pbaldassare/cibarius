@@ -9,6 +9,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, UserPlus, Eye, EyeOff, User, UtensilsCrossed, Stethoscope, ArrowLeft, ArrowRight, Check } from "lucide-react";
 import cibariusLogo from "@/assets/cibarius-logo.png";
+import AuthFeatureCarousel from "@/components/AuthFeatureCarousel";
+
+const SIGNUP_SLIDES = [
+  { icon: User, title: "Il tuo profilo", text: "Crea il tuo account e inizia a gestire la tua alimentazione." },
+  { icon: UtensilsCrossed, title: "Per ristoratori", text: "Gestisci magazzino, ricette e scadenze del tuo locale." },
+  { icon: Stethoscope, title: "Per professionisti", text: "Segui i piani nutrizionali e monitora i tuoi clienti." },
+];
 
 type AccountType = "user" | "restaurant_owner" | "professional";
 
@@ -126,7 +133,7 @@ const SignupPage = () => {
   return (
     <div className="flex min-h-screen flex-col bg-background">
       {/* Header gradient */}
-      <div className="relative bg-gradient-to-r from-primary to-primary-dark px-4 pb-12 pt-16 text-center">
+      <div className="relative bg-gradient-to-r from-primary to-primary-dark px-4 pb-16 pt-16 text-center">
         <img src={cibariusLogo} alt="Cibarius" className="mx-auto h-10 brightness-0 invert" />
         <div className="absolute bottom-0 left-0 right-0 translate-y-[1px]">
           <svg viewBox="0 0 1440 50" fill="none" xmlns="http://www.w3.org/2000/svg" className="block w-full">
@@ -135,7 +142,12 @@ const SignupPage = () => {
         </div>
       </div>
 
-      <div className="flex flex-1 items-start justify-center px-4 pt-4 pb-8">
+      {/* Feature carousel */}
+      <div className="px-4 pt-6 pb-2">
+        <AuthFeatureCarousel slides={SIGNUP_SLIDES} />
+      </div>
+
+      <div className="flex flex-1 items-start justify-center px-4 pt-2 pb-8">
         <Card className="w-full max-w-md border-0 shadow-lg">
           <CardHeader className="items-center text-center">
             {/* Progress dots */}
