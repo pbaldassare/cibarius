@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { loadTemplates, getNutritionPer100g } from "@/lib/nutrition";
 import {
   Loader2, Wand2, Send, Package, Flame, AlertTriangle,
-  RefreshCw, ShoppingCart, ChefHat, Trophy
+  RefreshCw, ShoppingCart, ChefHat, Trophy, Target
 } from "lucide-react";
 
 const MEAL_LABELS: Record<string, string> = {
@@ -21,6 +21,26 @@ const MEAL_LABELS: Record<string, string> = {
   pranzo: "🌤️ Pranzo",
   cena: "🌙 Cena",
   spuntino: "🍎 Spuntino",
+};
+
+type GoalType = "balanced" | "high_protein" | "low_carb" | "low_fat" | "deficit" | "surplus";
+
+const GOALS: { value: GoalType; label: string; emoji: string; description: string }[] = [
+  { value: "balanced", label: "Equilibrio", emoji: "⚖️", description: "Macro bilanciati rispetto al target" },
+  { value: "high_protein", label: "Proteine alte", emoji: "💪", description: "Massimizza proteine, carbo flessibili" },
+  { value: "low_carb", label: "Low carb", emoji: "🥬", description: "Riduce carboidrati, favorisce proteine e grassi" },
+  { value: "low_fat", label: "Low fat", emoji: "🫒", description: "Riduce grassi, favorisce carbo e proteine" },
+  { value: "deficit", label: "Deficit calorico", emoji: "📉", description: "Target kcal ridotto del 10%" },
+  { value: "surplus", label: "Massa", emoji: "📈", description: "Target kcal aumentato del 10% (surplus controllato)" },
+];
+
+const GOAL_BADGE_LABELS: Record<GoalType, string> = {
+  balanced: "Equilibrio",
+  high_protein: "High Protein",
+  low_carb: "Low Carb",
+  low_fat: "Low Fat",
+  deficit: "Deficit",
+  surplus: "Massa",
 };
 
 interface InventoryItem {
@@ -48,6 +68,7 @@ interface GeneratedRecipe {
   fit_score: number;
   notes: string;
   partial_estimate: boolean;
+  goal: GoalType;
   missing_ingredients?: { name: string; reason: string }[];
 }
 
@@ -56,6 +77,82 @@ interface MealTarget {
   protein_g: number;
   carbs_g: number;
   fats_g: number;
+}
+
+function computeFitScore(
+  totals: { kcal: number; protein: number; carbs: number; fats: number },
+  target: MealTarget,
+  goal: GoalType
+): number {
+  const kcalDiff = Math.abs(totals.kcal - target.kcal_target) / Math.max(target.kcal_target, 1);
+  const pDiff = Math.abs(totals.protein - target.protein_g) / Math.max(target.protein_g, 1);
+  const cDiff = Math.abs(totals.carbs - target.carbs_g) / Math.max(target.carbs_g, 1);
+  const fDiff = Math.abs(totals.fats - target.fats_g) / Math.max(target.fats_g, 1);
+
+  // Penalise "wrong direction" harder based on goal
+  let pPenalty = 0, cPenalty = 0, fPenalty = 0;
+
+  switch (goal) {
+    case "high_protein":
+      if (totals.protein < target.protein_g) pPenalty = pDiff * 1.5; // extra penalty
+      break;
+    case "low_carb":
+      if (totals.carbs > target.carbs_g) cPenalty = cDiff * 1.5;
+      break;
+    case "low_fat":
+      if (totals.fats > target.fats_g) fPenalty = fDiff * 1.5;
+      break;
+  }
+
+  // Weighted average
+  let weights: number[];
+  switch (goal) {
+    case "high_protein":
+      weights = [1, 2, 0.5, 0.7]; break;
+    case "low_carb":
+      weights = [1, 1, 2, 0.7]; break;
+    case "low_fat":
+      weights = [1, 1, 0.7, 2]; break;
+    default:
+      weights = [1, 1, 1, 1]; break;
+  }
+
+  const totalWeight = weights.reduce((a, b) => a + b, 0);
+  const wAvg = (
+    weights[0] * kcalDiff +
+    weights[1] * (pDiff + pPenalty) +
+    weights[2] * (cDiff + cPenalty) +
+    weights[3] * (fDiff + fPenalty)
+  ) / totalWeight;
+
+  return Math.max(0, Math.round(100 - wAvg * 100));
+}
+
+function getGoalNotes(
+  totals: { kcal: number; protein: number; carbs: number; fats: number },
+  target: MealTarget,
+  goal: GoalType
+): string {
+  switch (goal) {
+    case "high_protein":
+      return totals.protein >= target.protein_g
+        ? "Alta proteina raggiunta, carboidrati controllati."
+        : "Proteine sotto target — considera ingredienti più proteici.";
+    case "low_carb":
+      return totals.carbs <= target.carbs_g
+        ? "Carboidrati ridotti con buon apporto proteico."
+        : "Carbo sopra target — riduci cereali e amidacei.";
+    case "low_fat":
+      return totals.fats <= target.fats_g
+        ? "Grassi contenuti, buon equilibrio proteico."
+        : "Grassi sopra target — preferisci tagli magri.";
+    case "deficit":
+      return `Deficit calorico: ${totals.kcal} kcal (target ridotto ~${Math.round(target.kcal_target * 0.9)}).`;
+    case "surplus":
+      return `Surplus controllato: ${totals.kcal} kcal (target +10% ~${Math.round(target.kcal_target * 1.1)}).`;
+    default:
+      return "Macro bilanciati secondo il target del pasto.";
+  }
 }
 
 const ProClientPantryRecipesPage = () => {
@@ -67,6 +164,7 @@ const ProClientPantryRecipesPage = () => {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [storageFilter, setStorageFilter] = useState("all");
   const [mealType, setMealType] = useState("pranzo");
+  const [goal, setGoal] = useState<GoalType>("balanced");
   const [mealTarget, setMealTarget] = useState<MealTarget | null>(null);
   const [allTargets, setAllTargets] = useState<any[]>([]);
   const [priorityExpiry, setPriorityExpiry] = useState(false);
@@ -75,6 +173,7 @@ const ProClientPantryRecipesPage = () => {
   const [recipes, setRecipes] = useState<GeneratedRecipe[]>([]);
   const [sendingIdx, setSendingIdx] = useState<number | null>(null);
   const [templates, setTemplates] = useState<Map<string, any>>(new Map());
+
   // Load data
   useEffect(() => {
     if (!clientId || !user) return;
@@ -98,7 +197,6 @@ const ProClientPantryRecipesPage = () => {
       const loadedItems = (invRes.data as unknown as InventoryItem[]) ?? [];
       setItems(loadedItems);
 
-      // Load food templates
       const tmpl = await loadTemplates();
       setTemplates(tmpl);
 
@@ -109,7 +207,6 @@ const ProClientPantryRecipesPage = () => {
         setMealTarget(mt || null);
       }
 
-      // Default: select all non-expired
       const now = new Date();
       const ids = new Set<string>();
       loadedItems.forEach((i) => {
@@ -122,13 +219,11 @@ const ProClientPantryRecipesPage = () => {
     load();
   }, [clientId, user]);
 
-  // Update target when meal changes
   useEffect(() => {
     const mt = allTargets.find((t: any) => t.meal_type === mealType);
     setMealTarget(mt || null);
   }, [mealType, allTargets]);
 
-  // Apply priority expiry toggle
   useEffect(() => {
     if (!priorityExpiry) return;
     const now = Date.now();
@@ -140,7 +235,6 @@ const ProClientPantryRecipesPage = () => {
         if (exp > now && exp <= now + threeDays) ids.add(i.id);
       }
     });
-    // If none expiring, keep current selection
     if (ids.size > 0) setSelectedIds(ids);
   }, [priorityExpiry, items]);
 
@@ -178,15 +272,21 @@ const ProClientPantryRecipesPage = () => {
     }
     setGenerating(true);
 
-    const target = mealTarget;
+    // Adjust target based on goal
+    const baseTarget = { ...mealTarget };
+    const effectiveTarget: MealTarget = { ...baseTarget };
+    if (goal === "deficit") {
+      effectiveTarget.kcal_target = Math.round(baseTarget.kcal_target * 0.9);
+    } else if (goal === "surplus") {
+      effectiveTarget.kcal_target = Math.round(baseTarget.kcal_target * 1.1);
+    }
 
     const generated: GeneratedRecipe[] = [];
 
-    // Strategy patterns for variety
     const strategies = [
-      { name: "Bilanciata", proteinWeight: 1, carbWeight: 1, fatWeight: 1, maxIng: 6 },
-      { name: "Alta proteine", proteinWeight: 1.5, carbWeight: 0.8, fatWeight: 0.7, maxIng: 5 },
-      { name: "Leggera", proteinWeight: 1, carbWeight: 1.2, fatWeight: 0.6, maxIng: 4 },
+      { name: "Ricetta A", proteinWeight: 1, carbWeight: 1, fatWeight: 1, maxIng: 6 },
+      { name: "Ricetta B", proteinWeight: 1.3, carbWeight: 0.9, fatWeight: 0.8, maxIng: 5 },
+      { name: "Ricetta C", proteinWeight: 0.9, carbWeight: 1.1, fatWeight: 0.8, maxIng: 7 },
     ];
 
     for (let s = 0; s < 3; s++) {
@@ -195,7 +295,6 @@ const ProClientPantryRecipesPage = () => {
       let totalKcal = 0, totalP = 0, totalC = 0, totalF = 0;
       let partial = false;
 
-      // Sort items: prioritize those with nutrition (product or template) + expiring
       const sorted = [...selectedItems].sort((a, b) => {
         const aNut = getNutritionPer100g(a.product, templates);
         const bNut = getNutritionPer100g(b.product, templates);
@@ -204,7 +303,6 @@ const ProClientPantryRecipesPage = () => {
         return bScore - aScore;
       });
 
-      // Shuffle slightly for variety between recipes
       const shuffled = [...sorted];
       for (let i = shuffled.length - 1; i > 0; i--) {
         const j = Math.max(0, i - Math.floor(Math.random() * 3));
@@ -212,7 +310,7 @@ const ProClientPantryRecipesPage = () => {
       }
 
       const count = Math.min(strategy.maxIng, shuffled.length);
-      const perIngKcal = target.kcal_target / count;
+      const perIngKcal = effectiveTarget.kcal_target / count;
 
       for (let i = 0; i < count; i++) {
         const item = shuffled[i];
@@ -236,29 +334,18 @@ const ProClientPantryRecipesPage = () => {
           totalC += nut.carbs * factor;
           totalF += nut.fats * factor;
         }
-        if (nut.source === "template") partial = true; // mark as template-based
+        if (nut.source === "template") partial = true;
 
         ingredients.push({ name: p.name, product_id: p.id, qty: portionG, unit: "g" });
       }
 
-      // Calculate fit score (0-100)
-      const kcalDiff = Math.abs(totalKcal - target.kcal_target) / Math.max(target.kcal_target, 1);
-      const pDiff = Math.abs(totalP - target.protein_g) / Math.max(target.protein_g, 1);
-      const cDiff = Math.abs(totalC - target.carbs_g) / Math.max(target.carbs_g, 1);
-      const fDiff = Math.abs(totalF - target.fats_g) / Math.max(target.fats_g, 1);
-      const avgDiff = (kcalDiff + pDiff + cDiff + fDiff) / 4;
-      const fitScore = Math.max(0, Math.round(100 - avgDiff * 100));
+      const totals = { kcal: Math.round(totalKcal), protein: Math.round(totalP), carbs: Math.round(totalC), fats: Math.round(totalF) };
+      const fitScore = computeFitScore(totals, effectiveTarget, goal);
+      const goalNote = getGoalNotes(totals, effectiveTarget, goal);
 
-      // Generate notes
-      const notes: string[] = [];
-      if (totalP > target.protein_g) notes.push("Ricca di proteine");
-      if (totalP < target.protein_g * 0.8) notes.push("Bassa in proteine");
-      if (totalF < target.fats_g * 0.8) notes.push("Leggera nei grassi");
-      if (totalKcal <= target.kcal_target * 1.05 && totalKcal >= target.kcal_target * 0.95)
-        notes.push("Calorie centrate sul target");
-      if (partial) notes.push("Stima parziale: alcuni valori da template alimenti base");
+      const extraNotes: string[] = [];
+      if (partial) extraNotes.push("Stima parziale: alcuni valori da template.");
 
-      // Generate instructions
       const steps = ingredients.map((ing, idx) => `${idx + 1}. Prepara ${ing.qty}g di ${ing.name}`);
       if (s === 0) steps.push(`${ingredients.length + 1}. Combina tutti gli ingredienti e servi.`);
       else if (s === 1) steps.push(`${ingredients.length + 1}. Cuoci a fuoco medio per 10 minuti, condisci e servi.`);
@@ -268,15 +355,15 @@ const ProClientPantryRecipesPage = () => {
         title: `${strategy.name} — ${MEAL_LABELS[mealType]}`,
         ingredients,
         instructions: steps.join("\n"),
-        kcal_total: Math.round(totalKcal),
-        macros: { protein: Math.round(totalP), carbs: Math.round(totalC), fats: Math.round(totalF) },
+        kcal_total: totals.kcal,
+        macros: { protein: totals.protein, carbs: totals.carbs, fats: totals.fats },
         fit_score: fitScore,
-        notes: notes.join(" · ") || "Ricetta adatta al target",
+        notes: [goalNote, ...extraNotes].join(" · "),
         partial_estimate: partial,
+        goal,
       });
     }
 
-    // Sort by fit score desc
     generated.sort((a, b) => b.fit_score - a.fit_score);
     setRecipes(generated);
     setGenerating(false);
@@ -318,6 +405,7 @@ const ProClientPantryRecipesPage = () => {
         instructions: recipe.instructions,
         fit_score: recipe.fit_score,
         notes: recipe.notes,
+        goal: recipe.goal,
       },
     });
 
@@ -352,6 +440,7 @@ const ProClientPantryRecipesPage = () => {
   }
 
   const selectedCount = filtered.filter((i) => selectedIds.has(i.id)).length;
+  const activeGoal = GOALS.find((g) => g.value === goal)!;
 
   return (
     <div>
@@ -379,6 +468,29 @@ const ProClientPantryRecipesPage = () => {
           </Select>
         </div>
 
+        {/* Goal selector pills */}
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+            <Target className="h-3.5 w-3.5" /> Obiettivo ricetta
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {GOALS.map((g) => (
+              <button
+                key={g.value}
+                onClick={() => setGoal(g.value)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${
+                  goal === g.value
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                    : "bg-secondary/50 text-muted-foreground border-border hover:bg-secondary"
+                }`}
+              >
+                {g.emoji} {g.label}
+              </button>
+            ))}
+          </div>
+          <p className="text-[11px] text-muted-foreground pl-1">{activeGoal.description}</p>
+        </div>
+
         {/* Priority toggle */}
         <div className="flex items-center justify-between rounded-lg bg-secondary/50 p-3">
           <span className="text-sm font-medium text-foreground">🔥 Priorità scadenze</span>
@@ -388,9 +500,22 @@ const ProClientPantryRecipesPage = () => {
         {/* Meal target */}
         {mealTarget ? (
           <div className="rounded-lg bg-primary/5 border border-primary/20 p-3">
-            <p className="text-xs font-semibold text-foreground mb-1">Target {MEAL_LABELS[mealType]}</p>
+            <p className="text-xs font-semibold text-foreground mb-1">
+              Target {MEAL_LABELS[mealType]}
+              {(goal === "deficit" || goal === "surplus") && (
+                <span className="text-muted-foreground font-normal ml-1">
+                  ({goal === "deficit" ? "-10%" : "+10%"} kcal)
+                </span>
+              )}
+            </p>
             <div className="flex gap-3 text-xs">
-              <span className="font-medium">{mealTarget.kcal_target} kcal</span>
+              <span className="font-medium">
+                {goal === "deficit"
+                  ? Math.round(mealTarget.kcal_target * 0.9)
+                  : goal === "surplus"
+                  ? Math.round(mealTarget.kcal_target * 1.1)
+                  : mealTarget.kcal_target} kcal
+              </span>
               <span>P: {mealTarget.protein_g}g</span>
               <span>C: {mealTarget.carbs_g}g</span>
               <span>G: {mealTarget.fats_g}g</span>
@@ -464,7 +589,7 @@ const ProClientPantryRecipesPage = () => {
           disabled={generating || selectedCount === 0 || !mealTarget}
         >
           {generating ? <Loader2 className="h-5 w-5 animate-spin" /> : <ChefHat className="h-5 w-5" />}
-          Genera 3 ricette bilanciate
+          Genera 3 ricette · {activeGoal.emoji} {activeGoal.label}
         </Button>
 
         {/* Results */}
@@ -479,6 +604,13 @@ const ProClientPantryRecipesPage = () => {
 
             {recipes.map((recipe, idx) => {
               const shopping = getShoppingList(recipe);
+              const goalInfo = GOALS.find((g) => g.value === recipe.goal);
+              const effectiveKcal = goal === "deficit"
+                ? Math.round((mealTarget?.kcal_target ?? 0) * 0.9)
+                : goal === "surplus"
+                ? Math.round((mealTarget?.kcal_target ?? 0) * 1.1)
+                : mealTarget?.kcal_target ?? 0;
+
               return (
                 <Card key={idx} className="border-2 border-accent overflow-hidden">
                   <CardHeader className="pb-2 pt-3 px-4">
@@ -496,11 +628,18 @@ const ProClientPantryRecipesPage = () => {
                         <Trophy className="h-3 w-3" /> Fit {recipe.fit_score}%
                       </Badge>
                     </div>
-                    {recipe.partial_estimate && (
-                      <Badge variant="secondary" className="gap-1 text-[9px] w-fit mt-1">
-                        <AlertTriangle className="h-3 w-3" /> Stima parziale
-                      </Badge>
-                    )}
+                    <div className="flex items-center gap-1.5 mt-1">
+                      {goalInfo && (
+                        <Badge variant="outline" className="text-[9px] px-1.5 py-0 gap-0.5">
+                          {goalInfo.emoji} {GOAL_BADGE_LABELS[recipe.goal]}
+                        </Badge>
+                      )}
+                      {recipe.partial_estimate && (
+                        <Badge variant="secondary" className="gap-1 text-[9px] px-1 py-0">
+                          <AlertTriangle className="h-3 w-3" /> Stima parziale
+                        </Badge>
+                      )}
+                    </div>
                   </CardHeader>
                   <CardContent className="px-4 pb-4 space-y-3">
                     {/* Macro comparison */}
@@ -508,7 +647,7 @@ const ProClientPantryRecipesPage = () => {
                       <div className="grid grid-cols-4 gap-1.5 text-center text-[10px]">
                         <div className="rounded-md bg-primary/10 p-1.5">
                           <p className="font-bold text-primary">{recipe.kcal_total}</p>
-                          <p className="text-muted-foreground">/{mealTarget.kcal_target} kcal</p>
+                          <p className="text-muted-foreground">/{effectiveKcal} kcal</p>
                         </div>
                         <div className="rounded-md bg-blue-500/10 p-1.5">
                           <p className="font-bold text-blue-600">{recipe.macros.protein}g</p>
