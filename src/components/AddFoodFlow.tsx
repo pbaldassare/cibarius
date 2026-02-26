@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
+import { autoMatchProduct } from "@/lib/nutrition";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -259,7 +260,10 @@ const AddFoodFlow = ({
             calories_100g: p.calories_100g,
             macros_100g: p.macros_100g as any,
           }).select("id").single();
-          if (created) pid = created.id;
+          if (created) {
+            pid = created.id;
+            if (!p.calories_100g) autoMatchProduct(created.id, p.name);
+          }
         }
       } else {
         const { data: created } = await supabase.from("products").insert({
@@ -269,7 +273,10 @@ const AddFoodFlow = ({
           calories_100g: p.calories_100g,
           macros_100g: p.macros_100g as any,
         }).select("id").single();
-        if (created) pid = created.id;
+        if (created) {
+          pid = created.id;
+          if (!p.calories_100g) autoMatchProduct(created.id, p.name);
+        }
       }
     }
 
