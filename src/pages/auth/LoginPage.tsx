@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRole, getRoleHomePath } from "@/hooks/useRole";
@@ -29,13 +29,10 @@ const LoginPage = () => {
   }
 
   if (session && role) {
-    const target = getRoleHomePath(role);
-    navigate(target, { replace: true });
-    return null;
+    return <Navigate to={getRoleHomePath(role)} replace />;
   }
   if (session && !role) {
-    navigate("/", { replace: true });
-    return null;
+    return <Navigate to="/" replace />;
   }
 
   const handleLogin = async (e: React.FormEvent) => {
