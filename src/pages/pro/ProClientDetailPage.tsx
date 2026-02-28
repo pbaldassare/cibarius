@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Send, Flame, ChevronLeft, ChevronRight, MessageSquare, ClipboardList, Activity, Lightbulb, ChefHat, Pencil, History } from "lucide-react";
+import { Loader2, Send, Flame, ChevronLeft, ChevronRight, MessageSquare, ClipboardList, Activity, Lightbulb, ChefHat, Pencil, History, MessageCircle, FileDown } from "lucide-react";
 
 const MEAL_LABELS: Record<string, string> = {
   colazione: "🌅 Colazione",
@@ -148,10 +148,13 @@ const ProClientDetailPage = () => {
 
         {/* Active plan badge */}
         {hasActivePlan && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Badge variant="default" className="text-xs">Piano attivo</Badge>
             <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => navigate(`/pro/client/${clientId}/plan`)}>
               <Pencil className="h-3.5 w-3.5" /> Modifica piano
+            </Button>
+            <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => navigate(`/pro/client/${clientId}/plan-pdf`)}>
+              <FileDown className="h-3.5 w-3.5" /> PDF
             </Button>
             <Button size="sm" variant="ghost" className="gap-1 text-xs" onClick={() => navigate(`/pro/client/${clientId}/plan-history`)}>
               <History className="h-3.5 w-3.5" /> Storico
@@ -160,7 +163,7 @@ const ProClientDetailPage = () => {
         )}
 
         {/* Quick actions */}
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-5 gap-2">
           <Button size="sm" variant="outline" className="flex-col h-auto py-2.5 gap-1 text-[10px]" onClick={() => navigate(`/pro/client/${clientId}/plan`)}>
             <ClipboardList className="h-4 w-4" /> Piano
           </Button>
@@ -172,6 +175,9 @@ const ProClientDetailPage = () => {
           </Button>
           <Button size="sm" variant="outline" className="flex-col h-auto py-2.5 gap-1 text-[10px]" onClick={() => navigate(`/pro/client/${clientId}/pantry`)}>
             <ChefHat className="h-4 w-4" /> Dispensa
+          </Button>
+          <Button size="sm" variant="outline" className="flex-col h-auto py-2.5 gap-1 text-[10px]" onClick={() => navigate(`/pro/client/${clientId}/messages`)}>
+            <MessageCircle className="h-4 w-4" /> Chat
           </Button>
         </div>
 

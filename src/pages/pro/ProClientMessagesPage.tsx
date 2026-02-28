@@ -1,0 +1,160 @@
+import { useEffect, useState, useRef } from "react";
+import { useParams } from "react-router-dom";
+import MobileHeader from "@/components/MobileHeader";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { Loader2, Send } from "lucide-react";
+
+interface Message {
+  id: string;
+  sender_id: string;
+  receiver_id: string;
+  content: string;
+  read_at: string | null;
+  created_at: string;
+}
+
+const ProClientMessagesPage = () => {
+  const { clientId } = useParams<{ clientId: string }>();
+  const { user } = useAuth();
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [newMsg, setNewMsg] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [clientName, setClientName] = useState("");
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!user || !clientId) return;
+
+    const load = async () => {
+      const [msgsRes, profileRes] = await Promise.all([
+        supabase
+          .from("messages" as any)
+          .select("*")
+          .or(`and(sender_id.eq.${user.id},receiver_id.eq.${clientId}),and(sender_id.eq.${clientId},receiver_id.eq.${user.id})`)
+          .order("created_at", { ascending: true }),
+        supabase.from("profiles").select("full_name, email").eq("id", clientId).single(),
+      ]);
+      setMessages((msgsRes.data as any[]) ?? []);
+      setClientName(profileRes.data?.full_name || profileRes.data?.email || "Cliente");
+      setLoading(false);
+
+      // Mark unread as read
+      await supabase
+        .from("messages" as any)
+        .update({ read_at: new Date().toISOString() } as any)
+        .eq("sender_id", clientId)
+        .eq("receiver_id", user.id)
+        .is("read_at", null);
+    };
+    load();
+
+    // Realtime subscription
+    const channel = supabase
+      .channel("messages-pro")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages" },
+        (payload) => {
+          const msg = payload.new as Message;
+          if (
+            (msg.sender_id === user.id && msg.receiver_id === clientId) ||
+            (msg.sender_id === clientId && msg.receiver_id === user.id)
+          ) {
+            setMessages((prev) => [...prev, msg]);
+            // Auto-mark as read
+            if (msg.receiver_id === user.id) {
+              supabase.from("messages" as any).update({ read_at: new Date().toISOString() } as any).eq("id", msg.id);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user, clientId]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleSend = async () => {
+    if (!newMsg.trim() || !user || !clientId) return;
+    setSending(true);
+    await supabase.from("messages" as any).insert({
+      sender_id: user.id,
+      receiver_id: clientId,
+      content: newMsg.trim(),
+    } as any);
+    setNewMsg("");
+    setSending(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  if (loading) {
+    return (
+      <div>
+        <MobileHeader title="Chat" />
+        <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-screen">
+      <MobileHeader title={clientName} />
+      {/* Messages area */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
+        {messages.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-10">Nessun messaggio ancora. Scrivi per iniziare!</p>
+        )}
+        {messages.map((msg) => {
+          const isMine = msg.sender_id === user?.id;
+          return (
+            <div key={msg.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
+              <div
+                className={`max-w-[80%] px-3.5 py-2.5 rounded-2xl ${
+                  isMine
+                    ? "bg-primary/10 text-foreground rounded-br-md"
+                    : "bg-secondary text-foreground rounded-bl-md"
+                }`}
+              >
+                <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                <p className="text-[10px] text-muted-foreground mt-1 text-right">
+                  {new Date(msg.created_at).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}
+                </p>
+              </div>
+            </div>
+          );
+        })}
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Input */}
+      <div className="border-t border-border px-4 py-3 flex gap-2 bg-card safe-bottom">
+        <Textarea
+          placeholder="Scrivi un messaggio..."
+          value={newMsg}
+          onChange={(e) => setNewMsg(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className="min-h-[40px] max-h-[120px] resize-none"
+          rows={1}
+        />
+        <Button size="icon" onClick={handleSend} disabled={sending || !newMsg.trim()}>
+          {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+export default ProClientMessagesPage;
