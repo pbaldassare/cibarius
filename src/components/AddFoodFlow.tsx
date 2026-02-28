@@ -116,6 +116,7 @@ const AddFoodFlow = ({
   const [storageType, setStorageType] = useState("frigo");
   const defaultExpiry = () => format(addDays(new Date(), 3), "yyyy-MM-dd");
   const [expiryDate, setExpiryDate] = useState(defaultExpiry);
+  const [expiryTouched, setExpiryTouched] = useState(false);
 
   // Meal-specific
   const [selectedMealType, setSelectedMealType] = useState<MealType | null>(preselectedMealType ?? null);
@@ -167,6 +168,7 @@ const AddFoodFlow = ({
         setBarcode(null);
         setStorageType("frigo");
         setExpiryDate(defaultExpiry());
+        setExpiryTouched(false);
         setSelectedMealType(preselectedMealType ?? null);
         setSaveToInventory(false);
         setAiPhotos([]);
@@ -433,7 +435,7 @@ const AddFoodFlow = ({
       // Expiry
       if (fused.expiry_candidates.length > 0) {
         setExpiryCandidates(fused.expiry_candidates);
-        if (fused.best_expiry) setExpiryDate(fused.best_expiry);
+        if (fused.best_expiry) { setExpiryDate(fused.best_expiry); setExpiryTouched(true); }
       }
 
       // Storage hint
@@ -481,7 +483,7 @@ const AddFoodFlow = ({
             .filter((c: any) => c.label === "Scadenza")
             .sort((a: any, b: any) => b.confidence - a.confidence)[0]
             || data.candidates.sort((a: any, b: any) => b.confidence - a.confidence)[0];
-          if (best) setExpiryDate(best.date);
+          if (best) { setExpiryDate(best.date); setExpiryTouched(true); }
         }
       } catch (err: any) {
         toast({ variant: "destructive", title: "Errore OCR", description: err?.message || "Impossibile leggere la scadenza" });
@@ -1137,12 +1139,13 @@ const AddFoodFlow = ({
                       onClick={() => setEditingChip(editingChip === "expiry" ? null : "expiry")}
                       className={`inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium transition-all ${
                         editingChip === "expiry" ? "bg-primary text-primary-foreground shadow-sm"
-                        : expiryDate ? "bg-card border border-border text-foreground shadow-card"
-                        : "bg-amber-50 border border-amber-200 text-amber-700"
+                        : !expiryTouched ? "bg-amber-50 border border-amber-300 text-amber-700 animate-pulse"
+                        : "bg-card border border-border text-foreground shadow-card"
                       }`}
                     >
                       <CalendarSearch className="h-3.5 w-3.5" />
-                      {expiryDate ? new Date(expiryDate).toLocaleDateString("it-IT") : "Scadenza?"}
+                      {new Date(expiryDate).toLocaleDateString("it-IT")}
+                      {!expiryTouched && <span className="text-[10px] ml-0.5 opacity-75">(default)</span>}
                     </button>
                   )}
                 </div>
@@ -1205,7 +1208,7 @@ const AddFoodFlow = ({
                     {expiryCandidates.length > 1 && (
                       <div className="flex gap-1.5 flex-wrap">
                         {expiryCandidates.map((c, i) => (
-                          <button key={i} onClick={() => { setExpiryDate(c.date); setEditingChip(null); }}
+                          <button key={i} onClick={() => { setExpiryDate(c.date); setExpiryTouched(true); setEditingChip(null); }}
                             className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
                               expiryDate === c.date ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"
                             }`}>
@@ -1216,7 +1219,7 @@ const AddFoodFlow = ({
                       </div>
                     )}
                     <div className="flex gap-2">
-                      <Input type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)}
+                      <Input type="date" value={expiryDate} onChange={(e) => { setExpiryDate(e.target.value); setExpiryTouched(true); }}
                         className="flex-1 h-9 text-sm" />
                       <Button type="button" variant="outline" size="sm" className="shrink-0 gap-1 h-9"
                         onClick={() => expiryInputRef.current?.click()}>
