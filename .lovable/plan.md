@@ -1,56 +1,77 @@
 
 
-# Fix: Salvataggio barcode in database
+# Compatibilita' prodotto con piano alimentare
 
-Il problema principale e' che la scansione barcode mostra correttamente i dati (da OpenFoodFacts), ma il salvataggio in database fallisce silenziosamente a causa di policy RLS e mancanza di error handling.
-
----
-
-## Problemi identificati
-
-### 1. RLS `Products update by admin`
-La tabella `products` ha una policy UPDATE solo per admin. Quando un utente normale scansiona un barcode gia' presente, l'update fallisce silenziosamente e `productId` non viene impostato.
-
-### 2. Nessun error handling nel barcode handler
-Le chiamate Supabase in `handleBarcode` (righe 307-331) non controllano gli errori. Se l'insert o update fallisce, il flusso continua come se tutto fosse ok.
-
-### 3. Conflitto barcode duplicato
-Se il prodotto esiste gia' con quel barcode ma l'utente non puo' fare update, il successivo insert in `handleSave` potrebbe creare un duplicato o fallire.
+Aggiunta di una card informativa nello step "summary" di AddFoodFlow che mostra se il prodotto e' compatibile con il piano nutrizionale attivo dell'utente (tolleranza 10%).
 
 ---
 
-## Soluzione
+## Comportamento
 
-### File: `src/components/AddFoodFlow.tsx`
+Quando l'utente arriva allo step summary e ha un piano nutrizionale attivo (`diet_plans` con `is_active = true`):
 
-**handleBarcode** (righe 298-351):
-- Aggiungere error handling su tutte le chiamate Supabase
-- Se l'update fallisce per RLS, usare comunque l'`id` del prodotto esistente (il prodotto e' gia' nel DB, non serve aggiornarlo per poterlo usare)
-- Loggare errori in console per debug
+1. Il sistema carica i target giornalieri dal piano + i `diet_plan_meal_targets` per il pasto selezionato
+2. Calcola quanto l'utente ha gia' consumato oggi (da `meal_days` -> `meals` -> `meal_items`)
+3. Calcola i nutrienti rimanenti = target - consumati
+4. Confronta il prodotto (alla quantita' selezionata) con i rimanenti
+5. Mostra una card con verdetto:
+   - **Verde "Compatibile"**: tutti i macro rientrano nel budget rimanente (+10% tolleranza)
+   - **Giallo "Attenzione"**: almeno un macro sfora tra 10% e 30%
+   - **Rosso "Fuori piano"**: almeno un macro sfora oltre 30%
 
-**handleSave** (righe 511+):
-- Nella sezione "Ensure product exists", aggiungere gestione del caso in cui il prodotto con quel barcode esiste gia' ma non e' stato trovato prima
-- Usare `upsert` o catch duplicati
+La card si aggiorna in tempo reale quando l'utente cambia quantita'. E' solo informativa -- l'utente decide se procedere o meno.
 
-### File: Migration SQL (opzionale ma consigliata)
-- Aggiungere policy `Products update by creator`: permettere a qualsiasi utente autenticato di aggiornare i prodotti (dato che non c'e' un `created_by` sulla tabella, la soluzione piu' semplice e' aprire l'update a tutti gli autenticati, come gia' fatto per insert/select)
+### Esempio visivo
 
-```sql
-DROP POLICY IF EXISTS "Products update by admin" ON public.products;
-CREATE POLICY "Products update by authenticated"
-  ON public.products FOR UPDATE
-  USING (auth.uid() IS NOT NULL)
-  WITH CHECK (auth.uid() IS NOT NULL);
+```text
++-------------------------------------------+
+| [check verde] Compatibile col tuo piano   |
+| Kcal: 320 / 450 rimanenti                 |
+| Proteine: 25g / 30g  Carbo: 40g / 55g     |
++-------------------------------------------+
 ```
 
 ---
 
-## Riepilogo modifiche
+## Dettaglio tecnico
 
-### File modificati (2)
-- `src/components/AddFoodFlow.tsx` -- error handling in handleBarcode + handleSelectSearchProduct + handleSave
-- Migration SQL -- policy update prodotti aperta agli autenticati
+### Nuovo file: `src/hooks/useDietCompatibility.ts`
 
-### Ordine
-1. Migration SQL (sblocca l'update prodotti)
-2. Error handling nel codice (previene fallimenti silenziosi)
+Hook che:
+- Accetta `userId` come parametro
+- Query `diet_plans` dove `client_user_id = userId` e `is_active = true` (limit 1)
+- Query `diet_plan_meal_targets` per quel piano
+- Query `meal_days` di oggi -> `meals` -> `meal_items` per sommare kcal/protein/carbs/fats gia' consumati
+- Espone:
+  - `dailyTargets: { kcal, protein, carbs, fats }` (dal piano)
+  - `todayConsumed: { kcal, protein, carbs, fats }` (somma meal_items di oggi)
+  - `remaining: { kcal, protein, carbs, fats }`
+  - `hasPlan: boolean`
+  - `loading: boolean`
+  - `checkProduct(kcal, protein, carbs, fats)` -> `{ verdict: 'ok' | 'warning' | 'over', details: Array<{macro, value, remaining, over}> }`
+
+Logica verdetto: per ogni macro, `excess = (valore - rimanente) / target_giornaliero`. Se nessun excess > 0.10 -> ok. Se qualcuno > 0.10 ma tutti < 0.30 -> warning. Se qualcuno >= 0.30 -> over.
+
+### Modifica: `src/components/AddFoodFlow.tsx`
+
+Nello step "summary", dopo la product hero card (riga ~1033) e prima della AI confidence indicator:
+- Importare e usare `useDietCompatibility(user.id)`
+- Se `hasPlan` e il prodotto ha dati nutrizionali (`computed.calories` non null), mostrare una card con:
+  - Icona + verdetto colorato
+  - Dettaglio per macro: valore prodotto / rimanente giornaliero
+- La card usa i colori emerald (ok), amber (warning), red (over)
+- Visibile per context `meal` e `inventory` (non recipe/preparation)
+
+### Nessuna modifica al database
+Usa solo tabelle esistenti: `diet_plans`, `diet_plan_meal_targets`, `meal_days`, `meals`, `meal_items`.
+
+---
+
+## File coinvolti
+
+### Nuovo (1)
+- `src/hooks/useDietCompatibility.ts`
+
+### Modificato (1)
+- `src/components/AddFoodFlow.tsx` -- import hook + card compatibilita' nello step summary
+
