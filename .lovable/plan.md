@@ -1,53 +1,128 @@
 
 
-# Modifica piano nutrizionale in-place
+# 4 Nuove Funzionalita' per Cibarius
 
-## Obiettivo
-Permettere al nutrizionista di modificare un piano attivo esistente direttamente, senza dover creare un nuovo piano ogni volta. Attualmente il flusso "Pubblica" disattiva il piano precedente e ne crea uno nuovo.
-
-## Cosa cambia
-
-### 1. ProClientPlanPage.tsx -- Aggiungere modalita' "Modifica"
-
-Quando esiste gia' un piano attivo (`existingPlanId` non e' null), il wizard si comporta diversamente:
-
-- **Header**: mostra "Modifica piano" invece di "Nuovo piano"
-- **Step 4 (Pubblica)**: il bottone diventa "Salva modifiche" invece di "Pubblica piano"
-- **Logica di salvataggio**: invece di disattivare il vecchio piano e crearne uno nuovo, viene fatto un UPDATE in-place su:
-  - `diet_plans` (kcal_day, protein_g_day, carbs_g_day, fats_g_day, title, notes)
-  - `diet_plan_meal_targets` (delete dei vecchi + insert dei nuovi, per semplicita')
-  - `nutrition_targets` (upsert come gia' avviene)
-
-### 2. Bottone "Modifica" visibile dalla lista clienti
-
-Nella `ProClientsPage.tsx`, il bottone "Piano" gia' naviga a `/pro/client/:id/plan` che carica il piano esistente. Non serve modificare nulla qui.
-
-### 3. Bottone "Modifica" nel dettaglio cliente
-
-Nel `ProClientDetailPage.tsx`, aggiungere un bottone "Modifica piano" accanto al bottone "Piano" esistente, solo se il cliente ha gia' un piano attivo.
+Implementazione di messaggistica, lista della spesa, calendario appuntamenti e PDF del piano alimentare, mantenendo l'identita' visiva Cibarius (palette blu/arancio, Fredoka, card arrotondate, gradient primary).
 
 ---
 
-## Dettaglio tecnico
+## 1. Messaggistica bidirezionale (Pro <-> Cliente)
 
-### Modifiche ai file
+### Database
+Nuova tabella `messages`:
+- `id` (uuid, PK)
+- `sender_id` (uuid, references profiles)
+- `receiver_id` (uuid, references profiles)
+- `content` (text)
+- `read_at` (timestamptz, nullable)
+- `created_at` (timestamptz, default now())
 
-**`src/pages/pro/ProClientPlanPage.tsx`**:
-- Aggiungere stato `isEditMode` derivato da `existingPlanId !== null`
-- Nuovo metodo `handleUpdate()` che fa:
-  ```
-  1. UPDATE diet_plans SET kcal_day, protein_g_day, carbs_g_day, fats_g_day, title, notes WHERE id = existingPlanId
-  2. DELETE FROM diet_plan_meal_targets WHERE diet_plan_id = existingPlanId  
-  3. INSERT nuovi meal_targets
-  4. UPSERT nutrition_targets
-  ```
-- Step 4: condizionare il testo del bottone e chiamare `handleUpdate` o `handlePublish` in base alla modalita'
-- Header: mostrare "Modifica piano -- NomeCliente" in edit mode
+RLS:
+- SELECT/INSERT: sender o receiver = auth.uid(), con verifica link attivo tramite `has_active_pro_link` o `has_active_client_link`
+- UPDATE (solo read_at): receiver = auth.uid()
 
-**`src/pages/pro/ProClientDetailPage.tsx`**:
-- Caricare `diet_plans` per verificare se esiste un piano attivo
-- Mostrare badge "Piano attivo" e bottone "Modifica piano" se presente
+### Frontend
+- **`ProClientMessagesPage.tsx`** (`/pro/client/:clientId/messages`): Chat view con lista messaggi, input in basso, badge messaggi non letti
+- **`UserMessagesPage.tsx`** (`/messages`): Chat col proprio nutrizionista, stessa UI ma lato cliente
+- **Bottone "Chat"** nel `ProClientDetailPage.tsx` (griglia quick actions)
+- **Indicatore non letti** nella bottom nav del professionista (tab "Note" diventa "Chat") e nella bottom nav utente (nuovo tab o badge su Profilo)
+- Route aggiunte in `App.tsx`
 
-### Nessuna migrazione DB necessaria
-Le RLS policies attuali gia' permettono al professionista di fare UPDATE su `diet_plans` e ALL su `diet_plan_meal_targets` tramite le policy "Pro manages".
+### UI
+Stile Cibarius: bolle messaggi con `bg-primary/10` (proprio) e `bg-secondary` (altro), bordi arrotondati `rounded-2xl`, timestamp discreti
+
+---
+
+## 2. Lista della spesa dal piano alimentare
+
+### Nessuna tabella nuova
+La lista viene generata client-side dal piano attivo + ricette suggerite, senza persistenza DB (piu' semplice, no migration).
+
+### Frontend
+- **`ShoppingListPage.tsx`** (`/shopping-list`): Pagina accessibile dall'utente
+  - Legge `diet_plan_meal_targets` + `generated_recipes` (ingredienti) del piano attivo
+  - Raggruppa ingredienti per categoria, somma quantita' duplicate
+  - Checkbox per spuntare acquisti (stato locale, `localStorage`)
+  - Pulsante "Condividi" (Web Share API) per inviare la lista
+- **Bottone** nella `UserDietPage.tsx`: Card "Lista della spesa" con icona ShoppingCart
+- Route in `App.tsx` sotto UserLayout
+
+---
+
+## 3. Calendario appuntamenti
+
+### Database
+Nuova tabella `appointments`:
+- `id` (uuid, PK)
+- `professional_id` (uuid)
+- `client_user_id` (uuid)
+- `title` (text, default 'Visita')
+- `starts_at` (timestamptz)
+- `ends_at` (timestamptz, nullable)
+- `notes` (text, nullable)
+- `status` (text, default 'scheduled') -- scheduled, completed, cancelled
+- `created_at` (timestamptz, default now())
+
+Trigger di validazione per status.
+
+RLS:
+- Pro ALL: `professional_id = auth.uid() AND has_active_pro_link(auth.uid(), client_user_id)`
+- Client SELECT: `client_user_id = auth.uid()`
+- Admin ALL
+
+### Frontend
+- **`ProAppointmentsPage.tsx`** (`/pro/appointments`): Vista settimanale/lista con card appuntamenti, pulsante "+ Nuovo", datepicker per selezionare data/ora, select per scegliere il cliente
+- **Accesso dalla dashboard Pro** (`ProPage.tsx`): Nuova card "Appuntamenti" nella griglia
+- **Lato utente** (`UserDietPage.tsx`): Card "Prossimo appuntamento" con data e orario, visibile solo se esiste un appuntamento futuro
+- **Bottom nav Pro**: Tab "Note" rimpiazzato da "Chat" (vedi punto 1), appuntamenti accessibili dalla dashboard
+- Route in `App.tsx`
+
+---
+
+## 4. PDF del piano alimentare
+
+### Nessuna tabella nuova
+Generazione client-side con l'API nativa del browser (print-to-PDF).
+
+### Frontend
+- **Componente `PlanPdfView.tsx`**: Layout ottimizzato per stampa con:
+  - Header: logo Cibarius, nome professionista, data
+  - Riepilogo macro giornalieri in tabella
+  - Tabella posologia per pasto (kcal, proteine, carbo, grassi)
+  - Note del piano
+  - Footer con "Generato da Cibarius"
+- **Pagina `ProClientPlanPdfPage.tsx`** (`/pro/client/:clientId/plan-pdf`): Carica il piano attivo e renderizza `PlanPdfView`, con pulsante "Scarica PDF" che chiama `window.print()`
+- **Stile `@media print`** in `index.css`: Nasconde header, nav, mostra solo il contenuto del piano
+- **Bottone "PDF"** nel `ProClientDetailPage.tsx` accanto a "Modifica piano"
+
+---
+
+## Riepilogo file
+
+### Nuovi file (7)
+- `src/pages/pro/ProClientMessagesPage.tsx`
+- `src/pages/UserMessagesPage.tsx`
+- `src/pages/ShoppingListPage.tsx`
+- `src/pages/pro/ProAppointmentsPage.tsx`
+- `src/pages/pro/ProClientPlanPdfPage.tsx`
+- `src/components/PlanPdfView.tsx`
+- Migration SQL (messages + appointments)
+
+### File modificati (5)
+- `src/App.tsx` -- 4 nuove route
+- `src/pages/pro/ProPage.tsx` -- card Appuntamenti + Chat
+- `src/pages/pro/ProClientDetailPage.tsx` -- bottoni Chat + PDF
+- `src/pages/UserDietPage.tsx` -- card Lista spesa + prossimo appuntamento
+- `src/components/BottomNav.tsx` -- tab Chat per pro, badge non letti
+- `src/index.css` -- stili `@media print`
+- `src/integrations/supabase/types.ts` -- auto-aggiornato
+
+### Ordine di implementazione
+1. Migration DB (messages + appointments)
+2. Messaggistica (tabelle gia' pronte)
+3. Calendario appuntamenti
+4. Lista della spesa (no DB)
+5. PDF piano (no DB)
+
+Tutto coerente con la palette Cibarius, nessuna libreria esterna aggiuntiva.
 
