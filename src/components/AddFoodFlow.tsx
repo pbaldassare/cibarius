@@ -16,6 +16,7 @@ import { analyzeFoodPhotos, fuseWithOFF, fileToImageFile, type ImageFile, type F
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { useDietCompatibility } from "@/hooks/useDietCompatibility";
+import { addDays, format } from "date-fns";
 import {
   ArrowLeft, Search, ScanLine, Keyboard, Camera, Loader2,
   Package, Plus, Minus, Check, Flame, Archive, Thermometer, Snowflake,
@@ -113,7 +114,8 @@ const AddFoodFlow = ({
 
   // Inventory-specific
   const [storageType, setStorageType] = useState("frigo");
-  const [expiryDate, setExpiryDate] = useState("");
+  const defaultExpiry = () => format(addDays(new Date(), 3), "yyyy-MM-dd");
+  const [expiryDate, setExpiryDate] = useState(defaultExpiry);
 
   // Meal-specific
   const [selectedMealType, setSelectedMealType] = useState<MealType | null>(preselectedMealType ?? null);
@@ -164,7 +166,7 @@ const AddFoodFlow = ({
         setProductId(null);
         setBarcode(null);
         setStorageType("frigo");
-        setExpiryDate("");
+        setExpiryDate(defaultExpiry());
         setSelectedMealType(preselectedMealType ?? null);
         setSaveToInventory(false);
         setAiPhotos([]);
@@ -580,7 +582,7 @@ const AddFoodFlow = ({
           quantity,
           unit,
           storage_type: storageType,
-          expiry_date: expiryDate || null,
+          expiry_date: expiryDate,
           calories_total: computed.calories,
           macros_total: computed.macros as any,
         };
@@ -641,7 +643,7 @@ const AddFoodFlow = ({
             quantity,
             unit,
             storage_type: storageType,
-            expiry_date: expiryDate || null,
+            expiry_date: expiryDate,
             calories_total: computed.calories,
             macros_total: computed.macros as any,
             owner_user_id: user.id,
