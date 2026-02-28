@@ -15,11 +15,12 @@ import { searchFood, type FoodSearchResult } from "@/lib/search-food";
 import { analyzeFoodPhotos, fuseWithOFF, fileToImageFile, type ImageFile, type FusedFoodData } from "@/lib/ai-food";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
+import { useDietCompatibility } from "@/hooks/useDietCompatibility";
 import {
   ArrowLeft, Search, ScanLine, Keyboard, Camera, Loader2,
   Package, Plus, Minus, Check, Flame, Archive, Thermometer, Snowflake,
   CalendarSearch, AlertTriangle, Sparkles, X, ImagePlus, ChevronDown, ChevronUp, ChefHat,
-  CheckCircle2, HelpCircle, Zap,
+  CheckCircle2, HelpCircle, Zap, ShieldCheck, ShieldAlert, ShieldX,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -134,6 +135,7 @@ const AddFoodFlow = ({
   // Confidence flags
   const [confidence, setConfidence] = useState<{ name: number; barcode: number; nutrition: number; expiry: number }>({ name: 1, barcode: 0, nutrition: 0, expiry: 0 });
 
+  const dietCompat = useDietCompatibility(user?.id);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
@@ -1032,7 +1034,42 @@ const AddFoodFlow = ({
                   </div>
                 </div>
 
-                {/* ── AI confidence indicator ── */}
+                {/* ── Diet compatibility card ── */}
+                {dietCompat.hasPlan && computed.calories != null && (context === "meal" || context === "inventory") && (() => {
+                  const result = dietCompat.checkProduct(
+                    computed.calories ?? 0,
+                    computed.macros?.protein ?? 0,
+                    computed.macros?.carbs ?? 0,
+                    computed.macros?.fats ?? 0,
+                  );
+                  const cfg = result.verdict === "ok"
+                    ? { icon: ShieldCheck, label: "Compatibile col tuo piano", bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-700", iconColor: "text-emerald-600" }
+                    : result.verdict === "warning"
+                    ? { icon: ShieldAlert, label: "Attenzione: vicino ai limiti", bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700", iconColor: "text-amber-600" }
+                    : { icon: ShieldX, label: "Fuori piano", bg: "bg-red-50", border: "border-red-200", text: "text-red-700", iconColor: "text-red-600" };
+                  const Icon = cfg.icon;
+                  return (
+                    <div className={`rounded-2xl ${cfg.bg} border ${cfg.border} px-3 py-2.5`}>
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <Icon className={`h-4 w-4 ${cfg.iconColor}`} />
+                        <span className={`text-[11px] font-semibold ${cfg.text}`}>{cfg.label}</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
+                        {result.details.map((d) => (
+                          <div key={d.macro} className="flex items-center justify-between">
+                            <span className={`text-[10px] ${d.over ? cfg.text : "text-muted-foreground"}`}>{d.label}</span>
+                            <span className={`text-[10px] font-medium ${d.over ? cfg.text : "text-foreground"}`}>
+                              {d.macro === "kcal" ? Math.round(d.value) : `${d.value.toFixed(1)}g`}
+                              {" / "}
+                              {d.macro === "kcal" ? Math.round(d.remaining) : `${d.remaining.toFixed(1)}g`}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {(method === "photo_ai" || method === "scan") && (
                   <div className="rounded-2xl bg-primary/5 border border-primary/10 px-3 py-2.5">
                     <div className="flex items-center gap-1.5 mb-1.5">
