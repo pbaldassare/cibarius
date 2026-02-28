@@ -77,6 +77,8 @@ import UserDietPage from "./pages/UserDietPage";
 import UserPantryRecipesPage from "./pages/UserPantryRecipesPage";
 import UserMessagesPage from "./pages/UserMessagesPage";
 import ShoppingListPage from "./pages/ShoppingListPage";
+import UserMeasurementsPage from "./pages/UserMeasurementsPage";
+import ProClientMeasurementsPage from "./pages/pro/ProClientMeasurementsPage";
 
 // Supplier pages
 import SupplierPage from "./pages/supplier/SupplierPage";
@@ -132,6 +134,7 @@ const App = () => (
                 <Route path="/preparations" element={<PreparationsPage />} />
                 <Route path="/messages" element={<UserMessagesPage />} />
                 <Route path="/shopping-list" element={<ShoppingListPage />} />
+                <Route path="/measurements" element={<UserMeasurementsPage />} />
               </Route>
 
               {/* ═══ RESTAURANT APP (RestaurantLayout) ═══ */}
@@ -171,6 +174,7 @@ const App = () => (
                 <Route path="/pro/client/:clientId/messages" element={<RG roles={["professional", "admin"]}><ProClientMessagesPage /></RG>} />
                 <Route path="/pro/client/:clientId/plan-pdf" element={<RG roles={["professional", "admin"]}><ProClientPlanPdfPage /></RG>} />
                 <Route path="/pro/appointments" element={<RG roles={["professional", "admin"]}><ProAppointmentsPage /></RG>} />
+                <Route path="/pro/client/:clientId/measurements" element={<RG roles={["professional", "admin"]}><ProClientMeasurementsPage /></RG>} />
                 <Route path="/pro/profile" element={<RG roles={["professional", "admin"]}><ProfiloPage /></RG>} />
               </Route>
 
