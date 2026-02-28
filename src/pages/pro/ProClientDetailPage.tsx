@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Send, Flame, ChevronLeft, ChevronRight, MessageSquare, ClipboardList, Activity, Lightbulb, ChefHat, Pencil } from "lucide-react";
+import { Loader2, Send, Flame, ChevronLeft, ChevronRight, MessageSquare, ClipboardList, Activity, Lightbulb, ChefHat, Pencil, History } from "lucide-react";
 
 const MEAL_LABELS: Record<string, string> = {
   colazione: "🌅 Colazione",
@@ -152,6 +152,9 @@ const ProClientDetailPage = () => {
             <Badge variant="default" className="text-xs">Piano attivo</Badge>
             <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => navigate(`/pro/client/${clientId}/plan`)}>
               <Pencil className="h-3.5 w-3.5" /> Modifica piano
+            </Button>
+            <Button size="sm" variant="ghost" className="gap-1 text-xs" onClick={() => navigate(`/pro/client/${clientId}/plan-history`)}>
+              <History className="h-3.5 w-3.5" /> Storico
             </Button>
           </div>
         )}
