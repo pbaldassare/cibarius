@@ -1,83 +1,56 @@
 
-# 3 Nuove Funzionalita' per Cibarius
 
-Tracking misurazioni corporee, card prossimo appuntamento, e badge messaggi non letti nella bottom nav.
+# Fix: Salvataggio barcode in database
 
----
-
-## 1. [COMPLETATA] Tracking misurazioni corporee con grafici
-
-### Database
-Nuova tabella `body_measurements`:
-- `id` (uuid, PK, default gen_random_uuid())
-- `user_id` (uuid, NOT NULL)
-- `measured_at` (date, NOT NULL, default CURRENT_DATE)
-- `weight_kg` (numeric, nullable)
-- `waist_cm` (numeric, nullable)
-- `hips_cm` (numeric, nullable)
-- `chest_cm` (numeric, nullable)
-- `arm_cm` (numeric, nullable)
-- `thigh_cm` (numeric, nullable)
-- `body_fat_pct` (numeric, nullable)
-- `notes` (text, nullable)
-- `created_at` (timestamptz, default now())
-
-RLS:
-- User ALL: `user_id = auth.uid() OR current_user_is_admin()`
-- Pro SELECT: via `client_links` (attivo)
-
-### Frontend
-
-**Nuova pagina `UserMeasurementsPage.tsx`** (`/measurements`):
-- Form per inserire nuova misurazione (peso, circonferenze, body fat)
-- Lista delle misurazioni passate (ultime 20)
-- Grafici di trend con recharts (LineChart): peso nel tempo, circonferenze nel tempo
-- Toggle per selezionare quali metriche visualizzare nel grafico
-
-**Nuova pagina `ProClientMeasurementsPage.tsx`** (`/pro/client/:clientId/measurements`):
-- Stessa vista grafici ma per il professionista (sola lettura)
-- Il nutrizionista vede l'andamento del cliente
-
-**Modifiche esistenti**:
-- `App.tsx`: 2 nuove route
-- `UserDietPage.tsx`: nuova card "Misurazioni" nella griglia (accanto a Lista spesa / Chat)
-- `ProClientDetailPage.tsx`: nuovo bottone "Misurazioni" nella griglia quick actions
+Il problema principale e' che la scansione barcode mostra correttamente i dati (da OpenFoodFacts), ma il salvataggio in database fallisce silenziosamente a causa di policy RLS e mancanza di error handling.
 
 ---
 
-## 2. [COMPLETATA] Card "Prossimo appuntamento" nella UserDietPage
+## Problemi identificati
 
-### Nessuna tabella nuova
-Usa la tabella `appointments` gia' esistente.
+### 1. RLS `Products update by admin`
+La tabella `products` ha una policy UPDATE solo per admin. Quando un utente normale scansiona un barcode gia' presente, l'update fallisce silenziosamente e `productId` non viene impostato.
 
-### Frontend
-**Modifica `UserDietPage.tsx`**:
-- Query per il prossimo appuntamento con status `scheduled` e `starts_at > now()`
-- Nuova card con icona CalendarDays, titolo appuntamento, data/ora formattata in italiano
-- Stile: `border-primary/20 bg-primary/5`
-- Visibile SOLO se esiste un appuntamento futuro
+### 2. Nessun error handling nel barcode handler
+Le chiamate Supabase in `handleBarcode` (righe 307-331) non controllano gli errori. Se l'insert o update fallisce, il flusso continua come se tutto fosse ok.
 
----
-
-## 3. [COMPLETATA] Badge messaggi non letti nella UserBottomNav
-
-### Nessuna tabella nuova
-Usa la tabella `messages` gia' esistente.
-
-### Frontend
-**Modifica `UserBottomNav.tsx`**:
-- Conteggio messaggi non letti con query `messages WHERE receiver_id = user.id AND read_at IS NULL`
-- Sottoscrizione realtime su `messages` per aggiornamento live
-- Badge rosso sovrapposto all'icona "Profilo"
-- Visibile solo se `unreadCount > 0`
+### 3. Conflitto barcode duplicato
+Se il prodotto esiste gia' con quel barcode ma l'utente non puo' fare update, il successivo insert in `handleSave` potrebbe creare un duplicato o fallire.
 
 ---
 
-## Stato
+## Soluzione
 
-Tutte e 3 le feature sono state implementate e deployate.
-- Migration DB body_measurements: deployata
-- Pagine UserMeasurementsPage + ProClientMeasurementsPage: create
-- Card prossimo appuntamento in UserDietPage: aggiunta
-- Badge non letti in UserBottomNav: aggiunto con realtime subscription
-- Route e navigazione in App.tsx: aggiornate
+### File: `src/components/AddFoodFlow.tsx`
+
+**handleBarcode** (righe 298-351):
+- Aggiungere error handling su tutte le chiamate Supabase
+- Se l'update fallisce per RLS, usare comunque l'`id` del prodotto esistente (il prodotto e' gia' nel DB, non serve aggiornarlo per poterlo usare)
+- Loggare errori in console per debug
+
+**handleSave** (righe 511+):
+- Nella sezione "Ensure product exists", aggiungere gestione del caso in cui il prodotto con quel barcode esiste gia' ma non e' stato trovato prima
+- Usare `upsert` o catch duplicati
+
+### File: Migration SQL (opzionale ma consigliata)
+- Aggiungere policy `Products update by creator`: permettere a qualsiasi utente autenticato di aggiornare i prodotti (dato che non c'e' un `created_by` sulla tabella, la soluzione piu' semplice e' aprire l'update a tutti gli autenticati, come gia' fatto per insert/select)
+
+```sql
+DROP POLICY IF EXISTS "Products update by admin" ON public.products;
+CREATE POLICY "Products update by authenticated"
+  ON public.products FOR UPDATE
+  USING (auth.uid() IS NOT NULL)
+  WITH CHECK (auth.uid() IS NOT NULL);
+```
+
+---
+
+## Riepilogo modifiche
+
+### File modificati (2)
+- `src/components/AddFoodFlow.tsx` -- error handling in handleBarcode + handleSelectSearchProduct + handleSave
+- Migration SQL -- policy update prodotti aperta agli autenticati
+
+### Ordine
+1. Migration SQL (sblocca l'update prodotti)
+2. Error handling nel codice (previene fallimenti silenziosi)
