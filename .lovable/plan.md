@@ -1,99 +1,53 @@
 
 
-## STEP 1B — Autenticazione, Profili e Protezione Route
+# Modifica piano nutrizionale in-place
 
-### Panoramica
-Implementeremo il sistema di login/signup con Supabase Auth, una tabella `profiles` con trigger automatico, protezione delle route e logout.
+## Obiettivo
+Permettere al nutrizionista di modificare un piano attivo esistente direttamente, senza dover creare un nuovo piano ogni volta. Attualmente il flusso "Pubblica" disattiva il piano precedente e ne crea uno nuovo.
 
----
+## Cosa cambia
 
-### 1. Migrazione Database
+### 1. ProClientPlanPage.tsx -- Aggiungere modalita' "Modifica"
 
-Una singola migrazione SQL che crea:
+Quando esiste gia' un piano attivo (`existingPlanId` non e' null), il wizard si comporta diversamente:
 
-- **Tabella `profiles`** con colonne: `id` (uuid PK, ref auth.users on delete cascade), `email` (text unique not null), `full_name` (text), `phone` (text), `role` (text not null default 'user'), `created_at` (timestamptz default now())
-- **Trigger di validazione** del campo `role` (tramite trigger, non CHECK constraint) che accetta solo: `user`, `restaurant_owner`, `admin`, `professional`, `supplier`
-- **Funzione `handle_new_user()`** che al signup inserisce automaticamente una riga in `profiles` con `id = NEW.id`, `email = NEW.raw_user_meta_data->>'email'`, `role = 'user'`
-- **Trigger `on_auth_user_created`** su `auth.users` AFTER INSERT che chiama `handle_new_user()`
-- **RLS abilitata** con due policy:
-  - SELECT: `auth.uid() = id`
-  - UPDATE: `auth.uid() = id`
+- **Header**: mostra "Modifica piano" invece di "Nuovo piano"
+- **Step 4 (Pubblica)**: il bottone diventa "Salva modifiche" invece di "Pubblica piano"
+- **Logica di salvataggio**: invece di disattivare il vecchio piano e crearne uno nuovo, viene fatto un UPDATE in-place su:
+  - `diet_plans` (kcal_day, protein_g_day, carbs_g_day, fats_g_day, title, notes)
+  - `diet_plan_meal_targets` (delete dei vecchi + insert dei nuovi, per semplicita')
+  - `nutrition_targets` (upsert come gia' avviene)
 
-**Nota**: il knowledge file dice di non attaccare trigger a tabelle in schema riservati come `auth`. Tuttavia, il trigger `on_auth_user_created` su `auth.users` e' il pattern standard raccomandato da Supabase per auto-creare profili. Lo useremo.
+### 2. Bottone "Modifica" visibile dalla lista clienti
 
----
+Nella `ProClientsPage.tsx`, il bottone "Piano" gia' naviga a `/pro/client/:id/plan` che carica il piano esistente. Non serve modificare nulla qui.
 
-### 2. Nuovi File
+### 3. Bottone "Modifica" nel dettaglio cliente
 
-#### `src/hooks/useAuth.tsx` — Context di autenticazione
-- React Context che wrappa l'app
-- Usa `onAuthStateChange` (impostato PRIMA di `getSession()` come da best practice)
-- Espone: `session`, `user`, `loading`, `signOut`
-- `signOut` chiama `supabase.auth.signOut()` e fa redirect a `/auth/login`
-
-#### `src/components/ProtectedRoute.tsx`
-- Wrapper che controlla `session` dal context
-- Se `loading` mostra spinner
-- Se non autenticato, redirect a `/auth/login`
-
-#### `src/pages/auth/LoginPage.tsx`
-- Form email + password con UI coerente (card bianca, primary blu, mobile-first)
-- Chiama `supabase.auth.signInWithPassword()`
-- Link a signup e forgot password
-- Se gia' loggato, redirect a `/`
-
-#### `src/pages/auth/SignupPage.tsx`
-- Form email + password + nome completo
-- Chiama `supabase.auth.signUp()` con `emailRedirectTo: window.location.origin`
-- Passa `full_name` nei `data` metadata (opzionale)
-- Link a login
-
-#### `src/pages/auth/ForgotPasswordPage.tsx`
-- Form solo email
-- Chiama `supabase.auth.resetPasswordForEmail()` con `redirectTo`
-- Mostra messaggio di conferma
-
-#### `src/pages/auth/ResetPasswordPage.tsx`
-- Form nuova password (necessario per completare il reset)
-- Chiama `supabase.auth.updateUser({ password })`
-- Route pubblica
+Nel `ProClientDetailPage.tsx`, aggiungere un bottone "Modifica piano" accanto al bottone "Piano" esistente, solo se il cliente ha gia' un piano attivo.
 
 ---
 
-### 3. Modifiche a File Esistenti
+## Dettaglio tecnico
 
-#### `src/App.tsx`
-- Wrappa tutto con `AuthProvider`
-- Aggiunge route `/auth/login`, `/auth/signup`, `/auth/forgot`, `/reset-password`
-- Le route dell'app (dentro `MobileLayout`) vengono wrappate con `ProtectedRoute`
+### Modifiche ai file
 
-#### `src/pages/ProfiloPage.tsx`
-- Il bottone "Esci" chiama `signOut()` dal context
-- Mostra email dell'utente loggato dal context
+**`src/pages/pro/ProClientPlanPage.tsx`**:
+- Aggiungere stato `isEditMode` derivato da `existingPlanId !== null`
+- Nuovo metodo `handleUpdate()` che fa:
+  ```
+  1. UPDATE diet_plans SET kcal_day, protein_g_day, carbs_g_day, fats_g_day, title, notes WHERE id = existingPlanId
+  2. DELETE FROM diet_plan_meal_targets WHERE diet_plan_id = existingPlanId  
+  3. INSERT nuovi meal_targets
+  4. UPSERT nutrition_targets
+  ```
+- Step 4: condizionare il testo del bottone e chiamare `handleUpdate` o `handlePublish` in base alla modalita'
+- Header: mostrare "Modifica piano -- NomeCliente" in edit mode
 
-#### `src/integrations/supabase/types.ts`
-- Verra' rigenerato automaticamente dopo la migrazione
+**`src/pages/pro/ProClientDetailPage.tsx`**:
+- Caricare `diet_plans` per verificare se esiste un piano attivo
+- Mostrare badge "Piano attivo" e bottone "Modifica piano" se presente
 
----
-
-### 4. UI delle Pagine Auth
-
-Stile coerente con il design system esistente:
-- Sfondo `bg-background`, card bianche centrate
-- Primary blu (#1E5BFF) per bottoni e link
-- Font Inter, padding ampio, mobile-first (`max-w-lg mx-auto`)
-- Icona/logo in alto, titolo, form con `Input` e `Button` gia' esistenti
-- Messaggi di errore in rosso (destructive)
-- Toast per feedback (signup riuscito, email inviata, ecc.)
-
----
-
-### 5. Sequenza di Implementazione
-
-1. Migrazione SQL (profiles + trigger + RLS)
-2. `useAuth.tsx` context
-3. `ProtectedRoute.tsx`
-4. Pagine auth (Login, Signup, Forgot, ResetPassword)
-5. Aggiornamento `App.tsx` con nuove route e protezione
-6. Aggiornamento `ProfiloPage.tsx` con logout funzionante
+### Nessuna migrazione DB necessaria
+Le RLS policies attuali gia' permettono al professionista di fare UPDATE su `diet_plans` e ALL su `diet_plan_meal_targets` tramite le policy "Pro manages".
 
