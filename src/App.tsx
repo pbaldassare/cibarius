@@ -66,6 +66,7 @@ import ProClientPantryRecipesPage from "./pages/pro/ProClientPantryRecipesPage";
 import ProReportsPage from "./pages/pro/ProReportsPage";
 import ProNotesPage from "./pages/pro/ProNotesPage";
 import ProClientPlanHistoryPage from "./pages/pro/ProClientPlanHistoryPage";
+import ProTemplatesPage from "./pages/pro/ProTemplatesPage";
 
 // User diet page
 import UserDietPage from "./pages/UserDietPage";
@@ -157,6 +158,7 @@ const App = () => (
                 <Route path="/pro/client/:clientId/pantry-recipes" element={<RG roles={["professional", "admin"]}><ProClientPantryRecipesPage /></RG>} />
                 <Route path="/pro/reports" element={<RG roles={["professional", "admin"]}><ProReportsPage /></RG>} />
                 <Route path="/pro/notes" element={<RG roles={["professional", "admin"]}><ProNotesPage /></RG>} />
+                <Route path="/pro/templates" element={<RG roles={["professional", "admin"]}><ProTemplatesPage /></RG>} />
                 <Route path="/pro/profile" element={<RG roles={["professional", "admin"]}><ProfiloPage /></RG>} />
               </Route>
 

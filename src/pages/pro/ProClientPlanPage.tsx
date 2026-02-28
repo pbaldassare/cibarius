@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Wand2, ChevronRight, ChevronLeft, Check, AlertTriangle, RefreshCw } from "lucide-react";
+import { Loader2, Wand2, ChevronRight, ChevronLeft, Check, AlertTriangle, RefreshCw, BookmarkPlus, FolderOpen } from "lucide-react";
 
 const MEAL_TYPES = ["colazione", "pranzo", "cena", "spuntino"] as const;
 const MEAL_LABELS: Record<string, string> = {
@@ -59,6 +59,14 @@ const ProClientPlanPage = () => {
   // Balance dialog
   const [showBalanceDialog, setShowBalanceDialog] = useState(false);
   const [balanceProposal, setBalanceProposal] = useState<MealTarget[] | null>(null);
+
+  // Template dialogs
+  const [showSaveTemplate, setShowSaveTemplate] = useState(false);
+  const [showLoadTemplate, setShowLoadTemplate] = useState(false);
+  const [templateName, setTemplateName] = useState("");
+  const [savingTemplate, setSavingTemplate] = useState(false);
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
 
   // Step 3
   const [notes, setNotes] = useState("");
@@ -161,6 +169,80 @@ const ProClientPlanPage = () => {
     }
     setShowBalanceDialog(false);
     setBalanceProposal(null);
+  };
+
+  // Template functions
+  const handleSaveAsTemplate = async () => {
+    if (!user || !templateName.trim()) return;
+    setSavingTemplate(true);
+    try {
+      const { data: tmpl, error: tmplErr } = await supabase
+        .from("diet_plan_templates")
+        .insert({
+          professional_id: user.id,
+          title: templateName.trim(),
+          kcal_day: targetKcal,
+          protein_g_day: targetProtein,
+          carbs_g_day: targetCarbs,
+          fats_g_day: targetFats,
+          notes: notes || null,
+        })
+        .select()
+        .single();
+      if (tmplErr || !tmpl) throw tmplErr;
+
+      const { error: mtErr } = await supabase.from("diet_plan_template_meals").insert(
+        mealTargets.map((mt) => ({
+          template_id: tmpl.id,
+          meal_type: mt.meal_type,
+          kcal_target: mt.kcal_target,
+          protein_g: mt.protein_g,
+          carbs_g: mt.carbs_g,
+          fats_g: mt.fats_g,
+        }))
+      );
+      if (mtErr) throw mtErr;
+
+      toast({ title: "Template salvato! 📋" });
+      setShowSaveTemplate(false);
+      setTemplateName("");
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Errore", description: err?.message });
+    }
+    setSavingTemplate(false);
+  };
+
+  const loadTemplates = async () => {
+    if (!user) return;
+    setLoadingTemplates(true);
+    const { data } = await supabase
+      .from("diet_plan_templates")
+      .select("*, diet_plan_template_meals(*)")
+      .eq("professional_id", user.id)
+      .order("created_at", { ascending: false });
+    setTemplates(data ?? []);
+    setLoadingTemplates(false);
+  };
+
+  const applyTemplate = (tmpl: any) => {
+    setKcalDay(String(tmpl.kcal_day));
+    setProteinDay(String(tmpl.protein_g_day));
+    setCarbsDay(String(tmpl.carbs_g_day));
+    setFatsDay(String(tmpl.fats_g_day));
+    setTitle(tmpl.title || "Piano nutrizionale");
+    setNotes(tmpl.notes || "");
+    if (tmpl.diet_plan_template_meals?.length > 0) {
+      setMealTargets(
+        MEAL_TYPES.map((mt) => {
+          const existing = tmpl.diet_plan_template_meals.find((t: any) => t.meal_type === mt);
+          return existing
+            ? { meal_type: mt, kcal_target: existing.kcal_target, protein_g: existing.protein_g, carbs_g: existing.carbs_g, fats_g: existing.fats_g }
+            : { meal_type: mt, kcal_target: 0, protein_g: 0, carbs_g: 0, fats_g: 0 };
+        })
+      );
+    }
+    setShowLoadTemplate(false);
+    toast({ title: "Template applicato! ✅" });
   };
 
   const isEditMode = !!existingPlanId;
@@ -310,7 +392,12 @@ const ProClientPlanPage = () => {
         {step === 1 && (
           <Card className="border-2 border-accent">
             <CardHeader>
-              <CardTitle className="text-base">📊 Target giornalieri</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">📊 Target giornalieri</CardTitle>
+                <Button size="sm" variant="ghost" className="gap-1 text-xs" onClick={() => { loadTemplates(); setShowLoadTemplate(true); }}>
+                  <FolderOpen className="h-3.5 w-3.5" /> Da template
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
@@ -486,10 +573,15 @@ const ProClientPlanPage = () => {
               </CardContent>
             </Card>
 
-            <Button className="w-full gap-2" onClick={isEditMode ? handleUpdate : handlePublish} disabled={saving}>
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-              {isEditMode ? "Salva modifiche" : "Pubblica piano"}
-            </Button>
+            <div className="flex gap-2">
+              <Button className="flex-1 gap-2" onClick={isEditMode ? handleUpdate : handlePublish} disabled={saving}>
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                {isEditMode ? "Salva modifiche" : "Pubblica piano"}
+              </Button>
+              <Button variant="outline" className="gap-1" onClick={() => { setTemplateName(title); setShowSaveTemplate(true); }}>
+                <BookmarkPlus className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         )}
 
@@ -555,6 +647,70 @@ const ProClientPlanPage = () => {
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setShowBalanceDialog(false)}>Annulla</Button>
             <Button onClick={applyBalance}>Applica correzione</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Save as template dialog */}
+      <Dialog open={showSaveTemplate} onOpenChange={setShowSaveTemplate}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Salva come template</DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-muted-foreground">
+            Salva questo piano come template riutilizzabile per altri clienti.
+          </p>
+          <div>
+            <label className="text-xs text-muted-foreground">Nome template</label>
+            <Input value={templateName} onChange={(e) => setTemplateName(e.target.value)} placeholder="Es: Dimagrimento 1500 kcal" />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowSaveTemplate(false)}>Annulla</Button>
+            <Button onClick={handleSaveAsTemplate} disabled={savingTemplate || !templateName.trim()}>
+              {savingTemplate ? <Loader2 className="h-4 w-4 animate-spin" /> : <BookmarkPlus className="h-4 w-4 mr-1" />}
+              Salva
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Load from template dialog */}
+      <Dialog open={showLoadTemplate} onOpenChange={setShowLoadTemplate}>
+        <DialogContent className="max-w-sm max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Carica da template</DialogTitle>
+          </DialogHeader>
+          {loadingTemplates ? (
+            <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+          ) : templates.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-6">Nessun template salvato. Crea un piano e salvalo come template dallo step 4.</p>
+          ) : (
+            <div className="space-y-2">
+              {templates.map((tmpl) => (
+                <button
+                  key={tmpl.id}
+                  onClick={() => applyTemplate(tmpl)}
+                  className="w-full text-left rounded-lg border border-border p-3 hover:border-primary/40 hover:bg-primary/5 transition-colors"
+                >
+                  <p className="text-sm font-semibold text-foreground">{tmpl.title}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {tmpl.kcal_day} kcal · P{tmpl.protein_g_day}g · C{tmpl.carbs_g_day}g · G{tmpl.fats_g_day}g
+                  </p>
+                  {tmpl.diet_plan_template_meals?.length > 0 && (
+                    <div className="flex gap-2 mt-1 flex-wrap">
+                      {tmpl.diet_plan_template_meals.map((mt: any) => (
+                        <span key={mt.meal_type} className="text-[10px] text-muted-foreground bg-secondary rounded px-1.5 py-0.5">
+                          {MEAL_LABELS[mt.meal_type]?.split(" ")[0]} {mt.kcal_target}kcal
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowLoadTemplate(false)}>Chiudi</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

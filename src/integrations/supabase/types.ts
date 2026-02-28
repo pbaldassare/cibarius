@@ -141,6 +141,80 @@ export type Database = {
           },
         ]
       }
+      diet_plan_template_meals: {
+        Row: {
+          carbs_g: number
+          fats_g: number
+          id: string
+          kcal_target: number
+          meal_type: string
+          protein_g: number
+          template_id: string
+        }
+        Insert: {
+          carbs_g: number
+          fats_g: number
+          id?: string
+          kcal_target: number
+          meal_type: string
+          protein_g: number
+          template_id: string
+        }
+        Update: {
+          carbs_g?: number
+          fats_g?: number
+          id?: string
+          kcal_target?: number
+          meal_type?: string
+          protein_g?: number
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diet_plan_template_meals_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "diet_plan_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      diet_plan_templates: {
+        Row: {
+          carbs_g_day: number
+          created_at: string
+          fats_g_day: number
+          id: string
+          kcal_day: number
+          notes: string | null
+          professional_id: string
+          protein_g_day: number
+          title: string
+        }
+        Insert: {
+          carbs_g_day: number
+          created_at?: string
+          fats_g_day: number
+          id?: string
+          kcal_day: number
+          notes?: string | null
+          professional_id: string
+          protein_g_day: number
+          title?: string
+        }
+        Update: {
+          carbs_g_day?: number
+          created_at?: string
+          fats_g_day?: number
+          id?: string
+          kcal_day?: number
+          notes?: string | null
+          professional_id?: string
+          protein_g_day?: number
+          title?: string
+        }
+        Relationships: []
+      }
       diet_plans: {
         Row: {
           carbs_g_day: number
