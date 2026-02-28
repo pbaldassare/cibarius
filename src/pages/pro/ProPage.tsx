@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
-import { Users, TrendingUp, MessageSquare, UserPlus, Loader2, BookmarkCheck } from "lucide-react";
+import { Users, TrendingUp, MessageSquare, UserPlus, Loader2, BookmarkCheck, BarChart3 } from "lucide-react";
 
 const ProPage = () => {
   const { user } = useAuth();
@@ -52,11 +52,11 @@ const ProPage = () => {
               <span className="text-xs text-muted-foreground">Clienti attivi</span>
             </CardContent>
           </Card>
-          <Card className="border-2 border-accent">
+          <Card className="border-2 border-accent cursor-pointer" onClick={() => navigate("/pro/weekly-report")}>
             <CardContent className="flex flex-col items-center py-5">
-              <TrendingUp className="h-8 w-8 text-primary mb-2" />
-              <span className="text-2xl font-bold text-foreground">—</span>
-              <span className="text-xs text-muted-foreground">Ultimi 7 giorni</span>
+              <BarChart3 className="h-8 w-8 text-primary mb-2" />
+              <span className="text-2xl font-bold text-foreground">📊</span>
+              <span className="text-xs text-muted-foreground">Report settimanale</span>
             </CardContent>
           </Card>
         </div>
