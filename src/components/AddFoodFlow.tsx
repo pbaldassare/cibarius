@@ -240,19 +240,21 @@ const AddFoodFlow = ({
     let pid = p.id;
     if (src === "off" || src === "usda") {
       if (bc) {
-        const { data: existing } = await supabase
+        const { data: existing, error: selErr } = await supabase
           .from("products").select("id").eq("barcode", bc).maybeSingle();
+        if (selErr) console.error("Search product select error:", selErr);
         if (existing) {
           pid = existing.id;
-          await supabase.from("products").update({
+          const { error: updErr } = await supabase.from("products").update({
             name: p.name,
             brand: p.brand || null,
             image_url: p.image_url,
             calories_100g: p.calories_100g,
             macros_100g: p.macros_100g as any,
           }).eq("id", existing.id);
+          if (updErr) console.warn("Search product update failed:", updErr.message);
         } else {
-          const { data: created } = await supabase.from("products").insert({
+          const { data: created, error: insErr } = await supabase.from("products").insert({
             name: p.name,
             brand: p.brand || null,
             barcode: bc,
@@ -260,19 +262,25 @@ const AddFoodFlow = ({
             calories_100g: p.calories_100g,
             macros_100g: p.macros_100g as any,
           }).select("id").single();
-          if (created) {
+          if (insErr) {
+            console.error("Search product insert error:", insErr);
+            const { data: fallback } = await supabase
+              .from("products").select("id").eq("barcode", bc).maybeSingle();
+            if (fallback) pid = fallback.id;
+          } else if (created) {
             pid = created.id;
             if (!p.calories_100g) autoMatchProduct(created.id, p.name);
           }
         }
       } else {
-        const { data: created } = await supabase.from("products").insert({
+        const { data: created, error: insErr } = await supabase.from("products").insert({
           name: p.name,
           brand: p.brand || null,
           image_url: p.image_url,
           calories_100g: p.calories_100g,
           macros_100g: p.macros_100g as any,
         }).select("id").single();
+        if (insErr) console.error("Search product insert (no barcode) error:", insErr);
         if (created) {
           pid = created.id;
           if (!p.calories_100g) autoMatchProduct(created.id, p.name);
@@ -304,12 +312,14 @@ const AddFoodFlow = ({
     const data = await lookupBarcode(code);
     if (data && data.name) {
       // Upsert product by barcode
-      const { data: existing } = await supabase
+      const { data: existing, error: selErr } = await supabase
         .from("products").select("id").eq("barcode", code).maybeSingle();
+      if (selErr) console.error("Barcode select error:", selErr);
+
       if (existing) {
         setProductId(existing.id);
-        // Update product with latest OFF data
-        await supabase.from("products").update({
+        // Try to update product with latest OFF data (may fail silently if RLS blocks)
+        const { error: updErr } = await supabase.from("products").update({
           name: data.name,
           brand: data.brand || null,
           image_url: data.image_url,
@@ -317,8 +327,9 @@ const AddFoodFlow = ({
           macros_100g: data.macros_100g as any,
           serving_size_g: data.serving_size_g ?? null,
         }).eq("id", existing.id);
+        if (updErr) console.warn("Product update failed (RLS?):", updErr.message);
       } else {
-        const { data: created } = await supabase.from("products").insert({
+        const { data: created, error: insErr } = await supabase.from("products").insert({
           name: data.name,
           brand: data.brand || null,
           barcode: code,
@@ -327,7 +338,15 @@ const AddFoodFlow = ({
           macros_100g: data.macros_100g as any,
           serving_size_g: data.serving_size_g ?? null,
         }).select("id").single();
-        if (created) setProductId(created.id);
+        if (insErr) {
+          console.error("Product insert error:", insErr);
+          // If insert failed due to duplicate barcode, try to fetch existing
+          const { data: fallback } = await supabase
+            .from("products").select("id").eq("barcode", code).maybeSingle();
+          if (fallback) setProductId(fallback.id);
+        } else if (created) {
+          setProductId(created.id);
+        }
       }
 
       setName(data.name);
