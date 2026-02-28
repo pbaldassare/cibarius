@@ -12,7 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import {
   Loader2, Sparkles, ClipboardList, Trophy, Flame, Plus,
   ChevronDown, Lightbulb, BookOpen, Bookmark, Send, Eye,
-  UserCheck, ArrowRight,
+  UserCheck, ArrowRight, ShoppingCart, CalendarDays,
 } from "lucide-react";
 
 const MEAL_LABELS: Record<string, string> = {
@@ -318,6 +318,32 @@ const UserDietPage = () => {
             <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
           </CardContent>
         </Card>
+
+        {/* ═══ SHOPPING LIST + APPOINTMENTS ═══ */}
+        <div className="grid grid-cols-2 gap-3">
+          <Card
+            className="border border-border cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => navigate("/shopping-list")}
+          >
+            <CardContent className="py-3.5 flex flex-col items-center gap-2">
+              <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                <ShoppingCart className="h-5 w-5 text-primary" />
+              </div>
+              <p className="text-xs font-bold text-foreground text-center">Lista della spesa</p>
+            </CardContent>
+          </Card>
+          <Card
+            className="border border-border cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => navigate("/messages")}
+          >
+            <CardContent className="py-3.5 flex flex-col items-center gap-2">
+              <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Send className="h-5 w-5 text-primary" />
+              </div>
+              <p className="text-xs font-bold text-foreground text-center">Chat col coach</p>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* ═══ 4. MEAL TARGETS – ACTION-ORIENTED ═══ */}
         <div className="space-y-2">

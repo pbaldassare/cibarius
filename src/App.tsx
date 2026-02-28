@@ -68,10 +68,15 @@ import ProNotesPage from "./pages/pro/ProNotesPage";
 import ProClientPlanHistoryPage from "./pages/pro/ProClientPlanHistoryPage";
 import ProTemplatesPage from "./pages/pro/ProTemplatesPage";
 import ProWeeklyReportPage from "./pages/pro/ProWeeklyReportPage";
+import ProClientMessagesPage from "./pages/pro/ProClientMessagesPage";
+import ProAppointmentsPage from "./pages/pro/ProAppointmentsPage";
+import ProClientPlanPdfPage from "./pages/pro/ProClientPlanPdfPage";
 
 // User diet page
 import UserDietPage from "./pages/UserDietPage";
 import UserPantryRecipesPage from "./pages/UserPantryRecipesPage";
+import UserMessagesPage from "./pages/UserMessagesPage";
+import ShoppingListPage from "./pages/ShoppingListPage";
 
 // Supplier pages
 import SupplierPage from "./pages/supplier/SupplierPage";
@@ -125,6 +130,8 @@ const App = () => (
                 <Route path="/recipes" element={<PublicRecipesPage />} />
                 <Route path="/recipes/:recipeId" element={<RecipeDetailPage />} />
                 <Route path="/preparations" element={<PreparationsPage />} />
+                <Route path="/messages" element={<UserMessagesPage />} />
+                <Route path="/shopping-list" element={<ShoppingListPage />} />
               </Route>
 
               {/* ═══ RESTAURANT APP (RestaurantLayout) ═══ */}
@@ -161,6 +168,9 @@ const App = () => (
                 <Route path="/pro/notes" element={<RG roles={["professional", "admin"]}><ProNotesPage /></RG>} />
                 <Route path="/pro/templates" element={<RG roles={["professional", "admin"]}><ProTemplatesPage /></RG>} />
                 <Route path="/pro/weekly-report" element={<RG roles={["professional", "admin"]}><ProWeeklyReportPage /></RG>} />
+                <Route path="/pro/client/:clientId/messages" element={<RG roles={["professional", "admin"]}><ProClientMessagesPage /></RG>} />
+                <Route path="/pro/client/:clientId/plan-pdf" element={<RG roles={["professional", "admin"]}><ProClientPlanPdfPage /></RG>} />
+                <Route path="/pro/appointments" element={<RG roles={["professional", "admin"]}><ProAppointmentsPage /></RG>} />
                 <Route path="/pro/profile" element={<RG roles={["professional", "admin"]}><ProfiloPage /></RG>} />
               </Route>
 

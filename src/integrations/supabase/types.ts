@@ -32,6 +32,42 @@ export type Database = {
         }
         Relationships: []
       }
+      appointments: {
+        Row: {
+          client_user_id: string
+          created_at: string
+          ends_at: string | null
+          id: string
+          notes: string | null
+          professional_id: string
+          starts_at: string
+          status: string
+          title: string
+        }
+        Insert: {
+          client_user_id: string
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          notes?: string | null
+          professional_id: string
+          starts_at: string
+          status?: string
+          title?: string
+        }
+        Update: {
+          client_user_id?: string
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          notes?: string | null
+          professional_id?: string
+          starts_at?: string
+          status?: string
+          title?: string
+        }
+        Relationships: []
+      }
       attachments: {
         Row: {
           created_at: string
@@ -514,6 +550,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          read_at: string | null
+          receiver_id: string
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          receiver_id: string
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          receiver_id?: string
+          sender_id?: string
+        }
+        Relationships: []
       }
       nutrition_targets: {
         Row: {
