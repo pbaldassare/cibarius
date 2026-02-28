@@ -163,6 +163,59 @@ const ProClientPlanPage = () => {
     setBalanceProposal(null);
   };
 
+  const isEditMode = !!existingPlanId;
+
+  const handleUpdate = async () => {
+    if (!user || !clientId || !existingPlanId) return;
+    setSaving(true);
+    try {
+      const { error: updateErr } = await supabase
+        .from("diet_plans")
+        .update({
+          title,
+          kcal_day: targetKcal,
+          protein_g_day: targetProtein,
+          carbs_g_day: targetCarbs,
+          fats_g_day: targetFats,
+          notes: notes || null,
+        })
+        .eq("id", existingPlanId);
+      if (updateErr) throw updateErr;
+
+      const { error: delErr } = await supabase
+        .from("diet_plan_meal_targets")
+        .delete()
+        .eq("diet_plan_id", existingPlanId);
+      if (delErr) throw delErr;
+
+      const { error: mtErr } = await supabase.from("diet_plan_meal_targets").insert(
+        mealTargets.map((mt) => ({
+          diet_plan_id: existingPlanId,
+          meal_type: mt.meal_type,
+          kcal_target: mt.kcal_target,
+          protein_g: mt.protein_g,
+          carbs_g: mt.carbs_g,
+          fats_g: mt.fats_g,
+        }))
+      );
+      if (mtErr) throw mtErr;
+
+      await supabase.from("nutrition_targets").upsert({
+        user_id: clientId,
+        kcal_day: targetKcal,
+        protein_g: targetProtein,
+        carbs_g: targetCarbs,
+        fats_g: targetFats,
+      }, { onConflict: "user_id" });
+
+      toast({ title: "Piano aggiornato! ✅" });
+      navigate(`/pro/client/${clientId}`);
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Errore", description: err?.message || "Errore aggiornamento" });
+    }
+    setSaving(false);
+  };
+
   const handlePublish = async () => {
     if (!user || !clientId) return;
     setSaving(true);
@@ -241,7 +294,7 @@ const ProClientPlanPage = () => {
 
   return (
     <div>
-      <MobileHeader title={`Piano — ${clientName}`} />
+      <MobileHeader title={isEditMode ? `Modifica piano — ${clientName}` : `Piano — ${clientName}`} />
       <main className="px-4 py-5 pb-28 space-y-4">
         {/* Step indicator */}
         <div className="flex items-center justify-center gap-2">
@@ -433,9 +486,9 @@ const ProClientPlanPage = () => {
               </CardContent>
             </Card>
 
-            <Button className="w-full gap-2" onClick={handlePublish} disabled={saving}>
+            <Button className="w-full gap-2" onClick={isEditMode ? handleUpdate : handlePublish} disabled={saving}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-              Pubblica piano
+              {isEditMode ? "Salva modifiche" : "Pubblica piano"}
             </Button>
           </div>
         )}
