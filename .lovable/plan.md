@@ -1,128 +1,104 @@
 
 
-# 4 Nuove Funzionalita' per Cibarius
+# 3 Nuove Funzionalita' per Cibarius
 
-Implementazione di messaggistica, lista della spesa, calendario appuntamenti e PDF del piano alimentare, mantenendo l'identita' visiva Cibarius (palette blu/arancio, Fredoka, card arrotondate, gradient primary).
+Tracking misurazioni corporee, card prossimo appuntamento, e badge messaggi non letti nella bottom nav.
 
 ---
 
-## 1. Messaggistica bidirezionale (Pro <-> Cliente)
+## 1. Tracking misurazioni corporee con grafici
 
 ### Database
-Nuova tabella `messages`:
-- `id` (uuid, PK)
-- `sender_id` (uuid, references profiles)
-- `receiver_id` (uuid, references profiles)
-- `content` (text)
-- `read_at` (timestamptz, nullable)
-- `created_at` (timestamptz, default now())
-
-RLS:
-- SELECT/INSERT: sender o receiver = auth.uid(), con verifica link attivo tramite `has_active_pro_link` o `has_active_client_link`
-- UPDATE (solo read_at): receiver = auth.uid()
-
-### Frontend
-- **`ProClientMessagesPage.tsx`** (`/pro/client/:clientId/messages`): Chat view con lista messaggi, input in basso, badge messaggi non letti
-- **`UserMessagesPage.tsx`** (`/messages`): Chat col proprio nutrizionista, stessa UI ma lato cliente
-- **Bottone "Chat"** nel `ProClientDetailPage.tsx` (griglia quick actions)
-- **Indicatore non letti** nella bottom nav del professionista (tab "Note" diventa "Chat") e nella bottom nav utente (nuovo tab o badge su Profilo)
-- Route aggiunte in `App.tsx`
-
-### UI
-Stile Cibarius: bolle messaggi con `bg-primary/10` (proprio) e `bg-secondary` (altro), bordi arrotondati `rounded-2xl`, timestamp discreti
-
----
-
-## 2. Lista della spesa dal piano alimentare
-
-### Nessuna tabella nuova
-La lista viene generata client-side dal piano attivo + ricette suggerite, senza persistenza DB (piu' semplice, no migration).
-
-### Frontend
-- **`ShoppingListPage.tsx`** (`/shopping-list`): Pagina accessibile dall'utente
-  - Legge `diet_plan_meal_targets` + `generated_recipes` (ingredienti) del piano attivo
-  - Raggruppa ingredienti per categoria, somma quantita' duplicate
-  - Checkbox per spuntare acquisti (stato locale, `localStorage`)
-  - Pulsante "Condividi" (Web Share API) per inviare la lista
-- **Bottone** nella `UserDietPage.tsx`: Card "Lista della spesa" con icona ShoppingCart
-- Route in `App.tsx` sotto UserLayout
-
----
-
-## 3. Calendario appuntamenti
-
-### Database
-Nuova tabella `appointments`:
-- `id` (uuid, PK)
-- `professional_id` (uuid)
-- `client_user_id` (uuid)
-- `title` (text, default 'Visita')
-- `starts_at` (timestamptz)
-- `ends_at` (timestamptz, nullable)
+Nuova tabella `body_measurements`:
+- `id` (uuid, PK, default gen_random_uuid())
+- `user_id` (uuid, NOT NULL)
+- `measured_at` (date, NOT NULL, default CURRENT_DATE)
+- `weight_kg` (numeric, nullable)
+- `waist_cm` (numeric, nullable)
+- `hips_cm` (numeric, nullable)
+- `chest_cm` (numeric, nullable)
+- `arm_cm` (numeric, nullable)
+- `thigh_cm` (numeric, nullable)
+- `body_fat_pct` (numeric, nullable)
 - `notes` (text, nullable)
-- `status` (text, default 'scheduled') -- scheduled, completed, cancelled
 - `created_at` (timestamptz, default now())
 
-Trigger di validazione per status.
-
 RLS:
-- Pro ALL: `professional_id = auth.uid() AND has_active_pro_link(auth.uid(), client_user_id)`
-- Client SELECT: `client_user_id = auth.uid()`
-- Admin ALL
+- User ALL: `user_id = auth.uid() OR current_user_is_admin()`
+- Pro SELECT: via `client_links` (attivo)
 
 ### Frontend
-- **`ProAppointmentsPage.tsx`** (`/pro/appointments`): Vista settimanale/lista con card appuntamenti, pulsante "+ Nuovo", datepicker per selezionare data/ora, select per scegliere il cliente
-- **Accesso dalla dashboard Pro** (`ProPage.tsx`): Nuova card "Appuntamenti" nella griglia
-- **Lato utente** (`UserDietPage.tsx`): Card "Prossimo appuntamento" con data e orario, visibile solo se esiste un appuntamento futuro
-- **Bottom nav Pro**: Tab "Note" rimpiazzato da "Chat" (vedi punto 1), appuntamenti accessibili dalla dashboard
-- Route in `App.tsx`
+
+**Nuova pagina `UserMeasurementsPage.tsx`** (`/measurements`):
+- Form per inserire nuova misurazione (peso, circonferenze, body fat)
+- Lista delle misurazioni passate (ultime 20)
+- Grafici di trend con recharts (LineChart): peso nel tempo, circonferenze nel tempo
+- Toggle per selezionare quali metriche visualizzare nel grafico
+
+**Nuova pagina `ProClientMeasurementsPage.tsx`** (`/pro/client/:clientId/measurements`):
+- Stessa vista grafici ma per il professionista (sola lettura)
+- Il nutrizionista vede l'andamento del cliente
+
+**Modifiche esistenti**:
+- `App.tsx`: 2 nuove route
+- `UserDietPage.tsx`: nuova card "Misurazioni" nella griglia (accanto a Lista spesa / Chat)
+- `ProClientDetailPage.tsx`: nuovo bottone "Misurazioni" nella griglia quick actions (sostituendo la griglia 5 colonne con 6, o aggiungendo una seconda riga)
 
 ---
 
-## 4. PDF del piano alimentare
+## 2. Card "Prossimo appuntamento" nella UserDietPage
 
 ### Nessuna tabella nuova
-Generazione client-side con l'API nativa del browser (print-to-PDF).
+Usa la tabella `appointments` gia' esistente.
 
 ### Frontend
-- **Componente `PlanPdfView.tsx`**: Layout ottimizzato per stampa con:
-  - Header: logo Cibarius, nome professionista, data
-  - Riepilogo macro giornalieri in tabella
-  - Tabella posologia per pasto (kcal, proteine, carbo, grassi)
-  - Note del piano
-  - Footer con "Generato da Cibarius"
-- **Pagina `ProClientPlanPdfPage.tsx`** (`/pro/client/:clientId/plan-pdf`): Carica il piano attivo e renderizza `PlanPdfView`, con pulsante "Scarica PDF" che chiama `window.print()`
-- **Stile `@media print`** in `index.css`: Nasconde header, nav, mostra solo il contenuto del piano
-- **Bottone "PDF"** nel `ProClientDetailPage.tsx` accanto a "Modifica piano"
+**Modifica `UserDietPage.tsx`**:
+- Nel `useEffect` di caricamento, aggiungere query per il prossimo appuntamento:
+  ```
+  appointments WHERE client_user_id = user.id AND status = 'scheduled' AND starts_at > now()
+  ORDER BY starts_at ASC LIMIT 1
+  ```
+- Nuova card tra la sezione "Professional card" e "Today's progress":
+  - Icona CalendarDays, titolo appuntamento, data/ora formattata in italiano
+  - Stile: `border-primary/20 bg-primary/5`
+  - Visibile SOLO se esiste un appuntamento futuro
+
+---
+
+## 3. Badge messaggi non letti nella UserBottomNav
+
+### Nessuna tabella nuova
+Usa la tabella `messages` gia' esistente.
+
+### Frontend
+**Modifica `UserBottomNav.tsx`**:
+- Aggiungere stato per conteggio messaggi non letti
+- `useEffect` con query: `messages WHERE receiver_id = user.id AND read_at IS NULL` + count
+- Sottoscrizione realtime su `messages` per aggiornamento live
+- Badge rosso (pallino con numero) sovrapposto all'icona "Profilo" (o al tab che si preferisce)
+- Il badge appare solo se `unreadCount > 0`
+- Pallino rosso piccolo (h-4 w-4) posizionato con `absolute -top-1 -right-1` rispetto all'icona
+
+**Dipendenze**: Necessario importare `useAuth` e `supabase` nel componente bottom nav.
 
 ---
 
 ## Riepilogo file
 
-### Nuovi file (7)
-- `src/pages/pro/ProClientMessagesPage.tsx`
-- `src/pages/UserMessagesPage.tsx`
-- `src/pages/ShoppingListPage.tsx`
-- `src/pages/pro/ProAppointmentsPage.tsx`
-- `src/pages/pro/ProClientPlanPdfPage.tsx`
-- `src/components/PlanPdfView.tsx`
-- Migration SQL (messages + appointments)
+### Nuovi file (2)
+- `src/pages/UserMeasurementsPage.tsx`
+- `src/pages/pro/ProClientMeasurementsPage.tsx`
+- Migration SQL (body_measurements)
 
-### File modificati (5)
-- `src/App.tsx` -- 4 nuove route
-- `src/pages/pro/ProPage.tsx` -- card Appuntamenti + Chat
-- `src/pages/pro/ProClientDetailPage.tsx` -- bottoni Chat + PDF
-- `src/pages/UserDietPage.tsx` -- card Lista spesa + prossimo appuntamento
-- `src/components/BottomNav.tsx` -- tab Chat per pro, badge non letti
-- `src/index.css` -- stili `@media print`
-- `src/integrations/supabase/types.ts` -- auto-aggiornato
+### File modificati (4)
+- `src/App.tsx` -- 2 nuove route (measurements)
+- `src/pages/UserDietPage.tsx` -- card misurazioni + card prossimo appuntamento
+- `src/pages/pro/ProClientDetailPage.tsx` -- bottone Misurazioni
+- `src/components/UserBottomNav.tsx` -- badge messaggi non letti
 
 ### Ordine di implementazione
-1. Migration DB (messages + appointments)
-2. Messaggistica (tabelle gia' pronte)
-3. Calendario appuntamenti
-4. Lista della spesa (no DB)
-5. PDF piano (no DB)
-
-Tutto coerente con la palette Cibarius, nessuna libreria esterna aggiuntiva.
-
+1. Migration DB (body_measurements)
+2. UserMeasurementsPage + ProClientMeasurementsPage (grafici con recharts, gia' installato)
+3. Card prossimo appuntamento in UserDietPage
+4. Badge non letti in UserBottomNav
+5. Route e navigazione in App.tsx + pagine esistenti
