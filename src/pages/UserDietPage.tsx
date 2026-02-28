@@ -12,7 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import {
   Loader2, Sparkles, ClipboardList, Trophy, Flame, Plus,
   ChevronDown, Lightbulb, BookOpen, Bookmark, Send, Eye,
-  UserCheck, ArrowRight, ShoppingCart, CalendarDays,
+  UserCheck, ArrowRight, ShoppingCart, CalendarDays, Ruler,
 } from "lucide-react";
 
 const MEAL_LABELS: Record<string, string> = {
@@ -42,6 +42,7 @@ const UserDietPage = () => {
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [todayMeals, setTodayMeals] = useState<TodayMealData[]>([]);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [nextAppointment, setNextAppointment] = useState<any>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -111,6 +112,18 @@ const UserDietPage = () => {
         .order("created_at", { ascending: false })
         .limit(10);
       setSuggestions(suggs ?? []);
+
+      // 5. Next appointment
+      const { data: appt } = await supabase
+        .from("appointments")
+        .select("*")
+        .eq("client_user_id", user.id)
+        .eq("status", "scheduled")
+        .gt("starts_at", new Date().toISOString())
+        .order("starts_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      setNextAppointment(appt);
 
       setLoading(false);
     };
@@ -319,8 +332,28 @@ const UserDietPage = () => {
           </CardContent>
         </Card>
 
-        {/* ═══ SHOPPING LIST + APPOINTMENTS ═══ */}
-        <div className="grid grid-cols-2 gap-3">
+        {/* ═══ NEXT APPOINTMENT ═══ */}
+        {nextAppointment && (
+          <Card className="border-2 border-primary/20 bg-primary/5">
+            <CardContent className="py-3.5 flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
+                <CalendarDays className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-muted-foreground">Prossimo appuntamento</p>
+                <p className="text-sm font-bold text-foreground">{nextAppointment.title}</p>
+                <p className="text-xs text-muted-foreground">
+                  {new Date(nextAppointment.starts_at).toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" })}
+                  {" alle "}
+                  {new Date(nextAppointment.starts_at).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ═══ QUICK ACTIONS GRID ═══ */}
+        <div className="grid grid-cols-3 gap-3">
           <Card
             className="border border-border cursor-pointer hover:shadow-md transition-shadow"
             onClick={() => navigate("/shopping-list")}
@@ -329,7 +362,7 @@ const UserDietPage = () => {
               <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center">
                 <ShoppingCart className="h-5 w-5 text-primary" />
               </div>
-              <p className="text-xs font-bold text-foreground text-center">Lista della spesa</p>
+              <p className="text-xs font-bold text-foreground text-center">Lista spesa</p>
             </CardContent>
           </Card>
           <Card
@@ -340,7 +373,18 @@ const UserDietPage = () => {
               <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center">
                 <Send className="h-5 w-5 text-primary" />
               </div>
-              <p className="text-xs font-bold text-foreground text-center">Chat col coach</p>
+              <p className="text-xs font-bold text-foreground text-center">Chat coach</p>
+            </CardContent>
+          </Card>
+          <Card
+            className="border border-border cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => navigate("/measurements")}
+          >
+            <CardContent className="py-3.5 flex flex-col items-center gap-2">
+              <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Ruler className="h-5 w-5 text-primary" />
+              </div>
+              <p className="text-xs font-bold text-foreground text-center">Misurazioni</p>
             </CardContent>
           </Card>
         </div>

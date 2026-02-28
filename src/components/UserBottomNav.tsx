@@ -1,6 +1,9 @@
+import { useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { Home, Plus, Clock, UtensilsCrossed, User } from "lucide-react";
 import { LucideIcon } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 interface TabItem { to: string; icon: LucideIcon; label: string }
 
@@ -14,6 +17,31 @@ const tabs: TabItem[] = [
 
 const UserBottomNav = () => {
   const location = useLocation();
+  const { user } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchUnread = async () => {
+      const { count } = await supabase
+        .from("messages")
+        .select("id", { count: "exact", head: true })
+        .eq("receiver_id", user.id)
+        .is("read_at", null);
+      setUnreadCount(count ?? 0);
+    };
+    fetchUnread();
+
+    const channel = supabase
+      .channel("unread-badge")
+      .on("postgres_changes", { event: "*", schema: "public", table: "messages", filter: `receiver_id=eq.${user.id}` }, () => {
+        fetchUnread();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
 
   return (
     <nav
@@ -25,6 +53,7 @@ const UserBottomNav = () => {
       <div className="mx-auto flex h-[72px] max-w-lg items-center justify-around px-2">
         {tabs.map(({ to, icon: Icon, label }) => {
           const isActive = location.pathname === to;
+          const showBadge = to === "/profile" && unreadCount > 0;
           return (
             <NavLink
               key={to}
@@ -32,7 +61,7 @@ const UserBottomNav = () => {
               className="flex flex-col items-center gap-0.5 px-3 py-1.5 relative"
             >
               <div
-                className={`flex items-center justify-center rounded-xl px-3 py-1 transition-all duration-200 ${
+                className={`relative flex items-center justify-center rounded-xl px-3 py-1 transition-all duration-200 ${
                   isActive ? "bg-white/15" : ""
                 }`}
               >
@@ -41,6 +70,11 @@ const UserBottomNav = () => {
                   strokeWidth={isActive ? 2.2 : 1.6}
                   className={`transition-colors ${isActive ? "text-white" : "text-white/60"}`}
                 />
+                {showBadge && (
+                  <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[9px] font-bold text-destructive-foreground">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
               </div>
               <span
                 className={`text-[11px] transition-colors ${
