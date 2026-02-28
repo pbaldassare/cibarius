@@ -8,7 +8,8 @@ import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Send, Flame, ChevronLeft, ChevronRight, MessageSquare, ClipboardList, Activity, Lightbulb, ChefHat } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Send, Flame, ChevronLeft, ChevronRight, MessageSquare, ClipboardList, Activity, Lightbulb, ChefHat, Pencil } from "lucide-react";
 
 const MEAL_LABELS: Record<string, string> = {
   colazione: "🌅 Colazione",
@@ -31,19 +32,22 @@ const ProClientDetailPage = () => {
   const [newNote, setNewNote] = useState("");
   const [loading, setLoading] = useState(true);
   const [savingNote, setSavingNote] = useState(false);
+  const [hasActivePlan, setHasActivePlan] = useState(false);
 
   useEffect(() => {
     if (!clientId || !user) return;
     const load = async () => {
       setLoading(true);
-      const [profileRes, targetsRes, notesRes] = await Promise.all([
+      const [profileRes, targetsRes, notesRes, planRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", clientId).single(),
         supabase.from("nutrition_targets").select("*").eq("user_id", clientId).single(),
         supabase.from("professional_notes").select("*").eq("professional_id", user.id).eq("client_user_id", clientId).order("created_at", { ascending: false }).limit(20),
+        supabase.from("diet_plans").select("id").eq("professional_id", user.id).eq("client_user_id", clientId).eq("is_active", true).maybeSingle(),
       ]);
       setClientProfile(profileRes.data);
       setTargets(targetsRes.data);
       setNotes(notesRes.data ?? []);
+      setHasActivePlan(!!planRes.data);
       setLoading(false);
     };
     load();
@@ -141,6 +145,16 @@ const ProClientDetailPage = () => {
             <p className="text-sm text-muted-foreground">{clientProfile?.email}</p>
           </div>
         </div>
+
+        {/* Active plan badge */}
+        {hasActivePlan && (
+          <div className="flex items-center gap-2">
+            <Badge variant="default" className="text-xs">Piano attivo</Badge>
+            <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => navigate(`/pro/client/${clientId}/plan`)}>
+              <Pencil className="h-3.5 w-3.5" /> Modifica piano
+            </Button>
+          </div>
+        )}
 
         {/* Quick actions */}
         <div className="grid grid-cols-4 gap-2">
