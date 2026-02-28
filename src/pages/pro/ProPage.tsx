@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
-import { Users, TrendingUp, MessageSquare, UserPlus, Loader2 } from "lucide-react";
+import { Users, TrendingUp, MessageSquare, UserPlus, Loader2, BookmarkCheck } from "lucide-react";
 
 const ProPage = () => {
   const { user } = useAuth();
@@ -65,6 +65,9 @@ const ProPage = () => {
         <div className="flex gap-2">
           <Button className="flex-1 gap-2" onClick={() => navigate("/pro/clients")}>
             <UserPlus className="h-4 w-4" /> Gestisci clienti
+          </Button>
+          <Button variant="outline" className="gap-2" onClick={() => navigate("/pro/templates")}>
+            <BookmarkCheck className="h-4 w-4" /> Template
           </Button>
         </div>
 
