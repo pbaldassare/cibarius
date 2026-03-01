@@ -1,59 +1,80 @@
 
 
-# Prodotti urgenti: miniature immagini + modifica diretta dalla Home
+# Profilo: Impostazioni, Avatar, Elimina Account e Supporto
 
-## Cosa cambia
+## Panoramica
 
-### 1. Miniature immagini sempre presenti nella lista Urgenti
+Rifare la sezione Impostazioni del profilo con funzionalita' reali e aggiungere un sistema di segnalazioni/suggerimenti gestibile dall'admin.
 
-Ogni elemento urgente nella Home mostrera' una miniatura quadrata (40x40px) a sinistra. La priorita' per la scelta dell'immagine sara':
+## Modifiche previste
 
-```text
-1. Immagine caricata dall'utente o trovata dall'AI (image_url del prodotto)
-2. Emoji/icona standard basata sulla categoria del prodotto
-3. Icona generica Package come ultimo fallback
-```
+### 1. Database: nuovi campi e tabella
 
-Per le categorie standard verra' creata una mappa di emoji (es. latticini -> "🧀", carne -> "🥩", frutta -> "🍎", verdura -> "🥬", bevande -> "🥤", pane -> "🍞", pesce -> "🐟", surgelati -> "🧊", condimenti -> "🫒", dolci -> "🍫", cereali -> "🌾", uova -> "🥚"). Questa mappa verra' usata come fallback quando non c'e' un'immagine reale.
+**Migration SQL**:
+- Aggiungere colonna `avatar_url` (text, nullable) alla tabella `profiles`
+- Creare tabella `support_requests`:
+  - `id` (uuid PK)
+  - `user_id` (uuid FK profiles)
+  - `type` (text: "problema" | "suggerimento")
+  - `message` (text)
+  - `status` (text: "open" | "resolved" | "closed", default "open")
+  - `admin_notes` (text, nullable)
+  - `created_at` (timestamptz)
+  - `resolved_at` (timestamptz, nullable)
+- Creare bucket Storage `avatars` (pubblico) per le immagini profilo
+- RLS: utenti inseriscono le proprie richieste, admin leggono e aggiornano tutto
 
-### 2. Modifica diretta dal tap sull'elemento urgente
+### 2. Pagina Profilo (`src/pages/ProfiloPage.tsx`)
 
-Toccando un elemento urgente si aprira' un dialog/sheet inline con:
-- Immagine del prodotto (se presente)
-- Nome, quantita', storage, scadenza
-- Possibilita' di modificare quantita', storage e scadenza
-- Bottoni "Salva" e "Elimina"
+Sostituire "Impostazioni" e "Aiuto" con funzionalita' reali:
 
-Questo evita di dover navigare alla pagina scadenze per modificare un singolo prodotto.
+**Sezione avatar**: Rendere l'avatar cliccabile per caricare una foto profilo. Dopo l'upload su Storage `avatars`, salvare l'URL in `profiles.avatar_url`. Mostrare l'immagine reale al posto dell'emoji.
 
-### 3. Query aggiornata per includere category
+**"Impostazioni" diventa tap che apre un dialog** con:
+- Modifica nome completo
+- Modifica telefono
+- Bottone "Salva"
 
-La query `fetchItems` su `inventory_items` includera' anche `category` dal prodotto per poter scegliere l'emoji corretta come fallback.
+**"Aiuto" diventa "Segnala un problema o suggerimento"**: tap apre un dialog/sheet con:
+- Select tipo: "Problema" / "Suggerimento"
+- Textarea per il messaggio
+- Bottone "Invia segnalazione"
+- Inserisce in `support_requests`
+
+**"Elimina account"**: Aggiungere un bottone rosso in fondo, prima di "Esci". Al tap, dialog di conferma con testo "Sei sicuro? Questa azione e' irreversibile." che chiama `signOut` + disabilita l'account (o lo segnala per eliminazione admin).
+
+### 3. Pagina admin segnalazioni (`src/pages/admin/AdminSupportPage.tsx`)
+
+Nuova pagina `/admin/support`:
+- Lista delle `support_requests` ordinate per data (piu' recenti prima)
+- Per ogni richiesta: tipo (badge colorato), messaggio, email utente, data
+- Azioni: "Segna come risolto" / "Chiudi" + campo note admin
+- Filtro per status (aperte / risolte / chiuse)
+
+### 4. Dashboard admin (`src/pages/admin/AdminPage.tsx`)
+
+Aggiungere card "Segnalazioni Utenti" con contatore richieste aperte e link a `/admin/support`.
+
+### 5. Routing (`src/App.tsx`)
+
+Aggiungere rotta `/admin/support` con la nuova pagina.
+
+---
 
 ## Dettagli tecnici
 
-### File: `src/lib/food-images.ts` (nuovo)
+### File coinvolti: 5 + migration
 
-Utility con:
-- Mappa `categoryEmoji: Record<string, string>` per le categorie principali
-- Funzione `getFoodEmoji(category: string | null): string` che restituisce l'emoji o "📦" come default
-- Funzione `getFoodImageUrl(imageUrl: string | null, category: string | null): { type: "image" | "emoji"; value: string }` che ritorna l'immagine URL o l'emoji di fallback
+- **Migration SQL**: `avatar_url` su profiles + tabella `support_requests` + bucket storage + RLS
+- `src/pages/ProfiloPage.tsx`: avatar upload, dialog impostazioni, dialog segnalazione, elimina account
+- `src/pages/admin/AdminSupportPage.tsx` (nuovo): gestione segnalazioni
+- `src/pages/admin/AdminPage.tsx`: card segnalazioni
+- `src/App.tsx`: rotta `/admin/support`
+- `src/integrations/supabase/types.ts`: aggiornamento tipi
 
-### File: `src/pages/Index.tsx`
+### Upload avatar
+Usare `supabase.storage.from("avatars").upload(userId + ".jpg", file, { upsert: true })` e poi `getPublicUrl` per salvare l'URL in `profiles.avatar_url`.
 
-**Query**: aggiungere `category` alla select dei prodotti: `product:products(name, image_url, category)`
-
-**Tipo UrgentItem**: aggiungere `image_url: string | null` e `category: string | null`
-
-**Urgent list rendering**: aggiungere miniatura 40x40 prima del testo:
-- Se `image_url` presente: `<img>` con `object-cover` e bordi arrotondati
-- Altrimenti: emoji dalla categoria in un cerchio colorato
-
-**Tap handler**: al click sull'elemento urgente, aprire un dialog di modifica rapida con campi per quantita', storage e scadenza. Salvataggio diretto su `inventory_items` o `preparations`.
-
-**Nuovo stato**: `editingUrgent` per tracciare quale elemento e' in modifica, con i campi editabili.
-
-### File coinvolti: 2
-- `src/lib/food-images.ts` (nuovo) -- mappa emoji categorie + helper
-- `src/pages/Index.tsx` -- miniature + dialog modifica rapida
+### Elimina account
+Per sicurezza, non eliminare direttamente ma aggiornare un campo `deleted_at` o inserire una richiesta di tipo "delete_account" nella tabella support_requests, cosi' l'admin puo' gestirlo manualmente.
 
