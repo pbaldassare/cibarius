@@ -1,51 +1,50 @@
 
-# Miglioramenti pagina Scadenze e database prodotti condiviso
 
-## 1. Rimuovere tab "Senza data"
+# Filtri inline e cambio conservazione
 
-Dato che ora tutti i prodotti hanno sempre una scadenza di default (+3 giorni), la tab "Senza data" non serve piu'. Verra' rimossa dall'array `statusTabs` e dal conteggio.
+## 1. Aggiungere cambio conservazione nell'action sheet
 
-## 2. Aggiungere barra di ricerca rapida
-
-Sotto le tab di stato (Scaduti / In scadenza / Tutti), aggiungere un campo di ricerca testuale per filtrare velocemente i prodotti per nome. Il filtro sara' locale (lato client) sulla lista gia' caricata.
-
-## 3. Mostrare dettagli nutrizionali nell'action sheet
-
-Quando si seleziona un elemento, l'action sheet (bottom sheet) mostrera' anche:
-- Calorie totali e per 100g
-- Macronutrienti (proteine, carboidrati, grassi)
-- Brand del prodotto
-- Data di scadenza
-- Tipo di conservazione e quantita'
-
-Per ottenere questi dati, la query di fetch verra' ampliata per includere i campi nutrizionali da `products` (`calories_100g`, `macros_100g`, `brand`) e da `inventory_items` (`calories_total`, `macros_total`).
-
-## 4. Prodotti sempre salvati nel database condiviso
-
-Questo e' gia' implementato: quando un utente aggiunge un prodotto tramite barcode, ricerca o foto, il prodotto viene salvato nella tabella `products` che e' visibile a tutti gli utenti autenticati (le RLS policy lo permettono gia' in SELECT e INSERT). La ricerca locale in `search-food.ts` cerca gia' nella tabella `products`. 
-
-Nessuna modifica al database necessaria: la tabella `products` funziona gia' come catalogo condiviso.
-
----
-
-## Dettagli tecnici
+Quando si seleziona un elemento, l'action sheet mostrera' un selettore per cambiare il tipo di conservazione (Frigo / Congelatore / Dispensa). Tre bottoni inline sotto i dettagli nutrizionali, prima delle azioni. Al tap, aggiorna `storage_type` su `inventory_items` o `preparations` e ricarica la lista.
 
 ### File: `src/pages/ExpiryPage.tsx`
+- Nell'action sheet (riga ~584), aggiungere una riga con 3 bottoni per Frigo/Congelatore/Dispensa
+- Il bottone corrispondente allo storage attuale sara' evidenziato (bg-primary)
+- Al click: `supabase.from("inventory_items").update({ storage_type }).eq("id", item.id)` (o `preparations`), poi toast + fetchItems
+- Aggiungere `handleChangeStorage(item, newStorage)` come handler
 
-**Modifiche all'interfaccia ExpiryItem**: aggiungere campi nutrizionali:
-- `calories_100g`, `protein_100g`, `carbs_100g`, `fats_100g` (da products)
-- `calories_total`, `macros_total` (da inventory_items)
-- `brand` (da products)
+## 2. Sostituire il popup filtri con dropdown inline
 
-**Rimuovere tab "Senza data"**: eliminare l'entry `nodate` da `statusTabs` (riga 58)
+Rimuovere il bottone filtro con icona e il bottom Sheet dei filtri. Al suo posto, sotto la barra di ricerca, mostrare due righe di bottoni (chip) sempre visibili:
 
-**Aggiungere stato `searchQuery`**: campo di ricerca locale sotto le tab. Filtrare `filtered` anche per `item.name.toLowerCase().includes(searchQuery)`
+**Riga 1 - Tipo**: Tutto | Prodotti | Preparazioni
+**Riga 2 - Conservazione**: Tutti | Dispensa | Frigo | Congelatore
 
-**Ampliare la query fetch**: 
-- `products(name, image_url, brand, calories_100g, macros_100g)`
-- Includere `calories_total, macros_total` da inventory_items
+Stile: chip piccoli simili ai tab di stato gia' esistenti, con il chip attivo in primary.
 
-**Arricchire l'action sheet**: sotto il nome del prodotto, mostrare una sezione con le informazioni nutrizionali (calorie, proteine, carb, grassi) e le info di conservazione, prima dei pulsanti di azione.
+### File: `src/pages/ExpiryPage.tsx`
+- Rimuovere stato `filterSheetOpen` e il componente `Sheet` dei filtri (righe 505-576)
+- Rimuovere il bottone con icona `SlidersHorizontal` (righe 356-364)
+- Rimuovere `activeFilterCount`
+- Aggiungere sotto SearchBar due righe di chip per tipo e conservazione
+- Ogni chip funziona come i tab di stato: click per attivare, evidenziato se selezionato
 
-### File coinvolti (1)
-- `src/pages/ExpiryPage.tsx`
+### Dettaglio tecnico UI dei filtri inline
+
+```
+{/* Filtri inline */}
+<div className="flex gap-1.5 overflow-x-auto no-scrollbar">
+  {[{key:"all",label:"Tutto"},{key:"product",label:"Prodotti"},{key:"preparation",label:"Prep"}].map(...)}
+</div>
+<div className="flex gap-1.5 overflow-x-auto no-scrollbar">
+  {[{key:"all",label:"Tutti"},{key:"ambiente",label:"Dispensa"},{key:"frigo",label:"Frigo"},{key:"freezer",label:"Congelatore"}].map(...)}
+</div>
+```
+
+Stile chip: `rounded-full px-3 py-1 text-[12px] font-medium`, attivo `bg-primary/10 text-primary border-primary`, inattivo `bg-card border-border text-muted-foreground`.
+
+## Riepilogo
+
+- 1 file modificato: `src/pages/ExpiryPage.tsx`
+- Rimozione: Sheet filtri popup + bottone SlidersHorizontal
+- Aggiunta: chip filtri inline sotto search + selettore storage nell'action sheet
+
