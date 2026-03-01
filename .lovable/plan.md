@@ -1,71 +1,123 @@
 
+# Piano nutrizionale dettagliato: alimenti specifici per pasto + zuccheri
 
-# Info Coach + Modifica quantita' prodotti e pasti
+## Panoramica
 
-## Cosa cambia
+Attualmente il piano alimentare gestisce solo target macro per pasto (kcal, proteine, carbo, grassi). Come nell'esempio reale (stile Nutrium), un piano vero include **alimenti specifici con quantita'** per ogni pasto. Questa implementazione aggiunge:
 
-### 1. Dettagli coach nel profilo
+1. **Alimenti specifici nel piano**: ogni pasto del piano conterra' una lista di cibi con nome, quantita', unita' e valori nutrizionali
+2. **Zuccheri (sugars)**: nuovo macro tracciato come sottoinsieme dei carboidrati, ovunque compaiano i macro
+3. **Ricerca coach**: se l'utente non ha un coach collegato, puo' cercare tra i professionisti disponibili
+4. **Creazione piano autonoma**: l'utente senza coach puo' creare un proprio piano semplificato
 
-Attualmente la sezione "Il tuo nutrizionista" mostra solo nome ed email. Aggiungere un tap sulla card del professionista che apre un dialog con le informazioni complete dal `professional_profiles`:
-- Foto profilo (`photo_url`)
-- Nome (`display_name`)
-- Specializzazione (`specialization`)
-- Citta' (`city`)
-- Bio (`bio`)
+## Modifiche al database
 
-La query gia' fa il join su `profiles`, ma manca il join su `professional_profiles`. Aggiungere la query e mostrare i dati in un dialog dedicato.
+### Nuova tabella `diet_plan_items`
 
-### 2. Modifica quantita' prodotti in inventario (`InventoryList.tsx`)
+Contiene gli alimenti prescritti per ogni pasto del piano:
 
-Ogni card prodotto nella lista inventario diventera' tappabile. Al tap si apre un dialog di modifica rapida con:
-- Quantita' (input numerico)
-- Unita' (select)
-- Storage (select frigo/freezer/dispensa)
-- Scadenza (input date)
-- Bottoni "Salva" e "Elimina"
+```text
+diet_plan_items
+  id              uuid PK
+  diet_plan_id    uuid FK -> diet_plans
+  meal_type       text (colazione, pranzo, cena, spuntino)
+  food_name       text
+  quantity        numeric
+  unit            text (g, ml, pezzi, porzioni)
+  calories        numeric
+  protein_g       numeric
+  carbs_g         numeric
+  sugars_g        numeric (nuovo - sottoinsieme dei carbo)
+  fats_g          numeric
+  notes           text (es. "senza condimento", "integrale")
+  sort_order      int
+  created_at      timestamptz
+```
 
-Update diretto su `inventory_items` e refresh della lista.
+### Aggiunta colonna `sugars_g` alle tabelle macro esistenti
 
-### 3. Modifica quantita' pasti (`PastiPage.tsx`)
+- `diet_plan_meal_targets`: aggiungere `sugars_g numeric default 0`
+- `diet_plan_template_meals`: aggiungere `sugars_g numeric default 0`
+- `food_templates`: aggiungere `sugars_100g numeric default 0`
 
-Ogni meal_item nella lista pasti, al tap (non sul bottone cestino), aprira' un dialog per modificare:
-- Quantita' (input numerico)
-- Unita' (select)
-- Ricalcolo automatico calorie e macros in base alla quantita' modificata
+### RLS
+- Professionista: CRUD completo sui `diet_plan_items` dei propri piani
+- Cliente: lettura dei propri piani
+- Utente senza coach: CRUD sui propri piani (dove `professional_id = user_id`)
 
-Update su `meal_items` con nuovi valori calcolati.
+## Modifiche frontend
+
+### 1. `src/pages/pro/ProClientPlanPage.tsx` -- Aggiunta alimenti al piano
+
+**Step 2 potenziato**: oltre ai target macro per pasto, il nutrizionista puo' aggiungere alimenti specifici sotto ogni pasto:
+- Bottone "+ Aggiungi alimento" sotto ogni card pasto
+- Ricerca inline tra `food_templates` e `products` del sistema
+- Per ogni alimento: nome, quantita', unita', macro (inclusi zuccheri)
+- I macro del pasto si ricalcolano automaticamente dalla somma degli alimenti inseriti
+- Drag/reorder degli alimenti (sort_order)
+- L'alimento mostra: nome, qty, kcal, P/C(Z)/G in una riga compatta
+
+**Step 2 UI per singolo pasto**:
+```text
+  ☀️ Colazione — 450 / 450 kcal
+  ┌─────────────────────────────────────┐
+  │ 🥛 Latte p.s.    200ml   90 kcal   │
+  │ 🍞 Fette bisc.   40g    160 kcal   │
+  │ 🍯 Marmellata     20g    50 kcal   │
+  │ + Aggiungi alimento                 │
+  └─────────────────────────────────────┘
+  P: 15g  C: 60g (Z: 25g)  G: 10g
+```
+
+### 2. `src/pages/UserDietPage.tsx` -- Vista piano con alimenti
+
+L'utente vede il piano completo con gli alimenti prescritti per ogni pasto:
+- Sotto ogni card pasto: lista degli alimenti con quantita' e macro
+- Collapsible per non sovraccaricare la vista
+- Per ogni alimento: nome, quantita', calorie, e un dettaglio macro espandibile
+- Aggiunta degli zuccheri nella vista macro (es. "C: 60g di cui Z: 25g")
+
+### 3. `src/pages/PastiPage.tsx` -- Zuccheri nel tracciamento
+
+- Mostrare zuccheri nel riepilogo macro di ogni pasto (se presenti nei macros JSON)
+- Nella preview modifica alimento, mostrare anche gli zuccheri stimati
+
+### 4. `src/pages/MealsTargetsPage.tsx` -- Target zuccheri
+
+- Aggiungere campo "Zuccheri (g)" agli obiettivi nutrizionali personali
+
+### 5. Nuova sezione: Cerca un professionista (se non collegato)
+
+Nella `UserDietPage.tsx`, quando non c'e' un piano attivo:
+- Oltre al bottone "Collega un professionista", mostrare una lista dei professionisti disponibili
+- Query su `professional_profiles` (quelli con `is_visible = true` o simile)
+- Card per ogni coach: nome, specializzazione, citta', bio (troncata)
+- Bottone "Contatta" che naviga alla pagina invito o apre un dialog
+
+### 6. Creazione piano autonomo
+
+Se l'utente non ha un coach, puo' creare un piano semplice da solo:
+- Bottone "Crea il tuo piano" nella pagina dieta quando non c'e' un piano attivo
+- Wizard semplificato (come ProClientPlanPage ma con `professional_id = user_id`)
+- Include aggiunta alimenti specifici per pasto
 
 ## Dettagli tecnici
 
-### File: `src/pages/ProfiloPage.tsx`
+### File coinvolti: 6 + migration
 
-- Aggiungere query su `professional_profiles` usando `proLink.professional_id`
-- Nuovo stato `coachDialogOpen`
-- Rendere la card coach tappabile (il box verde con nome e badge "Attivo")
-- Dialog con: foto (Avatar), display_name, specialization, city, bio
-- Fallback se `professional_profiles` non esiste (mostrare solo nome/email)
+| File | Modifica |
+|------|----------|
+| Migration SQL | Tabella `diet_plan_items` + `sugars_g` su tabelle esistenti |
+| `src/pages/pro/ProClientPlanPage.tsx` | Step 2: alimenti per pasto con ricerca + zuccheri |
+| `src/pages/UserDietPage.tsx` | Vista alimenti piano + ricerca coach + piano autonomo |
+| `src/pages/PastiPage.tsx` | Zuccheri nel tracciamento |
+| `src/pages/MealsTargetsPage.tsx` | Campo zuccheri |
+| `src/integrations/supabase/types.ts` | Aggiornamento automatico tipi |
 
-### File: `src/components/InventoryList.tsx`
+### Ricerca alimenti nel piano
 
-- Nuovo stato `editingItem: InventoryItemWithProduct | null`
-- Nuovo stato per i campi editabili: `editQty`, `editUnit`, `editStorage`, `editExpiry`
-- Al click sulla card prodotto: popola gli stati e apre il dialog
-- Dialog con form di modifica + bottone Elimina (con conferma)
-- `handleSaveEdit`: update su `inventory_items` con ricalcolo calorie/macros
-- `handleDeleteItem`: delete su `inventory_items`
-- Refresh lista dopo salvataggio/eliminazione
+Riutilizzare la logica di ricerca gia' presente in `AddFoodFlow` (search-food.ts + food_templates) per trovare alimenti da aggiungere al piano. Quando il pro seleziona un alimento, i macro vengono pre-compilati dal template e la quantita' e' editabile.
 
-### File: `src/pages/PastiPage.tsx`
+### Zuccheri nei macros JSON
 
-- Nuovo stato `editingMealItem: MealItem | null` + `editingMealType: string`
-- Al tap sul meal_item (non sul cestino): apre dialog modifica
-- Dialog con: nome (readonly), quantita' (editabile), unita' (editabile)
-- Ricalcolo calorie e macros proporzionale alla nuova quantita'
-- `handleUpdateItem`: update su `meal_items` con nuovi valori
-- Il bottone cestino resta separato per l'eliminazione
-
-### File coinvolti: 3
-- `src/pages/ProfiloPage.tsx` -- dialog info coach
-- `src/components/InventoryList.tsx` -- dialog modifica prodotto
-- `src/pages/PastiPage.tsx` -- dialog modifica alimento pasto
-
+Per i `meal_items`, i macros sono salvati come JSON (`{protein, carbs, fats}`). Aggiungere `sugars` a questo oggetto dove disponibile, senza rompere i dati esistenti. Il codice leggera' `m.sugars ?? 0` con fallback a 0.
