@@ -38,6 +38,7 @@ import AdminPage from "./pages/admin/AdminPage";
 import AdminUsersPage from "./pages/admin/AdminUsersPage";
 import AdminSettingsPage from "./pages/admin/AdminSettingsPage";
 import AdminSeedPage from "./pages/admin/AdminSeedPage";
+import AdminProductReviewPage from "./pages/admin/AdminProductReviewPage";
 
 // Restaurant app pages
 import RestaurantOnboardingPage from "./pages/restaurant/RestaurantOnboardingPage";
@@ -191,6 +192,7 @@ const App = () => (
               <Route path="/admin/users" element={<RG roles={["admin"]}><AdminUsersPage /></RG>} />
               <Route path="/admin/settings" element={<RG roles={["admin"]}><AdminSettingsPage /></RG>} />
               <Route path="/admin/seed" element={<RG roles={["admin"]}><AdminSeedPage /></RG>} />
+              <Route path="/admin/product-review" element={<RG roles={["admin"]}><AdminProductReviewPage /></RG>} />
 
               {/* Restaurant admin routes (no mobile layout) */}
               <Route path="/restaurant-admin" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><RestaurantAdminPage /></RestaurantGuard></RG>} />
