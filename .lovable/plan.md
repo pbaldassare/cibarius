@@ -1,80 +1,71 @@
 
 
-# Profilo: Impostazioni, Avatar, Elimina Account e Supporto
+# Info Coach + Modifica quantita' prodotti e pasti
 
-## Panoramica
+## Cosa cambia
 
-Rifare la sezione Impostazioni del profilo con funzionalita' reali e aggiungere un sistema di segnalazioni/suggerimenti gestibile dall'admin.
+### 1. Dettagli coach nel profilo
 
-## Modifiche previste
+Attualmente la sezione "Il tuo nutrizionista" mostra solo nome ed email. Aggiungere un tap sulla card del professionista che apre un dialog con le informazioni complete dal `professional_profiles`:
+- Foto profilo (`photo_url`)
+- Nome (`display_name`)
+- Specializzazione (`specialization`)
+- Citta' (`city`)
+- Bio (`bio`)
 
-### 1. Database: nuovi campi e tabella
+La query gia' fa il join su `profiles`, ma manca il join su `professional_profiles`. Aggiungere la query e mostrare i dati in un dialog dedicato.
 
-**Migration SQL**:
-- Aggiungere colonna `avatar_url` (text, nullable) alla tabella `profiles`
-- Creare tabella `support_requests`:
-  - `id` (uuid PK)
-  - `user_id` (uuid FK profiles)
-  - `type` (text: "problema" | "suggerimento")
-  - `message` (text)
-  - `status` (text: "open" | "resolved" | "closed", default "open")
-  - `admin_notes` (text, nullable)
-  - `created_at` (timestamptz)
-  - `resolved_at` (timestamptz, nullable)
-- Creare bucket Storage `avatars` (pubblico) per le immagini profilo
-- RLS: utenti inseriscono le proprie richieste, admin leggono e aggiornano tutto
+### 2. Modifica quantita' prodotti in inventario (`InventoryList.tsx`)
 
-### 2. Pagina Profilo (`src/pages/ProfiloPage.tsx`)
+Ogni card prodotto nella lista inventario diventera' tappabile. Al tap si apre un dialog di modifica rapida con:
+- Quantita' (input numerico)
+- Unita' (select)
+- Storage (select frigo/freezer/dispensa)
+- Scadenza (input date)
+- Bottoni "Salva" e "Elimina"
 
-Sostituire "Impostazioni" e "Aiuto" con funzionalita' reali:
+Update diretto su `inventory_items` e refresh della lista.
 
-**Sezione avatar**: Rendere l'avatar cliccabile per caricare una foto profilo. Dopo l'upload su Storage `avatars`, salvare l'URL in `profiles.avatar_url`. Mostrare l'immagine reale al posto dell'emoji.
+### 3. Modifica quantita' pasti (`PastiPage.tsx`)
 
-**"Impostazioni" diventa tap che apre un dialog** con:
-- Modifica nome completo
-- Modifica telefono
-- Bottone "Salva"
+Ogni meal_item nella lista pasti, al tap (non sul bottone cestino), aprira' un dialog per modificare:
+- Quantita' (input numerico)
+- Unita' (select)
+- Ricalcolo automatico calorie e macros in base alla quantita' modificata
 
-**"Aiuto" diventa "Segnala un problema o suggerimento"**: tap apre un dialog/sheet con:
-- Select tipo: "Problema" / "Suggerimento"
-- Textarea per il messaggio
-- Bottone "Invia segnalazione"
-- Inserisce in `support_requests`
-
-**"Elimina account"**: Aggiungere un bottone rosso in fondo, prima di "Esci". Al tap, dialog di conferma con testo "Sei sicuro? Questa azione e' irreversibile." che chiama `signOut` + disabilita l'account (o lo segnala per eliminazione admin).
-
-### 3. Pagina admin segnalazioni (`src/pages/admin/AdminSupportPage.tsx`)
-
-Nuova pagina `/admin/support`:
-- Lista delle `support_requests` ordinate per data (piu' recenti prima)
-- Per ogni richiesta: tipo (badge colorato), messaggio, email utente, data
-- Azioni: "Segna come risolto" / "Chiudi" + campo note admin
-- Filtro per status (aperte / risolte / chiuse)
-
-### 4. Dashboard admin (`src/pages/admin/AdminPage.tsx`)
-
-Aggiungere card "Segnalazioni Utenti" con contatore richieste aperte e link a `/admin/support`.
-
-### 5. Routing (`src/App.tsx`)
-
-Aggiungere rotta `/admin/support` con la nuova pagina.
-
----
+Update su `meal_items` con nuovi valori calcolati.
 
 ## Dettagli tecnici
 
-### File coinvolti: 5 + migration
+### File: `src/pages/ProfiloPage.tsx`
 
-- **Migration SQL**: `avatar_url` su profiles + tabella `support_requests` + bucket storage + RLS
-- `src/pages/ProfiloPage.tsx`: avatar upload, dialog impostazioni, dialog segnalazione, elimina account
-- `src/pages/admin/AdminSupportPage.tsx` (nuovo): gestione segnalazioni
-- `src/pages/admin/AdminPage.tsx`: card segnalazioni
-- `src/App.tsx`: rotta `/admin/support`
-- `src/integrations/supabase/types.ts`: aggiornamento tipi
+- Aggiungere query su `professional_profiles` usando `proLink.professional_id`
+- Nuovo stato `coachDialogOpen`
+- Rendere la card coach tappabile (il box verde con nome e badge "Attivo")
+- Dialog con: foto (Avatar), display_name, specialization, city, bio
+- Fallback se `professional_profiles` non esiste (mostrare solo nome/email)
 
-### Upload avatar
-Usare `supabase.storage.from("avatars").upload(userId + ".jpg", file, { upsert: true })` e poi `getPublicUrl` per salvare l'URL in `profiles.avatar_url`.
+### File: `src/components/InventoryList.tsx`
 
-### Elimina account
-Per sicurezza, non eliminare direttamente ma aggiornare un campo `deleted_at` o inserire una richiesta di tipo "delete_account" nella tabella support_requests, cosi' l'admin puo' gestirlo manualmente.
+- Nuovo stato `editingItem: InventoryItemWithProduct | null`
+- Nuovo stato per i campi editabili: `editQty`, `editUnit`, `editStorage`, `editExpiry`
+- Al click sulla card prodotto: popola gli stati e apre il dialog
+- Dialog con form di modifica + bottone Elimina (con conferma)
+- `handleSaveEdit`: update su `inventory_items` con ricalcolo calorie/macros
+- `handleDeleteItem`: delete su `inventory_items`
+- Refresh lista dopo salvataggio/eliminazione
+
+### File: `src/pages/PastiPage.tsx`
+
+- Nuovo stato `editingMealItem: MealItem | null` + `editingMealType: string`
+- Al tap sul meal_item (non sul cestino): apre dialog modifica
+- Dialog con: nome (readonly), quantita' (editabile), unita' (editabile)
+- Ricalcolo calorie e macros proporzionale alla nuova quantita'
+- `handleUpdateItem`: update su `meal_items` con nuovi valori
+- Il bottone cestino resta separato per l'eliminazione
+
+### File coinvolti: 3
+- `src/pages/ProfiloPage.tsx` -- dialog info coach
+- `src/components/InventoryList.tsx` -- dialog modifica prodotto
+- `src/pages/PastiPage.tsx` -- dialog modifica alimento pasto
 
