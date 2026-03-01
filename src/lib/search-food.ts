@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface FoodSearchResult {
   source: "off" | "usda" | "local";
+  source_detail?: "off_it" | "off_world" | "usda" | "local";
   name: string;
   brand: string | null;
   barcode: string | null;
@@ -12,6 +13,8 @@ export interface FoodSearchResult {
   fats_100g: number | null;
   local_product_id?: string;
 }
+
+export type SearchPhase = "local" | "off" | "usda" | "done";
 
 // ─── Query cache (localStorage, 7-day TTL) ───────────
 const SEARCH_CACHE_KEY = "cibarius_search_cache";
@@ -41,7 +44,6 @@ function setCachedSearch(query: string, results: FoodSearchResult[]) {
   const c = getSearchCache();
   const key = query.toLowerCase().trim();
   c[key] = { results, ts: Date.now() };
-  // Keep max 100 entries
   const keys = Object.keys(c);
   if (keys.length > 100) {
     const oldest = keys.sort((a, b) => c[a].ts - c[b].ts)[0];
@@ -50,42 +52,18 @@ function setCachedSearch(query: string, results: FoodSearchResult[]) {
   localStorage.setItem(SEARCH_CACHE_KEY, JSON.stringify(c));
 }
 
-// ─── Unified search ──────────────────────────────────
-export async function searchFood(query: string): Promise<FoodSearchResult[]> {
-  const q = query.trim();
-  if (q.length < 2) return [];
-
-  // Check cache first
-  const cached = getCachedSearch(q);
-  if (cached) return cached;
-
-  // Local DB search + edge function in parallel
-  const [localResults, edgeResults] = await Promise.all([
-    searchLocal(q),
-    searchEdge(q),
-  ]);
-
-  // Merge: local first, then remote (deduped)
-  const seen = new Set<string>();
-  const merged: FoodSearchResult[] = [];
-
-  for (const r of localResults) {
-    const key = r.name.toLowerCase().trim();
-    seen.add(key);
-    merged.push(r);
-  }
-
-  for (const r of edgeResults) {
+// ─── Dedup helper ────────────────────────────────────
+function dedup(existing: FoodSearchResult[], incoming: FoodSearchResult[]): FoodSearchResult[] {
+  const seen = new Set(existing.map(r => r.name.toLowerCase().trim()));
+  const merged = [...existing];
+  for (const r of incoming) {
     const key = r.name.toLowerCase().trim();
     if (!seen.has(key)) {
       seen.add(key);
       merged.push(r);
     }
   }
-
-  const final = merged.slice(0, 30);
-  setCachedSearch(q, final);
-  return final;
+  return merged;
 }
 
 // ─── Local DB search ─────────────────────────────────
@@ -98,6 +76,7 @@ async function searchLocal(query: string): Promise<FoodSearchResult[]> {
 
   return (data ?? []).map((p: any) => ({
     source: "local" as const,
+    source_detail: "local" as const,
     name: p.name,
     brand: p.brand,
     barcode: p.barcode,
@@ -110,15 +89,93 @@ async function searchLocal(query: string): Promise<FoodSearchResult[]> {
   }));
 }
 
-// ─── Edge function search (OFF + USDA) ───────────────
-async function searchEdge(query: string): Promise<FoodSearchResult[]> {
+// ─── Edge function: OFF only ─────────────────────────
+async function searchEdgeOFF(query: string): Promise<FoodSearchResult[]> {
   try {
     const { data, error } = await supabase.functions.invoke("search-food", {
-      body: { query },
+      body: { query, sources: ["off"] },
     });
     if (error || !data?.results) return [];
     return data.results as FoodSearchResult[];
   } catch {
     return [];
   }
+}
+
+// ─── Edge function: USDA only ────────────────────────
+async function searchEdgeUSDA(query: string): Promise<FoodSearchResult[]> {
+  try {
+    const { data, error } = await supabase.functions.invoke("search-food", {
+      body: { query, sources: ["usda"] },
+    });
+    if (error || !data?.results) return [];
+    return data.results as FoodSearchResult[];
+  } catch {
+    return [];
+  }
+}
+
+// ─── Progressive search ──────────────────────────────
+export type OnProgressCallback = (
+  results: FoodSearchResult[],
+  phase: SearchPhase,
+  done: boolean
+) => void;
+
+/**
+ * Progressive 3-phase search with callback for each phase.
+ * Returns an abort function.
+ */
+export function searchFoodProgressive(
+  query: string,
+  onProgress: OnProgressCallback
+): () => void {
+  const q = query.trim();
+  let cancelled = false;
+  let accumulated: FoodSearchResult[] = [];
+
+  if (q.length < 2) {
+    onProgress([], "done", true);
+    return () => {};
+  }
+
+  // Check cache first
+  const cached = getCachedSearch(q);
+  if (cached) {
+    onProgress(cached, "done", true);
+    return () => {};
+  }
+
+  // Phase 1: Local DB
+  searchLocal(q).then(localResults => {
+    if (cancelled) return;
+    accumulated = localResults;
+    onProgress(accumulated, "local", false);
+
+    // Phase 2: OFF (Italian priority)
+    searchEdgeOFF(q).then(offResults => {
+      if (cancelled) return;
+      accumulated = dedup(accumulated, offResults);
+      onProgress(accumulated, "off", false);
+
+      // Phase 3: USDA
+      searchEdgeUSDA(q).then(usdaResults => {
+        if (cancelled) return;
+        accumulated = dedup(accumulated, usdaResults).slice(0, 30);
+        setCachedSearch(q, accumulated);
+        onProgress(accumulated, "done", true);
+      });
+    });
+  });
+
+  return () => { cancelled = true; };
+}
+
+// ─── Legacy wrapper for backward compatibility ───────
+export async function searchFood(query: string): Promise<FoodSearchResult[]> {
+  return new Promise((resolve) => {
+    searchFoodProgressive(query, (results, _phase, done) => {
+      if (done) resolve(results);
+    });
+  });
 }
