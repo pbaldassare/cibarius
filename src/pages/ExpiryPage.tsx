@@ -2,18 +2,21 @@ import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import MobileHeader from "@/components/MobileHeader";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { Checkbox } from "@/components/ui/checkbox";
 import AddFoodFlow from "@/components/AddFoodFlow";
 import {
   Package, Clock, AlertCircle, HelpCircle, Check, Trash2, CalendarClock,
-  Plus, ChefHat, SlidersHorizontal, X,
+  Plus, ChefHat, SlidersHorizontal, X, CheckSquare,
 } from "lucide-react";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 
 interface ExpiryItem {
@@ -68,6 +71,12 @@ const ExpiryPage = () => {
   const [actionSheet, setActionSheet] = useState<ExpiryItem | null>(null);
   const [addFoodOpen, setAddFoodOpen] = useState(false);
   const [newDate, setNewDate] = useState("");
+
+  // Selection mode
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const fetchItems = async () => {
     if (!user) return;
@@ -173,6 +182,43 @@ const ExpiryPage = () => {
 
   const activeFilterCount = (storageFilter !== "all" ? 1 : 0) + (typeFilter !== "all" ? 1 : 0);
 
+  // Selection helpers
+  const toggleSelection = (itemKey: string) => {
+    const next = new Set(selectedIds);
+    if (next.has(itemKey)) next.delete(itemKey); else next.add(itemKey);
+    setSelectedIds(next);
+  };
+
+  const selectAll = () => {
+    setSelectedIds(new Set(filtered.map((i) => `${i.type}-${i.id}`)));
+  };
+
+  const exitSelectionMode = () => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const handleBulkDelete = async () => {
+    setDeleting(true);
+    const productIds: string[] = [];
+    const prepIds: string[] = [];
+    selectedIds.forEach((key) => {
+      const [type, ...rest] = key.split("-");
+      const id = rest.join("-");
+      if (type === "product") productIds.push(id);
+      else prepIds.push(id);
+    });
+
+    if (productIds.length) await supabase.from("inventory_items").delete().in("id", productIds);
+    if (prepIds.length) await supabase.from("preparations").delete().in("id", prepIds);
+
+    toast({ title: `${selectedIds.size} elementi eliminati ✓` });
+    setConfirmDeleteOpen(false);
+    setDeleting(false);
+    exitSelectionMode();
+    fetchItems();
+  };
+
   if (loading) {
     return (
       <div>
@@ -185,9 +231,32 @@ const ExpiryPage = () => {
     );
   }
 
+  const headerRight = (
+    <div className="flex items-center gap-1">
+      {selectionMode ? (
+        <>
+          <button onClick={selectAll} className="text-[12px] font-medium text-white px-2 py-1 rounded-lg active:bg-white/10">
+            Tutti
+          </button>
+          <button onClick={exitSelectionMode} className="text-[12px] font-medium text-white px-2 py-1 rounded-lg active:bg-white/10">
+            Annulla
+          </button>
+        </>
+      ) : (
+        <button
+          onClick={() => setSelectionMode(true)}
+          className="p-1.5 rounded-lg active:bg-white/10 transition-colors"
+          aria-label="Seleziona"
+        >
+          <CheckSquare className="h-[18px] w-[18px] text-white" strokeWidth={2} />
+        </button>
+      )}
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-background">
-      <MobileHeader title="Scadenze" showBack />
+      <MobileHeader title="Scadenze" showBack right={headerRight} />
       <main className="space-y-3 px-4 py-4 pb-28">
         {/* Status tabs + filter button */}
         <div className="flex items-center gap-2">
@@ -237,14 +306,37 @@ const ExpiryPage = () => {
               const status = getStatus(item.expiry_date);
               const cfg = statusCfg[status];
               const isPrep = item.type === "preparation";
+              const itemKey = `${item.type}-${item.id}`;
+              const isSelected = selectedIds.has(itemKey);
+
               return (
                 <button
-                  key={`${item.type}-${item.id}`}
-                  className="flex w-full items-center gap-2.5 rounded-[16px] bg-card px-3 py-2.5 shadow-card text-left active:scale-[0.98] transition-all"
-                  onClick={() => { setActionSheet(item); setNewDate(item.expiry_date ?? ""); }}
+                  key={itemKey}
+                  className={`flex w-full items-center gap-2.5 rounded-[16px] bg-card px-3 py-2.5 shadow-card text-left active:scale-[0.98] transition-all ${
+                    isSelected ? "ring-2 ring-primary" : ""
+                  }`}
+                  onClick={() => {
+                    if (selectionMode) {
+                      toggleSelection(itemKey);
+                    } else {
+                      setActionSheet(item);
+                      setNewDate(item.expiry_date ?? "");
+                    }
+                  }}
                 >
-                  {/* Left accent bar */}
-                  <div className={`w-[3px] self-stretch rounded-full ${cfg.barColor}`} />
+                  {/* Left: checkbox or accent bar */}
+                  {selectionMode ? (
+                    <div className="flex items-center justify-center w-6 shrink-0">
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={() => toggleSelection(itemKey)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="h-5 w-5"
+                      />
+                    </div>
+                  ) : (
+                    <div className={`w-[3px] self-stretch rounded-full ${cfg.barColor}`} />
+                  )}
                   {/* Image */}
                   <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] bg-secondary overflow-hidden">
                     {item.image_url ? (
@@ -291,6 +383,46 @@ const ExpiryPage = () => {
           </div>
         )}
       </main>
+
+      {/* ═══ Selection action bar ═══ */}
+      {selectionMode && selectedIds.size > 0 && (
+        <div className="fixed bottom-[calc(72px+env(safe-area-inset-bottom,0px))] left-0 right-0 z-50 px-4 pb-2">
+          <div className="flex items-center gap-3 rounded-2xl bg-card shadow-elevated px-4 py-3 border border-border">
+            <span className="text-[13px] font-medium text-foreground flex-1">
+              {selectedIds.size} selezionat{selectedIds.size === 1 ? "o" : "i"}
+            </span>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="rounded-xl gap-1.5"
+              onClick={() => setConfirmDeleteOpen(true)}
+            >
+              <Trash2 className="h-4 w-4" />
+              Elimina
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ Confirm bulk delete dialog ═══ */}
+      <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <DialogContent className="rounded-2xl max-w-[340px]">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">Eliminare {selectedIds.size} elementi?</DialogTitle>
+            <DialogDescription>
+              Questa azione non può essere annullata. Gli elementi selezionati verranno rimossi definitivamente.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-row gap-2">
+            <Button variant="outline" className="flex-1 rounded-xl" onClick={() => setConfirmDeleteOpen(false)} disabled={deleting}>
+              Annulla
+            </Button>
+            <Button variant="destructive" className="flex-1 rounded-xl gap-1.5" onClick={handleBulkDelete} disabled={deleting}>
+              {deleting ? "Eliminazione..." : "Elimina"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* ═══ Filter Bottom Sheet ═══ */}
       <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
