@@ -1074,6 +1074,35 @@ const AddFoodFlow = ({
                   );
                 })()}
 
+                {/* ── Nutrition preview (always visible) ── */}
+                {computed.calories != null && computed.macros && (
+                  <div className="rounded-2xl border border-border bg-card p-3">
+                    <div className="grid grid-cols-4 gap-2 text-center">
+                      <div>
+                        <p className="text-base font-bold text-primary">{computed.calories}</p>
+                        <p className="text-[9px] text-muted-foreground">kcal</p>
+                      </div>
+                      <div>
+                        <p className="text-base font-bold text-destructive">{computed.macros.protein}g</p>
+                        <p className="text-[9px] text-muted-foreground">Prot</p>
+                      </div>
+                      <div>
+                        <p className="text-base font-bold text-accent">{computed.macros.carbs}g</p>
+                        <p className="text-[9px] text-muted-foreground">Carbo</p>
+                      </div>
+                      <div>
+                        <p className="text-base font-bold text-primary">{computed.macros.fats}g</p>
+                        <p className="text-[9px] text-muted-foreground">Grassi</p>
+                      </div>
+                    </div>
+                    {calories100g != null && quantity !== 100 && (
+                      <p className="text-[10px] text-muted-foreground text-center mt-1.5">
+                        per 100g: {calories100g} kcal · {macros100g?.protein ?? 0}P · {macros100g?.carbs ?? 0}C · {macros100g?.fats ?? 0}G
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 {(method === "photo_ai" || method === "scan") && (
                   <div className="rounded-2xl bg-primary/5 border border-primary/10 px-3 py-2.5">
                     <div className="flex items-center gap-1.5 mb-1.5">
@@ -1339,30 +1368,6 @@ const AddFoodFlow = ({
                         </div>
                       </div>
                     </div>
-
-                    {/* Nutrition preview */}
-                    {computed.calories != null && computed.macros && (
-                      <div className="rounded-xl border border-border bg-card p-3">
-                        <div className="grid grid-cols-4 gap-2 text-center">
-                          <div>
-                            <p className="text-base font-bold text-primary">{computed.calories}</p>
-                            <p className="text-[9px] text-muted-foreground">kcal</p>
-                          </div>
-                          <div>
-                            <p className="text-base font-bold text-destructive">{computed.macros.protein}g</p>
-                            <p className="text-[9px] text-muted-foreground">Prot</p>
-                          </div>
-                          <div>
-                            <p className="text-base font-bold text-accent">{computed.macros.carbs}g</p>
-                            <p className="text-[9px] text-muted-foreground">Carbo</p>
-                          </div>
-                          <div>
-                            <p className="text-base font-bold text-primary">{computed.macros.fats}g</p>
-                            <p className="text-[9px] text-muted-foreground">Grassi</p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
