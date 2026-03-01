@@ -1,46 +1,69 @@
 
 
-# Riorganizzare il riepilogo prodotto: nutrienti visibili, storage/scadenza secondari
+# Ricerca progressiva e priorita' prodotti italiani
 
 ## Problema attuale
 
-Nel riepilogo (summary) del flusso AddFoodFlow, i **dettagli nutrizionali** (calorie, proteine, carb, grassi) sono nascosti dietro il bottone "Dettagli" collapsibile. Invece i campi di **conservazione e scadenza** (che servono solo nel contesto inventario) sono subito visibili come chip. L'utente vuole il contrario: vedere prima i nutrienti e decidere poi dove conservare.
+La funzione `searchFood` aspetta che **tutte** le fonti (DB locale, OpenFoodFacts, USDA) rispondano prima di mostrare qualsiasi risultato. Questo rende la ricerca lenta perche' l'utente deve attendere anche le API esterne.
 
-## Modifiche proposte
+## Soluzione
+
+Trasformare la ricerca in un sistema **progressivo a 3 fasi** con feedback visivo per l'utente.
+
+### Fasi di ricerca
+
+```text
+Fase 1 (istantanea): Database locale Cibarius --> risultati in ~100ms
+Fase 2 (1-2s):       OpenFoodFacts Europa     --> risultati aggiunti dinamicamente
+Fase 3 (1-3s):       USDA (se disponibile)    --> risultati aggiunti dinamicamente
+```
+
+### Priorita' prodotti italiani in OFF
+
+Nell'edge function, la ricerca OFF usera' prima `it.openfoodfacts.org` (solo prodotti italiani), poi integrera' con `world.openfoodfacts.org`. I risultati italiani appariranno in cima.
+
+### Feedback visivo
+
+Sotto la barra di ricerca, un indicatore di stato mostra in tempo reale la fase corrente:
+- "Ricerca nel catalogo Cibarius..." 
+- "Ricerca prodotti italiani..."
+- "Ricerca database internazionale..."
+- "Ricerca completata" (con check verde)
+
+---
+
+## Dettagli tecnici
+
+### File: `src/lib/search-food.ts`
+
+Sostituire `searchFood` (che ritorna una Promise unica) con `searchFoodProgressive` che accetta un callback `onResults(results, phase, done)`:
+
+- **Fase 1**: chiama `searchLocal()`, invia subito i risultati con `onResults(localResults, "local", false)`
+- **Fase 2**: chiama l'edge function per OFF (italiano + mondo), invia con `onResults(merged, "off", false)`
+- **Fase 3**: chiama USDA, invia con `onResults(merged, "usda", true)`
+
+Il caching resta invariato ma applicato ai risultati finali completi.
+
+Mantenere anche `searchFood` come wrapper async per retrocompatibilita'.
+
+### File: `supabase/functions/search-food/index.ts`
+
+Separare OFF in due chiamate:
+1. `it.openfoodfacts.org` (prodotti italiani/venduti in Italia) con tag `countries_tags_it:italy`
+2. `world.openfoodfacts.org` (globale, gia' esistente)
+
+Aggiungere un campo `country_priority` ai risultati italiani per ordinarli prima. Restituire un campo `source_detail` ("off_it" vs "off_world") per distinguerli.
 
 ### File: `src/components/AddFoodFlow.tsx`
 
-**1. Mostrare i nutrienti sempre visibili nel riepilogo**
+Nell'`useEffect` di ricerca (riga 188-217):
+- Usare `searchFoodProgressive` invece di `searchFood`
+- Aggiungere stato `searchPhase` ("local" | "off" | "usda" | "done")
+- Aggiornare `searchResults` incrementalmente ad ogni callback
+- Mostrare sotto la search bar un indicatore con l'icona Loader2 e il testo della fase corrente
 
-Spostare la griglia nutrizionale (calorie, proteine, carb, grassi per 100g e per quantita') fuori dal collapsible "Dettagli" e posizionarla subito sotto la hero card del prodotto. I valori nutrizionali saranno sempre visibili senza bisogno di cliccare.
-
-**2. Rendere storage/scadenza secondari**
-
-I chip di conservazione (Frigo/Congelatore/Dispensa) e scadenza resteranno sotto i nutrienti, ma saranno meno prominenti -- mostrati solo nel contesto `inventory`/`preparation` come gia' avviene, ma dopo i nutrienti anziche' prima.
-
-**3. Spostare i campi editabili (nome, brand, valori) nel collapsible**
-
-Il bottone "Dettagli" conterra' solo i campi di modifica manuale (nome, brand, valori nutrizionali editabili), che servono raramente.
-
-### Ordine finale nel riepilogo
-
-```text
-1. Hero card (immagine + nome + brand + kcal totali)
-2. Compatibilita' dieta (se piano attivo)
-3. NUTRIENTI VISIBILI: griglia 4 colonne (kcal, prot, carb, grassi) per 100g
-4. Chip quantita'
-5. Chip storage + scadenza (solo contesto inventory/preparation)
-6. "Dettagli" collapsible (nome/brand/valori editabili)
-7. CTA "Conferma e salva"
-```
-
-### Dettaglio tecnico
-
-- Estrarre il blocco `computed.calories != null && computed.macros` (righe 1344-1365) dal `showDetails` e posizionarlo subito dopo la diet compatibility card (riga ~1076)
-- Aggiungere anche una riga con i valori per 100g sotto la griglia (se `calories100g` disponibile)
-- I chip di quantita'/storage/scadenza restano dopo i nutrienti
-- Il collapsible "Dettagli" conterra' solo i campi Input editabili per nome, brand e nutrienti
-
-### File coinvolti: 1
-- `src/components/AddFoodFlow.tsx`
+### File coinvolti: 3
+- `src/lib/search-food.ts` -- nuova funzione progressiva
+- `supabase/functions/search-food/index.ts` -- priorita' Italia + deploy
+- `src/components/AddFoodFlow.tsx` -- UI progressiva con indicatore fase
 
