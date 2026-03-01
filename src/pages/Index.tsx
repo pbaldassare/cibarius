@@ -6,10 +6,18 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useToast } from "@/hooks/use-toast";
+import { getFoodImage } from "@/lib/food-images";
 import AddFoodFlow from "@/components/AddFoodFlow";
 import ResolveExpiryFlow from "@/components/ResolveExpiryFlow";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import {
   Clock, Plus, Search, Zap, ChevronRight,
   BookOpen, SlidersHorizontal, X, Trash2,
@@ -22,7 +30,7 @@ interface InventoryItem {
   storage_type: string;
   quantity: number | null;
   unit: string | null;
-  product: { name: string; image_url: string | null };
+  product: { name: string; image_url: string | null; category: string | null };
 }
 
 type ExpiryStatus = "expired" | "expiring" | "ok" | "nodate";
@@ -47,6 +55,25 @@ const storageLabel: Record<string, string> = {
   frigo: "Frigo", freezer: "Congelatore", ambiente: "Dispensa",
 };
 
+/* ─── Food Thumbnail ─── */
+const FoodThumb = ({ imageUrl, category }: { imageUrl: string | null | undefined; category: string | null | undefined }) => {
+  const img = getFoodImage(imageUrl, category);
+  if (img.type === "image") {
+    return (
+      <img
+        src={img.value}
+        alt=""
+        className="h-10 w-10 rounded-lg object-cover shrink-0 bg-muted"
+      />
+    );
+  }
+  return (
+    <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center shrink-0 text-lg">
+      {img.value}
+    </div>
+  );
+};
+
 /* ─── Swipeable item component ─── */
 interface SwipeableItemProps {
   itemKey: string;
@@ -59,7 +86,7 @@ const SwipeableItem = ({ itemKey, onDelete, children }: SwipeableItemProps) => {
   const [removing, setRemoving] = useState(false);
   const startX = useRef<number | null>(null);
   const startY = useRef<number | null>(null);
-  const locked = useRef(false); // lock axis after first move
+  const locked = useRef(false);
 
   const onTouchStart = (e: React.TouchEvent) => {
     startX.current = e.touches[0].clientX;
@@ -73,7 +100,6 @@ const SwipeableItem = ({ itemKey, onDelete, children }: SwipeableItemProps) => {
     const dy = e.touches[0].clientY - startY.current;
 
     if (!locked.current) {
-      // If vertical movement is dominant, don't swipe
       if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 10) {
         startX.current = null;
         return;
@@ -82,7 +108,7 @@ const SwipeableItem = ({ itemKey, onDelete, children }: SwipeableItemProps) => {
     }
 
     if (locked.current) {
-      setSwipeX(Math.min(0, dx)); // only allow left swipe
+      setSwipeX(Math.min(0, dx));
     }
   };
 
@@ -109,11 +135,9 @@ const SwipeableItem = ({ itemKey, onDelete, children }: SwipeableItemProps) => {
 
   return (
     <div className="relative overflow-hidden rounded-[14px]">
-      {/* Red background behind */}
       <div className="absolute inset-0 flex items-center justify-end bg-destructive rounded-[14px] px-4">
         <Trash2 className="h-5 w-5 text-white" />
       </div>
-      {/* Foreground card */}
       <div
         className="relative"
         style={{
@@ -130,6 +154,14 @@ const SwipeableItem = ({ itemKey, onDelete, children }: SwipeableItemProps) => {
   );
 };
 
+/* ─── UrgentItem type ─── */
+type UrgentItem = {
+  id: string; name: string; date: string | null; storage: string;
+  status: ExpiryStatus; type: "inv" | "prep";
+  qty: number | null; unit: string | null;
+  image_url: string | null; category: string | null;
+};
+
 const Index = () => {
   const { user } = useAuth();
   const { role, profile, isLoading: roleLoading } = useRole();
@@ -141,6 +173,13 @@ const Index = () => {
   const [loading, setLoading] = useState(true);
   const [addFoodOpen, setAddFoodOpen] = useState(false);
   const [resolveOpen, setResolveOpen] = useState(false);
+
+  // Inline edit state
+  const [editItem, setEditItem] = useState<UrgentItem | null>(null);
+  const [editQty, setEditQty] = useState("");
+  const [editStorage, setEditStorage] = useState("frigo");
+  const [editDate, setEditDate] = useState("");
+  const [saving, setSaving] = useState(false);
 
   // Search overlay
   const [searchOpen, setSearchOpen] = useState(false);
@@ -158,7 +197,7 @@ const Index = () => {
     const [invRes, prepRes] = await Promise.all([
       supabase
         .from("inventory_items")
-        .select("id, expiry_date, storage_type, quantity, unit, product:products(name, image_url)")
+        .select("id, expiry_date, storage_type, quantity, unit, product:products(name, image_url, category)")
         .eq("owner_user_id", user.id)
         .order("expiry_date", { ascending: true, nullsFirst: false }),
       supabase
@@ -192,19 +231,28 @@ const Index = () => {
 
   // Urgent list: max 3
   const urgentList = useMemo(() => {
-    type UrgentItem = { id: string; name: string; date: string | null; storage: string; status: ExpiryStatus; type: "inv" | "prep"; qty: number | null; unit: string | null };
     const list: UrgentItem[] = [];
 
     items.forEach((i) => {
       const s = getStatus(i.expiry_date);
       if (s === "expired" || s === "expiring") {
-        list.push({ id: i.id, name: i.product.name, date: i.expiry_date, storage: i.storage_type, status: s, type: "inv", qty: i.quantity, unit: i.unit });
+        list.push({
+          id: i.id, name: i.product.name, date: i.expiry_date,
+          storage: i.storage_type, status: s, type: "inv",
+          qty: i.quantity, unit: i.unit,
+          image_url: i.product.image_url, category: i.product.category,
+        });
       }
     });
     prepItems.forEach((p) => {
       const s = getStatus(p.use_by_date);
       if (s === "expired" || s === "expiring") {
-        list.push({ id: p.id, name: p.name, date: p.use_by_date, storage: p.storage_type, status: s, type: "prep", qty: null, unit: null });
+        list.push({
+          id: p.id, name: p.name, date: p.use_by_date,
+          storage: p.storage_type, status: s, type: "prep",
+          qty: null, unit: null,
+          image_url: p.image_url, category: null,
+        });
       }
     });
 
@@ -227,19 +275,60 @@ const Index = () => {
     fetchItems();
   }, [user]);
 
-  // Search results (all items filtered)
+  const openEdit = (item: UrgentItem) => {
+    setEditItem(item);
+    setEditQty(item.qty != null ? String(item.qty) : "1");
+    setEditStorage(item.storage);
+    setEditDate(item.date ?? "");
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editItem) return;
+    setSaving(true);
+    try {
+      if (editItem.type === "inv") {
+        await supabase.from("inventory_items").update({
+          quantity: parseFloat(editQty) || 1,
+          storage_type: editStorage,
+          expiry_date: editDate || null,
+        }).eq("id", editItem.id);
+      } else {
+        await supabase.from("preparations").update({
+          storage_type: editStorage,
+          use_by_date: editDate || null,
+        }).eq("id", editItem.id);
+      }
+      toast({ title: "Salvato ✓" });
+      setEditItem(null);
+      fetchItems();
+    } catch {
+      toast({ title: "Errore nel salvataggio", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteFromEdit = async () => {
+    if (!editItem) return;
+    setSaving(true);
+    await handleDeleteUrgent(editItem.id, editItem.type);
+    setEditItem(null);
+    setSaving(false);
+  };
+
+  // Search results
   const searchResults = useMemo(() => {
     if (!debouncedSearch) return [];
     const q = debouncedSearch.toLowerCase();
-    const results: { id: string; name: string; date: string | null; storage: string; status: ExpiryStatus }[] = [];
+    const results: { id: string; name: string; date: string | null; storage: string; status: ExpiryStatus; image_url: string | null; category: string | null }[] = [];
     items.forEach((i) => {
       if (i.product.name.toLowerCase().includes(q)) {
-        results.push({ id: i.id, name: i.product.name, date: i.expiry_date, storage: i.storage_type, status: getStatus(i.expiry_date) });
+        results.push({ id: i.id, name: i.product.name, date: i.expiry_date, storage: i.storage_type, status: getStatus(i.expiry_date), image_url: i.product.image_url, category: i.product.category });
       }
     });
     prepItems.forEach((p) => {
       if (p.name.toLowerCase().includes(q)) {
-        results.push({ id: p.id, name: p.name, date: p.use_by_date, storage: p.storage_type, status: getStatus(p.use_by_date) });
+        results.push({ id: p.id, name: p.name, date: p.use_by_date, storage: p.storage_type, status: getStatus(p.use_by_date), image_url: p.image_url, category: null });
       }
     });
     return results.slice(0, 12);
@@ -267,7 +356,6 @@ const Index = () => {
     );
   }
 
-  /* ─── Header right: search + filters ─── */
   const headerRight = (
     <div className="flex items-center gap-1">
       <button
@@ -324,7 +412,7 @@ const Index = () => {
           </button>
         </div>
 
-        {/* ═══ CTA GESTISCI SCADENZE (slim) ═══ */}
+        {/* ═══ CTA GESTISCI SCADENZE ═══ */}
         {counts.total > 0 ? (
           <button
             onClick={() => setResolveOpen(true)}
@@ -339,7 +427,7 @@ const Index = () => {
           </div>
         )}
 
-        {/* ═══ URGENT (MAX 3) — swipeable ═══ */}
+        {/* ═══ URGENT (MAX 3) — swipeable + tappable ═══ */}
         {urgentList.length > 0 && (
           <div>
             <div className="flex items-center justify-between mb-2">
@@ -362,9 +450,13 @@ const Index = () => {
                     itemKey={`${item.type}-${item.id}`}
                     onDelete={() => handleDeleteUrgent(item.id, item.type)}
                   >
-                    <div className="flex items-center gap-2 rounded-[14px] bg-card pl-0 pr-3 py-2 shadow-card">
+                    <div
+                      className="flex items-center gap-2 rounded-[14px] bg-card pl-0 pr-3 py-2 shadow-card cursor-pointer active:bg-accent/50 transition-colors"
+                      onClick={() => openEdit(item)}
+                    >
                       <div className={`w-[3px] self-stretch rounded-full ml-0 ${cfg.barColor}`} />
-                      <div className="flex-1 min-w-0 ml-1.5">
+                      <FoodThumb imageUrl={item.image_url} category={item.category} />
+                      <div className="flex-1 min-w-0 ml-0.5">
                         <p className="text-[13px] font-medium truncate text-foreground">{item.name}</p>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
                           {item.date && <>Scade il {new Date(item.date).toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" })}</>}
@@ -398,7 +490,6 @@ const Index = () => {
           onClick={() => navigate("/recipes")}
           className="relative w-full overflow-hidden rounded-[18px] bg-card shadow-card active:scale-[0.98] transition-transform text-left"
         >
-          {/* Top gradient strip */}
           <div className="h-2 w-full bg-brand-gradient" />
           <div className="flex items-center gap-4 px-5 py-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-gradient shadow-brand">
@@ -464,7 +555,8 @@ const Index = () => {
                   return (
                     <div key={r.id} className="flex items-center gap-2 rounded-[14px] bg-card pl-0 pr-3 py-2 shadow-card">
                       <div className={`w-[3px] self-stretch rounded-full ${cfg.barColor}`} />
-                      <div className="flex-1 min-w-0 ml-1.5">
+                      <FoodThumb imageUrl={r.image_url} category={r.category} />
+                      <div className="flex-1 min-w-0 ml-0.5">
                         <p className="text-[13px] font-medium truncate text-foreground">{r.name}</p>
                         <p className="text-[11px] text-muted-foreground">
                           {r.date ? new Date(r.date).toLocaleDateString("it-IT") : "Senza data"} · {storageLabel[r.storage] ?? r.storage}
@@ -484,6 +576,75 @@ const Index = () => {
           </div>
         </div>
       )}
+
+      {/* ─── EDIT DIALOG ─── */}
+      <Dialog open={!!editItem} onOpenChange={(open) => { if (!open) setEditItem(null); }}>
+        <DialogContent className="max-w-[92vw] rounded-[18px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              {editItem && <FoodThumb imageUrl={editItem.image_url} category={editItem.category} />}
+              <span className="truncate">{editItem?.name}</span>
+            </DialogTitle>
+            <DialogDescription className="sr-only">Modifica prodotto urgente</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 pt-2">
+            {editItem?.type === "inv" && (
+              <div>
+                <Label className="text-[12px] text-muted-foreground">Quantità</Label>
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  value={editQty}
+                  onChange={(e) => setEditQty(e.target.value)}
+                  className="mt-1 h-10 rounded-[10px]"
+                />
+              </div>
+            )}
+
+            <div>
+              <Label className="text-[12px] text-muted-foreground">Conservazione</Label>
+              <Select value={editStorage} onValueChange={setEditStorage}>
+                <SelectTrigger className="mt-1 h-10 rounded-[10px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="frigo">Frigo</SelectItem>
+                  <SelectItem value="freezer">Congelatore</SelectItem>
+                  <SelectItem value="ambiente">Dispensa</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label className="text-[12px] text-muted-foreground">Scadenza</Label>
+              <Input
+                type="date"
+                value={editDate}
+                onChange={(e) => setEditDate(e.target.value)}
+                className="mt-1 h-10 rounded-[10px]"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="flex-row gap-2 pt-2">
+            <button
+              onClick={handleDeleteFromEdit}
+              disabled={saving}
+              className="flex-1 h-10 rounded-[10px] border border-destructive text-destructive text-[13px] font-semibold active:scale-[0.97] transition-all"
+            >
+              Elimina
+            </button>
+            <button
+              onClick={handleSaveEdit}
+              disabled={saving}
+              className="flex-1 h-10 rounded-[10px] btn-brand text-[13px] font-semibold active:scale-[0.97] transition-all"
+            >
+              {saving ? "Salvo..." : "Salva"}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <AddFoodFlow
         open={addFoodOpen}
