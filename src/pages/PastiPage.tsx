@@ -6,8 +6,14 @@ import ListSkeleton from "@/components/ListSkeleton";
 import AddFoodFlow from "@/components/AddFoodFlow";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import { Plus, UtensilsCrossed, Target, Trash2, Flame, ClipboardList } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface MealItem {
   id: string;
@@ -50,12 +56,19 @@ const mealOrder = ["colazione", "pranzo", "spuntino", "cena"];
 const PastiPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [mealDay, setMealDay] = useState<MealDay | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [targetKcal, setTargetKcal] = useState<number | null>(null);
   const [dietPlan, setDietPlan] = useState<any>(null);
   const [mealTargets, setMealTargets] = useState<MealTarget[]>([]);
+
+  // Edit meal item state
+  const [editingMealItem, setEditingMealItem] = useState<MealItem | null>(null);
+  const [editMealQty, setEditMealQty] = useState("");
+  const [editMealUnit, setEditMealUnit] = useState("g");
+  const [savingMealEdit, setSavingMealEdit] = useState(false);
 
   const fetchMeals = useCallback(async () => {
     if (!user) return;
@@ -74,11 +87,9 @@ const PastiPage = () => {
 
   useEffect(() => {
     if (!user) return;
-    // Load nutrition targets
     supabase.from("nutrition_targets").select("kcal_day").eq("user_id", user.id).maybeSingle().then(({ data }) => {
       if (data) setTargetKcal(data.kcal_day);
     });
-    // Load diet plan + meal targets
     supabase
       .from("diet_plans")
       .select("*, diet_plan_meal_targets(*)")
@@ -97,6 +108,49 @@ const PastiPage = () => {
   const handleDeleteItem = async (itemId: string) => {
     await supabase.from("meal_items").delete().eq("id", itemId);
     fetchMeals();
+  };
+
+  // ═══ Edit meal item handlers ═══
+  const openMealItemEdit = (item: MealItem) => {
+    setEditingMealItem(item);
+    setEditMealQty(String(item.quantity ?? 0));
+    setEditMealUnit(item.unit ?? "g");
+  };
+
+  const handleUpdateMealItem = async () => {
+    if (!editingMealItem) return;
+    setSavingMealEdit(true);
+
+    const oldQty = editingMealItem.quantity ?? 1;
+    const newQty = parseFloat(editMealQty) || 1;
+    const ratio = oldQty > 0 ? newQty / oldQty : 1;
+
+    const newCalories = editingMealItem.calories != null ? Math.round(editingMealItem.calories * ratio) : null;
+    const oldMacros = editingMealItem.macros as { protein?: number; carbs?: number; fats?: number } | null;
+    const newMacros = oldMacros ? {
+      protein: Math.round((oldMacros.protein ?? 0) * ratio * 10) / 10,
+      carbs: Math.round((oldMacros.carbs ?? 0) * ratio * 10) / 10,
+      fats: Math.round((oldMacros.fats ?? 0) * ratio * 10) / 10,
+    } : null;
+
+    const { error } = await supabase
+      .from("meal_items")
+      .update({
+        quantity: newQty,
+        unit: editMealUnit,
+        calories: newCalories,
+        macros: newMacros as any,
+      })
+      .eq("id", editingMealItem.id);
+
+    setSavingMealEdit(false);
+    if (error) {
+      toast({ variant: "destructive", title: "Errore", description: error.message });
+    } else {
+      toast({ title: "Alimento aggiornato" });
+      setEditingMealItem(null);
+      fetchMeals();
+    }
   };
 
   const meals = (mealDay?.meals ?? []).sort(
@@ -212,7 +266,6 @@ const PastiPage = () => {
                     </span>
                   </div>
 
-                  {/* Per-meal progress if diet plan exists */}
                   {mt && (
                     <div className="space-y-1">
                       <Progress value={mt.kcal_target > 0 ? Math.min((mealKcal / mt.kcal_target) * 100, 100) : 0} className="h-1.5" />
@@ -230,14 +283,17 @@ const PastiPage = () => {
                     <div className="space-y-1.5">
                       {meal.meal_items.map((item) => (
                         <div key={item.id} className="flex items-center gap-2 rounded-lg bg-secondary/50 p-2">
-                          <div className="flex-1 min-w-0">
+                          <button
+                            onClick={() => openMealItemEdit(item)}
+                            className="flex-1 min-w-0 text-left"
+                          >
                             <p className="text-sm font-medium text-foreground truncate">
                               {item.custom_name || "—"}
                             </p>
                             <p className="text-[10px] text-muted-foreground">
                               {item.quantity ?? "—"}{item.unit ?? "g"} · {item.calories ?? 0} kcal
                             </p>
-                          </div>
+                          </button>
                           <button
                             onClick={() => handleDeleteItem(item.id)}
                             className="p-1.5 text-muted-foreground hover:text-destructive transition-colors"
@@ -268,6 +324,55 @@ const PastiPage = () => {
         context="meal"
         onComplete={fetchMeals}
       />
+
+      {/* ═══ Edit Meal Item Dialog ═══ */}
+      <Dialog open={!!editingMealItem} onOpenChange={(open) => { if (!open) setEditingMealItem(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Modifica alimento</DialogTitle>
+            <DialogDescription>{editingMealItem?.custom_name || "—"}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Quantità</Label>
+              <Input type="number" value={editMealQty} onChange={e => setEditMealQty(e.target.value)} min="0" step="0.1" />
+            </div>
+            <div className="space-y-2">
+              <Label>Unità</Label>
+              <Select value={editMealUnit} onValueChange={setEditMealUnit}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {["g", "ml", "kg", "l", "pezzi", "porzioni"].map((u) => (
+                    <SelectItem key={u} value={u}>{u}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {editingMealItem && (
+              <div className="text-xs text-muted-foreground rounded-lg bg-secondary/50 p-3">
+                {(() => {
+                  const oldQty = editingMealItem.quantity ?? 1;
+                  const newQty = parseFloat(editMealQty) || 1;
+                  const ratio = oldQty > 0 ? newQty / oldQty : 1;
+                  const newCal = editingMealItem.calories != null ? Math.round(editingMealItem.calories * ratio) : null;
+                  const m = editingMealItem.macros as any;
+                  return (
+                    <span>
+                      Stima: {newCal ?? "—"} kcal
+                      {m && ` · P${Math.round((m.protein ?? 0) * ratio)}g C${Math.round((m.carbs ?? 0) * ratio)}g G${Math.round((m.fats ?? 0) * ratio)}g`}
+                    </span>
+                  );
+                })()}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button onClick={handleUpdateMealItem} disabled={savingMealEdit} className="w-full">
+              {savingMealEdit ? "Salvataggio..." : "Salva"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
