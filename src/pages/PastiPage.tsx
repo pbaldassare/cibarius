@@ -270,8 +270,8 @@ const PastiPage = () => {
                     <div className="space-y-1">
                       <Progress value={mt.kcal_target > 0 ? Math.min((mealKcal / mt.kcal_target) * 100, 100) : 0} className="h-1.5" />
                       <div className="flex justify-between text-[10px] text-muted-foreground">
-                        <span>P: {Math.round(mealMacros.p)}/{mt.protein_g}g</span>
-                        <span>C: {Math.round(mealMacros.c)}/{mt.carbs_g}g</span>
+                      <span>P: {Math.round(mealMacros.p)}/{mt.protein_g}g</span>
+                        <span>C: {Math.round(mealMacros.c)}/{mt.carbs_g}g{(mt as any).sugars_g > 0 ? ` (Z:${(mt as any).sugars_g})` : ""}</span>
                         <span>G: {Math.round(mealMacros.f)}/{mt.fats_g}g</span>
                       </div>
                     </div>
@@ -359,7 +359,7 @@ const PastiPage = () => {
                   return (
                     <span>
                       Stima: {newCal ?? "—"} kcal
-                      {m && ` · P${Math.round((m.protein ?? 0) * ratio)}g C${Math.round((m.carbs ?? 0) * ratio)}g G${Math.round((m.fats ?? 0) * ratio)}g`}
+                      {m && ` · P${Math.round((m.protein ?? 0) * ratio)}g C${Math.round((m.carbs ?? 0) * ratio)}g${m.sugars ? ` (Z${Math.round(m.sugars * ratio)}g)` : ""} G${Math.round((m.fats ?? 0) * ratio)}g`}
                     </span>
                   );
                 })()}

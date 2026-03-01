@@ -184,6 +184,65 @@ export type Database = {
         }
         Relationships: []
       }
+      diet_plan_items: {
+        Row: {
+          calories: number
+          carbs_g: number
+          created_at: string
+          diet_plan_id: string
+          fats_g: number
+          food_name: string
+          id: string
+          meal_type: string
+          notes: string | null
+          protein_g: number
+          quantity: number
+          sort_order: number
+          sugars_g: number
+          unit: string
+        }
+        Insert: {
+          calories?: number
+          carbs_g?: number
+          created_at?: string
+          diet_plan_id: string
+          fats_g?: number
+          food_name: string
+          id?: string
+          meal_type: string
+          notes?: string | null
+          protein_g?: number
+          quantity?: number
+          sort_order?: number
+          sugars_g?: number
+          unit?: string
+        }
+        Update: {
+          calories?: number
+          carbs_g?: number
+          created_at?: string
+          diet_plan_id?: string
+          fats_g?: number
+          food_name?: string
+          id?: string
+          meal_type?: string
+          notes?: string | null
+          protein_g?: number
+          quantity?: number
+          sort_order?: number
+          sugars_g?: number
+          unit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "diet_plan_items_diet_plan_id_fkey"
+            columns: ["diet_plan_id"]
+            isOneToOne: false
+            referencedRelation: "diet_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       diet_plan_meal_targets: {
         Row: {
           carbs_g: number
@@ -193,6 +252,7 @@ export type Database = {
           kcal_target: number
           meal_type: string
           protein_g: number
+          sugars_g: number
         }
         Insert: {
           carbs_g: number
@@ -202,6 +262,7 @@ export type Database = {
           kcal_target: number
           meal_type: string
           protein_g: number
+          sugars_g?: number
         }
         Update: {
           carbs_g?: number
@@ -211,6 +272,7 @@ export type Database = {
           kcal_target?: number
           meal_type?: string
           protein_g?: number
+          sugars_g?: number
         }
         Relationships: [
           {
@@ -230,6 +292,7 @@ export type Database = {
           kcal_target: number
           meal_type: string
           protein_g: number
+          sugars_g: number
           template_id: string
         }
         Insert: {
@@ -239,6 +302,7 @@ export type Database = {
           kcal_target: number
           meal_type: string
           protein_g: number
+          sugars_g?: number
           template_id: string
         }
         Update: {
@@ -248,6 +312,7 @@ export type Database = {
           kcal_target?: number
           meal_type?: string
           protein_g?: number
+          sugars_g?: number
           template_id?: string
         }
         Relationships: [
@@ -356,6 +421,7 @@ export type Database = {
           keywords: string[] | null
           name: string
           protein_100g: number
+          sugars_100g: number
         }
         Insert: {
           calories_100g: number
@@ -368,6 +434,7 @@ export type Database = {
           keywords?: string[] | null
           name: string
           protein_100g?: number
+          sugars_100g?: number
         }
         Update: {
           calories_100g?: number
@@ -380,6 +447,7 @@ export type Database = {
           keywords?: string[] | null
           name?: string
           protein_100g?: number
+          sugars_100g?: number
         }
         Relationships: []
       }
@@ -629,6 +697,7 @@ export type Database = {
           fats_g: number | null
           kcal_day: number
           protein_g: number | null
+          sugars_g: number | null
           updated_at: string
           user_id: string
         }
@@ -637,6 +706,7 @@ export type Database = {
           fats_g?: number | null
           kcal_day?: number
           protein_g?: number | null
+          sugars_g?: number | null
           updated_at?: string
           user_id: string
         }
@@ -645,6 +715,7 @@ export type Database = {
           fats_g?: number | null
           kcal_day?: number
           protein_g?: number | null
+          sugars_g?: number | null
           updated_at?: string
           user_id?: string
         }
