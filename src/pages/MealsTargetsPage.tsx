@@ -17,6 +17,7 @@ const MealsTargetsPage = () => {
   const [protein, setProtein] = useState("120");
   const [carbs, setCarbs] = useState("220");
   const [fats, setFats] = useState("70");
+  const [sugars, setSugars] = useState("0");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -28,6 +29,7 @@ const MealsTargetsPage = () => {
         setProtein(String(data.protein_g));
         setCarbs(String(data.carbs_g));
         setFats(String(data.fats_g));
+        setSugars(String((data as any).sugars_g ?? 0));
       }
       setLoading(false);
     });
@@ -43,6 +45,7 @@ const MealsTargetsPage = () => {
       protein_g: parseFloat(protein) || 120,
       carbs_g: parseFloat(carbs) || 220,
       fats_g: parseFloat(fats) || 70,
+      sugars_g: parseFloat(sugars) || 0,
       updated_at: new Date().toISOString(),
     };
 
@@ -83,6 +86,10 @@ const MealsTargetsPage = () => {
           <div className="space-y-2">
             <label className="text-sm font-semibold text-foreground">Carboidrati (g)</label>
             <Input type="number" value={carbs} onChange={e => setCarbs(e.target.value)} className="border-accent/30" />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-foreground">di cui Zuccheri (g)</label>
+            <Input type="number" value={sugars} onChange={e => setSugars(e.target.value)} className="border-accent/30" />
           </div>
           <div className="space-y-2">
             <label className="text-sm font-semibold text-foreground">Grassi (g)</label>
