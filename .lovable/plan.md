@@ -1,71 +1,59 @@
 
-# Inserimenti manuali separati + timeout ricerca
 
-## Problema attuale
+# Prodotti urgenti: miniature immagini + modifica diretta dalla Home
 
-Quando un utente inserisce manualmente un prodotto (nome, valori, foto), questo viene salvato direttamente nella tabella condivisa `products`, inquinando il catalogo globale con dati non verificati. Inoltre la ricerca prodotti non ha un limite di tempo.
+## Cosa cambia
 
-## Modifiche previste
+### 1. Miniature immagini sempre presenti nella lista Urgenti
 
-### 1. Nuova tabella `product_submissions` (Supabase migration)
-
-Creare una tabella per i prodotti inseriti manualmente, in attesa di approvazione admin:
+Ogni elemento urgente nella Home mostrera' una miniatura quadrata (40x40px) a sinistra. La priorita' per la scelta dell'immagine sara':
 
 ```text
-product_submissions
-- id (uuid, PK)
-- user_id (uuid, FK profiles)
-- name (text)
-- brand (text, nullable)
-- image_url (text, nullable)
-- calories_100g (numeric, nullable)
-- macros_100g (jsonb, nullable)
-- barcode (text, nullable)
-- serving_size_g (numeric, nullable)
-- status (text, default 'pending') -- pending | approved | rejected
-- reviewed_by (uuid, nullable)
-- reviewed_at (timestamptz, nullable)
-- created_at (timestamptz, default now())
+1. Immagine caricata dall'utente o trovata dall'AI (image_url del prodotto)
+2. Emoji/icona standard basata sulla categoria del prodotto
+3. Icona generica Package come ultimo fallback
 ```
 
-RLS: utenti possono inserire le proprie, admin possono leggere e aggiornare tutto.
+Per le categorie standard verra' creata una mappa di emoji (es. latticini -> "🧀", carne -> "🥩", frutta -> "🍎", verdura -> "🥬", bevande -> "🥤", pane -> "🍞", pesce -> "🐟", surgelati -> "🧊", condimenti -> "🫒", dolci -> "🍫", cereali -> "🌾", uova -> "🥚"). Questa mappa verra' usata come fallback quando non c'e' un'immagine reale.
 
-### 2. Modificare il salvataggio manuale (`src/components/AddFoodFlow.tsx`)
+### 2. Modifica diretta dal tap sull'elemento urgente
 
-Nel `handleSave`, quando `method === "manual"` e non esiste un `productId`:
-- Invece di inserire in `products`, inserire in `product_submissions` con `status: 'pending'`
-- Per l'inventory item, salvare con `product_id: null` e `custom_name` nel campo nome (o creare un product temporaneo con flag `pending_review: true`)
-- In alternativa piu' semplice: inserire comunque in `products` ma con un campo `status: 'pending'` e filtrare i pending dalla ricerca globale
+Toccando un elemento urgente si aprira' un dialog/sheet inline con:
+- Immagine del prodotto (se presente)
+- Nome, quantita', storage, scadenza
+- Possibilita' di modificare quantita', storage e scadenza
+- Bottoni "Salva" e "Elimina"
 
-**Approccio scelto**: Usare la tabella `product_submissions` separata. Per l'inventory/meal, salvare con `custom_name` senza `product_id`, cosi' il prodotto e' nell'inventario dell'utente ma non nel catalogo condiviso.
+Questo evita di dover navigare alla pagina scadenze per modificare un singolo prodotto.
 
-### 3. Pagina admin per review (`src/pages/admin/AdminProductReviewPage.tsx`)
+### 3. Query aggiornata per includere category
 
-Nuova pagina admin accessibile da `/admin/product-review`:
-- Lista dei `product_submissions` con status `pending`
-- Per ogni submission: nome, brand, valori nutrizionali, immagine, utente che l'ha inserita
-- Due azioni: "Approva" (crea il prodotto in `products` e aggiorna status) oppure "Rifiuta" (aggiorna status a rejected)
-- Card nella dashboard admin con link a questa pagina + contatore pending
+La query `fetchItems` su `inventory_items` includera' anche `category` dal prodotto per poter scegliere l'emoji corretta come fallback.
 
-### 4. Timeout 60 secondi sulla ricerca (`src/components/AddFoodFlow.tsx`)
+## Dettagli tecnici
 
-Nell'`useEffect` della ricerca (riga 188-222):
-- Aggiungere un timer di 60 secondi con `setTimeout`
-- Mostrare un countdown visivo (es. "Ricerca in corso... 45s")
-- A 60 secondi: fermare la ricerca, mostrare un messaggio "La ricerca sta impiegando troppo. Vuoi interromperla?" con bottone "Interrompi ricerca"
-- Se l'utente interrompe, mostrare i risultati parziali gia' trovati
+### File: `src/lib/food-images.ts` (nuovo)
 
-### 5. Aggiornare il routing (`src/App.tsx`)
+Utility con:
+- Mappa `categoryEmoji: Record<string, string>` per le categorie principali
+- Funzione `getFoodEmoji(category: string | null): string` che restituisce l'emoji o "📦" come default
+- Funzione `getFoodImageUrl(imageUrl: string | null, category: string | null): { type: "image" | "emoji"; value: string }` che ritorna l'immagine URL o l'emoji di fallback
 
-Aggiungere la rotta `/admin/product-review` con la nuova pagina.
+### File: `src/pages/Index.tsx`
 
----
+**Query**: aggiungere `category` alla select dei prodotti: `product:products(name, image_url, category)`
 
-## Riepilogo file coinvolti
+**Tipo UrgentItem**: aggiungere `image_url: string | null` e `category: string | null`
 
-- **Migration SQL**: nuova tabella `product_submissions` con RLS
-- `src/components/AddFoodFlow.tsx`: salvataggio manuale separato + countdown 60s
-- `src/pages/admin/AdminProductReviewPage.tsx`: nuova pagina review
-- `src/pages/admin/AdminPage.tsx`: card con link alla review
-- `src/App.tsx`: nuova rotta
-- `src/integrations/supabase/types.ts`: aggiornamento tipi (dopo migration)
+**Urgent list rendering**: aggiungere miniatura 40x40 prima del testo:
+- Se `image_url` presente: `<img>` con `object-cover` e bordi arrotondati
+- Altrimenti: emoji dalla categoria in un cerchio colorato
+
+**Tap handler**: al click sull'elemento urgente, aprire un dialog di modifica rapida con campi per quantita', storage e scadenza. Salvataggio diretto su `inventory_items` o `preparations`.
+
+**Nuovo stato**: `editingUrgent` per tracciare quale elemento e' in modifica, con i campi editabili.
+
+### File coinvolti: 2
+- `src/lib/food-images.ts` (nuovo) -- mappa emoji categorie + helper
+- `src/pages/Index.tsx` -- miniature + dialog modifica rapida
+
