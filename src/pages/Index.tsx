@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import MobileHeader from "@/components/MobileHeader";
 import { useRole, getRoleHomePath } from "@/hooks/useRole";
@@ -6,13 +6,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useToast } from "@/hooks/use-toast";
 import AddFoodFlow from "@/components/AddFoodFlow";
 import ResolveExpiryFlow from "@/components/ResolveExpiryFlow";
 import {
   Clock, Plus, Search, Zap, ChevronRight,
-  BookOpen, SlidersHorizontal, X,
+  BookOpen, SlidersHorizontal, X, Trash2,
 } from "lucide-react";
 
 /* ─── types ─── */
@@ -47,10 +47,94 @@ const storageLabel: Record<string, string> = {
   frigo: "Frigo", freezer: "Congelatore", ambiente: "Dispensa",
 };
 
+/* ─── Swipeable item component ─── */
+interface SwipeableItemProps {
+  itemKey: string;
+  onDelete: () => Promise<void>;
+  children: React.ReactNode;
+}
+
+const SwipeableItem = ({ itemKey, onDelete, children }: SwipeableItemProps) => {
+  const [swipeX, setSwipeX] = useState(0);
+  const [removing, setRemoving] = useState(false);
+  const startX = useRef<number | null>(null);
+  const startY = useRef<number | null>(null);
+  const locked = useRef(false); // lock axis after first move
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    startX.current = e.touches[0].clientX;
+    startY.current = e.touches[0].clientY;
+    locked.current = false;
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (startX.current === null || startY.current === null) return;
+    const dx = e.touches[0].clientX - startX.current;
+    const dy = e.touches[0].clientY - startY.current;
+
+    if (!locked.current) {
+      // If vertical movement is dominant, don't swipe
+      if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 10) {
+        startX.current = null;
+        return;
+      }
+      if (Math.abs(dx) > 10) locked.current = true;
+    }
+
+    if (locked.current) {
+      setSwipeX(Math.min(0, dx)); // only allow left swipe
+    }
+  };
+
+  const onTouchEnd = async () => {
+    startX.current = null;
+    startY.current = null;
+    locked.current = false;
+    if (swipeX < -80) {
+      setRemoving(true);
+      await onDelete();
+    } else {
+      setSwipeX(0);
+    }
+  };
+
+  if (removing) {
+    return (
+      <div
+        className="overflow-hidden transition-all duration-300 ease-out"
+        style={{ maxHeight: 0, opacity: 0, marginBottom: 0, padding: 0 }}
+      />
+    );
+  }
+
+  return (
+    <div className="relative overflow-hidden rounded-[14px]">
+      {/* Red background behind */}
+      <div className="absolute inset-0 flex items-center justify-end bg-destructive rounded-[14px] px-4">
+        <Trash2 className="h-5 w-5 text-white" />
+      </div>
+      {/* Foreground card */}
+      <div
+        className="relative"
+        style={{
+          transform: `translateX(${swipeX}px)`,
+          transition: swipeX === 0 ? "transform 0.25s ease-out" : "none",
+        }}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
+        {children}
+      </div>
+    </div>
+  );
+};
+
 const Index = () => {
   const { user } = useAuth();
   const { role, profile, isLoading: roleLoading } = useRole();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [prepItems, setPrepItems] = useState<{ id: string; name: string; use_by_date: string | null; image_url: string | null; storage_type: string; quantity?: number | null }[]>([]);
@@ -132,6 +216,16 @@ const Index = () => {
 
     return list.slice(0, 3);
   }, [items, prepItems]);
+
+  const handleDeleteUrgent = useCallback(async (id: string, type: "inv" | "prep") => {
+    if (type === "inv") {
+      await supabase.from("inventory_items").delete().eq("id", id);
+    } else {
+      await supabase.from("preparations").delete().eq("id", id);
+    }
+    toast({ title: "Eliminato ✓" });
+    fetchItems();
+  }, [user]);
 
   // Search results (all items filtered)
   const searchResults = useMemo(() => {
@@ -230,14 +324,14 @@ const Index = () => {
           </button>
         </div>
 
-        {/* ═══ CTA RISOLVI (slim) ═══ */}
+        {/* ═══ CTA GESTISCI SCADENZE (slim) ═══ */}
         {counts.total > 0 ? (
           <button
             onClick={() => setResolveOpen(true)}
             className="flex w-full items-center justify-center gap-2 rounded-[14px] h-11 text-[14px] font-semibold text-white btn-brand active:scale-[0.97] transition-all"
           >
             <Zap className="h-4 w-4" strokeWidth={2.2} />
-            Risolvi · {counts.total}
+            Gestisci scadenze · {counts.total}
           </button>
         ) : (
           <div className="flex items-center justify-center gap-2 rounded-[14px] h-11 bg-success/8">
@@ -245,7 +339,7 @@ const Index = () => {
           </div>
         )}
 
-        {/* ═══ URGENT (MAX 3) ═══ */}
+        {/* ═══ URGENT (MAX 3) — swipeable ═══ */}
         {urgentList.length > 0 && (
           <div>
             <div className="flex items-center justify-between mb-2">
@@ -263,27 +357,30 @@ const Index = () => {
               {urgentList.map((item) => {
                 const cfg = statusCfg[item.status];
                 return (
-                  <div
+                  <SwipeableItem
                     key={`${item.type}-${item.id}`}
-                    className="flex items-center gap-2 rounded-[14px] bg-card pl-0 pr-3 py-2 shadow-card"
+                    itemKey={`${item.type}-${item.id}`}
+                    onDelete={() => handleDeleteUrgent(item.id, item.type)}
                   >
-                    <div className={`w-[3px] self-stretch rounded-full ml-0 ${cfg.barColor}`} />
-                    <div className="flex-1 min-w-0 ml-1.5">
-                      <p className="text-[13px] font-medium truncate text-foreground">{item.name}</p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">
-                        {item.date && <>Scade il {new Date(item.date).toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" })}</>}
-                        {item.date && " · "}
-                        {storageLabel[item.storage] ?? item.storage}
-                        {item.qty != null && ` · x${item.qty}`}
-                      </p>
+                    <div className="flex items-center gap-2 rounded-[14px] bg-card pl-0 pr-3 py-2 shadow-card">
+                      <div className={`w-[3px] self-stretch rounded-full ml-0 ${cfg.barColor}`} />
+                      <div className="flex-1 min-w-0 ml-1.5">
+                        <p className="text-[13px] font-medium truncate text-foreground">{item.name}</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          {item.date && <>Scade il {new Date(item.date).toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" })}</>}
+                          {item.date && " · "}
+                          {storageLabel[item.storage] ?? item.storage}
+                          {item.qty != null && ` · x${item.qty}`}
+                        </p>
+                      </div>
+                      <span
+                        className="shrink-0 rounded-[6px] px-1.5 py-[2px] text-[8px] font-bold uppercase tracking-wider text-white"
+                        style={{ backgroundColor: cfg.color }}
+                      >
+                        {cfg.label}
+                      </span>
                     </div>
-                    <span
-                      className="shrink-0 rounded-[6px] px-1.5 py-[2px] text-[8px] font-bold uppercase tracking-wider text-white"
-                      style={{ backgroundColor: cfg.color }}
-                    >
-                      {cfg.label}
-                    </span>
-                  </div>
+                  </SwipeableItem>
                 );
               })}
             </div>

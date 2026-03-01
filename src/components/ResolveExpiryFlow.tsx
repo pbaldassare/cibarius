@@ -293,7 +293,7 @@ const ResolveExpiryFlow = ({ open, onOpenChange, onComplete }: Props) => {
           {/* Header */}
           <div className="flex items-center justify-between px-5 pt-5 pb-1">
             <div>
-              <h2 className="text-[18px] font-bold text-foreground">Risolvi scadenze</h2>
+              <h2 className="text-[18px] font-bold text-foreground">Gestisci scadenze</h2>
             </div>
             <button onClick={() => { onOpenChange(false); onComplete?.(); }} className="p-2 rounded-full bg-secondary active:bg-muted transition-colors">
               <X className="h-4 w-4 text-muted-foreground" />
