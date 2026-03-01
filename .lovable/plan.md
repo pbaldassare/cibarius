@@ -1,69 +1,71 @@
 
-
-# Ricerca progressiva e priorita' prodotti italiani
+# Inserimenti manuali separati + timeout ricerca
 
 ## Problema attuale
 
-La funzione `searchFood` aspetta che **tutte** le fonti (DB locale, OpenFoodFacts, USDA) rispondano prima di mostrare qualsiasi risultato. Questo rende la ricerca lenta perche' l'utente deve attendere anche le API esterne.
+Quando un utente inserisce manualmente un prodotto (nome, valori, foto), questo viene salvato direttamente nella tabella condivisa `products`, inquinando il catalogo globale con dati non verificati. Inoltre la ricerca prodotti non ha un limite di tempo.
 
-## Soluzione
+## Modifiche previste
 
-Trasformare la ricerca in un sistema **progressivo a 3 fasi** con feedback visivo per l'utente.
+### 1. Nuova tabella `product_submissions` (Supabase migration)
 
-### Fasi di ricerca
+Creare una tabella per i prodotti inseriti manualmente, in attesa di approvazione admin:
 
 ```text
-Fase 1 (istantanea): Database locale Cibarius --> risultati in ~100ms
-Fase 2 (1-2s):       OpenFoodFacts Europa     --> risultati aggiunti dinamicamente
-Fase 3 (1-3s):       USDA (se disponibile)    --> risultati aggiunti dinamicamente
+product_submissions
+- id (uuid, PK)
+- user_id (uuid, FK profiles)
+- name (text)
+- brand (text, nullable)
+- image_url (text, nullable)
+- calories_100g (numeric, nullable)
+- macros_100g (jsonb, nullable)
+- barcode (text, nullable)
+- serving_size_g (numeric, nullable)
+- status (text, default 'pending') -- pending | approved | rejected
+- reviewed_by (uuid, nullable)
+- reviewed_at (timestamptz, nullable)
+- created_at (timestamptz, default now())
 ```
 
-### Priorita' prodotti italiani in OFF
+RLS: utenti possono inserire le proprie, admin possono leggere e aggiornare tutto.
 
-Nell'edge function, la ricerca OFF usera' prima `it.openfoodfacts.org` (solo prodotti italiani), poi integrera' con `world.openfoodfacts.org`. I risultati italiani appariranno in cima.
+### 2. Modificare il salvataggio manuale (`src/components/AddFoodFlow.tsx`)
 
-### Feedback visivo
+Nel `handleSave`, quando `method === "manual"` e non esiste un `productId`:
+- Invece di inserire in `products`, inserire in `product_submissions` con `status: 'pending'`
+- Per l'inventory item, salvare con `product_id: null` e `custom_name` nel campo nome (o creare un product temporaneo con flag `pending_review: true`)
+- In alternativa piu' semplice: inserire comunque in `products` ma con un campo `status: 'pending'` e filtrare i pending dalla ricerca globale
 
-Sotto la barra di ricerca, un indicatore di stato mostra in tempo reale la fase corrente:
-- "Ricerca nel catalogo Cibarius..." 
-- "Ricerca prodotti italiani..."
-- "Ricerca database internazionale..."
-- "Ricerca completata" (con check verde)
+**Approccio scelto**: Usare la tabella `product_submissions` separata. Per l'inventory/meal, salvare con `custom_name` senza `product_id`, cosi' il prodotto e' nell'inventario dell'utente ma non nel catalogo condiviso.
+
+### 3. Pagina admin per review (`src/pages/admin/AdminProductReviewPage.tsx`)
+
+Nuova pagina admin accessibile da `/admin/product-review`:
+- Lista dei `product_submissions` con status `pending`
+- Per ogni submission: nome, brand, valori nutrizionali, immagine, utente che l'ha inserita
+- Due azioni: "Approva" (crea il prodotto in `products` e aggiorna status) oppure "Rifiuta" (aggiorna status a rejected)
+- Card nella dashboard admin con link a questa pagina + contatore pending
+
+### 4. Timeout 60 secondi sulla ricerca (`src/components/AddFoodFlow.tsx`)
+
+Nell'`useEffect` della ricerca (riga 188-222):
+- Aggiungere un timer di 60 secondi con `setTimeout`
+- Mostrare un countdown visivo (es. "Ricerca in corso... 45s")
+- A 60 secondi: fermare la ricerca, mostrare un messaggio "La ricerca sta impiegando troppo. Vuoi interromperla?" con bottone "Interrompi ricerca"
+- Se l'utente interrompe, mostrare i risultati parziali gia' trovati
+
+### 5. Aggiornare il routing (`src/App.tsx`)
+
+Aggiungere la rotta `/admin/product-review` con la nuova pagina.
 
 ---
 
-## Dettagli tecnici
+## Riepilogo file coinvolti
 
-### File: `src/lib/search-food.ts`
-
-Sostituire `searchFood` (che ritorna una Promise unica) con `searchFoodProgressive` che accetta un callback `onResults(results, phase, done)`:
-
-- **Fase 1**: chiama `searchLocal()`, invia subito i risultati con `onResults(localResults, "local", false)`
-- **Fase 2**: chiama l'edge function per OFF (italiano + mondo), invia con `onResults(merged, "off", false)`
-- **Fase 3**: chiama USDA, invia con `onResults(merged, "usda", true)`
-
-Il caching resta invariato ma applicato ai risultati finali completi.
-
-Mantenere anche `searchFood` come wrapper async per retrocompatibilita'.
-
-### File: `supabase/functions/search-food/index.ts`
-
-Separare OFF in due chiamate:
-1. `it.openfoodfacts.org` (prodotti italiani/venduti in Italia) con tag `countries_tags_it:italy`
-2. `world.openfoodfacts.org` (globale, gia' esistente)
-
-Aggiungere un campo `country_priority` ai risultati italiani per ordinarli prima. Restituire un campo `source_detail` ("off_it" vs "off_world") per distinguerli.
-
-### File: `src/components/AddFoodFlow.tsx`
-
-Nell'`useEffect` di ricerca (riga 188-217):
-- Usare `searchFoodProgressive` invece di `searchFood`
-- Aggiungere stato `searchPhase` ("local" | "off" | "usda" | "done")
-- Aggiornare `searchResults` incrementalmente ad ogni callback
-- Mostrare sotto la search bar un indicatore con l'icona Loader2 e il testo della fase corrente
-
-### File coinvolti: 3
-- `src/lib/search-food.ts` -- nuova funzione progressiva
-- `supabase/functions/search-food/index.ts` -- priorita' Italia + deploy
-- `src/components/AddFoodFlow.tsx` -- UI progressiva con indicatore fase
-
+- **Migration SQL**: nuova tabella `product_submissions` con RLS
+- `src/components/AddFoodFlow.tsx`: salvataggio manuale separato + countdown 60s
+- `src/pages/admin/AdminProductReviewPage.tsx`: nuova pagina review
+- `src/pages/admin/AdminPage.tsx`: card con link alla review
+- `src/App.tsx`: nuova rotta
+- `src/integrations/supabase/types.ts`: aggiornamento tipi (dopo migration)
