@@ -1,59 +1,51 @@
 
+# Miglioramenti pagina Scadenze e database prodotti condiviso
 
-# Miglioramenti gestione scadenze
+## 1. Rimuovere tab "Senza data"
 
-Tre interventi: rinominare il pulsante "Risolvi", aggiungere swipe-to-delete nella lista urgenti della Home, e aggiungere eliminazione massiva nella pagina Scadenze.
+Dato che ora tutti i prodotti hanno sempre una scadenza di default (+3 giorni), la tab "Senza data" non serve piu'. Verra' rimossa dall'array `statusTabs` e dal conteggio.
 
----
+## 2. Aggiungere barra di ricerca rapida
 
-## 1. Rinominare "Risolvi" in "Gestisci scadenze"
+Sotto le tab di stato (Scaduti / In scadenza / Tutti), aggiungere un campo di ricerca testuale per filtrare velocemente i prodotti per nome. Il filtro sara' locale (lato client) sulla lista gia' caricata.
 
-Il nome "Risolvi" e' troppo generico. Cambiamo in **"Gestisci scadenze"** sia nel pulsante CTA della Home che nel titolo del flow.
+## 3. Mostrare dettagli nutrizionali nell'action sheet
 
-### File: `src/pages/Index.tsx`
-- Riga 240: `Risolvi · {counts.total}` -> `Gestisci scadenze · {counts.total}`
+Quando si seleziona un elemento, l'action sheet (bottom sheet) mostrera' anche:
+- Calorie totali e per 100g
+- Macronutrienti (proteine, carboidrati, grassi)
+- Brand del prodotto
+- Data di scadenza
+- Tipo di conservazione e quantita'
 
-### File: `src/components/ResolveExpiryFlow.tsx`
-- Riga 296: titolo `"Risolvi scadenze"` -> `"Gestisci scadenze"`
+Per ottenere questi dati, la query di fetch verra' ampliata per includere i campi nutrizionali da `products` (`calories_100g`, `macros_100g`, `brand`) e da `inventory_items` (`calories_total`, `macros_total`).
 
----
+## 4. Prodotti sempre salvati nel database condiviso
 
-## 2. Swipe-to-delete nella lista urgenti (Home)
+Questo e' gia' implementato: quando un utente aggiunge un prodotto tramite barcode, ricerca o foto, il prodotto viene salvato nella tabella `products` che e' visibile a tutti gli utenti autenticati (le RLS policy lo permettono gia' in SELECT e INSERT). La ricerca locale in `search-food.ts` cerca gia' nella tabella `products`. 
 
-Nella Home, i 3 elementi urgenti potranno essere eliminati con uno swipe a sinistra. Quando l'utente trascina a sinistra, appare un bottone rosso "Elimina". Al rilascio oltre la soglia, l'elemento viene cancellato dal database con un'animazione di uscita.
-
-### File: `src/pages/Index.tsx`
-- Aggiungere stato e logica touch per ogni item urgente (touchStart, touchMove, touchEnd)
-- Quando `swipeX < -80px`: mostrare sfondo rosso con icona Trash2
-- Al rilascio oltre soglia: eliminare da `inventory_items` o `preparations`, poi `fetchItems()`
-- Animazione di collasso (height -> 0) dopo eliminazione
-- Aggiungere `type` ("inv"/"prep") gia' presente nell'urgentList per sapere quale tabella colpire
+Nessuna modifica al database necessaria: la tabella `products` funziona gia' come catalogo condiviso.
 
 ---
 
-## 3. Eliminazione massiva nella pagina Scadenze
-
-Nella pagina Scadenze aggiungere una modalita' "selezione multipla" per eliminare piu' elementi in blocco.
+## Dettagli tecnici
 
 ### File: `src/pages/ExpiryPage.tsx`
-- Aggiungere stato `selectionMode: boolean` e `selectedIds: Set<string>`
-- Nell'header, un bottone "Seleziona" che attiva la modalita' selezione
-- In modalita' selezione:
-  - Ogni item mostra un checkbox a sinistra (al posto del color bar)
-  - Tap su item toglie/aggiunge dalla selezione (invece di aprire l'action sheet)
-  - Bottone "Seleziona tutti" nel header
-- Barra azioni fissa in basso con:
-  - Contatore: "{n} selezionati"
-  - Bottone "Elimina selezionati" (rosso, con conferma dialog)
-  - Bottone "Annulla" per uscire dalla modalita'
-- Al click "Elimina": eliminare tutti gli item selezionati (prodotti da `inventory_items`, preparazioni da `preparations`), poi `fetchItems()`
 
----
+**Modifiche all'interfaccia ExpiryItem**: aggiungere campi nutrizionali:
+- `calories_100g`, `protein_100g`, `carbs_100g`, `fats_100g` (da products)
+- `calories_total`, `macros_total` (da inventory_items)
+- `brand` (da products)
 
-## Riepilogo file
+**Rimuovere tab "Senza data"**: eliminare l'entry `nodate` da `statusTabs` (riga 58)
 
-### Modificati (3)
-- `src/pages/Index.tsx` -- rinomina CTA + swipe-to-delete urgenti
-- `src/pages/ExpiryPage.tsx` -- selezione multipla + eliminazione massiva
-- `src/components/ResolveExpiryFlow.tsx` -- rinomina titolo
+**Aggiungere stato `searchQuery`**: campo di ricerca locale sotto le tab. Filtrare `filtered` anche per `item.name.toLowerCase().includes(searchQuery)`
 
+**Ampliare la query fetch**: 
+- `products(name, image_url, brand, calories_100g, macros_100g)`
+- Includere `calories_total, macros_total` da inventory_items
+
+**Arricchire l'action sheet**: sotto il nome del prodotto, mostrare una sezione con le informazioni nutrizionali (calorie, proteine, carb, grassi) e le info di conservazione, prima dei pulsanti di azione.
+
+### File coinvolti (1)
+- `src/pages/ExpiryPage.tsx`
