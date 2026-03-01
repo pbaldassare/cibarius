@@ -6,10 +6,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
+import SearchBar from "@/components/SearchBar";
 import AddFoodFlow from "@/components/AddFoodFlow";
 import {
-  Package, Clock, AlertCircle, HelpCircle, Check, Trash2, CalendarClock,
-  Plus, ChefHat, SlidersHorizontal, X, CheckSquare,
+  Package, Clock, AlertCircle, Check, Trash2, CalendarClock,
+  Plus, ChefHat, SlidersHorizontal, X, CheckSquare, Flame,
 } from "lucide-react";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
@@ -28,12 +29,17 @@ interface ExpiryItem {
   storage_type: string;
   quantity: number | null;
   unit: string | null;
+  brand: string | null;
+  calories_100g: number | null;
+  macros_100g: { protein?: number; carbs?: number; fats?: number } | null;
+  calories_total: number | null;
+  macros_total: { protein?: number; carbs?: number; fats?: number } | null;
 }
 
-type ExpiryStatus = "expired" | "expiring" | "ok" | "nodate";
+type ExpiryStatus = "expired" | "expiring" | "ok";
 
 const getStatus = (d: string | null): ExpiryStatus => {
-  if (!d) return "nodate";
+  if (!d) return "ok";
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const diff = (new Date(d).getTime() - today.getTime()) / 864e5;
   if (diff < 0) return "expired";
@@ -45,7 +51,6 @@ const statusCfg: Record<ExpiryStatus, { label: string; color: string; barColor: 
   expired:  { label: "Scaduto",     color: "hsl(1,76%,55%)",   barColor: "bg-destructive" },
   expiring: { label: "In scadenza", color: "hsl(37,90%,51%)",  barColor: "bg-warning" },
   ok:       { label: "OK",          color: "hsl(152,56%,46%)", barColor: "bg-success" },
-  nodate:   { label: "Senza data",  color: "hsl(215,10%,62%)", barColor: "bg-muted-foreground" },
 };
 
 const storageLabel: Record<string, string> = {
@@ -55,7 +60,6 @@ const storageLabel: Record<string, string> = {
 const statusTabs = [
   { key: "expired", label: "Scaduti", icon: AlertCircle },
   { key: "expiring", label: "In scadenza", icon: Clock },
-  { key: "nodate", label: "Senza data", icon: HelpCircle },
   { key: "all", label: "Tutti", icon: Package },
 ] as const;
 
@@ -71,6 +75,7 @@ const ExpiryPage = () => {
   const [actionSheet, setActionSheet] = useState<ExpiryItem | null>(null);
   const [addFoodOpen, setAddFoodOpen] = useState(false);
   const [newDate, setNewDate] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Selection mode
   const [selectionMode, setSelectionMode] = useState(false);
@@ -83,7 +88,7 @@ const ExpiryPage = () => {
     const [invRes, prepRes] = await Promise.all([
       supabase
         .from("inventory_items")
-        .select("id, expiry_date, storage_type, quantity, unit, product:products(name, image_url)")
+        .select("id, expiry_date, storage_type, quantity, unit, calories_total, macros_total, product:products(name, image_url, brand, calories_100g, macros_100g)")
         .eq("owner_user_id", user.id)
         .order("expiry_date", { ascending: true, nullsFirst: false }),
       supabase
@@ -95,6 +100,8 @@ const ExpiryPage = () => {
     const result: ExpiryItem[] = [];
     if (invRes.data) {
       for (const i of invRes.data as any[]) {
+        const macros100 = i.product?.macros_100g as any;
+        const macrosTotal = i.macros_total as any;
         result.push({
           id: i.id, type: "product",
           name: i.product?.name ?? "Prodotto",
@@ -102,6 +109,11 @@ const ExpiryPage = () => {
           expiry_date: i.expiry_date,
           storage_type: i.storage_type,
           quantity: i.quantity, unit: i.unit,
+          brand: i.product?.brand ?? null,
+          calories_100g: i.product?.calories_100g ?? null,
+          macros_100g: macros100 ? { protein: macros100.protein, carbs: macros100.carbs, fats: macros100.fats } : null,
+          calories_total: i.calories_total ?? null,
+          macros_total: macrosTotal ? { protein: macrosTotal.protein, carbs: macrosTotal.carbs, fats: macrosTotal.fats } : null,
         });
       }
     }
@@ -114,6 +126,8 @@ const ExpiryPage = () => {
           expiry_date: p.use_by_date,
           storage_type: p.storage_type ?? "frigo",
           quantity: p.portions, unit: "porzioni",
+          brand: null, calories_100g: null, macros_100g: null,
+          calories_total: null, macros_total: null,
         });
       }
     }
@@ -129,15 +143,19 @@ const ExpiryPage = () => {
     if (activeTab !== "all") list = list.filter((i) => getStatus(i.expiry_date) === activeTab);
     if (storageFilter !== "all") list = list.filter((i) => i.storage_type === storageFilter);
     if (typeFilter !== "all") list = list.filter((i) => i.type === typeFilter);
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter((i) => i.name.toLowerCase().includes(q));
+    }
 
-    const order: Record<ExpiryStatus, number> = { expired: 0, expiring: 1, nodate: 2, ok: 3 };
+    const order: Record<ExpiryStatus, number> = { expired: 0, expiring: 1, ok: 2 };
     return [...list].sort((a, b) => {
       const sa = getStatus(a.expiry_date), sb = getStatus(b.expiry_date);
       if (order[sa] !== order[sb]) return order[sa] - order[sb];
       if (a.expiry_date && b.expiry_date) return a.expiry_date.localeCompare(b.expiry_date);
       return a.expiry_date ? -1 : 1;
     });
-  }, [items, activeTab, storageFilter, typeFilter]);
+  }, [items, activeTab, storageFilter, typeFilter, searchQuery]);
 
   const handleConsume = async (item: ExpiryItem) => {
     if (item.type === "product") {
@@ -175,7 +193,7 @@ const ExpiryPage = () => {
   };
 
   const tabCounts = useMemo(() => {
-    const c: Record<string, number> = { expired: 0, expiring: 0, nodate: 0, all: items.length };
+    const c: Record<string, number> = { expired: 0, expiring: 0, all: items.length };
     items.forEach((i) => { const s = getStatus(i.expiry_date); if (s in c) c[s]++; });
     return c;
   }, [items]);
@@ -254,6 +272,59 @@ const ExpiryPage = () => {
     </div>
   );
 
+  // Nutrition detail helper
+  const NutritionDetail = ({ item }: { item: ExpiryItem }) => {
+    const hasMacros100 = item.macros_100g && (item.macros_100g.protein || item.macros_100g.carbs || item.macros_100g.fats);
+    const hasCal = item.calories_100g || item.calories_total;
+    if (!hasMacros100 && !hasCal && !item.brand) return null;
+
+    return (
+      <div className="rounded-xl bg-secondary/50 p-3 space-y-2">
+        {item.brand && (
+          <p className="text-[12px] text-muted-foreground">Brand: <span className="font-medium text-foreground">{item.brand}</span></p>
+        )}
+        <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
+          <span className="flex items-center gap-1">
+            {storageLabel[item.storage_type] ?? item.storage_type}
+          </span>
+          {item.quantity && <span>· x{item.quantity}{item.unit ? ` ${item.unit}` : ""}</span>}
+          {item.expiry_date && (
+            <span className="flex items-center gap-0.5">
+              · <Clock className="h-2.5 w-2.5" /> {new Date(item.expiry_date).toLocaleDateString("it-IT")}
+            </span>
+          )}
+        </div>
+        {(hasCal || hasMacros100) && (
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[12px]">
+            {item.calories_100g != null && (
+              <div className="flex items-center gap-1">
+                <Flame className="h-3 w-3 text-orange-400" />
+                <span className="text-muted-foreground">per 100g:</span>
+                <span className="font-medium text-foreground">{Math.round(item.calories_100g)} kcal</span>
+              </div>
+            )}
+            {item.calories_total != null && (
+              <div className="flex items-center gap-1">
+                <Flame className="h-3 w-3 text-orange-400" />
+                <span className="text-muted-foreground">Totali:</span>
+                <span className="font-medium text-foreground">{Math.round(item.calories_total)} kcal</span>
+              </div>
+            )}
+            {item.macros_100g?.protein != null && (
+              <div><span className="text-muted-foreground">Proteine:</span> <span className="font-medium text-foreground">{item.macros_100g.protein}g</span></div>
+            )}
+            {item.macros_100g?.carbs != null && (
+              <div><span className="text-muted-foreground">Carb:</span> <span className="font-medium text-foreground">{item.macros_100g.carbs}g</span></div>
+            )}
+            {item.macros_100g?.fats != null && (
+              <div><span className="text-muted-foreground">Grassi:</span> <span className="font-medium text-foreground">{item.macros_100g.fats}g</span></div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <MobileHeader title="Scadenze" showBack right={headerRight} />
@@ -292,6 +363,13 @@ const ExpiryPage = () => {
             {activeFilterCount > 0 && <span>{activeFilterCount}</span>}
           </button>
         </div>
+
+        {/* Search bar */}
+        <SearchBar
+          placeholder="Cerca prodotto..."
+          value={searchQuery}
+          onChange={setSearchQuery}
+        />
 
         {/* List */}
         {filtered.length === 0 ? (
@@ -497,13 +575,16 @@ const ExpiryPage = () => {
         </SheetContent>
       </Sheet>
 
-      {/* ═══ Action sheet ═══ */}
+      {/* ═══ Action sheet with nutrition details ═══ */}
       <Sheet open={!!actionSheet} onOpenChange={(o) => { if (!o) setActionSheet(null); }}>
         <SheetContent side="bottom" className="rounded-t-3xl">
           <SheetHeader>
             <SheetTitle className="text-foreground">{actionSheet?.name}</SheetTitle>
           </SheetHeader>
           <div className="space-y-3 py-4">
+            {/* Nutrition info */}
+            {actionSheet && <NutritionDetail item={actionSheet} />}
+
             <Button
               className="w-full justify-start gap-3 h-12 rounded-xl"
               variant="outline"
