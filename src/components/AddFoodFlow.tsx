@@ -185,7 +185,12 @@ const AddFoodFlow = ({
     }
   }, [open, preselectedMealType]);
 
-  // Search products (progressive: local → OFF → USDA)
+  // Search countdown
+  const [searchCountdown, setSearchCountdown] = useState(60);
+  const [searchTimedOut, setSearchTimedOut] = useState(false);
+  const searchCancelRef = useRef<(() => void) | null>(null);
+
+  // Search products (progressive: local → OFF → USDA) with 60s timeout
   useEffect(() => {
     if (step !== "search" || !debouncedQuery.trim()) {
       if (!debouncedQuery.trim()) {
@@ -196,6 +201,20 @@ const AddFoodFlow = ({
     }
     setSearching(true);
     setSearchPhase("local");
+    setSearchCountdown(60);
+    setSearchTimedOut(false);
+
+    // Countdown timer
+    const countdownInterval = setInterval(() => {
+      setSearchCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(countdownInterval);
+          setSearchTimedOut(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
 
     const cancel = searchFoodProgressive(debouncedQuery, (results, phase, done) => {
       setSearchPhase(done ? "done" : phase === "local" ? "off" : "usda");
@@ -215,11 +234,27 @@ const AddFoodFlow = ({
           _barcode: r.barcode,
         })) as any
       );
-      if (done) setSearching(false);
+      if (done) {
+        setSearching(false);
+        clearInterval(countdownInterval);
+        setSearchCountdown(60);
+      }
     });
 
-    return () => { cancel(); };
+    searchCancelRef.current = cancel;
+
+    return () => {
+      cancel();
+      clearInterval(countdownInterval);
+    };
   }, [debouncedQuery, step]);
+
+  const handleStopSearch = () => {
+    searchCancelRef.current?.();
+    setSearching(false);
+    setSearchTimedOut(false);
+    setSearchPhase("done");
+  };
 
   // Calcs
   const computed = calcNutrition(quantity, unit, calories100g, macros100g, servingSizeG);
@@ -556,18 +591,15 @@ const AddFoodFlow = ({
     setSaving(true);
 
     try {
-      // 1) Ensure product exists
+      // 1) Ensure product exists (manual entries go to product_submissions, not products)
       let pid = productId;
       if (!pid) {
-        if (barcode) {
-          const { data: existing } = await supabase
-            .from("products").select("id").eq("barcode", barcode).maybeSingle();
-          if (existing) pid = existing.id;
-        }
-        if (!pid) {
-          const { data: created, error: pErr } = await supabase
-            .from("products")
+        if (method === "manual") {
+          // Manual entry → save to product_submissions for admin review
+          const { error: subErr } = await supabase
+            .from("product_submissions" as any)
             .insert({
+              user_id: user.id,
               name: name.trim(),
               brand: brand.trim() || null,
               barcode: barcode || null,
@@ -575,14 +607,54 @@ const AddFoodFlow = ({
               calories_100g: calories100g,
               macros_100g: macros100g as any,
               serving_size_g: servingSizeG,
-            })
-            .select("id").single();
-          if (pErr) throw pErr;
-          pid = created.id;
+              status: "pending",
+            } as any);
+          if (subErr) console.error("Submission insert error:", subErr);
+          // pid remains null — we'll use custom_name for inventory/meal
+        } else {
+          if (barcode) {
+            const { data: existing } = await supabase
+              .from("products").select("id").eq("barcode", barcode).maybeSingle();
+            if (existing) pid = existing.id;
+          }
+          if (!pid) {
+            const { data: created, error: pErr } = await supabase
+              .from("products")
+              .insert({
+                name: name.trim(),
+                brand: brand.trim() || null,
+                barcode: barcode || null,
+                image_url: imageUrl,
+                calories_100g: calories100g,
+                macros_100g: macros100g as any,
+                serving_size_g: servingSizeG,
+              })
+              .select("id").single();
+            if (pErr) throw pErr;
+            pid = created.id;
+          }
         }
       }
 
       // 2) Context-specific save
+      // For inventory, product_id is required — create a temporary product if manual
+      if (context === "inventory" && !pid) {
+        const { data: tmpProd, error: tmpErr } = await supabase
+          .from("products")
+          .insert({
+            name: name.trim(),
+            brand: brand.trim() || null,
+            barcode: barcode || null,
+            image_url: imageUrl,
+            calories_100g: calories100g,
+            macros_100g: macros100g as any,
+            serving_size_g: servingSizeG,
+          })
+          .select("id").single();
+        if (tmpErr) throw tmpErr;
+        pid = tmpProd.id;
+      }
+
       if (context === "inventory") {
         const insertData: any = {
           product_id: pid,
@@ -634,9 +706,9 @@ const AddFoodFlow = ({
 
         const { error } = await supabase.from("meal_items").insert({
           meal_id: mealId!,
-          product_id: pid,
+          product_id: pid || null,
           custom_name: name.trim(),
-          source_type: "product",
+          source_type: pid ? "product" : "custom",
           quantity,
           unit,
           calories: computed.calories,
@@ -923,15 +995,26 @@ const AddFoodFlow = ({
                   </div>
                 )}
 
-                {/* Phase indicator */}
+                {/* Phase indicator with countdown */}
                 {searching && query.trim() && (
                   <div className="flex items-center gap-2 px-1 py-1.5">
                     <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground flex-1">
                       {searchPhase === "local" && "Ricerca nel catalogo Cibarius..."}
                       {searchPhase === "off" && "Ricerca prodotti italiani ed europei..."}
                       {searchPhase === "usda" && "Ricerca database internazionale..."}
                     </p>
+                    <span className="text-xs font-mono text-muted-foreground">{searchCountdown}s</span>
+                  </div>
+                )}
+                {/* Timeout prompt */}
+                {searchTimedOut && searching && (
+                  <div className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 p-3">
+                    <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
+                    <p className="text-xs text-destructive flex-1">La ricerca sta impiegando troppo.</p>
+                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={handleStopSearch}>
+                      Interrompi
+                    </Button>
                   </div>
                 )}
                 {!searching && searchPhase === "done" && query.trim() && searchResults.length > 0 && (

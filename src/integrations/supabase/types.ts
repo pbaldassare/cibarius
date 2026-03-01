@@ -814,6 +814,54 @@ export type Database = {
         }
         Relationships: []
       }
+      product_submissions: {
+        Row: {
+          barcode: string | null
+          brand: string | null
+          calories_100g: number | null
+          created_at: string
+          id: string
+          image_url: string | null
+          macros_100g: Json | null
+          name: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          serving_size_g: number | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          barcode?: string | null
+          brand?: string | null
+          calories_100g?: number | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          macros_100g?: Json | null
+          name: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          serving_size_g?: number | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          barcode?: string | null
+          brand?: string | null
+          calories_100g?: number | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          macros_100g?: Json | null
+          name?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          serving_size_g?: number | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           barcode: string | null
