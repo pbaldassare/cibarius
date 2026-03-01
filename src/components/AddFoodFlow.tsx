@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useDebounce } from "@/hooks/useDebounce";
 import BarcodeScanner from "@/components/BarcodeScanner";
 import { lookupBarcode, calcNutrition, type ProductData } from "@/lib/barcode";
-import { searchFood, type FoodSearchResult } from "@/lib/search-food";
+import { searchFoodProgressive, type FoodSearchResult, type SearchPhase } from "@/lib/search-food";
 import { analyzeFoodPhotos, fuseWithOFF, fileToImageFile, type ImageFile, type FusedFoodData } from "@/lib/ai-food";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
@@ -95,6 +95,7 @@ const AddFoodFlow = ({
   const debouncedQuery = useDebounce(query, 300);
   const [searchResults, setSearchResults] = useState<SearchProduct[]>([]);
   const [searching, setSearching] = useState(false);
+  const [searchPhase, setSearchPhase] = useState<SearchPhase>("done");
 
   // Scan
   const [scanLoading, setScanLoading] = useState(false);
@@ -184,17 +185,20 @@ const AddFoodFlow = ({
     }
   }, [open, preselectedMealType]);
 
-  // Search products (unified: local + OFF + USDA)
+  // Search products (progressive: local → OFF → USDA)
   useEffect(() => {
     if (step !== "search" || !debouncedQuery.trim()) {
-      if (!debouncedQuery.trim()) setSearchResults([]);
+      if (!debouncedQuery.trim()) {
+        setSearchResults([]);
+        setSearchPhase("done");
+      }
       return;
     }
-    let cancelled = false;
     setSearching(true);
-    searchFood(debouncedQuery).then((results) => {
-      if (cancelled) return;
-      // Map FoodSearchResult to SearchProduct shape for the list
+    setSearchPhase("local");
+
+    const cancel = searchFoodProgressive(debouncedQuery, (results, phase, done) => {
+      setSearchPhase(done ? "done" : phase === "local" ? "off" : "usda");
       setSearchResults(
         results.map((r) => ({
           id: r.local_product_id || `${r.source}:${r.barcode || r.name}`,
@@ -211,9 +215,10 @@ const AddFoodFlow = ({
           _barcode: r.barcode,
         })) as any
       );
-      setSearching(false);
+      if (done) setSearching(false);
     });
-    return () => { cancelled = true; };
+
+    return () => { cancel(); };
   }, [debouncedQuery, step]);
 
   // Calcs
@@ -918,9 +923,27 @@ const AddFoodFlow = ({
                   </div>
                 )}
 
+                {/* Phase indicator */}
+                {searching && query.trim() && (
+                  <div className="flex items-center gap-2 px-1 py-1.5">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                    <p className="text-xs text-muted-foreground">
+                      {searchPhase === "local" && "Ricerca nel catalogo Cibarius..."}
+                      {searchPhase === "off" && "Ricerca prodotti italiani ed europei..."}
+                      {searchPhase === "usda" && "Ricerca database internazionale..."}
+                    </p>
+                  </div>
+                )}
+                {!searching && searchPhase === "done" && query.trim() && searchResults.length > 0 && (
+                  <div className="flex items-center gap-2 px-1 py-1">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+                    <p className="text-xs text-muted-foreground">Ricerca completata · {searchResults.length} risultati</p>
+                  </div>
+                )}
+
                 {!searching && query.trim() && searchResults.length === 0 && (
                   <div className="text-center py-8">
-                    <p className="text-sm" style={{ color: "#4B5563" }}>Nessun prodotto trovato</p>
+                    <p className="text-sm text-muted-foreground">Nessun prodotto trovato</p>
                     <Button
                       variant="outline"
                       size="sm"

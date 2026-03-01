@@ -6,6 +6,7 @@ const corsHeaders = {
 
 interface NormalizedResult {
   source: "off" | "usda";
+  source_detail: "off_it" | "off_world" | "usda";
   name: string;
   brand: string | null;
   barcode: string | null;
@@ -16,33 +17,50 @@ interface NormalizedResult {
   fats_100g: number | null;
 }
 
-// ─── OFF text search ─────────────────────────────────
-async function searchOFF(query: string): Promise<NormalizedResult[]> {
+// ─── OFF Italian search (it.openfoodfacts.org) ───────
+async function searchOFF_IT(query: string): Promise<NormalizedResult[]> {
+  try {
+    const url = `https://it.openfoodfacts.org/api/v2/search?search_terms=${encodeURIComponent(query)}&fields=product_name,product_name_it,brands,code,image_front_url,image_url,nutriments&page_size=10&json=1`;
+    const res = await fetch(url);
+    if (!res.ok) return [];
+    const json = await res.json();
+    return mapOFFProducts(json.products ?? [], "off_it");
+  } catch {
+    return [];
+  }
+}
+
+// ─── OFF World search ────────────────────────────────
+async function searchOFF_World(query: string): Promise<NormalizedResult[]> {
   try {
     const url = `https://world.openfoodfacts.org/api/v2/search?search_terms=${encodeURIComponent(query)}&fields=product_name,product_name_it,brands,code,image_front_url,image_url,nutriments&page_size=10&json=1`;
     const res = await fetch(url);
     if (!res.ok) return [];
     const json = await res.json();
-    const products = json.products ?? [];
-    return products
-      .filter((p: any) => p.product_name || p.product_name_it)
-      .map((p: any) => {
-        const n = p.nutriments ?? {};
-        return {
-          source: "off" as const,
-          name: p.product_name || p.product_name_it || "",
-          brand: p.brands || null,
-          barcode: p.code || null,
-          image_url: p.image_front_url || p.image_url || null,
-          calories_100g: n["energy-kcal_100g"] ?? null,
-          protein_100g: n.proteins_100g ?? null,
-          carbs_100g: n.carbohydrates_100g ?? null,
-          fats_100g: n.fat_100g ?? null,
-        };
-      });
+    return mapOFFProducts(json.products ?? [], "off_world");
   } catch {
     return [];
   }
+}
+
+function mapOFFProducts(products: any[], detail: "off_it" | "off_world"): NormalizedResult[] {
+  return products
+    .filter((p: any) => p.product_name || p.product_name_it)
+    .map((p: any) => {
+      const n = p.nutriments ?? {};
+      return {
+        source: "off" as const,
+        source_detail: detail,
+        name: p.product_name_it || p.product_name || "",
+        brand: p.brands || null,
+        barcode: p.code || null,
+        image_url: p.image_front_url || p.image_url || null,
+        calories_100g: n["energy-kcal_100g"] ?? null,
+        protein_100g: n.proteins_100g ?? null,
+        carbs_100g: n.carbohydrates_100g ?? null,
+        fats_100g: n.fat_100g ?? null,
+      };
+    });
 }
 
 // ─── USDA FoodData Central search ────────────────────
@@ -61,14 +79,15 @@ async function searchUSDA(query: string, apiKey: string): Promise<NormalizedResu
       };
       return {
         source: "usda" as const,
+        source_detail: "usda" as const,
         name: f.description || "",
         brand: f.brandName || f.brandOwner || null,
         barcode: f.gtinUpc || null,
         image_url: null,
-        calories_100g: get(1008), // Energy (kcal)
-        protein_100g: get(1003), // Protein
-        carbs_100g: get(1005),   // Carbohydrate
-        fats_100g: get(1004),    // Total lipid (fat)
+        calories_100g: get(1008),
+        protein_100g: get(1003),
+        carbs_100g: get(1005),
+        fats_100g: get(1004),
       };
     });
   } catch {
@@ -82,34 +101,53 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { query } = await req.json();
+    const { query, sources } = await req.json();
     if (!query || typeof query !== "string" || query.trim().length < 2) {
       return new Response(JSON.stringify({ results: [] }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    const q = query.trim();
     const usdaKey = Deno.env.get("USDA_API_KEY") || "";
+    const requestedSources: string[] = sources ?? ["off", "usda"];
 
-    // Run both searches in parallel
-    const [offResults, usdaResults] = await Promise.all([
-      searchOFF(query.trim()),
-      usdaKey ? searchUSDA(query.trim(), usdaKey) : Promise.resolve([]),
-    ]);
+    let results: NormalizedResult[] = [];
 
-    // Merge: OFF first, then USDA (deduped by name similarity)
-    const seen = new Set<string>();
-    const merged: NormalizedResult[] = [];
-
-    for (const r of [...offResults, ...usdaResults]) {
-      const key = r.name.toLowerCase().trim();
-      if (!seen.has(key)) {
-        seen.add(key);
-        merged.push(r);
+    if (requestedSources.includes("off")) {
+      // Italian first, then world, deduped
+      const [itResults, worldResults] = await Promise.all([
+        searchOFF_IT(q),
+        searchOFF_World(q),
+      ]);
+      // Italian results first
+      const seen = new Set<string>();
+      for (const r of itResults) {
+        seen.add(r.name.toLowerCase().trim());
+        results.push(r);
+      }
+      for (const r of worldResults) {
+        const key = r.name.toLowerCase().trim();
+        if (!seen.has(key)) {
+          seen.add(key);
+          results.push(r);
+        }
       }
     }
 
-    return new Response(JSON.stringify({ results: merged.slice(0, 20) }), {
+    if (requestedSources.includes("usda") && usdaKey) {
+      const usdaResults = await searchUSDA(q, usdaKey);
+      const seen = new Set(results.map(r => r.name.toLowerCase().trim()));
+      for (const r of usdaResults) {
+        const key = r.name.toLowerCase().trim();
+        if (!seen.has(key)) {
+          seen.add(key);
+          results.push(r);
+        }
+      }
+    }
+
+    return new Response(JSON.stringify({ results: results.slice(0, 20) }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
