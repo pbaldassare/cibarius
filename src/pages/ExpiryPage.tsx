@@ -10,7 +10,7 @@ import SearchBar from "@/components/SearchBar";
 import AddFoodFlow from "@/components/AddFoodFlow";
 import {
   Package, Clock, AlertCircle, Check, Trash2, CalendarClock,
-  Plus, ChefHat, SlidersHorizontal, X, CheckSquare, Flame,
+  Plus, ChefHat, CheckSquare, Flame, Refrigerator, Snowflake, Home,
 } from "lucide-react";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
@@ -71,7 +71,6 @@ const ExpiryPage = () => {
   const [activeTab, setActiveTab] = useState<string>("expired");
   const [storageFilter, setStorageFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
-  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [actionSheet, setActionSheet] = useState<ExpiryItem | null>(null);
   const [addFoodOpen, setAddFoodOpen] = useState(false);
   const [newDate, setNewDate] = useState("");
@@ -198,7 +197,17 @@ const ExpiryPage = () => {
     return c;
   }, [items]);
 
-  const activeFilterCount = (storageFilter !== "all" ? 1 : 0) + (typeFilter !== "all" ? 1 : 0);
+  const handleChangeStorage = async (item: ExpiryItem, newStorage: string) => {
+    if (item.storage_type === newStorage) return;
+    if (item.type === "product") {
+      await supabase.from("inventory_items").update({ storage_type: newStorage }).eq("id", item.id);
+    } else {
+      await supabase.from("preparations").update({ storage_type: newStorage }).eq("id", item.id);
+    }
+    toast({ title: `Spostato in ${storageLabel[newStorage] ?? newStorage} ✓` });
+    setActionSheet((prev) => prev ? { ...prev, storage_type: newStorage } : null);
+    fetchItems();
+  };
 
   // Selection helpers
   const toggleSelection = (itemKey: string) => {
@@ -329,39 +338,70 @@ const ExpiryPage = () => {
     <div className="min-h-screen bg-background">
       <MobileHeader title="Scadenze" showBack right={headerRight} />
       <main className="space-y-3 px-4 py-4 pb-28">
-        {/* Status tabs + filter button */}
-        <div className="flex items-center gap-2">
-          <div className="flex-1 flex gap-1.5 overflow-x-auto no-scrollbar">
-            {statusTabs.map(({ key, label, icon: Icon }) => {
-              const active = activeTab === key;
-              return (
-                <button
-                  key={key}
-                  onClick={() => setActiveTab(key)}
-                  className={`flex items-center gap-1 whitespace-nowrap rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors ${
-                    active
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "bg-card text-foreground border border-border"
-                  }`}
-                >
-                  <Icon className="h-3 w-3" />
-                  {label}
-                  <span className={`text-[11px] ${active ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
-                    {tabCounts[key] ?? 0}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-          <button
-            onClick={() => setFilterSheetOpen(true)}
-            className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-[13px] font-medium border transition-colors shrink-0 ${
-              activeFilterCount > 0 ? "bg-primary text-primary-foreground border-primary" : "bg-card text-foreground border-border"
-            }`}
-          >
-            <SlidersHorizontal className="h-3.5 w-3.5" />
-            {activeFilterCount > 0 && <span>{activeFilterCount}</span>}
-          </button>
+        {/* Status tabs */}
+        <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
+          {statusTabs.map(({ key, label, icon: Icon }) => {
+            const active = activeTab === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setActiveTab(key)}
+                className={`flex items-center gap-1 whitespace-nowrap rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors ${
+                  active
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-card text-foreground border border-border"
+                }`}
+              >
+                <Icon className="h-3 w-3" />
+                {label}
+                <span className={`text-[11px] ${active ? "text-primary-foreground/70" : "text-muted-foreground"}`}>
+                  {tabCounts[key] ?? 0}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Inline filters */}
+        <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
+          {([
+            { key: "all", label: "Tutto" },
+            { key: "product", label: "Prodotti" },
+            { key: "preparation", label: "Prep" },
+          ] as const).map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setTypeFilter(key)}
+              className={`rounded-full px-3 py-1 text-[12px] font-medium border transition-colors ${
+                typeFilter === key
+                  ? "bg-primary/10 text-primary border-primary"
+                  : "bg-card text-muted-foreground border-border"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
+          {([
+            { key: "all", label: "Tutti", icon: null },
+            { key: "ambiente", label: "Dispensa", icon: Home },
+            { key: "frigo", label: "Frigo", icon: Refrigerator },
+            { key: "freezer", label: "Congelatore", icon: Snowflake },
+          ] as const).map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              onClick={() => setStorageFilter(key)}
+              className={`flex items-center gap-1 rounded-full px-3 py-1 text-[12px] font-medium border transition-colors ${
+                storageFilter === key
+                  ? "bg-primary/10 text-primary border-primary"
+                  : "bg-card text-muted-foreground border-border"
+              }`}
+            >
+              {Icon && <Icon className="h-3 w-3" />}
+              {label}
+            </button>
+          ))}
         </div>
 
         {/* Search bar */}
@@ -502,80 +542,7 @@ const ExpiryPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* ═══ Filter Bottom Sheet ═══ */}
-      <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
-        <SheetContent side="bottom" className="rounded-t-3xl">
-          <SheetHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <SheetTitle className="text-foreground">Filtri</SheetTitle>
-              {activeFilterCount > 0 && (
-                <button
-                  onClick={() => { setStorageFilter("all"); setTypeFilter("all"); }}
-                  className="text-xs font-medium text-primary"
-                >
-                  Resetta
-                </button>
-              )}
-            </div>
-          </SheetHeader>
-          <div className="space-y-5 py-2 pb-6">
-            {/* Type toggle */}
-            <div className="space-y-2">
-              <p className="text-sm font-semibold text-foreground">Tipo</p>
-              <div className="flex gap-2">
-                {[
-                  { key: "all", label: "Tutto" },
-                  { key: "product", label: "Prodotti" },
-                  { key: "preparation", label: "Preparazioni" },
-                ].map(({ key, label }) => (
-                  <button
-                    key={key}
-                    onClick={() => setTypeFilter(key)}
-                    className={`flex-1 rounded-xl py-2.5 text-sm font-medium transition-colors ${
-                      typeFilter === key
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-card border border-border text-foreground"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Storage filter */}
-            <div className="space-y-2">
-              <p className="text-sm font-semibold text-foreground">Conservazione</p>
-              <div className="flex gap-2">
-                {[
-                  { key: "all", label: "Tutti" },
-                  { key: "ambiente", label: "Dispensa" },
-                  { key: "frigo", label: "Frigo" },
-                  { key: "freezer", label: "Congelatore" },
-                ].map(({ key, label }) => (
-                  <button
-                    key={key}
-                    onClick={() => setStorageFilter(key)}
-                    className={`flex-1 rounded-xl py-2.5 text-sm font-medium transition-colors ${
-                      storageFilter === key
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-card border border-border text-foreground"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <Button className="w-full h-12 rounded-2xl text-base font-semibold" onClick={() => setFilterSheetOpen(false)}>
-              Applica filtri
-            </Button>
-          </div>
-        </SheetContent>
-      </Sheet>
-
-      {/* ═══ Action sheet with nutrition details ═══ */}
+      {/* ═══ Action sheet with nutrition details + storage selector ═══ */}
       <Sheet open={!!actionSheet} onOpenChange={(o) => { if (!o) setActionSheet(null); }}>
         <SheetContent side="bottom" className="rounded-t-3xl">
           <SheetHeader>
@@ -584,6 +551,33 @@ const ExpiryPage = () => {
           <div className="space-y-3 py-4">
             {/* Nutrition info */}
             {actionSheet && <NutritionDetail item={actionSheet} />}
+
+            {/* Storage selector */}
+            {actionSheet && (
+              <div className="space-y-1.5">
+                <p className="text-[12px] font-medium text-muted-foreground">Conservazione</p>
+                <div className="flex gap-2">
+                  {([
+                    { key: "ambiente", label: "Dispensa", icon: Home },
+                    { key: "frigo", label: "Frigo", icon: Refrigerator },
+                    { key: "freezer", label: "Congelatore", icon: Snowflake },
+                  ] as const).map(({ key, label, icon: Icon }) => (
+                    <button
+                      key={key}
+                      onClick={() => handleChangeStorage(actionSheet, key)}
+                      className={`flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-[13px] font-medium transition-colors ${
+                        actionSheet.storage_type === key
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-card border border-border text-foreground"
+                      }`}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <Button
               className="w-full justify-start gap-3 h-12 rounded-xl"
