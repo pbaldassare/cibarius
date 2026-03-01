@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useRole } from "@/hooks/useRole";
 import { supabase } from "@/integrations/supabase/client";
-import { ChevronRight, Settings, Heart, Bell, LogOut, UserX, Stethoscope, Sparkles, ClipboardList, MessageSquareWarning, Trash2, Camera } from "lucide-react";
+import { ChevronRight, Settings, Heart, Bell, LogOut, UserX, Stethoscope, Sparkles, ClipboardList, MessageSquareWarning, Trash2, Camera, MapPin, GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -22,6 +22,7 @@ const ProfiloPage = () => {
   const { toast } = useToast();
   const [proLink, setProLink] = useState<any>(null);
   const [proProfile, setProProfile] = useState<any>(null);
+  const [proProfessionalProfile, setProProfessionalProfile] = useState<any>(null);
   const [loadingPro, setLoadingPro] = useState(true);
   const [hasPlan, setHasPlan] = useState(false);
 
@@ -32,6 +33,7 @@ const ProfiloPage = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [coachDialogOpen, setCoachDialogOpen] = useState(false);
 
   // Settings form
   const [editName, setEditName] = useState("");
@@ -68,12 +70,14 @@ const ProfiloPage = () => {
 
       if (link) {
         setProLink(link);
-        const [profileRes, planRes] = await Promise.all([
+        const [profileRes, planRes, proProfRes] = await Promise.all([
           supabase.from("profiles").select("full_name, email").eq("id", link.professional_id).single(),
           supabase.from("diet_plans").select("id").eq("client_user_id", user.id).eq("is_active", true).maybeSingle(),
+          supabase.from("professional_profiles").select("display_name, specialization, city, bio, photo_url").eq("user_id", link.professional_id).maybeSingle(),
         ]);
         setProProfile(profileRes.data);
         setHasPlan(!!planRes.data);
+        setProProfessionalProfile(proProfRes.data);
       }
       setLoadingPro(false);
     };
@@ -100,7 +104,6 @@ const ProfiloPage = () => {
     }
   };
 
-  // ═══ Avatar upload ═══
   const handleAvatarClick = () => fileRef.current?.click();
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -125,7 +128,6 @@ const ProfiloPage = () => {
     }
   };
 
-  // ═══ Settings save ═══
   const openSettings = () => {
     setEditName(profile.full_name || "");
     setEditPhone(profile.phone || "");
@@ -146,7 +148,6 @@ const ProfiloPage = () => {
     }
   };
 
-  // ═══ Support send ═══
   const sendSupport = async () => {
     if (!user || !supportMessage.trim()) return;
     setSendingSupport(true);
@@ -161,17 +162,17 @@ const ProfiloPage = () => {
     }
   };
 
-  // ═══ Delete account ═══
   const handleDeleteAccount = async () => {
     if (!user) return;
     setDeleting(true);
-    // Insert a delete_account request for admin review
     await supabase.from("support_requests" as any).insert({ user_id: user.id, type: "delete_account", message: "Richiesta eliminazione account dall'utente." });
     setDeleting(false);
     setDeleteOpen(false);
     toast({ title: "Richiesta inviata", description: "Il tuo account verrà disattivato. Verrai disconnesso." });
     setTimeout(() => signOut(), 1500);
   };
+
+  const coachDisplayName = proProfessionalProfile?.display_name || proProfile?.full_name || "Professionista";
 
   return (
     <div className="min-h-screen bg-background">
@@ -216,16 +217,26 @@ const ProfiloPage = () => {
               <p className="text-sm text-muted-foreground py-2">Caricamento…</p>
             ) : proLink ? (
               <div className="space-y-3">
-                <div className="flex items-center gap-3 rounded-[14px] bg-success/5 border border-success/20 p-3">
-                  <div className="h-10 w-10 rounded-full bg-success/10 flex items-center justify-center text-lg font-semibold text-success">
-                    {proProfile?.full_name ? proProfile.full_name.charAt(0).toUpperCase() : "🩺"}
-                  </div>
+                <button
+                  onClick={() => setCoachDialogOpen(true)}
+                  className="flex w-full items-center gap-3 rounded-[14px] bg-success/5 border border-success/20 p-3 text-left active:scale-[0.98] transition-transform"
+                >
+                  <Avatar className="h-10 w-10 shrink-0">
+                    {proProfessionalProfile?.photo_url ? (
+                      <AvatarImage src={proProfessionalProfile.photo_url} alt={coachDisplayName} className="object-cover" />
+                    ) : null}
+                    <AvatarFallback className="bg-success/10 text-lg font-semibold text-success">
+                      {coachDisplayName.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{proProfile?.full_name || "Professionista"}</p>
-                    <p className="text-xs text-muted-foreground truncate">{proProfile?.email || ""}</p>
+                    <p className="text-sm font-medium text-foreground truncate">{coachDisplayName}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {proProfessionalProfile?.specialization || proProfile?.email || ""}
+                    </p>
                   </div>
                   <Badge className="bg-success/10 text-success border-0 text-[10px]">Attivo</Badge>
-                </div>
+                </button>
                 <Button variant="outline" size="sm" className="w-full text-destructive border-destructive/30 gap-2 rounded-xl" onClick={revokeAccess}>
                   <UserX className="h-4 w-4" /> Revoca accesso
                 </Button>
@@ -310,6 +321,48 @@ const ProfiloPage = () => {
           Esci
         </button>
       </main>
+
+      {/* ═══ Coach Info Dialog ═══ */}
+      <Dialog open={coachDialogOpen} onOpenChange={setCoachDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Il tuo nutrizionista</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4 py-4">
+            <Avatar className="h-20 w-20">
+              {proProfessionalProfile?.photo_url ? (
+                <AvatarImage src={proProfessionalProfile.photo_url} alt={coachDisplayName} className="object-cover" />
+              ) : null}
+              <AvatarFallback className="bg-primary/10 text-2xl font-bold">
+                {coachDisplayName.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="text-center space-y-1">
+              <h3 className="text-lg font-semibold text-foreground">{coachDisplayName}</h3>
+              {proProfessionalProfile?.specialization && (
+                <div className="flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
+                  <GraduationCap className="h-4 w-4" />
+                  {proProfessionalProfile.specialization}
+                </div>
+              )}
+              {proProfessionalProfile?.city && (
+                <div className="flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
+                  <MapPin className="h-4 w-4" />
+                  {proProfessionalProfile.city}
+                </div>
+              )}
+            </div>
+            {proProfessionalProfile?.bio && (
+              <p className="text-sm text-muted-foreground text-center leading-relaxed px-2">
+                {proProfessionalProfile.bio}
+              </p>
+            )}
+            {proProfile?.email && (
+              <p className="text-xs text-muted-foreground">{proProfile.email}</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* ═══ Settings Dialog ═══ */}
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>

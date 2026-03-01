@@ -8,10 +8,11 @@ import ImageUpload from "@/components/ImageUpload";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Search, SlidersHorizontal, Package, Loader2, Flame, ScanLine } from "lucide-react";
+import { Plus, Search, SlidersHorizontal, Package, Loader2, Flame, ScanLine, Trash2 } from "lucide-react";
 import EmptyState from "@/components/EmptyState";
 import ListSkeleton from "@/components/ListSkeleton";
 
@@ -108,6 +109,15 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
   const [showFilters, setShowFilters] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
 
+  // Edit dialog state
+  const [editingItem, setEditingItem] = useState<InventoryItemWithProduct | null>(null);
+  const [editQty, setEditQty] = useState("");
+  const [editUnit, setEditUnit] = useState("pezzi");
+  const [editStorage, setEditStorage] = useState("frigo");
+  const [editExpiry, setEditExpiry] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
   // Add form state
   const [newName, setNewName] = useState("");
   const [newCategory, setNewCategory] = useState("");
@@ -166,7 +176,6 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
     if (!user) return;
     setAdding(true);
 
-    // Create product in catalog
     const { data: product, error: productError } = await supabase
       .from("products")
       .insert({
@@ -184,7 +193,6 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
       return;
     }
 
-    // Create attachment if image uploaded
     if (newImagePath && newImageUrl) {
       const attachData: any = {
         entity_type: "product",
@@ -198,7 +206,6 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
       await supabase.from("attachments").insert(attachData);
     }
 
-    // Create inventory item (no calorie calc for manually added products without nutrition data)
     const insertData: any = {
       product_id: product.id,
       quantity: parseFloat(newQuantity) || 1,
@@ -239,6 +246,63 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
     setNewImagePath(null);
   };
 
+  // ═══ Edit item handlers ═══
+  const openEditDialog = (item: InventoryItemWithProduct) => {
+    setEditingItem(item);
+    setEditQty(String(item.quantity ?? 1));
+    setEditUnit(item.unit ?? "pezzi");
+    setEditStorage(item.storage_type);
+    setEditExpiry(item.expiry_date ?? "");
+    setConfirmDelete(false);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingItem) return;
+    setSavingEdit(true);
+
+    const qty = parseFloat(editQty) || 1;
+    const { calories, macros } = calcNutrition(
+      qty,
+      editUnit,
+      editingItem.product.calories_100g,
+      editingItem.product.macros_100g,
+      editingItem.product.serving_size_g
+    );
+
+    const { error } = await supabase
+      .from("inventory_items")
+      .update({
+        quantity: qty,
+        unit: editUnit,
+        storage_type: editStorage,
+        expiry_date: editExpiry || null,
+        calories_total: calories,
+        macros_total: macros as any,
+      })
+      .eq("id", editingItem.id);
+
+    setSavingEdit(false);
+    if (error) {
+      toast({ variant: "destructive", title: "Errore", description: error.message });
+    } else {
+      toast({ title: "Prodotto aggiornato" });
+      setEditingItem(null);
+      fetchItems();
+    }
+  };
+
+  const handleDeleteItem = async () => {
+    if (!editingItem) return;
+    const { error } = await supabase.from("inventory_items").delete().eq("id", editingItem.id);
+    if (error) {
+      toast({ variant: "destructive", title: "Errore", description: error.message });
+    } else {
+      toast({ title: "Prodotto eliminato" });
+      setEditingItem(null);
+      fetchItems();
+    }
+  };
+
   const debouncedSearch = useDebounce(search, 250);
 
   const filtered = useMemo(() => items.filter((item) => {
@@ -265,7 +329,6 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
                 <DialogTitle>Aggiungi prodotto</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleAdd} className="space-y-3">
-                {/* Image upload */}
                 <div className="flex justify-center">
                   <ImageUpload
                     imageUrl={newImageUrl}
@@ -372,7 +435,6 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
             {filtered.map((item) => {
               const status = getExpiryStatus(item.expiry_date);
               const cfg = statusConfig[status];
-              // Compute calories for display (use stored or calculate on-the-fly)
               const { calories: computedCal } = calcNutrition(
                 item.quantity ?? 0,
                 item.unit ?? "pezzi",
@@ -383,9 +445,10 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
               const displayCal = item.calories_total ?? computedCal;
 
               return (
-                <div
+                <button
                   key={item.id}
-                  className="flex items-center gap-3 rounded-2xl border-2 border-accent bg-card p-3"
+                  onClick={() => openEditDialog(item)}
+                  className="flex w-full items-center gap-3 rounded-2xl border-2 border-accent bg-card p-3 text-left active:scale-[0.98] transition-transform"
                 >
                   {/* Image / placeholder */}
                   <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-secondary overflow-hidden">
@@ -426,12 +489,68 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
                   <Badge className={`shrink-0 rounded-lg px-2.5 py-1 text-[10px] font-bold ${cfg.className}`}>
                     {cfg.label}
                   </Badge>
-                </div>
+                </button>
               );
             })}
           </div>
         )}
       </main>
+
+      {/* ═══ Edit Item Dialog ═══ */}
+      <Dialog open={!!editingItem} onOpenChange={(open) => { if (!open) { setEditingItem(null); setConfirmDelete(false); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Modifica prodotto</DialogTitle>
+            <DialogDescription>{editingItem?.product.name}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Quantità</Label>
+              <Input type="number" value={editQty} onChange={e => setEditQty(e.target.value)} min="0" step="0.1" />
+            </div>
+            <div className="space-y-2">
+              <Label>Unità</Label>
+              <Select value={editUnit} onValueChange={setEditUnit}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {["pezzi", "kg", "g", "l", "ml", "porzioni"].map((u) => (
+                    <SelectItem key={u} value={u}>{u}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Conservazione</Label>
+              <Select value={editStorage} onValueChange={setEditStorage}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="frigo">Frigo</SelectItem>
+                  <SelectItem value="freezer">Congelato</SelectItem>
+                  <SelectItem value="ambiente">Dispensa</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Scadenza</Label>
+              <Input type="date" value={editExpiry} onChange={e => setEditExpiry(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter className="flex flex-col gap-2 sm:flex-col">
+            <Button onClick={handleSaveEdit} disabled={savingEdit} className="w-full">
+              {savingEdit ? "Salvataggio..." : "Salva"}
+            </Button>
+            {!confirmDelete ? (
+              <Button variant="outline" onClick={() => setConfirmDelete(true)} className="w-full text-destructive border-destructive/30 gap-2">
+                <Trash2 className="h-4 w-4" /> Elimina
+              </Button>
+            ) : (
+              <Button variant="destructive" onClick={handleDeleteItem} className="w-full gap-2">
+                <Trash2 className="h-4 w-4" /> Conferma eliminazione
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
