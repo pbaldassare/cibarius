@@ -1,50 +1,46 @@
 
 
-# Filtri inline e cambio conservazione
+# Riorganizzare il riepilogo prodotto: nutrienti visibili, storage/scadenza secondari
 
-## 1. Aggiungere cambio conservazione nell'action sheet
+## Problema attuale
 
-Quando si seleziona un elemento, l'action sheet mostrera' un selettore per cambiare il tipo di conservazione (Frigo / Congelatore / Dispensa). Tre bottoni inline sotto i dettagli nutrizionali, prima delle azioni. Al tap, aggiorna `storage_type` su `inventory_items` o `preparations` e ricarica la lista.
+Nel riepilogo (summary) del flusso AddFoodFlow, i **dettagli nutrizionali** (calorie, proteine, carb, grassi) sono nascosti dietro il bottone "Dettagli" collapsibile. Invece i campi di **conservazione e scadenza** (che servono solo nel contesto inventario) sono subito visibili come chip. L'utente vuole il contrario: vedere prima i nutrienti e decidere poi dove conservare.
 
-### File: `src/pages/ExpiryPage.tsx`
-- Nell'action sheet (riga ~584), aggiungere una riga con 3 bottoni per Frigo/Congelatore/Dispensa
-- Il bottone corrispondente allo storage attuale sara' evidenziato (bg-primary)
-- Al click: `supabase.from("inventory_items").update({ storage_type }).eq("id", item.id)` (o `preparations`), poi toast + fetchItems
-- Aggiungere `handleChangeStorage(item, newStorage)` come handler
+## Modifiche proposte
 
-## 2. Sostituire il popup filtri con dropdown inline
+### File: `src/components/AddFoodFlow.tsx`
 
-Rimuovere il bottone filtro con icona e il bottom Sheet dei filtri. Al suo posto, sotto la barra di ricerca, mostrare due righe di bottoni (chip) sempre visibili:
+**1. Mostrare i nutrienti sempre visibili nel riepilogo**
 
-**Riga 1 - Tipo**: Tutto | Prodotti | Preparazioni
-**Riga 2 - Conservazione**: Tutti | Dispensa | Frigo | Congelatore
+Spostare la griglia nutrizionale (calorie, proteine, carb, grassi per 100g e per quantita') fuori dal collapsible "Dettagli" e posizionarla subito sotto la hero card del prodotto. I valori nutrizionali saranno sempre visibili senza bisogno di cliccare.
 
-Stile: chip piccoli simili ai tab di stato gia' esistenti, con il chip attivo in primary.
+**2. Rendere storage/scadenza secondari**
 
-### File: `src/pages/ExpiryPage.tsx`
-- Rimuovere stato `filterSheetOpen` e il componente `Sheet` dei filtri (righe 505-576)
-- Rimuovere il bottone con icona `SlidersHorizontal` (righe 356-364)
-- Rimuovere `activeFilterCount`
-- Aggiungere sotto SearchBar due righe di chip per tipo e conservazione
-- Ogni chip funziona come i tab di stato: click per attivare, evidenziato se selezionato
+I chip di conservazione (Frigo/Congelatore/Dispensa) e scadenza resteranno sotto i nutrienti, ma saranno meno prominenti -- mostrati solo nel contesto `inventory`/`preparation` come gia' avviene, ma dopo i nutrienti anziche' prima.
 
-### Dettaglio tecnico UI dei filtri inline
+**3. Spostare i campi editabili (nome, brand, valori) nel collapsible**
 
-```
-{/* Filtri inline */}
-<div className="flex gap-1.5 overflow-x-auto no-scrollbar">
-  {[{key:"all",label:"Tutto"},{key:"product",label:"Prodotti"},{key:"preparation",label:"Prep"}].map(...)}
-</div>
-<div className="flex gap-1.5 overflow-x-auto no-scrollbar">
-  {[{key:"all",label:"Tutti"},{key:"ambiente",label:"Dispensa"},{key:"frigo",label:"Frigo"},{key:"freezer",label:"Congelatore"}].map(...)}
-</div>
+Il bottone "Dettagli" conterra' solo i campi di modifica manuale (nome, brand, valori nutrizionali editabili), che servono raramente.
+
+### Ordine finale nel riepilogo
+
+```text
+1. Hero card (immagine + nome + brand + kcal totali)
+2. Compatibilita' dieta (se piano attivo)
+3. NUTRIENTI VISIBILI: griglia 4 colonne (kcal, prot, carb, grassi) per 100g
+4. Chip quantita'
+5. Chip storage + scadenza (solo contesto inventory/preparation)
+6. "Dettagli" collapsible (nome/brand/valori editabili)
+7. CTA "Conferma e salva"
 ```
 
-Stile chip: `rounded-full px-3 py-1 text-[12px] font-medium`, attivo `bg-primary/10 text-primary border-primary`, inattivo `bg-card border-border text-muted-foreground`.
+### Dettaglio tecnico
 
-## Riepilogo
+- Estrarre il blocco `computed.calories != null && computed.macros` (righe 1344-1365) dal `showDetails` e posizionarlo subito dopo la diet compatibility card (riga ~1076)
+- Aggiungere anche una riga con i valori per 100g sotto la griglia (se `calories100g` disponibile)
+- I chip di quantita'/storage/scadenza restano dopo i nutrienti
+- Il collapsible "Dettagli" conterra' solo i campi Input editabili per nome, brand e nutrienti
 
-- 1 file modificato: `src/pages/ExpiryPage.tsx`
-- Rimozione: Sheet filtri popup + bottone SlidersHorizontal
-- Aggiunta: chip filtri inline sotto search + selettore storage nell'action sheet
+### File coinvolti: 1
+- `src/components/AddFoodFlow.tsx`
 
