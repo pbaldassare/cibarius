@@ -1,95 +1,115 @@
 
 
-# Profilo professionale completo per nutrizionisti/coach
+# Template PDF/CSV, profilo pro editabile, template dietetici avanzati
 
-## Cosa cambia
+## 3 interventi richiesti
 
-Attualmente la tabella `professional_profiles` ha solo 5 campi (display_name, specialization, city, bio, photo_url). Il professionista non ha modo di modificare questi campi dall'app. Questa implementazione:
+### 1. Importazione template da PDF (oltre a CSV)
 
-1. **Espande il database** con nuovi campi per un profilo professionale completo
-2. **Aggiunge una sezione dedicata** nella pagina Profilo del professionista per visualizzare e modificare tutti i dati
-3. **Aggiorna la ricerca coach** nella UserDietPage per mostrare le nuove informazioni
-4. **Aggiorna il dialog coach** nella ProfiloPage utente per mostrare il profilo completo
+Nella pagina `ProTemplatesPage`, aggiungere un bottone "Importa" che permetta di:
+- Caricare un file PDF o CSV con un piano alimentare
+- Per il PDF: inviare il file a una edge function (`extract-diet-template`) che usa l'API di OpenAI (o simile) per estrarre i dati strutturati (pasti, alimenti, quantita', macro)
+- Mostrare una preview dei dati estratti in una tabella editabile
+- Confermare e salvare come template in `diet_plan_templates` + `diet_plan_template_meals`
+- Per il CSV: parsing lato client con le colonne pasto, alimento, quantita', kcal, proteine, carbo, grassi
 
-## Modifiche al database
+**File coinvolti:**
+- `supabase/functions/extract-diet-template/index.ts` (nuova edge function)
+- `src/pages/pro/ProTemplatesPage.tsx` (bottone importa + dialog + parsing)
 
-### Nuove colonne su `professional_profiles`
+### 2. Correzione modifica profilo professionale
 
-| Colonna | Tipo | Descrizione |
-|---------|------|-------------|
-| `experience_years` | integer | Anni di esperienza |
-| `additional_roles` | text[] | Ruoli aggiuntivi (mental coach, personal trainer, ecc.) |
-| `workplace` | text | Luogo di lavoro (studio, palestra, clinica) |
-| `website` | text | Sito web personale |
-| `instagram` | text | Profilo Instagram |
-| `facebook` | text | Profilo Facebook |
-| `linkedin` | text | Profilo LinkedIn |
-| `works_online` | boolean | Disponibile per consulenze online |
-| `works_in_person` | boolean | Disponibile per consulenze in presenza |
-| `is_visible` | boolean | Visibile nella ricerca coach (default true) |
+Il dialog di modifica esiste gia' nel codice ma potrebbe non aprirsi se `myProProfile` e' null (es. il record non esiste nel DB o la query fallisce). Interventi:
+- Aggiungere un fallback: se il profilo professionale non esiste, mostrare un bottone "Crea profilo" che inserisce un record vuoto e poi apre il dialog
+- Verificare che la query `.maybeSingle()` restituisca correttamente i dati
+- Aggiungere gestione errori esplicita nel caricamento del profilo
+- Aggiungere un bottone "Crea template" rapido direttamente dalla pagina template (senza dover passare da un piano cliente)
 
-### RLS
+**File coinvolti:**
+- `src/pages/ProfiloPage.tsx` (gestione caso profilo mancante + creazione automatica)
 
-Nessuna modifica: le policy esistenti gia' coprono lettura per clienti collegati e gestione per il professionista stesso. Si aggiunge una policy SELECT per permettere a tutti gli utenti autenticati di leggere i profili con `is_visible = true` (per la ricerca coach).
+### 3. Template di base: Ketogenica, Digiuno intermittente, differenziati per genere
 
-## Modifiche frontend
+Aggiungere template pre-compilati che il professionista puo' usare come punto di partenza. I template vengono inseriti via migration SQL nella tabella `diet_plan_templates` con un `professional_id` di sistema (`00000000-0000-0000-0000-000000000000`).
 
-### 1. `src/pages/ProfiloPage.tsx` -- Sezione profilo professionale
+**Template proposti:**
 
-Quando `role === "professional"`, mostrare una card dedicata "Il tuo profilo professionale" con:
-- Foto profilo (con upload, riutilizzando la logica avatar esistente)
-- Tutti i campi del profilo in formato read-only
-- Bottone "Modifica profilo" che apre un dialog con form completo
-- Campi nel form: display_name, specialization, experience_years, additional_roles (multi-select/chip), city, workplace, bio, website, instagram, facebook, linkedin, works_online (switch), works_in_person (switch), is_visible (switch)
+| Template | Kcal | Prot | Carbo | Grassi | Note |
+|----------|------|------|-------|--------|------|
+| Ketogenica - Uomo | 2000 | 125 | 30 | 155 | Rapporto grassi/carbo 5:1 |
+| Ketogenica - Donna | 1600 | 100 | 25 | 120 | Rapporto grassi/carbo 5:1 |
+| Digiuno intermittente 16:8 - Uomo | 2200 | 130 | 260 | 75 | Solo pranzo+cena+spuntino |
+| Digiuno intermittente 16:8 - Donna | 1700 | 100 | 200 | 60 | Solo pranzo+cena+spuntino |
+| Mediterranea equilibrata - Uomo | 2200 | 110 | 275 | 75 | |
+| Mediterranea equilibrata - Donna | 1800 | 90 | 220 | 65 | |
+| Massa muscolare - Uomo | 2800 | 180 | 340 | 90 | |
+| Massa muscolare - Donna | 2200 | 140 | 260 | 70 | |
+| Dimagrimento moderato - Uomo | 1800 | 120 | 180 | 65 | |
+| Dimagrimento moderato - Donna | 1500 | 100 | 150 | 55 | |
 
-### 2. `src/pages/ProfiloPage.tsx` -- Dialog coach arricchito (lato utente)
+Ogni template include la ripartizione per pasto in `diet_plan_template_meals` (per il digiuno intermittente: solo pranzo, cena e spuntino, senza colazione).
 
-Il dialog che l'utente vede quando tocca la card del proprio nutrizionista mostrera' anche:
-- Anni di esperienza
-- Ruoli aggiuntivi (badge)
-- Luogo di lavoro
-- Link al sito web e ai social (icone cliccabili)
-- Indicazione se lavora online e/o in presenza
+**Modifiche DB e RLS:**
+- Aggiungere policy SELECT su `diet_plan_templates` per leggere i template di sistema (`professional_id = '00000000-...'`)
+- Aggiungere policy SELECT su `diet_plan_template_meals` per i template di sistema
+- Insert dei template seed via migration
 
-### 3. `src/pages/UserDietPage.tsx` -- Ricerca coach arricchita
+**Modifiche UI:**
+- In `ProTemplatesPage`: mostrare i template di sistema in una sezione separata "Template di base" in sola lettura, con possibilita' di duplicarli nel proprio account
+- In `UserDietPage`: bottone "Usa template" nel wizard self-plan per applicare un template di base
 
-Aggiornare la query di ricerca coach per includere i nuovi campi e mostrare nelle card:
-- Anni di esperienza
-- Se lavora online/in presenza (badge)
-- Ruoli aggiuntivi
+**File coinvolti:**
+- Migration SQL (policy + seed data)
+- `src/pages/pro/ProTemplatesPage.tsx` (sezione template di base + bottone crea + bottone importa)
+- `src/pages/UserDietPage.tsx` (bottone "Usa template" nel wizard)
+- `src/integrations/supabase/types.ts` (aggiornamento automatico tipi)
 
 ## Dettagli tecnici
 
-### File coinvolti: 3 + migration
+### Edge function `extract-diet-template`
 
-| File | Modifica |
-|------|----------|
-| Migration SQL | Nuove colonne su `professional_profiles` + policy `is_visible` |
-| `src/pages/ProfiloPage.tsx` | Card profilo pro + form modifica + dialog coach arricchito |
-| `src/pages/UserDietPage.tsx` | Query e card ricerca coach con nuovi campi |
-| `src/integrations/supabase/types.ts` | Aggiornamento automatico tipi |
-
-### Upload foto profilo professionale
-
-Riutilizzare la stessa logica dell'avatar utente (bucket `avatars`, path `{userId}/pro-photo.{ext}`), salvando l'URL nel campo `photo_url` di `professional_profiles`.
-
-### Ruoli aggiuntivi
-
-Salvati come array di testo (`text[]`). UI con chip/tag selezionabili tra opzioni predefinite:
-- Nutrizionista
-- Dietologo
-- Personal Trainer
-- Mental Coach
-- Biologo nutrizionista
-- Altro (campo libero)
-
-### Policy per ricerca pubblica
-
-Nuova policy RLS su `professional_profiles`:
-```sql
-CREATE POLICY "Authenticated reads visible profiles"
-  ON professional_profiles FOR SELECT
-  USING (auth.uid() IS NOT NULL AND is_visible = true);
+Riceve un file PDF via FormData, lo converte in testo e usa un LLM per estrarre:
+```json
+{
+  "title": "...",
+  "kcal_day": 2000,
+  "protein_g_day": 100,
+  "carbs_g_day": 250,
+  "fats_g_day": 70,
+  "meals": [
+    { "meal_type": "colazione", "kcal_target": 400, "protein_g": 20, "carbs_g": 50, "fats_g": 15 }
+  ]
+}
 ```
 
-Questo permette a qualsiasi utente autenticato di trovare i professionisti che hanno scelto di essere visibili nella ricerca.
+### RLS per template di sistema
+
+```sql
+-- Tutti possono leggere i template di sistema
+CREATE POLICY "Read system templates"
+  ON diet_plan_templates FOR SELECT
+  USING (professional_id = '00000000-0000-0000-0000-000000000000' AND auth.uid() IS NOT NULL);
+
+CREATE POLICY "Read system template meals"
+  ON diet_plan_template_meals FOR SELECT
+  USING (EXISTS (
+    SELECT 1 FROM diet_plan_templates t
+    WHERE t.id = template_id
+    AND t.professional_id = '00000000-0000-0000-0000-000000000000'
+  ) AND auth.uid() IS NOT NULL);
+```
+
+### Fix profilo professionale
+
+Nel `useEffect` che carica `myProProfile`, se il risultato e' null, creare automaticamente un record vuoto:
+```typescript
+if (!data && user) {
+  const { data: newProfile } = await supabase
+    .from("professional_profiles")
+    .insert({ user_id: user.id, display_name: profile.full_name || "Professionista", specialization: "" })
+    .select()
+    .single();
+  if (newProfile) setMyProProfile(newProfile);
+}
+```
+
