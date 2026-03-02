@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Wand2, ChevronRight, ChevronLeft, Check, AlertTriangle, RefreshCw, BookmarkPlus, FolderOpen, Plus, Trash2, Search, X } from "lucide-react";
 import { useDebounce } from "@/hooks/useDebounce";
+import { searchFoodProgressive, FoodSearchResult, SearchPhase } from "@/lib/search-food";
 
 const MEAL_TYPES = ["colazione", "pranzo", "cena", "spuntino"] as const;
 const MEAL_LABELS: Record<string, string> = {
@@ -75,8 +76,9 @@ const ProClientPlanPage = () => {
   const [addingFoodFor, setAddingFoodFor] = useState<string | null>(null);
   const [foodSearch, setFoodSearch] = useState("");
   const debouncedSearch = useDebounce(foodSearch, 300);
-  const [foodResults, setFoodResults] = useState<any[]>([]);
+  const [foodResults, setFoodResults] = useState<FoodSearchResult[]>([]);
   const [searchingFood, setSearchingFood] = useState(false);
+  const [searchPhase, setSearchPhase] = useState<SearchPhase>("done");
 
   // Balance dialog
   const [showBalanceDialog, setShowBalanceDialog] = useState(false);
@@ -142,37 +144,36 @@ const ProClientPlanPage = () => {
     load();
   }, [clientId, user]);
 
-  // Search food templates
+  // Search food progressively (local + OFF + USDA)
   useEffect(() => {
     if (!debouncedSearch || debouncedSearch.length < 2) {
       setFoodResults([]);
+      setSearchPhase("done");
       return;
     }
     setSearchingFood(true);
-    supabase
-      .from("food_templates")
-      .select("*")
-      .ilike("name", `%${debouncedSearch}%`)
-      .limit(10)
-      .then(({ data }) => {
-        setFoodResults(data ?? []);
-        setSearchingFood(false);
-      });
+    setSearchPhase("local");
+    const cancel = searchFoodProgressive(debouncedSearch, (results, phase, done) => {
+      setFoodResults(results.slice(0, 20));
+      setSearchPhase(phase);
+      if (done) setSearchingFood(false);
+    });
+    return cancel;
   }, [debouncedSearch]);
 
-  const addFoodItem = (template: any, mealType: string) => {
+  const addFoodItem = (result: FoodSearchResult, mealType: string) => {
     const qty = 100;
     const item: PlanItem = {
       meal_type: mealType,
-      food_name: template.name,
+      food_name: result.name,
       quantity: qty,
-      unit: template.default_unit || "g",
-      calories: Math.round(template.calories_100g),
-      protein_g: Math.round(template.protein_100g * 10) / 10,
-      carbs_g: Math.round(template.carbs_100g * 10) / 10,
-      sugars_g: Math.round((template.sugars_100g ?? 0) * 10) / 10,
-      fats_g: Math.round(template.fats_100g * 10) / 10,
-      notes: "",
+      unit: "g",
+      calories: Math.round(result.calories_100g ?? 0),
+      protein_g: Math.round((result.protein_100g ?? 0) * 10) / 10,
+      carbs_g: Math.round((result.carbs_100g ?? 0) * 10) / 10,
+      sugars_g: 0,
+      fats_g: Math.round((result.fats_100g ?? 0) * 10) / 10,
+      notes: result.brand ? `${result.brand}` : "",
       sort_order: planItems.filter((i) => i.meal_type === mealType).length,
     };
     setPlanItems((prev) => [...prev, item]);
@@ -618,18 +619,30 @@ const ProClientPlanPage = () => {
                             <X className="h-3.5 w-3.5 text-muted-foreground" />
                           </button>
                         </div>
-                        {searchingFood && <p className="text-[10px] text-muted-foreground">Ricerca...</p>}
+                        {searchingFood && (
+                          <p className="text-[10px] text-muted-foreground">
+                            {searchPhase === "local" ? "Ricerca locale..." : searchPhase === "off" ? "Ricerca OpenFoodFacts..." : searchPhase === "usda" ? "Ricerca USDA..." : "Ricerca..."}
+                          </p>
+                        )}
                         {foodResults.length > 0 && (
                           <div className="max-h-40 overflow-y-auto space-y-1">
-                            {foodResults.map((f: any) => (
+                            {foodResults.map((f, idx) => (
                               <button
-                                key={f.id}
+                                key={`${f.name}-${f.source}-${idx}`}
                                 onClick={() => addFoodItem(f, mt.meal_type)}
                                 className="w-full text-left rounded-lg bg-secondary/30 hover:bg-secondary p-2 text-xs transition-colors"
                               >
-                                <p className="font-medium text-foreground">{f.name}</p>
+                                <div className="flex items-center gap-1.5">
+                                  <p className="font-medium text-foreground flex-1 truncate">{f.name}</p>
+                                  <span className={`shrink-0 text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
+                                    f.source === "local" ? "bg-primary/15 text-primary" : f.source === "off" ? "bg-accent/20 text-accent-foreground" : "bg-muted text-muted-foreground"
+                                  }`}>
+                                    {f.source === "local" ? "DB" : f.source === "off" ? "OFF" : "USDA"}
+                                  </span>
+                                </div>
                                 <p className="text-[10px] text-muted-foreground">
-                                  {f.calories_100g} kcal/100{f.default_unit || "g"} · P:{f.protein_100g} C:{f.carbs_100g} G:{f.fats_100g}
+                                  {f.calories_100g ?? 0} kcal/100g · P:{f.protein_100g ?? 0} C:{f.carbs_100g ?? 0} G:{f.fats_100g ?? 0}
+                                  {f.brand ? ` · ${f.brand}` : ""}
                                 </p>
                               </button>
                             ))}
