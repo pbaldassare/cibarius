@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.search-food]
 verify_jwt = false
+
+[functions.extract-diet-template]
+verify_jwt = false

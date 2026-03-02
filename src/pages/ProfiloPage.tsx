@@ -101,15 +101,43 @@ const ProfiloPage = () => {
 
     // Load professional's own profile
     if (role === "professional") {
-      supabase
-        .from("professional_profiles")
-        .select("*")
-        .eq("user_id", user.id)
-        .maybeSingle()
-        .then(({ data }) => {
-          if (data) setMyProProfile(data as any);
-          setLoadingMyPro(false);
-        });
+      (async () => {
+        const { data, error } = await supabase
+          .from("professional_profiles")
+          .select("*")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (error) {
+          console.error("Error loading pro profile:", error);
+        }
+
+        if (data) {
+          setMyProProfile(data as any);
+        } else if (user) {
+          // Auto-create professional profile if missing
+          const { data: profileData } = await supabase
+            .from("profiles")
+            .select("full_name")
+            .eq("id", user.id)
+            .single();
+          const { data: newProfile, error: insertErr } = await supabase
+            .from("professional_profiles")
+            .insert({
+              user_id: user.id,
+              display_name: profileData?.full_name || "Professionista",
+              specialization: "",
+            })
+            .select()
+            .single();
+          if (insertErr) {
+            console.error("Error creating pro profile:", insertErr);
+          } else if (newProfile) {
+            setMyProProfile(newProfile as any);
+          }
+        }
+        setLoadingMyPro(false);
+      })();
     } else {
       setLoadingMyPro(false);
     }
