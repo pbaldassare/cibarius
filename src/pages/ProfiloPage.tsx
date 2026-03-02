@@ -4,7 +4,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useRole } from "@/hooks/useRole";
 import { supabase } from "@/integrations/supabase/client";
-import { ChevronRight, Settings, Heart, Bell, LogOut, UserX, Stethoscope, Sparkles, ClipboardList, MessageSquareWarning, Trash2, Camera, MapPin, GraduationCap } from "lucide-react";
+import {
+  ChevronRight, Settings, Heart, Bell, LogOut, UserX, Stethoscope, Sparkles,
+  ClipboardList, MessageSquareWarning, Trash2, Camera, MapPin, GraduationCap,
+  Globe, Instagram, Facebook, Linkedin, Briefcase, Monitor, Building2, Eye, EyeOff, Pencil, X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -14,6 +18,30 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Switch } from "@/components/ui/switch";
+
+const ROLE_OPTIONS = [
+  "Nutrizionista", "Dietologo", "Personal Trainer", "Mental Coach", "Biologo nutrizionista",
+];
+
+interface ProProfileData {
+  id: string;
+  display_name: string;
+  specialization: string;
+  city: string | null;
+  bio: string | null;
+  photo_url: string | null;
+  experience_years: number | null;
+  additional_roles: string[] | null;
+  workplace: string | null;
+  website: string | null;
+  instagram: string | null;
+  facebook: string | null;
+  linkedin: string | null;
+  works_online: boolean;
+  works_in_person: boolean;
+  is_visible: boolean;
+}
 
 const ProfiloPage = () => {
   const { user, signOut } = useAuth();
@@ -22,9 +50,21 @@ const ProfiloPage = () => {
   const { toast } = useToast();
   const [proLink, setProLink] = useState<any>(null);
   const [proProfile, setProProfile] = useState<any>(null);
-  const [proProfessionalProfile, setProProfessionalProfile] = useState<any>(null);
+  const [proProfessionalProfile, setProProfessionalProfile] = useState<ProProfileData | null>(null);
   const [loadingPro, setLoadingPro] = useState(true);
   const [hasPlan, setHasPlan] = useState(false);
+
+  // Professional's own profile (when role=professional)
+  const [myProProfile, setMyProProfile] = useState<ProProfileData | null>(null);
+  const [loadingMyPro, setLoadingMyPro] = useState(true);
+  const [proEditOpen, setProEditOpen] = useState(false);
+  const [proForm, setProForm] = useState<Partial<ProProfileData>>({});
+  const [savingProForm, setSavingProForm] = useState(false);
+  const [customRole, setCustomRole] = useState("");
+
+  // Pro photo upload
+  const proPhotoRef = useRef<HTMLInputElement>(null);
+  const [uploadingProPhoto, setUploadingProPhoto] = useState(false);
 
   // Profile data
   const [profile, setProfile] = useState<{ full_name: string | null; phone: string | null; avatar_url: string | null }>({ full_name: null, phone: null, avatar_url: null });
@@ -59,6 +99,21 @@ const ProfiloPage = () => {
       if (data) setProfile(data as any);
     });
 
+    // Load professional's own profile
+    if (role === "professional") {
+      supabase
+        .from("professional_profiles")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data) setMyProProfile(data as any);
+          setLoadingMyPro(false);
+        });
+    } else {
+      setLoadingMyPro(false);
+    }
+
     const loadProLink = async () => {
       const { data: link } = await supabase
         .from("client_links")
@@ -73,16 +128,16 @@ const ProfiloPage = () => {
         const [profileRes, planRes, proProfRes] = await Promise.all([
           supabase.from("profiles").select("full_name, email").eq("id", link.professional_id).single(),
           supabase.from("diet_plans").select("id").eq("client_user_id", user.id).eq("is_active", true).maybeSingle(),
-          supabase.from("professional_profiles").select("display_name, specialization, city, bio, photo_url").eq("user_id", link.professional_id).maybeSingle(),
+          supabase.from("professional_profiles").select("*").eq("user_id", link.professional_id).maybeSingle(),
         ]);
         setProProfile(profileRes.data);
         setHasPlan(!!planRes.data);
-        setProProfessionalProfile(proProfRes.data);
+        setProProfessionalProfile(proProfRes.data as any);
       }
       setLoadingPro(false);
     };
     loadProLink();
-  }, [user]);
+  }, [user, role]);
 
   const handleLogout = async () => {
     await signOut();
@@ -172,6 +227,83 @@ const ProfiloPage = () => {
     setTimeout(() => signOut(), 1500);
   };
 
+  // ═══ Pro profile handlers ═══
+  const openProEdit = () => {
+    if (!myProProfile) return;
+    setProForm({ ...myProProfile });
+    setCustomRole("");
+    setProEditOpen(true);
+  };
+
+  const handleProPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user || !myProProfile) return;
+    setUploadingProPhoto(true);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `${user.id}/pro-photo.${ext}`;
+      const { error: uploadErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+      if (uploadErr) throw uploadErr;
+      const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
+      const photoUrl = urlData.publicUrl + "?t=" + Date.now();
+      await supabase.from("professional_profiles").update({ photo_url: photoUrl } as any).eq("id", myProProfile.id);
+      setMyProProfile(p => p ? { ...p, photo_url: photoUrl } : p);
+      toast({ title: "Foto profilo aggiornata!" });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Errore upload", description: err.message });
+    } finally {
+      setUploadingProPhoto(false);
+    }
+  };
+
+  const toggleRole = (r: string) => {
+    const current = proForm.additional_roles || [];
+    if (current.includes(r)) {
+      setProForm(f => ({ ...f, additional_roles: current.filter(x => x !== r) }));
+    } else {
+      setProForm(f => ({ ...f, additional_roles: [...current, r] }));
+    }
+  };
+
+  const addCustomRole = () => {
+    const trimmed = customRole.trim();
+    if (!trimmed) return;
+    const current = proForm.additional_roles || [];
+    if (!current.includes(trimmed)) {
+      setProForm(f => ({ ...f, additional_roles: [...current, trimmed] }));
+    }
+    setCustomRole("");
+  };
+
+  const saveProProfile = async () => {
+    if (!user || !myProProfile) return;
+    setSavingProForm(true);
+    const { error } = await supabase.from("professional_profiles").update({
+      display_name: proForm.display_name || myProProfile.display_name,
+      specialization: proForm.specialization || "",
+      experience_years: proForm.experience_years ?? null,
+      additional_roles: proForm.additional_roles || [],
+      city: proForm.city || null,
+      workplace: proForm.workplace || null,
+      bio: proForm.bio || null,
+      website: proForm.website || null,
+      instagram: proForm.instagram || null,
+      facebook: proForm.facebook || null,
+      linkedin: proForm.linkedin || null,
+      works_online: proForm.works_online ?? false,
+      works_in_person: proForm.works_in_person ?? true,
+      is_visible: proForm.is_visible ?? true,
+    } as any).eq("id", myProProfile.id);
+    setSavingProForm(false);
+    if (error) {
+      toast({ variant: "destructive", title: "Errore", description: error.message });
+    } else {
+      setMyProProfile(p => p ? { ...p, ...proForm } as ProProfileData : p);
+      setProEditOpen(false);
+      toast({ title: "Profilo professionale aggiornato!" });
+    }
+  };
+
   const coachDisplayName = proProfessionalProfile?.display_name || proProfile?.full_name || "Professionista";
 
   return (
@@ -200,7 +332,112 @@ const ProfiloPage = () => {
           </div>
         </div>
 
-        {/* ═══ Nutrizionista card ═══ */}
+        {/* ═══ Professional Profile Card (only for professionals) ═══ */}
+        {role === "professional" && (
+          <div className="rounded-[18px] bg-card shadow-card overflow-hidden">
+            <div className="px-4 pt-4 pb-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
+                    <Briefcase className="h-4.5 w-4.5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-[15px] font-semibold text-foreground">Il tuo profilo professionale</p>
+                    <p className="text-[12px] text-muted-foreground">Visibile ai tuoi clienti e nella ricerca</p>
+                  </div>
+                </div>
+                <Button variant="ghost" size="icon" onClick={openProEdit} className="h-8 w-8">
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {loadingMyPro ? (
+                <p className="text-sm text-muted-foreground py-2">Caricamento…</p>
+              ) : myProProfile ? (
+                <div className="space-y-3">
+                  {/* Photo + name */}
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => proPhotoRef.current?.click()} className="relative shrink-0 group" disabled={uploadingProPhoto}>
+                      <Avatar className="h-14 w-14">
+                        {myProProfile.photo_url ? (
+                          <AvatarImage src={myProProfile.photo_url} alt="Pro photo" className="object-cover" />
+                        ) : null}
+                        <AvatarFallback className="bg-primary/10 text-xl font-bold">{myProProfile.display_name?.charAt(0)?.toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <div className="absolute inset-0 rounded-full bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Camera className="h-4 w-4 text-white" />
+                      </div>
+                      <input ref={proPhotoRef} type="file" accept="image/*" className="hidden" onChange={handleProPhotoUpload} />
+                    </button>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-foreground truncate">{myProProfile.display_name}</p>
+                      {myProProfile.specialization && <p className="text-xs text-muted-foreground">{myProProfile.specialization}</p>}
+                    </div>
+                    <Badge variant={myProProfile.is_visible ? "default" : "secondary"} className="text-[10px] gap-1">
+                      {myProProfile.is_visible ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                      {myProProfile.is_visible ? "Visibile" : "Nascosto"}
+                    </Badge>
+                  </div>
+
+                  {/* Details grid */}
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    {myProProfile.experience_years != null && (
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <GraduationCap className="h-3.5 w-3.5 shrink-0" />
+                        <span>{myProProfile.experience_years} anni di esperienza</span>
+                      </div>
+                    )}
+                    {myProProfile.city && (
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <MapPin className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">{myProProfile.city}</span>
+                      </div>
+                    )}
+                    {myProProfile.workplace && (
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <Building2 className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">{myProProfile.workplace}</span>
+                      </div>
+                    )}
+                    {(myProProfile.works_online || myProProfile.works_in_person) && (
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <Monitor className="h-3.5 w-3.5 shrink-0" />
+                        <span>
+                          {[myProProfile.works_online && "Online", myProProfile.works_in_person && "In presenza"].filter(Boolean).join(" · ")}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Additional roles */}
+                  {myProProfile.additional_roles && myProProfile.additional_roles.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {myProProfile.additional_roles.map(r => (
+                        <Badge key={r} variant="outline" className="text-[10px]">{r}</Badge>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Social links */}
+                  {(myProProfile.website || myProProfile.instagram || myProProfile.facebook || myProProfile.linkedin) && (
+                    <div className="flex gap-2">
+                      {myProProfile.website && <a href={myProProfile.website} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary"><Globe className="h-4 w-4" /></a>}
+                      {myProProfile.instagram && <a href={`https://instagram.com/${myProProfile.instagram.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary"><Instagram className="h-4 w-4" /></a>}
+                      {myProProfile.facebook && <a href={myProProfile.facebook} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary"><Facebook className="h-4 w-4" /></a>}
+                      {myProProfile.linkedin && <a href={myProProfile.linkedin} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary"><Linkedin className="h-4 w-4" /></a>}
+                    </div>
+                  )}
+
+                  {myProProfile.bio && <p className="text-xs text-muted-foreground line-clamp-3">{myProProfile.bio}</p>}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Profilo non trovato.</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ═══ Nutrizionista card (for users) ═══ */}
         {role !== "professional" && <div className="rounded-[18px] bg-card shadow-card overflow-hidden">
           <div className="px-4 pt-4 pb-3">
             <div className="flex items-center gap-2 mb-3">
@@ -322,7 +559,7 @@ const ProfiloPage = () => {
         </button>
       </main>
 
-      {/* ═══ Coach Info Dialog ═══ */}
+      {/* ═══ Coach Info Dialog (enriched) ═══ */}
       <Dialog open={coachDialogOpen} onOpenChange={setCoachDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -345,22 +582,176 @@ const ProfiloPage = () => {
                   {proProfessionalProfile.specialization}
                 </div>
               )}
+              {proProfessionalProfile?.experience_years != null && (
+                <p className="text-sm text-muted-foreground">{proProfessionalProfile.experience_years} anni di esperienza</p>
+              )}
               {proProfessionalProfile?.city && (
                 <div className="flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
                   <MapPin className="h-4 w-4" />
                   {proProfessionalProfile.city}
                 </div>
               )}
+              {proProfessionalProfile?.workplace && (
+                <div className="flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
+                  <Building2 className="h-4 w-4" />
+                  {proProfessionalProfile.workplace}
+                </div>
+              )}
             </div>
+
+            {/* Availability */}
+            {(proProfessionalProfile?.works_online || proProfessionalProfile?.works_in_person) && (
+              <div className="flex gap-2">
+                {proProfessionalProfile.works_online && <Badge variant="outline" className="text-[10px] gap-1"><Monitor className="h-3 w-3" /> Online</Badge>}
+                {proProfessionalProfile.works_in_person && <Badge variant="outline" className="text-[10px] gap-1"><Building2 className="h-3 w-3" /> In presenza</Badge>}
+              </div>
+            )}
+
+            {/* Additional roles */}
+            {proProfessionalProfile?.additional_roles && proProfessionalProfile.additional_roles.length > 0 && (
+              <div className="flex flex-wrap justify-center gap-1">
+                {proProfessionalProfile.additional_roles.map(r => (
+                  <Badge key={r} variant="secondary" className="text-[10px]">{r}</Badge>
+                ))}
+              </div>
+            )}
+
             {proProfessionalProfile?.bio && (
               <p className="text-sm text-muted-foreground text-center leading-relaxed px-2">
                 {proProfessionalProfile.bio}
               </p>
             )}
+
+            {/* Social links */}
+            {(proProfessionalProfile?.website || proProfessionalProfile?.instagram || proProfessionalProfile?.facebook || proProfessionalProfile?.linkedin) && (
+              <div className="flex gap-3 pt-1">
+                {proProfessionalProfile.website && <a href={proProfessionalProfile.website} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary"><Globe className="h-5 w-5" /></a>}
+                {proProfessionalProfile.instagram && <a href={`https://instagram.com/${proProfessionalProfile.instagram.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary"><Instagram className="h-5 w-5" /></a>}
+                {proProfessionalProfile.facebook && <a href={proProfessionalProfile.facebook} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary"><Facebook className="h-5 w-5" /></a>}
+                {proProfessionalProfile.linkedin && <a href={proProfessionalProfile.linkedin} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary"><Linkedin className="h-5 w-5" /></a>}
+              </div>
+            )}
+
             {proProfile?.email && (
               <p className="text-xs text-muted-foreground">{proProfile.email}</p>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ═══ Pro Profile Edit Dialog ═══ */}
+      <Dialog open={proEditOpen} onOpenChange={setProEditOpen}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Modifica profilo professionale</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Nome visualizzato</Label>
+              <Input value={proForm.display_name || ""} onChange={e => setProForm(f => ({ ...f, display_name: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label>Specializzazione</Label>
+              <Input value={proForm.specialization || ""} onChange={e => setProForm(f => ({ ...f, specialization: e.target.value }))} placeholder="es. Nutrizione sportiva" />
+            </div>
+            <div className="space-y-2">
+              <Label>Anni di esperienza</Label>
+              <Input type="number" value={proForm.experience_years ?? ""} onChange={e => setProForm(f => ({ ...f, experience_years: e.target.value ? parseInt(e.target.value) : null }))} placeholder="es. 5" />
+            </div>
+
+            {/* Additional roles */}
+            <div className="space-y-2">
+              <Label>Ruoli aggiuntivi</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {ROLE_OPTIONS.map(r => {
+                  const selected = (proForm.additional_roles || []).includes(r);
+                  return (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => toggleRole(r)}
+                      className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                        selected ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground border-border hover:border-primary/50"
+                      }`}
+                    >
+                      {r}
+                    </button>
+                  );
+                })}
+                {/* Show custom roles not in presets */}
+                {(proForm.additional_roles || []).filter(r => !ROLE_OPTIONS.includes(r)).map(r => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => toggleRole(r)}
+                    className="px-2.5 py-1 rounded-full text-xs font-medium border bg-primary text-primary-foreground border-primary flex items-center gap-1"
+                  >
+                    {r} <X className="h-3 w-3" />
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <Input value={customRole} onChange={e => setCustomRole(e.target.value)} placeholder="Altro ruolo…" className="flex-1" onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addCustomRole())} />
+                <Button type="button" variant="outline" size="sm" onClick={addCustomRole} disabled={!customRole.trim()}>Aggiungi</Button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Città</Label>
+                <Input value={proForm.city || ""} onChange={e => setProForm(f => ({ ...f, city: e.target.value }))} placeholder="es. Roma" />
+              </div>
+              <div className="space-y-2">
+                <Label>Luogo di lavoro</Label>
+                <Input value={proForm.workplace || ""} onChange={e => setProForm(f => ({ ...f, workplace: e.target.value }))} placeholder="es. Studio privato" />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Bio</Label>
+              <Textarea value={proForm.bio || ""} onChange={e => setProForm(f => ({ ...f, bio: e.target.value }))} placeholder="Racconta di te ai tuoi clienti..." rows={3} />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Sito web</Label>
+              <Input value={proForm.website || ""} onChange={e => setProForm(f => ({ ...f, website: e.target.value }))} placeholder="https://..." />
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Instagram</Label>
+                <Input value={proForm.instagram || ""} onChange={e => setProForm(f => ({ ...f, instagram: e.target.value }))} placeholder="@handle" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Facebook</Label>
+                <Input value={proForm.facebook || ""} onChange={e => setProForm(f => ({ ...f, facebook: e.target.value }))} placeholder="URL" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">LinkedIn</Label>
+                <Input value={proForm.linkedin || ""} onChange={e => setProForm(f => ({ ...f, linkedin: e.target.value }))} placeholder="URL" />
+              </div>
+            </div>
+
+            {/* Switches */}
+            <div className="space-y-3 pt-1">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm">Lavoro online</Label>
+                <Switch checked={proForm.works_online ?? false} onCheckedChange={v => setProForm(f => ({ ...f, works_online: v }))} />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label className="text-sm">Lavoro in presenza</Label>
+                <Switch checked={proForm.works_in_person ?? true} onCheckedChange={v => setProForm(f => ({ ...f, works_in_person: v }))} />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label className="text-sm">Visibile nella ricerca</Label>
+                <Switch checked={proForm.is_visible ?? true} onCheckedChange={v => setProForm(f => ({ ...f, is_visible: v }))} />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={saveProProfile} disabled={savingProForm} className="w-full">
+              {savingProForm ? "Salvataggio..." : "Salva profilo"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

@@ -1036,34 +1036,64 @@ export type Database = {
       }
       professional_profiles: {
         Row: {
+          additional_roles: string[] | null
           bio: string | null
           city: string | null
           created_at: string
           display_name: string
+          experience_years: number | null
+          facebook: string | null
           id: string
+          instagram: string | null
+          is_visible: boolean | null
+          linkedin: string | null
           photo_url: string | null
           specialization: string
           user_id: string
+          website: string | null
+          workplace: string | null
+          works_in_person: boolean | null
+          works_online: boolean | null
         }
         Insert: {
+          additional_roles?: string[] | null
           bio?: string | null
           city?: string | null
           created_at?: string
           display_name: string
+          experience_years?: number | null
+          facebook?: string | null
           id?: string
+          instagram?: string | null
+          is_visible?: boolean | null
+          linkedin?: string | null
           photo_url?: string | null
           specialization?: string
           user_id: string
+          website?: string | null
+          workplace?: string | null
+          works_in_person?: boolean | null
+          works_online?: boolean | null
         }
         Update: {
+          additional_roles?: string[] | null
           bio?: string | null
           city?: string | null
           created_at?: string
           display_name?: string
+          experience_years?: number | null
+          facebook?: string | null
           id?: string
+          instagram?: string | null
+          is_visible?: boolean | null
+          linkedin?: string | null
           photo_url?: string | null
           specialization?: string
           user_id?: string
+          website?: string | null
+          workplace?: string | null
+          works_in_person?: boolean | null
+          works_online?: boolean | null
         }
         Relationships: []
       }

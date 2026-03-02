@@ -19,7 +19,7 @@ import {
   Loader2, Sparkles, ClipboardList, Trophy, Flame, Plus, Trash2,
   ChevronDown, Lightbulb, BookOpen, Bookmark, Send, Eye,
   UserCheck, ArrowRight, ShoppingCart, CalendarDays, Ruler,
-  Search, MapPin, UserPlus, X,
+  Search, MapPin, UserPlus, X, Monitor, Building2, GraduationCap,
 } from "lucide-react";
 
 const MEAL_LABELS: Record<string, string> = {
@@ -59,6 +59,11 @@ interface ProProfile {
   city: string | null;
   bio: string | null;
   photo_url: string | null;
+  experience_years: number | null;
+  additional_roles: string[] | null;
+  workplace: string | null;
+  works_online: boolean;
+  works_in_person: boolean;
 }
 
 const UserDietPage = () => {
@@ -207,7 +212,8 @@ const UserDietPage = () => {
     setLoadingCoaches(true);
     const { data } = await supabase
       .from("professional_profiles")
-      .select("display_name, specialization, city, bio, photo_url")
+      .select("display_name, specialization, city, bio, photo_url, experience_years, additional_roles, workplace, works_online, works_in_person, is_visible")
+      .eq("is_visible", true)
       .limit(20);
     setCoaches((data ?? []) as any);
     setLoadingCoaches(false);
@@ -423,10 +429,33 @@ const UserDietPage = () => {
                         {coach.specialization && (
                           <Badge variant="outline" className="text-[9px] mt-0.5">{coach.specialization}</Badge>
                         )}
-                        {coach.city && (
-                          <p className="text-[10px] text-muted-foreground flex items-center gap-0.5 mt-0.5">
-                            <MapPin className="h-2.5 w-2.5" /> {coach.city}
-                          </p>
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
+                          {coach.city && (
+                            <p className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                              <MapPin className="h-2.5 w-2.5" /> {coach.city}
+                            </p>
+                          )}
+                          {coach.experience_years != null && (
+                            <p className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                              <GraduationCap className="h-2.5 w-2.5" /> {coach.experience_years} anni
+                            </p>
+                          )}
+                        </div>
+                        {/* Availability badges */}
+                        {(coach.works_online || coach.works_in_person) && (
+                          <div className="flex gap-1 mt-1">
+                            {coach.works_online && <Badge variant="secondary" className="text-[8px] px-1.5 py-0 gap-0.5"><Monitor className="h-2.5 w-2.5" /> Online</Badge>}
+                            {coach.works_in_person && <Badge variant="secondary" className="text-[8px] px-1.5 py-0 gap-0.5"><Building2 className="h-2.5 w-2.5" /> Presenza</Badge>}
+                          </div>
+                        )}
+                        {/* Additional roles */}
+                        {coach.additional_roles && coach.additional_roles.length > 0 && (
+                          <div className="flex flex-wrap gap-0.5 mt-1">
+                            {coach.additional_roles.slice(0, 3).map(r => (
+                              <Badge key={r} variant="outline" className="text-[8px] px-1.5 py-0">{r}</Badge>
+                            ))}
+                            {coach.additional_roles.length > 3 && <span className="text-[8px] text-muted-foreground">+{coach.additional_roles.length - 3}</span>}
+                          </div>
                         )}
                         {coach.bio && (
                           <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">{coach.bio}</p>
