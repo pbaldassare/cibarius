@@ -13,11 +13,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useDebounce } from "@/hooks/useDebounce";
+import { searchFoodProgressive, FoodSearchResult, SearchPhase } from "@/lib/search-food";
 import {
-  Loader2, Sparkles, ClipboardList, Trophy, Flame, Plus,
+  Loader2, Sparkles, ClipboardList, Trophy, Flame, Plus, Trash2,
   ChevronDown, Lightbulb, BookOpen, Bookmark, Send, Eye,
   UserCheck, ArrowRight, ShoppingCart, CalendarDays, Ruler,
-  Search, MapPin, UserPlus,
+  Search, MapPin, UserPlus, X,
 } from "lucide-react";
 
 const MEAL_LABELS: Record<string, string> = {
@@ -87,6 +89,19 @@ const UserDietPage = () => {
   const [selfFats, setSelfFats] = useState("70");
   const [selfNotes, setSelfNotes] = useState("");
   const [savingSelfPlan, setSavingSelfPlan] = useState(false);
+  const [selfStep, setSelfStep] = useState<1 | 2>(1);
+
+  // Self-plan food items
+  const [selfPlanItems, setSelfPlanItems] = useState<Array<{
+    meal_type: string; food_name: string; quantity: number; unit: string;
+    calories: number; protein_g: number; carbs_g: number; sugars_g: number; fats_g: number;
+  }>>([]);
+  const [selfAddingFor, setSelfAddingFor] = useState<string | null>(null);
+  const [selfFoodSearch, setSelfFoodSearch] = useState("");
+  const debouncedSelfSearch = useDebounce(selfFoodSearch, 300);
+  const [selfFoodResults, setSelfFoodResults] = useState<FoodSearchResult[]>([]);
+  const [selfSearching, setSelfSearching] = useState(false);
+  const [selfSearchPhase, setSelfSearchPhase] = useState<SearchPhase>("done");
 
   // Meal items expand
   const [expandedMeals, setExpandedMeals] = useState<Set<string>>(new Set());
@@ -203,6 +218,62 @@ const UserDietPage = () => {
     setSuggestions((prev) => prev.map((s) => (s.id === id ? { ...s, seen_at: new Date().toISOString() } : s)));
   };
 
+  // Progressive food search for self-plan
+  useEffect(() => {
+    if (!debouncedSelfSearch || debouncedSelfSearch.length < 2) {
+      setSelfFoodResults([]);
+      setSelfSearchPhase("done");
+      return;
+    }
+    setSelfSearching(true);
+    setSelfSearchPhase("local");
+    const cancel = searchFoodProgressive(debouncedSelfSearch, (results, phase, done) => {
+      setSelfFoodResults(results.slice(0, 20));
+      setSelfSearchPhase(phase);
+      if (done) setSelfSearching(false);
+    });
+    return cancel;
+  }, [debouncedSelfSearch]);
+
+  const addSelfFoodItem = (result: FoodSearchResult, mealType: string) => {
+    setSelfPlanItems((prev) => [...prev, {
+      meal_type: mealType,
+      food_name: result.name,
+      quantity: 100,
+      unit: "g",
+      calories: Math.round(result.calories_100g ?? 0),
+      protein_g: Math.round((result.protein_100g ?? 0) * 10) / 10,
+      carbs_g: Math.round((result.carbs_100g ?? 0) * 10) / 10,
+      sugars_g: 0,
+      fats_g: Math.round((result.fats_100g ?? 0) * 10) / 10,
+    }]);
+    setSelfAddingFor(null);
+    setSelfFoodSearch("");
+    setSelfFoodResults([]);
+  };
+
+  const removeSelfFoodItem = (idx: number) => {
+    setSelfPlanItems((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const updateSelfFoodQty = (idx: number, newQtyStr: string) => {
+    setSelfPlanItems((prev) => {
+      const updated = [...prev];
+      const item = { ...updated[idx] };
+      const oldQty = item.quantity || 100;
+      const newQty = parseFloat(newQtyStr) || 0;
+      const ratio = oldQty > 0 ? newQty / oldQty : 1;
+      item.quantity = newQty;
+      item.calories = Math.round(item.calories * ratio);
+      item.protein_g = Math.round(item.protein_g * ratio * 10) / 10;
+      item.carbs_g = Math.round(item.carbs_g * ratio * 10) / 10;
+      item.sugars_g = Math.round(item.sugars_g * ratio * 10) / 10;
+      item.fats_g = Math.round(item.fats_g * ratio * 10) / 10;
+      updated[idx] = item;
+      return updated;
+    });
+  };
+
   const handleCreateSelfPlan = async () => {
     if (!user) return;
     setSavingSelfPlan(true);
@@ -226,6 +297,25 @@ const UserDietPage = () => {
 
       if (error) throw error;
 
+      // Save plan items
+      if (selfPlanItems.length > 0 && newPlan) {
+        await supabase.from("diet_plan_items").insert(
+          selfPlanItems.map((item, idx) => ({
+            diet_plan_id: newPlan.id,
+            meal_type: item.meal_type,
+            food_name: item.food_name,
+            quantity: item.quantity,
+            unit: item.unit,
+            calories: item.calories,
+            protein_g: item.protein_g,
+            carbs_g: item.carbs_g,
+            sugars_g: item.sugars_g,
+            fats_g: item.fats_g,
+            sort_order: idx,
+          }))
+        );
+      }
+
       // Create nutrition targets
       await supabase.from("nutrition_targets").upsert({
         user_id: user.id, kcal_day: kcal, protein_g: protein, carbs_g: carbs, fats_g: fats,
@@ -233,7 +323,6 @@ const UserDietPage = () => {
 
       toast({ title: "Piano creato! 🎉" });
       setShowSelfPlan(false);
-      // Reload
       window.location.reload();
     } catch (err: any) {
       toast({ variant: "destructive", title: "Errore", description: err?.message });
@@ -354,43 +443,158 @@ const UserDietPage = () => {
           </div>
         </main>
 
-        {/* Self-plan dialog */}
-        <Dialog open={showSelfPlan} onOpenChange={setShowSelfPlan}>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Crea il tuo piano</DialogTitle></DialogHeader>
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs text-muted-foreground">Titolo</label>
-                <Input value={selfPlanTitle} onChange={(e) => setSelfPlanTitle(e.target.value)} />
+        {/* Self-plan dialog — 2-step wizard */}
+        <Dialog open={showSelfPlan} onOpenChange={(open) => { setShowSelfPlan(open); if (!open) setSelfStep(1); }}>
+          <DialogContent className="max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{selfStep === 1 ? "Crea il tuo piano" : "Aggiungi alimenti"}</DialogTitle>
+            </DialogHeader>
+
+            {selfStep === 1 && (
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">Titolo</label>
+                  <Input value={selfPlanTitle} onChange={(e) => setSelfPlanTitle(e.target.value)} />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs text-muted-foreground">Kcal/giorno</label>
+                    <Input type="number" value={selfKcal} onChange={(e) => setSelfKcal(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Proteine (g)</label>
+                    <Input type="number" value={selfProtein} onChange={(e) => setSelfProtein(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Carboidrati (g)</label>
+                    <Input type="number" value={selfCarbs} onChange={(e) => setSelfCarbs(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Grassi (g)</label>
+                    <Input type="number" value={selfFats} onChange={(e) => setSelfFats(e.target.value)} />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Note (opzionale)</label>
+                  <Textarea value={selfNotes} onChange={(e) => setSelfNotes(e.target.value)} rows={3} />
+                </div>
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-xs text-muted-foreground">Kcal/giorno</label>
-                  <Input type="number" value={selfKcal} onChange={(e) => setSelfKcal(e.target.value)} />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Proteine (g)</label>
-                  <Input type="number" value={selfProtein} onChange={(e) => setSelfProtein(e.target.value)} />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Carboidrati (g)</label>
-                  <Input type="number" value={selfCarbs} onChange={(e) => setSelfCarbs(e.target.value)} />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Grassi (g)</label>
-                  <Input type="number" value={selfFats} onChange={(e) => setSelfFats(e.target.value)} />
-                </div>
+            )}
+
+            {selfStep === 2 && (
+              <div className="space-y-4">
+                <p className="text-xs text-muted-foreground">Aggiungi alimenti specifici per ogni pasto (opzionale).</p>
+                {(["colazione", "pranzo", "spuntino", "cena"] as const).map((mt) => {
+                  const items = selfPlanItems.filter((i) => i.meal_type === mt);
+                  const mealKcal = items.reduce((s, i) => s + i.calories, 0);
+                  return (
+                    <Card key={mt} className="border border-border">
+                      <CardContent className="py-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs font-bold">{MEAL_LABELS[mt]}</p>
+                          <span className="text-[10px] text-muted-foreground">{mealKcal} kcal</span>
+                        </div>
+
+                        {items.map((item, idx) => {
+                          const globalIdx = selfPlanItems.indexOf(item);
+                          return (
+                            <div key={idx} className="flex items-center gap-2 text-xs bg-secondary/30 rounded-lg p-2">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium truncate">{item.food_name}</p>
+                                <p className="text-[10px] text-muted-foreground">
+                                  {item.calories} kcal · P:{item.protein_g} C:{item.carbs_g} G:{item.fats_g}
+                                </p>
+                              </div>
+                              <Input
+                                type="number"
+                                value={item.quantity}
+                                onChange={(e) => updateSelfFoodQty(globalIdx, e.target.value)}
+                                className="h-7 w-16 text-xs text-center"
+                              />
+                              <span className="text-[10px] text-muted-foreground">{item.unit}</span>
+                              <button onClick={() => removeSelfFoodItem(globalIdx)} className="text-destructive">
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          );
+                        })}
+
+                        {selfAddingFor === mt ? (
+                          <div className="space-y-2 border-t border-border pt-2">
+                            <div className="relative">
+                              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                              <Input
+                                placeholder="Cerca alimento..."
+                                value={selfFoodSearch}
+                                onChange={(e) => setSelfFoodSearch(e.target.value)}
+                                className="h-8 text-xs pl-7 pr-7"
+                                autoFocus
+                              />
+                              <button onClick={() => { setSelfAddingFor(null); setSelfFoodSearch(""); setSelfFoodResults([]); }} className="absolute right-2 top-1/2 -translate-y-1/2">
+                                <X className="h-3.5 w-3.5 text-muted-foreground" />
+                              </button>
+                            </div>
+                            {selfSearching && (
+                              <p className="text-[10px] text-muted-foreground">
+                                {selfSearchPhase === "local" ? "Ricerca locale..." : selfSearchPhase === "off" ? "Ricerca OpenFoodFacts..." : selfSearchPhase === "usda" ? "Ricerca USDA..." : "Ricerca..."}
+                              </p>
+                            )}
+                            {selfFoodResults.length > 0 && (
+                              <div className="max-h-40 overflow-y-auto space-y-1">
+                                {selfFoodResults.map((f, fIdx) => (
+                                  <button
+                                    key={`${f.name}-${f.source}-${fIdx}`}
+                                    onClick={() => addSelfFoodItem(f, mt)}
+                                    className="w-full text-left rounded-lg bg-secondary/30 hover:bg-secondary p-2 text-xs transition-colors"
+                                  >
+                                    <div className="flex items-center gap-1.5">
+                                      <p className="font-medium text-foreground flex-1 truncate">{f.name}</p>
+                                      <span className={`shrink-0 text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
+                                        f.source === "local" ? "bg-primary/15 text-primary" : f.source === "off" ? "bg-accent/20 text-accent-foreground" : "bg-muted text-muted-foreground"
+                                      }`}>
+                                        {f.source === "local" ? "DB" : f.source === "off" ? "OFF" : "USDA"}
+                                      </span>
+                                    </div>
+                                    <p className="text-[10px] text-muted-foreground">
+                                      {f.calories_100g ?? 0} kcal/100g · P:{f.protein_100g ?? 0} C:{f.carbs_100g ?? 0} G:{f.fats_100g ?? 0}
+                                      {f.brand ? ` · ${f.brand}` : ""}
+                                    </p>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setSelfAddingFor(mt)}
+                            className="flex items-center gap-1 text-xs font-medium text-primary pt-1"
+                          >
+                            <Plus size={14} /> Aggiungi alimento
+                          </button>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
-              <div>
-                <label className="text-xs text-muted-foreground">Note (opzionale)</label>
-                <Textarea value={selfNotes} onChange={(e) => setSelfNotes(e.target.value)} rows={3} />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button onClick={handleCreateSelfPlan} disabled={savingSelfPlan} className="w-full">
-                {savingSelfPlan ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Crea piano
-              </Button>
+            )}
+
+            <DialogFooter className="flex gap-2">
+              {selfStep === 2 && (
+                <Button variant="outline" onClick={() => setSelfStep(1)} className="flex-1">
+                  Indietro
+                </Button>
+              )}
+              {selfStep === 1 ? (
+                <Button onClick={() => setSelfStep(2)} className="flex-1">
+                  Avanti — Alimenti
+                </Button>
+              ) : (
+                <Button onClick={handleCreateSelfPlan} disabled={savingSelfPlan} className="flex-1">
+                  {savingSelfPlan ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  Crea piano
+                </Button>
+              )}
             </DialogFooter>
           </DialogContent>
         </Dialog>
