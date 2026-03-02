@@ -97,6 +97,10 @@ const UserDietPage = () => {
   const [selfStep, setSelfStep] = useState<1 | 2>(1);
   const [editingPlanId, setEditingPlanId] = useState<string | null>(null);
 
+  // System templates for "Usa template"
+  const [systemTemplates, setSystemTemplates] = useState<any[]>([]);
+  const [showTemplateList, setShowTemplateList] = useState(false);
+
   // Self-plan food items
   const [selfPlanItems, setSelfPlanItems] = useState<Array<{
     meal_type: string; food_name: string; quantity: number; unit: string;
@@ -225,6 +229,16 @@ const UserDietPage = () => {
     setSuggestions((prev) => prev.map((s) => (s.id === id ? { ...s, seen_at: new Date().toISOString() } : s)));
   };
 
+  // Load system templates
+  useEffect(() => {
+    supabase
+      .from("diet_plan_templates")
+      .select("*, diet_plan_template_meals(*)")
+      .eq("professional_id", "00000000-0000-0000-0000-000000000000")
+      .order("title")
+      .then(({ data }) => setSystemTemplates(data ?? []));
+  }, []);
+
   // Progressive food search for self-plan
   useEffect(() => {
     if (!debouncedSelfSearch || debouncedSelfSearch.length < 2) {
@@ -279,6 +293,17 @@ const UserDietPage = () => {
       updated[idx] = item;
       return updated;
     });
+  };
+
+  const applyTemplate = (tmpl: any) => {
+    setSelfPlanTitle(tmpl.title);
+    setSelfKcal(String(tmpl.kcal_day));
+    setSelfProtein(String(tmpl.protein_g_day));
+    setSelfCarbs(String(tmpl.carbs_g_day));
+    setSelfFats(String(tmpl.fats_g_day));
+    setSelfNotes(tmpl.notes || "");
+    setShowTemplateList(false);
+    toast({ title: `Template "${tmpl.title}" applicato` });
   };
 
   const openEditPlan = () => {
@@ -528,6 +553,36 @@ const UserDietPage = () => {
 
             {selfStep === 1 && (
               <div className="space-y-3">
+                {/* Use template button */}
+                {systemTemplates.length > 0 && !editingPlanId && (
+                  <div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full gap-2 text-xs"
+                      onClick={() => setShowTemplateList(!showTemplateList)}
+                    >
+                      <Bookmark className="h-3.5 w-3.5" />
+                      {showTemplateList ? "Nascondi template" : "Usa un template di base"}
+                    </Button>
+                    {showTemplateList && (
+                      <div className="mt-2 space-y-1 max-h-48 overflow-y-auto">
+                        {systemTemplates.map((tmpl: any) => (
+                          <button
+                            key={tmpl.id}
+                            onClick={() => applyTemplate(tmpl)}
+                            className="w-full text-left rounded-lg bg-secondary/40 hover:bg-secondary p-2 text-xs transition-colors"
+                          >
+                            <p className="font-medium text-foreground">{tmpl.title}</p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {tmpl.kcal_day} kcal · P:{tmpl.protein_g_day}g C:{tmpl.carbs_g_day}g G:{tmpl.fats_g_day}g
+                            </p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div>
                   <label className="text-xs text-muted-foreground">Titolo</label>
                   <Input value={selfPlanTitle} onChange={(e) => setSelfPlanTitle(e.target.value)} />
