@@ -19,7 +19,7 @@ import {
   Loader2, Sparkles, ClipboardList, Trophy, Flame, Plus, Trash2,
   ChevronDown, Lightbulb, BookOpen, Bookmark, Send, Eye,
   UserCheck, ArrowRight, ShoppingCart, CalendarDays, Ruler,
-  Search, MapPin, UserPlus, X, Monitor, Building2, GraduationCap,
+  Search, MapPin, UserPlus, X, Monitor, Building2, GraduationCap, Pencil,
 } from "lucide-react";
 
 const MEAL_LABELS: Record<string, string> = {
@@ -95,6 +95,7 @@ const UserDietPage = () => {
   const [selfNotes, setSelfNotes] = useState("");
   const [savingSelfPlan, setSavingSelfPlan] = useState(false);
   const [selfStep, setSelfStep] = useState<1 | 2>(1);
+  const [editingPlanId, setEditingPlanId] = useState<string | null>(null);
 
   // Self-plan food items
   const [selfPlanItems, setSelfPlanItems] = useState<Array<{
@@ -280,6 +281,32 @@ const UserDietPage = () => {
     });
   };
 
+  const openEditPlan = () => {
+    if (!plan || !isSelfPlan) return;
+    setSelfPlanTitle(plan.title || "Il mio piano");
+    setSelfKcal(String(plan.kcal_day));
+    setSelfProtein(String(plan.protein_g_day));
+    setSelfCarbs(String(plan.carbs_g_day));
+    setSelfFats(String(plan.fats_g_day));
+    setSelfNotes(plan.notes || "");
+    setSelfPlanItems(planItems.map(i => ({
+      meal_type: i.meal_type,
+      food_name: i.food_name,
+      quantity: i.quantity,
+      unit: i.unit,
+      calories: i.calories,
+      protein_g: i.protein_g,
+      carbs_g: i.carbs_g,
+      sugars_g: i.sugars_g,
+      fats_g: i.fats_g,
+    })));
+    setEditingPlanId(plan.id);
+    setSelfStep(1);
+    setShowSelfPlan(true);
+  };
+
+  const isSelfPlan = plan ? plan.professional_id === plan.client_user_id : false;
+
   const handleCreateSelfPlan = async () => {
     if (!user) return;
     setSavingSelfPlan(true);
@@ -289,25 +316,44 @@ const UserDietPage = () => {
       const carbs = parseFloat(selfCarbs) || 220;
       const fats = parseFloat(selfFats) || 70;
 
-      const { data: newPlan, error } = await supabase.from("diet_plans").insert({
-        professional_id: user.id,
-        client_user_id: user.id,
-        title: selfPlanTitle,
-        kcal_day: kcal,
-        protein_g_day: protein,
-        carbs_g_day: carbs,
-        fats_g_day: fats,
-        notes: selfNotes || null,
-        is_active: true,
-      }).select().single();
+      let planId = editingPlanId;
 
-      if (error) throw error;
+      if (editingPlanId) {
+        // Update existing plan
+        const { error } = await supabase.from("diet_plans").update({
+          title: selfPlanTitle,
+          kcal_day: kcal,
+          protein_g_day: protein,
+          carbs_g_day: carbs,
+          fats_g_day: fats,
+          notes: selfNotes || null,
+        }).eq("id", editingPlanId);
+        if (error) throw error;
+
+        // Delete old items, re-insert
+        await supabase.from("diet_plan_items").delete().eq("diet_plan_id", editingPlanId);
+      } else {
+        // Create new plan
+        const { data: newPlan, error } = await supabase.from("diet_plans").insert({
+          professional_id: user.id,
+          client_user_id: user.id,
+          title: selfPlanTitle,
+          kcal_day: kcal,
+          protein_g_day: protein,
+          carbs_g_day: carbs,
+          fats_g_day: fats,
+          notes: selfNotes || null,
+          is_active: true,
+        }).select().single();
+        if (error) throw error;
+        planId = newPlan.id;
+      }
 
       // Save plan items
-      if (selfPlanItems.length > 0 && newPlan) {
+      if (selfPlanItems.length > 0 && planId) {
         await supabase.from("diet_plan_items").insert(
           selfPlanItems.map((item, idx) => ({
-            diet_plan_id: newPlan.id,
+            diet_plan_id: planId,
             meal_type: item.meal_type,
             food_name: item.food_name,
             quantity: item.quantity,
@@ -322,13 +368,14 @@ const UserDietPage = () => {
         );
       }
 
-      // Create nutrition targets
+      // Create/update nutrition targets
       await supabase.from("nutrition_targets").upsert({
         user_id: user.id, kcal_day: kcal, protein_g: protein, carbs_g: carbs, fats_g: fats,
       }, { onConflict: "user_id" });
 
-      toast({ title: "Piano creato! 🎉" });
+      toast({ title: editingPlanId ? "Piano aggiornato! ✅" : "Piano creato! 🎉" });
       setShowSelfPlan(false);
+      setEditingPlanId(null);
       window.location.reload();
     } catch (err: any) {
       toast({ variant: "destructive", title: "Errore", description: err?.message });
@@ -473,10 +520,10 @@ const UserDietPage = () => {
         </main>
 
         {/* Self-plan dialog — 2-step wizard */}
-        <Dialog open={showSelfPlan} onOpenChange={(open) => { setShowSelfPlan(open); if (!open) setSelfStep(1); }}>
+        <Dialog open={showSelfPlan} onOpenChange={(open) => { setShowSelfPlan(open); if (!open) { setSelfStep(1); setEditingPlanId(null); } }}>
           <DialogContent className="max-h-[85vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{selfStep === 1 ? "Crea il tuo piano" : "Aggiungi alimenti"}</DialogTitle>
+              <DialogTitle>{selfStep === 1 ? (editingPlanId ? "Modifica il tuo piano" : "Crea il tuo piano") : "Aggiungi alimenti"}</DialogTitle>
             </DialogHeader>
 
             {selfStep === 1 && (
@@ -621,7 +668,7 @@ const UserDietPage = () => {
               ) : (
                 <Button onClick={handleCreateSelfPlan} disabled={savingSelfPlan} className="flex-1">
                   {savingSelfPlan ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                  Crea piano
+                  {editingPlanId ? "Salva modifiche" : "Crea piano"}
                 </Button>
               )}
             </DialogFooter>
@@ -636,7 +683,7 @@ const UserDietPage = () => {
   const carbsPct = plan.carbs_g_day > 0 ? Math.min((todayTotals.carbs / plan.carbs_g_day) * 100, 100) : 0;
   const fatsPct = plan.fats_g_day > 0 ? Math.min((todayTotals.fats / plan.fats_g_day) * 100, 100) : 0;
 
-  const isSelfPlan = plan.professional_id === plan.client_user_id;
+  // isSelfPlan already computed above
   const proInitials = proProfile?.full_name
     ? proProfile.full_name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2)
     : proDetailProfile?.display_name
@@ -680,9 +727,14 @@ const UserDietPage = () => {
             <CardContent className="py-3 flex items-center gap-2">
               <ClipboardList className="h-4 w-4 text-amber-600" />
               <p className="text-xs text-foreground font-medium">Piano personale (senza coach)</p>
-              <Button size="sm" variant="ghost" className="ml-auto h-6 text-[10px]" onClick={() => navigate("/invite")}>
-                Collega un coach
-              </Button>
+              <div className="ml-auto flex gap-1">
+                <Button size="sm" variant="outline" className="h-6 text-[10px] gap-1" onClick={openEditPlan}>
+                  <Pencil className="h-3 w-3" /> Modifica
+                </Button>
+                <Button size="sm" variant="ghost" className="h-6 text-[10px]" onClick={() => navigate("/invite")}>
+                  Collega un coach
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}
