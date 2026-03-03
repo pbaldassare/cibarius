@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Search, SlidersHorizontal, Package, Loader2, Flame, ScanLine, Trash2 } from "lucide-react";
+import { Plus, Search, Package, Loader2, Flame, ScanLine, Trash2, AlertCircle, Clock, Home, Refrigerator, Snowflake } from "lucide-react";
 import EmptyState from "@/components/EmptyState";
 import ListSkeleton from "@/components/ListSkeleton";
 
@@ -106,7 +106,7 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
   const [search, setSearch] = useState("");
   const [storageFilter, setStorageFilter] = useState<string>(externalStorageFilter ?? "all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [showFilters, setShowFilters] = useState(false);
+  // showFilters removed — filters are always visible as inline chips
   const [addOpen, setAddOpen] = useState(false);
 
   // Edit dialog state
@@ -372,50 +372,62 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
       />
 
       <main className="px-4 py-3 space-y-3">
-        {/* Search + filter toggle */}
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Cerca prodotto..."
-              className="pl-9 bg-card border-accent/30"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-          <Button
-            variant="outline"
-            size="icon"
-            className="border-accent/30"
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <SlidersHorizontal className="h-4 w-4" />
-          </Button>
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Cerca prodotto..."
+            className="pl-9 bg-card border-accent/30"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
 
-        {/* Filters */}
-        {showFilters && (
-          <div className="flex gap-2">
-            <Select value={storageFilter} onValueChange={setStorageFilter}>
-              <SelectTrigger className="flex-1 border-accent/30"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tutti</SelectItem>
-                <SelectItem value="frigo">Frigo</SelectItem>
-                <SelectItem value="freezer">Congelato</SelectItem>
-                <SelectItem value="ambiente">Dispensa</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="flex-1 border-accent/30"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tutti</SelectItem>
-                <SelectItem value="expired">Scaduti</SelectItem>
-                <SelectItem value="expiring">In scadenza</SelectItem>
-                <SelectItem value="ok">OK</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+        {/* Status filter chips */}
+        <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
+          {([
+            { key: "expired", label: "Scaduti", icon: AlertCircle },
+            { key: "expiring", label: "In scadenza", icon: Clock },
+            { key: "ok", label: "OK", icon: Package },
+            { key: "all", label: "Tutti", icon: Package },
+          ] as const).map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              onClick={() => setStatusFilter(key)}
+              className={`flex items-center gap-1 whitespace-nowrap rounded-full px-3 py-1.5 text-[13px] font-medium border transition-colors ${
+                statusFilter === key
+                  ? "bg-primary text-primary-foreground shadow-sm border-primary"
+                  : "bg-card text-muted-foreground border-border"
+              }`}
+            >
+              <Icon className="h-3 w-3" />
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Storage filter chips */}
+        <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
+          {([
+            { key: "all", label: "Tutti", icon: null },
+            { key: "ambiente", label: "Dispensa", icon: Home },
+            { key: "frigo", label: "Frigo", icon: Refrigerator },
+            { key: "freezer", label: "Congelatore", icon: Snowflake },
+          ] as const).map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              onClick={() => setStorageFilter(key)}
+              className={`flex items-center gap-1 rounded-full px-3 py-1 text-[12px] font-medium border transition-colors ${
+                storageFilter === key
+                  ? "bg-primary/10 text-primary border-primary"
+                  : "bg-card text-muted-foreground border-border"
+              }`}
+            >
+              {Icon && <Icon className="h-3 w-3" />}
+              {label}
+            </button>
+          ))}
+        </div>
 
         {/* Items list */}
         {loading ? (
