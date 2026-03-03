@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useRestaurant } from "@/hooks/useRestaurant";
-import { LayoutDashboard, Store, Users, FileText, LogOut, ArrowLeft } from "lucide-react";
+import { LayoutDashboard, Store, Users, FileText, LogOut, ArrowLeft, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import cibariusLogo from "@/assets/cibarius-logo.png";
 
@@ -77,6 +77,9 @@ const RestaurantAdminLayout = ({ children }: { children: ReactNode }) => {
       {/* Content */}
       <div className="flex flex-1 flex-col">
         <header className="flex h-16 items-center gap-3 bg-gradient-to-r from-primary to-primary-dark px-4 md:hidden">
+          <button onClick={() => navigate(-1)} className="text-white/90 -ml-1 p-1 active:opacity-70 transition-opacity">
+            <ChevronLeft size={22} strokeWidth={2} />
+          </button>
           <img src={cibariusLogo} alt="Cibarius" className="h-6 brightness-0 invert" />
           <span className="text-sm font-semibold text-white">{restaurant?.name ?? ""}</span>
         </header>

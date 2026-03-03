@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { LayoutDashboard, Users, Settings, LogOut, Sprout } from "lucide-react";
+import { LayoutDashboard, Users, Settings, LogOut, Sprout, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import cibariusLogo from "@/assets/cibarius-logo.png";
@@ -64,6 +64,9 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
       {/* Mobile header for admin */}
       <div className="flex flex-1 flex-col">
         <header className="flex h-16 items-center gap-3 bg-gradient-to-r from-primary to-primary-dark px-4 md:hidden">
+          <button onClick={() => navigate(-1)} className="text-white/90 -ml-1 p-1 active:opacity-70 transition-opacity">
+            <ChevronLeft size={22} strokeWidth={2} />
+          </button>
           <img src={cibariusLogo} alt="Cibarius" className="h-6 brightness-0 invert" />
         </header>
         <main className="flex-1 p-4 md:p-6">{children}</main>
