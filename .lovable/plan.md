@@ -1,35 +1,27 @@
 
 
-# Freccia indietro su tutte le pagine
+# Filtri inline a chip nella versione ristorante (InventoryList)
 
 ## Situazione attuale
 
-La maggior parte delle pagine usa `MobileHeader` che ha gia' `showBack={true}` di default — quindi la freccia indietro c'e'.
+- **ExpiryPage (utente)**: usa filtri inline a chip/pill sempre visibili — status tabs (Scaduti, In scadenza, Tutti), tipo (Prodotti, Prep), conservazione (Dispensa, Frigo, Congelatore) con icone
+- **InventoryList (usato da ristorante e utente per prodotti)**: usa un bottone SlidersHorizontal che togla due Select dropdown nascosti
 
-Le pagine che **non** hanno la freccia indietro su mobile sono:
+## Intervento
 
-1. **RestaurantAdminLayout** (4 pagine: Panoramica, Settings, Staff, Report) — l'header mobile mostra solo logo e nome ristorante, senza freccia indietro
-2. **AdminLayout** (4 pagine: Dashboard, Users, Settings, Seed) — stesso problema
-3. **Home utente** (`Index.tsx`) — `showBack={false}` intenzionalmente (e' la pagina iniziale, non c'e' dove tornare)
+Sostituire nel componente `InventoryList.tsx` il sistema filtri attuale (bottone toggle + dropdown Select) con lo stesso pattern a chip inline usato in `ExpiryPage.tsx`:
 
-## Interventi
-
-### 1. `RestaurantAdminLayout` — aggiungere freccia indietro nell'header mobile
-
-Nell'header mobile (riga 79-82), aggiungere un bottone con `ChevronLeft` che chiama `navigate(-1)`. Posizionato a sinistra del logo.
-
-### 2. `AdminLayout` — aggiungere freccia indietro nell'header mobile
-
-Stessa modifica: aggiungere freccia indietro nell'header mobile dell'admin.
-
-### 3. Home — lasciare com'e'
-
-La Home e' il punto di partenza, la freccia indietro non ha senso li'.
+1. **Status filter** — riga di pill buttons: `Scaduti | In scadenza | OK | Tutti` con conteggio e icone (`AlertCircle`, `Clock`, `Package`)
+2. **Storage filter** — riga di pill buttons: `Tutti | Dispensa | Frigo | Congelatore` con icone (`Home`, `Refrigerator`, `Snowflake`)
+3. Rimuovere il bottone `SlidersHorizontal` e lo state `showFilters`
+4. I filtri saranno sempre visibili sopra la lista, sotto la barra di ricerca
+5. Stile identico a ExpiryPage: `rounded-full`, colori `bg-primary/10 text-primary border-primary` quando attivo
 
 ## File coinvolti
 
 | File | Modifica |
 |------|----------|
-| `src/components/RestaurantAdminLayout.tsx` | Aggiungere bottone back nell'header mobile |
-| `src/components/AdminLayout.tsx` | Aggiungere bottone back nell'header mobile |
+| `src/components/InventoryList.tsx` | Sostituire filtri dropdown con chip inline |
+
+Nessuna modifica al database o ad altri file.
 
