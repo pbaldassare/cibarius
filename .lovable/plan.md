@@ -1,27 +1,34 @@
 
 
-# Filtri inline a chip nella versione ristorante (InventoryList)
+# Fix bottone Profilo ristorante + aggiunta Logout
 
-## Situazione attuale
+## Problemi identificati
 
-- **ExpiryPage (utente)**: usa filtri inline a chip/pill sempre visibili — status tabs (Scaduti, In scadenza, Tutti), tipo (Prodotti, Prep), conservazione (Dispensa, Frigo, Congelatore) con icone
-- **InventoryList (usato da ristorante e utente per prodotti)**: usa un bottone SlidersHorizontal che togla due Select dropdown nascosti
+1. **Profilo non funziona**: Il bottone "Profilo" nella dashboard ristorante naviga a `/profile`, che e' dentro le route `UserLayout` (protette per ruolo `user`). Un `restaurant_owner` non puo' accedervi.
+2. **Manca il logout**: Nell'app ristorante non c'e' nessun modo per uscire dall'account.
 
-## Intervento
+## Soluzione
 
-Sostituire nel componente `InventoryList.tsx` il sistema filtri attuale (bottone toggle + dropdown Select) con lo stesso pattern a chip inline usato in `ExpiryPage.tsx`:
+### 1. Aggiungere route profilo per ristoratore
 
-1. **Status filter** — riga di pill buttons: `Scaduti | In scadenza | OK | Tutti` con conteggio e icone (`AlertCircle`, `Clock`, `Package`)
-2. **Storage filter** — riga di pill buttons: `Tutti | Dispensa | Frigo | Congelatore` con icone (`Home`, `Refrigerator`, `Snowflake`)
-3. Rimuovere il bottone `SlidersHorizontal` e lo state `showFilters`
-4. I filtri saranno sempre visibili sopra la lista, sotto la barra di ricerca
-5. Stile identico a ExpiryPage: `rounded-full`, colori `bg-primary/10 text-primary border-primary` quando attivo
+Aggiungere una route `/restaurant/profile` dentro il blocco `RestaurantLayout` che renderizza `ProfiloPage` (lo stesso componente, che gia' gestisce ruoli diversi).
+
+**File**: `src/App.tsx` — aggiungere `<Route path="/restaurant/profile" element={<ProfiloPage />} />` dentro il blocco RestaurantLayout (riga 147-154).
+
+### 2. Correggere navigazione bottone Profilo
+
+**File**: `src/pages/restaurant/RestaurantPage.tsx` — cambiare `navigate("/profile")` in `navigate("/restaurant/profile")` (riga 158).
+
+### 3. Aggiungere bottone Logout nella dashboard ristorante
+
+**File**: `src/pages/restaurant/RestaurantPage.tsx` — aggiungere un bottone "Esci" nella barra in alto (accanto a Profilo e Gestione), oppure nella pagina profilo del ristoratore. Approccio: aggiungere nella ProfiloPage il bottone logout (gia' presente per gli utenti), verificando che funzioni anche per `restaurant_owner`.
+
+Verifico se ProfiloPage ha gia' il logout per tutti i ruoli — si', ha il bottone "Esci" (riga 8: `LogOut` importato). Quindi basta che la route funzioni.
 
 ## File coinvolti
 
 | File | Modifica |
 |------|----------|
-| `src/components/InventoryList.tsx` | Sostituire filtri dropdown con chip inline |
-
-Nessuna modifica al database o ad altri file.
+| `src/App.tsx` | Aggiungere route `/restaurant/profile` |
+| `src/pages/restaurant/RestaurantPage.tsx` | Fix path navigazione profilo |
 
