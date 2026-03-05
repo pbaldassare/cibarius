@@ -20,7 +20,8 @@ interface IngredientRow {
   name: string;
   grams: number;
   per100: { protein: number; carbs: number; fats: number; kcal: number } | null;
-  templateId: string | null;
+  templateId: string | null;       // food_templates id
+  ingredientId: string | null;     // ingredients table id
 }
 
 type Confidence = "high" | "medium" | "low";
@@ -62,7 +63,7 @@ const MealPhotoPage = () => {
   const [dishName, setDishName] = useState("");
   const [confidence, setConfidence] = useState<Confidence>("medium");
   const [portionG, setPortionG] = useState(300);
-  const [basePortion, setBasePortion] = useState(300); // original AI suggestion
+  const [basePortion, setBasePortion] = useState(300);
   const [ingredients, setIngredients] = useState<IngredientRow[]>([]);
   const [analyzed, setAnalyzed] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -77,51 +78,11 @@ const MealPhotoPage = () => {
     reader.readAsDataURL(file);
   };
 
-  const matchTemplates = async (names: string[]) => {
-    const { data: templates } = await supabase
-      .from("food_templates")
-      .select("id, name, calories_100g, protein_100g, carbs_100g, fats_100g, keywords");
-
-    if (!templates) return new Map<string, { id: string; per100: IngredientRow["per100"] }>();
-
-    const result = new Map<string, { id: string; per100: IngredientRow["per100"] }>();
-    for (const ingredientName of names) {
-      const lower = ingredientName.toLowerCase();
-      // exact name match first
-      let match = templates.find((t) => t.name.toLowerCase() === lower);
-      // keyword match
-      if (!match) {
-        match = templates.find((t) =>
-          (t.keywords ?? []).some((k: string) => lower.includes(k.toLowerCase()) || k.toLowerCase().includes(lower))
-        );
-      }
-      // partial name match
-      if (!match) {
-        match = templates.find((t) =>
-          t.name.toLowerCase().includes(lower) || lower.includes(t.name.toLowerCase())
-        );
-      }
-      if (match) {
-        result.set(ingredientName, {
-          id: match.id,
-          per100: {
-            protein: Number(match.protein_100g),
-            carbs: Number(match.carbs_100g),
-            fats: Number(match.fats_100g),
-            kcal: Number(match.calories_100g),
-          },
-        });
-      }
-    }
-    return result;
-  };
-
   /* ─── analyze ─── */
   const handleAnalyze = async () => {
     if (!imageFile) return;
     setAnalyzing(true);
     try {
-      // Convert to base64
       const arrayBuf = await imageFile.arrayBuffer();
       const bytes = new Uint8Array(arrayBuf);
       let binary = "";
@@ -140,32 +101,24 @@ const MealPhotoPage = () => {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      const {
-        detected_dish_name,
-        confidence: conf,
-        suggested_portion_g,
-        ingredients_suggested,
-      } = data;
+      // Edge function now returns enriched data
+      const { dish_name, confidence: conf, portion_g, ingredients: enrichedIngs } = data;
 
-      setDishName(detected_dish_name || "Piatto sconosciuto");
+      setDishName(dish_name || "Piatto sconosciuto");
       setConfidence((conf as Confidence) || "medium");
-      setPortionG(suggested_portion_g || 300);
-      setBasePortion(suggested_portion_g || 300);
+      setPortionG(portion_g || 300);
+      setBasePortion(portion_g || 300);
 
-      // Match ingredients to templates
-      const names = (ingredients_suggested || []).map((i: any) => i.ingredient_name);
-      const templateMap = await matchTemplates(names);
-
-      const rows: IngredientRow[] = (ingredients_suggested || []).map((i: any) => {
-        const tmpl = templateMap.get(i.ingredient_name);
-        return {
-          id: uid(),
-          name: i.ingredient_name,
-          grams: i.grams,
-          per100: tmpl?.per100 ?? null,
-          templateId: tmpl?.id ?? null,
-        };
-      });
+      const rows: IngredientRow[] = (enrichedIngs || []).map((i: any) => ({
+        id: uid(),
+        name: i.name,
+        grams: i.grams,
+        per100: i.per100
+          ? { protein: i.per100.protein, carbs: i.per100.carbs, fats: i.per100.fat, kcal: i.per100.kcal }
+          : null,
+        templateId: null,
+        ingredientId: i.ingredient_id || null,
+      }));
 
       setIngredients(rows);
       setAnalyzed(true);
@@ -177,23 +130,6 @@ const MealPhotoPage = () => {
   };
 
   /* ─── scaling ─── */
-  const handlePortionChange = useCallback(
-    (newPortion: number) => {
-      if (basePortion <= 0) return;
-      const ratio = newPortion / basePortion;
-      setIngredients((prev) =>
-        prev.map((ing) => ({
-          ...ing,
-          grams: Math.round(((ing.grams / (portionG / basePortion)) * ratio) * 10) / 10,
-        }))
-      );
-      setPortionG(newPortion);
-    },
-    [basePortion, portionG]
-  );
-
-  // Recalculate scaling: simpler approach — store original grams and scale from those
-  // Actually let's use a cleaner approach: track base grams
   const handlePortionSlider = (val: number[]) => {
     const newP = val[0];
     const oldP = portionG;
@@ -207,7 +143,6 @@ const MealPhotoPage = () => {
 
   const handleIngredientGramsChange = (id: string, newGrams: number) => {
     setIngredients((prev) => prev.map((i) => (i.id === id ? { ...i, grams: newGrams } : i)));
-    // Update total portion
     setPortionG((prev) => {
       const diff = newGrams - (ingredients.find((i) => i.id === id)?.grams ?? 0);
       return Math.max(0, Math.round((prev + diff) * 10) / 10);
@@ -223,7 +158,7 @@ const MealPhotoPage = () => {
   const addIngredient = () => {
     setIngredients((prev) => [
       ...prev,
-      { id: uid(), name: "", grams: 0, per100: null, templateId: null },
+      { id: uid(), name: "", grams: 0, per100: null, templateId: null, ingredientId: null },
     ]);
   };
 
@@ -265,7 +200,46 @@ const MealPhotoPage = () => {
         }
       }
 
-      // 2. Get/create meal_day for today
+      // 2. Save to meal_logs
+      const { data: logRow, error: logErr } = await supabase
+        .from("meal_logs")
+        .insert({
+          user_id: user.id,
+          meal_type: mealType,
+          dish_name: dishName,
+          portion_g: portionG,
+          carbs_g: totals.carbs,
+          protein_g: totals.protein,
+          fat_g: totals.fats,
+          kcal: totals.kcal,
+          photo_url: photoUrl,
+        })
+        .select("id")
+        .single();
+
+      if (logErr) throw logErr;
+
+      // 3. Save meal_log_ingredients
+      const ingRows = ingredients.map((ing) => {
+        const factor = ing.grams / 100;
+        return {
+          meal_log_id: logRow.id,
+          ingredient_id: ing.ingredientId || null,
+          ingredient_name: ing.name || "Ingrediente",
+          grams: ing.grams,
+          carbs_g: ing.per100 ? Math.round(ing.per100.carbs * factor * 10) / 10 : 0,
+          protein_g: ing.per100 ? Math.round(ing.per100.protein * factor * 10) / 10 : 0,
+          fat_g: ing.per100 ? Math.round(ing.per100.fats * factor * 10) / 10 : 0,
+          kcal: ing.per100 ? Math.round(ing.per100.kcal * factor) : 0,
+        };
+      });
+
+      if (ingRows.length > 0) {
+        const { error: ingErr } = await supabase.from("meal_log_ingredients").insert(ingRows);
+        if (ingErr) throw ingErr;
+      }
+
+      // 4. Also save to existing meal_items system for backward compatibility
       const today = new Date().toISOString().slice(0, 10);
       let { data: dayRow } = await supabase
         .from("meal_days")
@@ -284,7 +258,6 @@ const MealPhotoPage = () => {
         dayRow = newDay;
       }
 
-      // 3. Get/create meal for this type
       let { data: mealRow } = await supabase
         .from("meals")
         .select("id")
@@ -302,35 +275,31 @@ const MealPhotoPage = () => {
         mealRow = newMeal;
       }
 
-      // 4. Insert meal_items for each ingredient
       const items = ingredients.map((ing, idx) => {
         const factor = ing.grams / 100;
-        const kcal = ing.per100 ? Math.round(ing.per100.kcal * factor) : 0;
-        const macros = ing.per100
-          ? {
-              protein: Math.round(ing.per100.protein * factor * 10) / 10,
-              carbs: Math.round(ing.per100.carbs * factor * 10) / 10,
-              fats: Math.round(ing.per100.fats * factor * 10) / 10,
-            }
-          : null;
-
         return {
           meal_id: mealRow!.id,
           custom_name: ing.name || "Ingrediente",
           source_type: "custom" as const,
           quantity: ing.grams,
           unit: "g",
-          calories: kcal,
-          macros: macros as any,
+          calories: ing.per100 ? Math.round(ing.per100.kcal * factor) : 0,
+          macros: ing.per100
+            ? {
+                protein: Math.round(ing.per100.protein * factor * 10) / 10,
+                carbs: Math.round(ing.per100.carbs * factor * 10) / 10,
+                fats: Math.round(ing.per100.fats * factor * 10) / 10,
+              }
+            : null,
           photo_url: idx === 0 ? photoUrl : null,
           dish_name: idx === 0 ? dishName : null,
         };
       });
 
       const { error: insertErr } = await supabase.from("meal_items").insert(items);
-      if (insertErr) throw insertErr;
+      if (insertErr) console.error("meal_items backward compat insert failed:", insertErr);
 
-      // 5. Cache dish + dish_ingredients
+      // 5. Cache dish
       try {
         const { data: dishRow } = await supabase
           .from("dishes")
@@ -340,10 +309,10 @@ const MealPhotoPage = () => {
 
         if (dishRow) {
           const dishIngRows = ingredients
-            .filter((i) => i.templateId)
+            .filter((i) => i.templateId || i.ingredientId)
             .map((i) => ({
               dish_id: dishRow.id,
-              ingredient_id: i.templateId!,
+              ingredient_id: (i.templateId || i.ingredientId)!,
               grams_in_standard_portion: i.grams,
             }));
           if (dishIngRows.length > 0) {
@@ -371,7 +340,6 @@ const MealPhotoPage = () => {
         {/* ═══ STEP 1: Upload + Config ═══ */}
         {!analyzed && (
           <>
-            {/* Photo upload */}
             <div
               onClick={() => fileRef.current?.click()}
               className="relative flex h-48 cursor-pointer items-center justify-center rounded-2xl border-2 border-dashed border-accent bg-card overflow-hidden active:scale-[0.98] transition-transform"
@@ -394,7 +362,6 @@ const MealPhotoPage = () => {
               />
             </div>
 
-            {/* Meal type selector */}
             <div className="space-y-2">
               <Label className="text-xs text-muted-foreground">Tipo di pasto</Label>
               <div className="flex flex-wrap gap-2">
@@ -414,7 +381,6 @@ const MealPhotoPage = () => {
               </div>
             </div>
 
-            {/* Notes */}
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Note (opzionale)</Label>
               <Input
@@ -424,7 +390,6 @@ const MealPhotoPage = () => {
               />
             </div>
 
-            {/* Analyze button */}
             <Button
               onClick={handleAnalyze}
               disabled={!imageFile || analyzing}
@@ -447,14 +412,9 @@ const MealPhotoPage = () => {
         {/* ═══ STEP 2: Results ═══ */}
         {analyzed && (
           <>
-            {/* Photo preview + dish name */}
             <div className="flex gap-3 items-start">
               {imagePreview && (
-                <img
-                  src={imagePreview}
-                  alt="Piatto"
-                  className="h-20 w-20 rounded-xl object-cover shrink-0"
-                />
+                <img src={imagePreview} alt="Piatto" className="h-20 w-20 rounded-xl object-cover shrink-0" />
               )}
               <div className="flex-1 space-y-1.5">
                 <Input
@@ -463,16 +423,12 @@ const MealPhotoPage = () => {
                   className="font-semibold text-base"
                   placeholder="Nome piatto"
                 />
-                <Badge
-                  variant="outline"
-                  className={`text-xs ${confidenceColor[confidence]}`}
-                >
+                <Badge variant="outline" className={`text-xs ${confidenceColor[confidence]}`}>
                   Confidenza: {confidenceLabel[confidence]}
                 </Badge>
               </div>
             </div>
 
-            {/* Low confidence warning */}
             {confidence === "low" && (
               <div className="flex items-center gap-2 rounded-xl border border-yellow-300 bg-yellow-50 p-3 text-sm text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-700">
                 <AlertTriangle className="h-4 w-4 shrink-0" />
@@ -480,7 +436,6 @@ const MealPhotoPage = () => {
               </div>
             )}
 
-            {/* Portion slider */}
             <div className="space-y-2 rounded-xl border-2 border-accent bg-card p-4">
               <div className="flex items-center justify-between">
                 <Label className="text-sm font-semibold">Porzione totale</Label>
@@ -499,16 +454,9 @@ const MealPhotoPage = () => {
                   <span className="text-sm text-muted-foreground">g</span>
                 </div>
               </div>
-              <Slider
-                min={50}
-                max={1000}
-                step={10}
-                value={[portionG]}
-                onValueChange={handlePortionSlider}
-              />
+              <Slider min={50} max={1000} step={10} value={[portionG]} onValueChange={handlePortionSlider} />
             </div>
 
-            {/* Macro totals */}
             <div className="grid grid-cols-4 gap-2">
               {[
                 { label: "Kcal", value: totals.kcal, color: "text-primary" },
@@ -523,7 +471,6 @@ const MealPhotoPage = () => {
               ))}
             </div>
 
-            {/* Ingredients table */}
             <div className="space-y-2">
               <Label className="text-sm font-semibold">Ingredienti</Label>
               <div className="space-y-2">
@@ -531,10 +478,7 @@ const MealPhotoPage = () => {
                   const factor = ing.grams / 100;
                   const kcal = ing.per100 ? Math.round(ing.per100.kcal * factor) : 0;
                   return (
-                    <div
-                      key={ing.id}
-                      className="flex items-center gap-2 rounded-xl border border-accent bg-card p-3"
-                    >
+                    <div key={ing.id} className="flex items-center gap-2 rounded-xl border border-accent bg-card p-3">
                       <div className="flex-1 min-w-0 space-y-1">
                         <IngredientAutocomplete
                           value={ing.name}
@@ -592,7 +536,6 @@ const MealPhotoPage = () => {
               </Button>
             </div>
 
-            {/* Save + back */}
             <div className="flex gap-2">
               <Button
                 variant="outline"
@@ -609,11 +552,7 @@ const MealPhotoPage = () => {
                 onClick={handleSave}
                 disabled={saving || ingredients.length === 0}
               >
-                {saving ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4" />
-                )}
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 Salva nel diario
               </Button>
             </div>
