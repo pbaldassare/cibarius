@@ -18,6 +18,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 interface MealItem {
   id: string;
   custom_name: string | null;
+  dish_name: string | null;
+  photo_url: string | null;
   calories: number | null;
   quantity: number | null;
   unit: string | null;
@@ -75,7 +77,7 @@ const PastiPage = () => {
     const today = new Date().toISOString().slice(0, 10);
     const { data } = await supabase
       .from("meal_days")
-      .select("id, day_date, meals(id, meal_type, meal_items(id, custom_name, calories, quantity, unit, macros))")
+      .select("id, day_date, meals(id, meal_type, meal_items(id, custom_name, dish_name, photo_url, calories, quantity, unit, macros))")
       .eq("user_id", user.id)
       .eq("day_date", today)
       .maybeSingle();
@@ -290,12 +292,20 @@ const PastiPage = () => {
                     <div className="space-y-1.5">
                       {meal.meal_items.map((item) => (
                         <div key={item.id} className="flex items-center gap-2 rounded-lg bg-secondary/50 p-2">
+                          {item.photo_url && (
+                            <img
+                              src={item.photo_url}
+                              alt={item.dish_name || item.custom_name || "piatto"}
+                              className="h-10 w-10 rounded-lg object-cover shrink-0"
+                              loading="lazy"
+                            />
+                          )}
                           <button
                             onClick={() => openMealItemEdit(item)}
                             className="flex-1 min-w-0 text-left"
                           >
                             <p className="text-sm font-medium text-foreground truncate">
-                              {item.custom_name || "—"}
+                              {item.dish_name || item.custom_name || "—"}
                             </p>
                             <p className="text-[10px] text-muted-foreground">
                               {item.quantity ?? "—"}{item.unit ?? "g"} · {item.calories ?? 0} kcal
