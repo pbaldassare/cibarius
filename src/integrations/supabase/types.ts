@@ -409,6 +409,69 @@ export type Database = {
         }
         Relationships: []
       }
+      dish_ingredients: {
+        Row: {
+          created_at: string | null
+          dish_id: string
+          grams_in_standard_portion: number
+          id: string
+          ingredient_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          dish_id: string
+          grams_in_standard_portion?: number
+          id?: string
+          ingredient_id: string
+        }
+        Update: {
+          created_at?: string | null
+          dish_id?: string
+          grams_in_standard_portion?: number
+          id?: string
+          ingredient_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dish_ingredients_dish_id_fkey"
+            columns: ["dish_id"]
+            isOneToOne: false
+            referencedRelation: "dishes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dish_ingredients_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "food_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dishes: {
+        Row: {
+          canonical_name: string | null
+          created_at: string | null
+          id: string
+          name: string
+          photo_example_url: string | null
+        }
+        Insert: {
+          canonical_name?: string | null
+          created_at?: string | null
+          id?: string
+          name: string
+          photo_example_url?: string | null
+        }
+        Update: {
+          canonical_name?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string
+          photo_example_url?: string | null
+        }
+        Relationships: []
+      }
       food_templates: {
         Row: {
           calories_100g: number
@@ -416,11 +479,13 @@ export type Database = {
           category: string | null
           created_at: string | null
           default_unit: string | null
+          external_ref: string | null
           fats_100g: number
           id: string
           keywords: string[] | null
           name: string
           protein_100g: number
+          source: string | null
           sugars_100g: number
         }
         Insert: {
@@ -429,11 +494,13 @@ export type Database = {
           category?: string | null
           created_at?: string | null
           default_unit?: string | null
+          external_ref?: string | null
           fats_100g?: number
           id?: string
           keywords?: string[] | null
           name: string
           protein_100g?: number
+          source?: string | null
           sugars_100g?: number
         }
         Update: {
@@ -442,11 +509,13 @@ export type Database = {
           category?: string | null
           created_at?: string | null
           default_unit?: string | null
+          external_ref?: string | null
           fats_100g?: number
           id?: string
           keywords?: string[] | null
           name?: string
           protein_100g?: number
+          source?: string | null
           sugars_100g?: number
         }
         Relationships: []
@@ -576,10 +645,12 @@ export type Database = {
           calories: number | null
           created_at: string
           custom_name: string | null
+          dish_name: string | null
           id: string
           inventory_item_id: string | null
           macros: Json | null
           meal_id: string
+          photo_url: string | null
           product_id: string | null
           quantity: number | null
           source_type: string
@@ -589,10 +660,12 @@ export type Database = {
           calories?: number | null
           created_at?: string
           custom_name?: string | null
+          dish_name?: string | null
           id?: string
           inventory_item_id?: string | null
           macros?: Json | null
           meal_id: string
+          photo_url?: string | null
           product_id?: string | null
           quantity?: number | null
           source_type: string
@@ -602,10 +675,12 @@ export type Database = {
           calories?: number | null
           created_at?: string
           custom_name?: string | null
+          dish_name?: string | null
           id?: string
           inventory_item_id?: string | null
           macros?: Json | null
           meal_id?: string
+          photo_url?: string | null
           product_id?: string | null
           quantity?: number | null
           source_type?: string

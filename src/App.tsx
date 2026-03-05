@@ -25,6 +25,7 @@ import UserProductsPage from "./pages/UserProductsPage";
 import UserFreezerPage from "./pages/UserFreezerPage";
 import UserPantryPage from "./pages/UserPantryPage";
 import PastiPage from "./pages/PastiPage";
+import MealPhotoPage from "./pages/MealPhotoPage";
 import MealsTargetsPage from "./pages/MealsTargetsPage";
 import ProfiloPage from "./pages/ProfiloPage";
 import InvitePage from "./pages/InvitePage";
@@ -125,6 +126,7 @@ const App = () => (
                 <Route path="/freezer" element={<UserFreezerPage />} />
                 <Route path="/pantry" element={<UserPantryPage />} />
                 <Route path="/meals" element={<PastiPage />} />
+                <Route path="/meals/photo" element={<MealPhotoPage />} />
                 <Route path="/meals/targets" element={<MealsTargetsPage />} />
                 <Route path="/profile" element={<ProfiloPage />} />
                 <Route path="/diet" element={<UserDietPage />} />

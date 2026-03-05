@@ -7,7 +7,7 @@ import AddFoodFlow from "@/components/AddFoodFlow";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, UtensilsCrossed, Target, Trash2, Flame, ClipboardList } from "lucide-react";
+import { Plus, UtensilsCrossed, Target, Trash2, Flame, ClipboardList, Camera } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -184,6 +184,13 @@ const PastiPage = () => {
               className="flex items-center gap-1 text-sm font-medium text-muted-foreground"
             >
               <Target size={16} />
+            </button>
+            <button
+              onClick={() => navigate("/meals/photo")}
+              className="flex items-center gap-1 rounded-xl bg-secondary px-3 py-1.5 text-sm font-medium text-secondary-foreground"
+            >
+              <Camera size={16} />
+              Foto AI
             </button>
             <button
               onClick={() => setSheetOpen(true)}
