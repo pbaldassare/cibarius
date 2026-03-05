@@ -77,7 +77,7 @@ async function lookupIngredient(
     const { data: partialTrans } = await sb
       .from("ingredient_translation")
       .select("name_en, name_it")
-      .limit(100);
+      .limit(300);
     if (partialTrans) {
       const match = partialTrans.find(
         (t) => lowerName.includes(t.name_it.toLowerCase()) || t.name_it.toLowerCase().includes(lowerName),
@@ -150,6 +150,106 @@ async function lookupIngredient(
   }
 }
 
+/* ── dishes cache helpers ── */
+
+function canonicalize(name: string): string {
+  return name.toLowerCase().trim()
+    .replace(/\s+/g, " ")
+    .replace(/[''`]/g, "'");
+}
+
+async function lookupDishCache(
+  sb: ReturnType<typeof supabaseAdmin>,
+  dishName: string,
+): Promise<{
+  dish_id: string;
+  ingredients: Array<{ ingredient_id: string; name: string; grams: number; per100: Per100 }>;
+} | null> {
+  const canonical = canonicalize(dishName);
+
+  // Try exact match on canonical_name or name
+  const { data: dishes } = await sb
+    .from("dishes")
+    .select("id, name, canonical_name")
+    .or(`canonical_name.ilike.${canonical},name.ilike.${canonical}`)
+    .limit(1);
+
+  if (!dishes || dishes.length === 0) return null;
+
+  const dish = dishes[0];
+
+  // Load dish_ingredients + join ingredients for macro data
+  const { data: dishIngs } = await sb
+    .from("dish_ingredients")
+    .select("ingredient_id, grams_in_standard_portion")
+    .eq("dish_id", dish.id);
+
+  if (!dishIngs || dishIngs.length === 0) return null;
+
+  // Load all ingredient macros
+  const ingredientIds = dishIngs.map((di) => di.ingredient_id);
+  const { data: ingredientRows } = await sb
+    .from("food_templates")
+    .select("id, name, calories_100g, protein_100g, carbs_100g, fats_100g")
+    .in("id", ingredientIds);
+
+  const ingredientMap = new Map(
+    (ingredientRows || []).map((r) => [r.id, r]),
+  );
+
+  const ingredients = dishIngs.map((di) => {
+    const tmpl = ingredientMap.get(di.ingredient_id);
+    return {
+      ingredient_id: di.ingredient_id,
+      name: tmpl?.name || "Sconosciuto",
+      grams: Number(di.grams_in_standard_portion),
+      per100: tmpl
+        ? {
+            carbs: Number(tmpl.carbs_100g),
+            protein: Number(tmpl.protein_100g),
+            fat: Number(tmpl.fats_100g),
+            kcal: Number(tmpl.calories_100g),
+          }
+        : { carbs: 0, protein: 0, fat: 0, kcal: 0 },
+    };
+  });
+
+  return { dish_id: dish.id, ingredients };
+}
+
+async function saveDishCache(
+  sb: ReturnType<typeof supabaseAdmin>,
+  dishName: string,
+  ingredients: Array<{ ingredient_id: string | null; name: string; grams: number }>,
+) {
+  try {
+    const canonical = canonicalize(dishName);
+    const { data: dish } = await sb
+      .from("dishes")
+      .insert({ name: dishName, canonical_name: canonical })
+      .select("id")
+      .single();
+
+    if (!dish) return;
+
+    // Only save ingredients that have an ingredient_id (resolved from food_templates)
+    const rows = ingredients
+      .filter((i) => i.ingredient_id)
+      .map((i) => ({
+        dish_id: dish.id,
+        ingredient_id: i.ingredient_id!,
+        grams_in_standard_portion: i.grams,
+      }));
+
+    if (rows.length > 0) {
+      await sb.from("dish_ingredients").insert(rows);
+    }
+    console.log(`Cached dish "${dishName}" with ${rows.length} ingredients`);
+  } catch (err) {
+    console.warn("Failed to cache dish:", err);
+  }
+}
+
 /* ── main handler ── */
 
 serve(async (req) => {
@@ -162,15 +262,38 @@ serve(async (req) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
     if (!image_base64) throw new Error("image_base64 is required");
 
-    const systemPrompt = `Sei un nutrizionista esperto italiano. L'utente ti invierà la foto di un piatto.
-Devi:
-1. Riconoscere il piatto dalla foto
-2. Scomporre il piatto nei suoi ingredienti base (es: pasta secca, sugo pomodoro, olio evo, parmigiano)
-3. Stimare la porzione totale in grammi
-4. Stimare i grammi di ogni ingrediente
+    const sb = supabaseAdmin();
 
-Usa nomi di ingredienti semplici e generici in italiano (es: "Pasta secca", "Riso bianco", "Pomodoro", "Olio extravergine di oliva").
-Sii preciso e realistico nelle stime delle grammature.`;
+    // ── NEW: Precise prompt for pizza / pasta / risotto ──
+    const systemPrompt = `Sei un assistente nutrizionale. Devi analizzare una foto di un piatto e restituire SOLO la chiamata allo strumento analyze_meal.
+
+Regole IMPORTANTI:
+- Restituisci ingredienti "base" (es: pasta secca, passata di pomodoro, olio evo, mozzarella, parmigiano, riso arborio, brodo vegetale, burro, cipolla).
+- Non usare marche.
+- Stima una porzione totale (portion_g) e grammi per ingrediente che sommano circa alla porzione totale.
+- Se non sei sicuro al 100% dell'ingrediente, proponi l'opzione più comune in Italia per quel piatto.
+
+Precisione per categorie:
+A) Pizza:
+- Base impasto (pizza base)
+- Passata di pomodoro
+- Mozzarella
+- Olio extravergine di oliva
+- Ingredienti extra (prosciutto, funghi, olive, ecc.) SOLO se chiaramente visibili.
+
+B) Pasta:
+- Tipo pasta (pasta secca / pasta fresca / spaghetti / penne...) se riconoscibile, altrimenti "Pasta secca"
+- Condimento: passata di pomodoro / pelati / pesto / ragù / olio extravergine di oliva
+- Formaggio grattugiato (Parmigiano reggiano) se visibile o implicito
+
+C) Risotto:
+- Riso arborio o Riso carnaroli se riconoscibile, altrimenti "Riso"
+- Soffritto (Cipolla) in quantità piccola
+- Brodo vegetale in quantità implicita (es 100-150g)
+- Burro e Parmigiano reggiano se risotto mantecato
+- Ingrediente principale (funghi, zucca, gamberi, ecc.) solo se visibile
+
+Usa nomi ingredienti italiani semplici e generici.`;
 
     const userContent: any[] = [
       {
@@ -258,9 +381,49 @@ Sii preciso e realistico nelle stime delle grammature.`;
     }
 
     const analysis = JSON.parse(toolCall.function.arguments);
+    const detectedDishName = analysis.detected_dish_name;
+
+    // ── DB-FIRST: Check dishes cache before USDA lookups ──
+    const cached = await lookupDishCache(sb, detectedDishName);
+    if (cached) {
+      console.log(`Cache HIT for dish: "${detectedDishName}"`);
+      let totalCarbs = 0, totalProtein = 0, totalFat = 0, totalKcal = 0;
+      const enrichedIngredients = cached.ingredients.map((ing) => {
+        const factor = ing.grams / 100;
+        const c = Math.round(ing.per100.carbs * factor * 10) / 10;
+        const p = Math.round(ing.per100.protein * factor * 10) / 10;
+        const f = Math.round(ing.per100.fat * factor * 10) / 10;
+        const k = Math.round(ing.per100.kcal * factor);
+        totalCarbs += c; totalProtein += p; totalFat += f; totalKcal += k;
+        return {
+          ingredient_id: ing.ingredient_id,
+          name: ing.name,
+          grams: ing.grams,
+          per100: ing.per100,
+          carbs: c, protein: p, fat: f, kcal: k,
+        };
+      });
+
+      return new Response(JSON.stringify({
+        dish_name: detectedDishName,
+        confidence: analysis.confidence,
+        portion_g: analysis.suggested_portion_g,
+        cached: true,
+        ingredients: enrichedIngredients,
+        totals: {
+          carbs: Math.round(totalCarbs * 10) / 10,
+          protein: Math.round(totalProtein * 10) / 10,
+          fat: Math.round(totalFat * 10) / 10,
+          kcal: Math.round(totalKcal),
+        },
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    console.log(`Cache MISS for dish: "${detectedDishName}", enriching via USDA...`);
 
     // ── STEP 2: Enrich each ingredient with macro data from DB/USDA ──
-    const sb = supabaseAdmin();
     const enrichedIngredients = [];
     let totalCarbs = 0, totalProtein = 0, totalFat = 0, totalKcal = 0;
 
@@ -294,10 +457,14 @@ Sii preciso e realistico nelle stime delle grammature.`;
       });
     }
 
+    // ── Save to dishes cache for next time ──
+    await saveDishCache(sb, detectedDishName, enrichedIngredients);
+
     const enrichedResult = {
-      dish_name: analysis.detected_dish_name,
+      dish_name: detectedDishName,
       confidence: analysis.confidence,
       portion_g: analysis.suggested_portion_g,
+      cached: false,
       ingredients: enrichedIngredients,
       totals: {
         carbs: Math.round(totalCarbs * 10) / 10,
