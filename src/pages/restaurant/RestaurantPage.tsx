@@ -155,7 +155,7 @@ const RestaurantPage = () => {
         {/* Top bar: Profilo + Gestione */}
         <div className="flex gap-2">
           <button
-            onClick={() => navigate("/profile")}
+            onClick={() => navigate("/restaurant/profile")}
             className="flex items-center gap-2 rounded-[12px] bg-card shadow-card px-3 py-2 flex-1 text-left active:scale-[0.98] transition-transform"
           >
             <User className="h-4 w-4 text-muted-foreground" />
