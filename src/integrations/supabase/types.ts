@@ -559,6 +559,66 @@ export type Database = {
         }
         Relationships: []
       }
+      ingredient_translation: {
+        Row: {
+          id: string
+          name_en: string
+          name_it: string
+        }
+        Insert: {
+          id?: string
+          name_en: string
+          name_it: string
+        }
+        Update: {
+          id?: string
+          name_en?: string
+          name_it?: string
+        }
+        Relationships: []
+      }
+      ingredients: {
+        Row: {
+          carbs_per_100g: number
+          category: string | null
+          created_at: string | null
+          fat_per_100g: number
+          id: string
+          kcal_per_100g: number
+          name: string
+          name_en: string | null
+          protein_per_100g: number
+          source: string | null
+          usda_fdc_id: string | null
+        }
+        Insert: {
+          carbs_per_100g?: number
+          category?: string | null
+          created_at?: string | null
+          fat_per_100g?: number
+          id?: string
+          kcal_per_100g?: number
+          name: string
+          name_en?: string | null
+          protein_per_100g?: number
+          source?: string | null
+          usda_fdc_id?: string | null
+        }
+        Update: {
+          carbs_per_100g?: number
+          category?: string | null
+          created_at?: string | null
+          fat_per_100g?: number
+          id?: string
+          kcal_per_100g?: number
+          name?: string
+          name_en?: string | null
+          protein_per_100g?: number
+          source?: string | null
+          usda_fdc_id?: string | null
+        }
+        Relationships: []
+      }
       inventory_items: {
         Row: {
           calories_total: number | null
@@ -709,6 +769,102 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      meal_log_ingredients: {
+        Row: {
+          carbs_g: number | null
+          created_at: string | null
+          fat_g: number | null
+          grams: number
+          id: string
+          ingredient_id: string | null
+          ingredient_name: string | null
+          kcal: number | null
+          meal_log_id: string
+          protein_g: number | null
+        }
+        Insert: {
+          carbs_g?: number | null
+          created_at?: string | null
+          fat_g?: number | null
+          grams?: number
+          id?: string
+          ingredient_id?: string | null
+          ingredient_name?: string | null
+          kcal?: number | null
+          meal_log_id: string
+          protein_g?: number | null
+        }
+        Update: {
+          carbs_g?: number | null
+          created_at?: string | null
+          fat_g?: number | null
+          grams?: number
+          id?: string
+          ingredient_id?: string | null
+          ingredient_name?: string | null
+          kcal?: number | null
+          meal_log_id?: string
+          protein_g?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meal_log_ingredients_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meal_log_ingredients_meal_log_id_fkey"
+            columns: ["meal_log_id"]
+            isOneToOne: false
+            referencedRelation: "meal_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meal_logs: {
+        Row: {
+          carbs_g: number | null
+          created_at: string | null
+          dish_name: string | null
+          fat_g: number | null
+          id: string
+          kcal: number | null
+          meal_type: string
+          photo_url: string | null
+          portion_g: number | null
+          protein_g: number | null
+          user_id: string
+        }
+        Insert: {
+          carbs_g?: number | null
+          created_at?: string | null
+          dish_name?: string | null
+          fat_g?: number | null
+          id?: string
+          kcal?: number | null
+          meal_type: string
+          photo_url?: string | null
+          portion_g?: number | null
+          protein_g?: number | null
+          user_id: string
+        }
+        Update: {
+          carbs_g?: number | null
+          created_at?: string | null
+          dish_name?: string | null
+          fat_g?: number | null
+          id?: string
+          kcal?: number | null
+          meal_type?: string
+          photo_url?: string | null
+          portion_g?: number | null
+          protein_g?: number | null
+          user_id?: string
+        }
+        Relationships: []
       }
       meals: {
         Row: {
