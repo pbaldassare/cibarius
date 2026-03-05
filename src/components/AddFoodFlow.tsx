@@ -833,6 +833,11 @@ const AddFoodFlow = ({
                         toast({ variant: "destructive", title: "Seleziona prima il tipo di pasto" });
                         return;
                       }
+                      if (context === "meal") {
+                        onOpenChange(false);
+                        navigate("/meals/photo");
+                        return;
+                      }
                       selectMethod("photo_ai");
                     }}
                     className="flex items-center gap-3 rounded-2xl border-2 border-primary/30 bg-primary/5 p-4 text-left active:scale-[0.98] transition-transform"
