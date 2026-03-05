@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
+import IngredientAutocomplete from "@/components/IngredientAutocomplete";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -535,15 +536,23 @@ const MealPhotoPage = () => {
                       className="flex items-center gap-2 rounded-xl border border-accent bg-card p-3"
                     >
                       <div className="flex-1 min-w-0 space-y-1">
-                        <Input
+                        <IngredientAutocomplete
                           value={ing.name}
-                          onChange={(e) =>
+                          onChange={(newName) =>
                             setIngredients((prev) =>
-                              prev.map((i) => (i.id === ing.id ? { ...i, name: e.target.value } : i))
+                              prev.map((i) => (i.id === ing.id ? { ...i, name: newName } : i))
                             )
                           }
-                          className="h-7 text-sm font-medium border-none shadow-none p-0"
-                          placeholder="Nome ingrediente"
+                          onSelect={(tmpl) =>
+                            setIngredients((prev) =>
+                              prev.map((i) =>
+                                i.id === ing.id
+                                  ? { ...i, name: tmpl.name, templateId: tmpl.id, per100: tmpl.per100 }
+                                  : i
+                              )
+                            )
+                          }
+                          placeholder="Cerca ingrediente…"
                         />
                         <div className="flex items-center gap-2">
                           <Input
