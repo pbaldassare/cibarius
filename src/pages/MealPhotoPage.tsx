@@ -538,11 +538,16 @@ const MealPhotoPage = () => {
                           />
                           <span className="text-[10px] text-muted-foreground">g</span>
                           {ing.per100 ? (
-                            <span className="text-[10px] text-muted-foreground">
-                              {kcal} kcal · P{Math.round(ing.per100.protein * factor * 10) / 10} C
-                              {Math.round(ing.per100.carbs * factor * 10) / 10} G
-                              {Math.round(ing.per100.fats * factor * 10) / 10}
-                            </span>
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-[10px] text-muted-foreground">
+                                {kcal} kcal · P{Math.round(ing.per100.protein * factor * 10) / 10} C
+                                {Math.round(ing.per100.carbs * factor * 10) / 10} G
+                                {Math.round(ing.per100.fats * factor * 10) / 10}
+                              </span>
+                              <span className="text-[9px] text-muted-foreground/60">
+                                /100g: {Math.round(ing.per100.kcal)} kcal · P{Math.round(ing.per100.protein * 10) / 10} C{Math.round(ing.per100.carbs * 10) / 10} G{Math.round(ing.per100.fats * 10) / 10}
+                              </span>
+                            </div>
                           ) : (
                             <span className="text-[10px] text-yellow-600">⚠ macro non trovati</span>
                           )}
