@@ -893,6 +893,7 @@ const UserDietPage = () => {
           </Card>
         )}
 
+        {!isSelfPlan && (<>
         {/* ═══ 2. TODAY'S PROGRESS ═══ */}
         <Card className="border-2 border-primary/20">
           <CardContent className="py-4 space-y-3">
