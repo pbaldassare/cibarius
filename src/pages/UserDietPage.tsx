@@ -1080,6 +1080,7 @@ const UserDietPage = () => {
               );
             })}
         </div>
+        </>)}
 
         {/* ═══ EXPLORE OTHER PLANS ═══ */}
         {systemTemplates.length > 0 && (
@@ -1133,7 +1134,7 @@ const UserDietPage = () => {
         )}
 
         {/* ═══ 5. SUGGESTIONS ═══ */}
-        {suggestions.length > 0 && (
+        {!isSelfPlan && suggestions.length > 0 && (
           <div className="space-y-2">
             <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
               <Sparkles className="h-4 w-4 text-primary" /> Ricette consigliate
