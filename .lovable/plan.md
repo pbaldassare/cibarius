@@ -1,37 +1,77 @@
 
 
-# Piano: Popolare 300 traduzioni + Prompt IA preciso + Logica DB-first
+# Piano: Pagina dedicata "Il mio piano attivo" con dettaglio giornaliero
 
-## Stato attuale
-- `ingredient_translation` ha solo 23 righe (il seed iniziale)
-- L'edge function `analyze-meal-photo` usa un prompt generico e non ha logica "dishes cache first"
+## Contesto
+Quando l'utente attiva un template, i dati salvati sono:
+- **`diet_plans`**: macro giornalieri totali (kcal, P, C, G)
+- **`diet_plan_meal_targets`**: target per pasto (colazione, pranzo, cena, spuntino) con kcal e macro
+- **`diet_plan_items`**: alimenti prescritti per pasto (opzionali, tipicamente vuoti per i template di sistema)
 
-## Cosa fare
+I template non hanno variazione settimanale — lo schema è lo stesso ogni giorno. La pagina mostrerà il piano giornaliero con lo spaccato per pasto.
 
-### 1. Inserire ~260 nuove traduzioni in `ingredient_translation`
+## Modifiche
 
-Useremo una migrazione SQL con `INSERT ... ON CONFLICT DO NOTHING` per aggiungere tutte le righe del CSV fornito senza duplicare quelle gia' presenti. La tabella ha `name_it` UNIQUE, quindi i conflitti vengono gestiti automaticamente.
+### 1. Nuova pagina: `src/pages/UserActivePlanPage.tsx`
+Pagina dedicata al piano attivo con:
+- **Header** con titolo del piano e badge "Attivo"
+- **Card riassuntiva** con macro giornalieri totali (kcal, P, C, G) e note
+- **Spaccato per pasto** (colazione → pranzo → spuntino → cena), ogni pasto mostra:
+  - Nome pasto con emoji
+  - Target kcal e macro (P/C/G)
+  - Progresso di oggi vs target (barra + badge stato)
+  - Alimenti prescritti (se presenti, espandibili)
+  - Bottone "Aggiungi" che porta a `/meals`
+- **Bottone "Cambia piano"** in fondo che naviga a `/diet`
 
-### 2. Aggiornare il prompt IA nell'edge function
+### 2. Aggiornare la navbar: `src/components/UserBottomNav.tsx`
+- Rinominare il tab "Piano" da `/diet` a `/plan` (pagina piano attivo)
+- `/diet` resta la pagina di selezione template
 
-Sostituire il `systemPrompt` attuale (generico) con il prompt dettagliato fornito dall'utente, che include:
-- Regole per pizza (base, salsa, mozzarella, olio, extra visibili)
-- Regole per pasta (tipo pasta, condimento, formaggio)
-- Regole per risotto (riso, soffritto, brodo, burro/parmigiano, ingrediente principale)
-- Output JSON obbligatorio con `name_it` e `notes`
+### 3. Aggiornare le route: `src/App.tsx`
+- Aggiungere `<Route path="/plan" element={<UserActivePlanPage />} />`
+- Import della nuova pagina
 
-### 3. Aggiungere logica DB-first (dishes cache)
+### 4. Aggiornare `src/pages/UserDietPage.tsx`
+- Dopo l'attivazione di un template (`saveTemplateAsPlan`), fare `navigate("/plan")` invece di restare sulla stessa pagina
+- Nella pagina `/diet` (selezione template), aggiungere un link "Vedi il tuo piano attivo →" in alto se esiste un piano attivo
 
-Prima di chiamare l'IA, la funzione controllera' se un piatto simile esiste gia' in `dishes` + `dish_ingredients`:
-1. Se trovato → carica ingredienti dalla cache, calcola macro, restituisci subito (NO IA, NO USDA)
-2. Se non trovato → chiama IA vision → arricchisci con USDA → salva in `dishes`/`dish_ingredients` per le prossime volte
+### 5. Struttura della nuova pagina
 
-Questo richiede una modifica strutturale all'handler principale dell'edge function, aggiungendo un blocco di cache lookup prima della chiamata AI e un blocco di cache write dopo l'analisi.
+```text
+┌─────────────────────────────┐
+│  ← Il mio piano             │
+├─────────────────────────────┤
+│  Digiuno intermittente 16:8 │
+│  - Donna              [Attivo]│
+│  🔥 1700 kcal               │
+│  P 100g  C 200g  G 60g     │
+│  📝 Solo pranzo+cena+spunt. │
+├─────────────────────────────┤
+│  Progresso di oggi           │
+│  ████████░░░ 68% (1156/1700) │
+│  P ██░░ 45/100g             │
+│  C ████░ 120/200g           │
+│  G ███░░ 38/60g             │
+├─────────────────────────────┤
+│  🌤️ Pranzo         680 kcal │
+│  ████████░░ 72%             │
+│  P 40g C 80g G 24g         │
+│  [+ Aggiungi]               │
+├─────────────────────────────┤
+│  🍎 Spuntino       170 kcal │
+│  ░░░░░░░░░░ 0%              │
+│  Da registrare              │
+│  [+ Aggiungi]               │
+├─────────────────────────────┤
+│  🌙 Cena           850 kcal │
+│  ░░░░░░░░░░ 0%              │
+│  Da registrare              │
+│  [+ Aggiungi]               │
+├─────────────────────────────┤
+│  [🔄 Cambia piano]          │
+└─────────────────────────────┘
+```
 
-## File coinvolti
-
-| File | Azione |
-|------|--------|
-| Migrazione SQL | INSERT ~260 righe in `ingredient_translation` |
-| `supabase/functions/analyze-meal-photo/index.ts` | Nuovo prompt + logica dishes cache |
+I dati vengono caricati dalle stesse tabelle già usate in `UserDietPage`: `diet_plans`, `diet_plan_meal_targets`, `diet_plan_items`, `meal_days/meals/meal_items` (per il progresso di oggi).
 
