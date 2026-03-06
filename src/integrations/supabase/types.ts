@@ -1566,26 +1566,47 @@ export type Database = {
         Row: {
           address: string | null
           created_at: string
+          description: string | null
+          facebook: string | null
           id: string
+          image_url: string | null
+          instagram: string | null
+          latitude: number | null
+          longitude: number | null
           name: string
           owner_id: string
           phone: string
+          website: string | null
         }
         Insert: {
           address?: string | null
           created_at?: string
+          description?: string | null
+          facebook?: string | null
           id?: string
+          image_url?: string | null
+          instagram?: string | null
+          latitude?: number | null
+          longitude?: number | null
           name: string
           owner_id: string
           phone: string
+          website?: string | null
         }
         Update: {
           address?: string | null
           created_at?: string
+          description?: string | null
+          facebook?: string | null
           id?: string
+          image_url?: string | null
+          instagram?: string | null
+          latitude?: number | null
+          longitude?: number | null
           name?: string
           owner_id?: string
           phone?: string
+          website?: string | null
         }
         Relationships: []
       }

@@ -1,54 +1,37 @@
 
 
-# Piano: Profilo ristorante completo con ubicazione, immagine e social
+# Piano: Popolare 300 traduzioni + Prompt IA preciso + Logica DB-first
 
 ## Stato attuale
-- Tabella `restaurants`: solo `name`, `address`, `phone`, `owner_id`
-- `RestaurantSettingsPage`: form basilare con 3 campi
+- `ingredient_translation` ha solo 23 righe (il seed iniziale)
+- L'edge function `analyze-meal-photo` usa un prompt generico e non ha logica "dishes cache first"
 
 ## Cosa fare
 
-### 1. Migrazione DB: aggiungere colonne a `restaurants`
+### 1. Inserire ~260 nuove traduzioni in `ingredient_translation`
 
-```sql
-ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS description text;
-ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS website text;
-ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS instagram text;
-ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS facebook text;
-ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS image_url text;
-ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS latitude double precision;
-ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS longitude double precision;
-```
+Useremo una migrazione SQL con `INSERT ... ON CONFLICT DO NOTHING` per aggiungere tutte le righe del CSV fornito senza duplicare quelle gia' presenti. La tabella ha `name_it` UNIQUE, quindi i conflitti vengono gestiti automaticamente.
 
-### 2. Geocoding con Nominatim (OpenStreetMap, gratuito, no API key)
+### 2. Aggiornare il prompt IA nell'edge function
 
-Quando il ristoratore inserisce/modifica l'indirizzo, un pulsante "Cerca ubicazione" chiama `https://nominatim.openstreetmap.org/search?q=...&format=json` per ottenere lat/lng. Nessuna API key necessaria.
+Sostituire il `systemPrompt` attuale (generico) con il prompt dettagliato fornito dall'utente, che include:
+- Regole per pizza (base, salsa, mozzarella, olio, extra visibili)
+- Regole per pasta (tipo pasta, condimento, formaggio)
+- Regole per risotto (riso, soffritto, brodo, burro/parmigiano, ingrediente principale)
+- Output JSON obbligatorio con `name_it` e `notes`
 
-L'immagine mappa viene generata con OpenStreetMap Static Map (tile URL) tramite un tag `<img>` che punta a un servizio tile gratuito, oppure un iframe embed di OpenStreetMap.
+### 3. Aggiungere logica DB-first (dishes cache)
 
-### 3. Upload immagine ristorante
+Prima di chiamare l'IA, la funzione controllera' se un piatto simile esiste gia' in `dishes` + `dish_ingredients`:
+1. Se trovato → carica ingredienti dalla cache, calcola macro, restituisci subito (NO IA, NO USDA)
+2. Se non trovato → chiama IA vision → arricchisci con USDA → salva in `dishes`/`dish_ingredients` per le prossime volte
 
-Riuso del bucket `media` esistente. Upload file da telefono con `<input type="file" accept="image/*" capture="environment">`, salvataggio su Supabase Storage e URL in `restaurants.image_url`.
-
-### 4. UI del `RestaurantSettingsPage`
-
-Ricostruire la pagina con sezioni:
-
-- **Immagine**: foto attività con upload da telefono + anteprima
-- **Dati base**: nome, telefono, descrizione attività (textarea)
-- **Ubicazione**: indirizzo (input) + pulsante "Cerca su mappa" + anteprima mappa (iframe OSM) + opzione inserimento manuale coordinate
-- **Web e Social**: sito web, Instagram, Facebook (tutti opzionali)
-- **Fornitori**: sezione esistente invariata
-
-### 5. Aggiornare `useRestaurant` hook
-
-Aggiungere i nuovi campi all'interfaccia `Restaurant`.
+Questo richiede una modifica strutturale all'handler principale dell'edge function, aggiungendo un blocco di cache lookup prima della chiamata AI e un blocco di cache write dopo l'analisi.
 
 ## File coinvolti
 
 | File | Azione |
-|------|----------|
-| Migrazione SQL | ALTER TABLE restaurants + 7 colonne |
-| `src/hooks/useRestaurant.ts` | Aggiornare interfaccia Restaurant |
-| `src/pages/restaurant/RestaurantSettingsPage.tsx` | Ricostruire UI completa |
+|------|--------|
+| Migrazione SQL | INSERT ~260 righe in `ingredient_translation` |
+| `supabase/functions/analyze-meal-photo/index.ts` | Nuovo prompt + logica dishes cache |
 
