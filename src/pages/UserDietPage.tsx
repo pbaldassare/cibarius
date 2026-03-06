@@ -20,7 +20,7 @@ import {
   Loader2, Sparkles, ClipboardList, Trophy, Flame, Plus, Trash2,
   ChevronDown, Lightbulb, BookOpen, Bookmark, Send, Eye,
   UserCheck, ArrowRight, ShoppingCart, CalendarDays, Ruler,
-  Search, MapPin, UserPlus, X, Monitor, Building2, GraduationCap, Pencil,
+  Search, MapPin, UserPlus, X, Monitor, Building2, GraduationCap, Pencil, Info,
 } from "lucide-react";
 
 const MEAL_LABELS: Record<string, string> = {
