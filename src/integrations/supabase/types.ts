@@ -622,13 +622,16 @@ export type Database = {
       inventory_items: {
         Row: {
           calories_total: number | null
+          chef_life_hours: number | null
           created_at: string
           expiry_date: string | null
           id: string
+          lot_number: string | null
           macros_total: Json | null
           notes: string | null
           owner_user_id: string | null
           product_id: string
+          production_date: string | null
           quantity: number | null
           restaurant_id: string | null
           storage_type: string
@@ -636,13 +639,16 @@ export type Database = {
         }
         Insert: {
           calories_total?: number | null
+          chef_life_hours?: number | null
           created_at?: string
           expiry_date?: string | null
           id?: string
+          lot_number?: string | null
           macros_total?: Json | null
           notes?: string | null
           owner_user_id?: string | null
           product_id: string
+          production_date?: string | null
           quantity?: number | null
           restaurant_id?: string | null
           storage_type?: string
@@ -650,13 +656,16 @@ export type Database = {
         }
         Update: {
           calories_total?: number | null
+          chef_life_hours?: number | null
           created_at?: string
           expiry_date?: string | null
           id?: string
+          lot_number?: string | null
           macros_total?: Json | null
           notes?: string | null
           owner_user_id?: string | null
           product_id?: string
+          production_date?: string | null
           quantity?: number | null
           restaurant_id?: string | null
           storage_type?: string
@@ -1032,46 +1041,55 @@ export type Database = {
       }
       preparations: {
         Row: {
+          chef_life_hours: number | null
           created_at: string
           description: string | null
           id: string
           image_url: string | null
           label_code: string | null
+          lot_number: string | null
           name: string
           notes: string | null
           owner_user_id: string | null
           portions: number | null
           prepared_at: string
+          production_date: string | null
           restaurant_id: string | null
           storage_type: string
           use_by_date: string
         }
         Insert: {
+          chef_life_hours?: number | null
           created_at?: string
           description?: string | null
           id?: string
           image_url?: string | null
           label_code?: string | null
+          lot_number?: string | null
           name: string
           notes?: string | null
           owner_user_id?: string | null
           portions?: number | null
           prepared_at?: string
+          production_date?: string | null
           restaurant_id?: string | null
           storage_type?: string
           use_by_date: string
         }
         Update: {
+          chef_life_hours?: number | null
           created_at?: string
           description?: string | null
           id?: string
           image_url?: string | null
           label_code?: string | null
+          lot_number?: string | null
           name?: string
           notes?: string | null
           owner_user_id?: string | null
           portions?: number | null
           prepared_at?: string
+          production_date?: string | null
           restaurant_id?: string | null
           storage_type?: string
           use_by_date?: string
