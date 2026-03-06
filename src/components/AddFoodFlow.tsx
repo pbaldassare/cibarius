@@ -29,7 +29,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 export type AddFoodContext = "inventory" | "meal" | "recipe" | "preparation";
 type MealType = "colazione" | "pranzo" | "cena" | "spuntino";
 type Method = "photo_ai" | "search" | "scan" | "manual";
-type Step = "method" | "photo_ai" | "scan" | "search" | "summary";
+type Step = "method" | "photo_ai" | "scan" | "search" | "summary" | "recipes";
 
 interface SearchProduct {
   id: string;
