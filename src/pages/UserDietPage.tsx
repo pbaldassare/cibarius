@@ -156,6 +156,15 @@ const UserDietPage = () => {
   const [expandedMeals, setExpandedMeals] = useState<Set<string>>(new Set());
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [confirmTemplate, setConfirmTemplate] = useState<any>(null);
+  const [infoTemplate, setInfoTemplate] = useState<any>(null);
+
+  const getTemplateInfo = (title: string) => {
+    const lower = title.toLowerCase();
+    for (const [key, info] of Object.entries(TEMPLATE_INFO)) {
+      if (lower.includes(key)) return info;
+    }
+    return null;
+  };
 
   const loadData = async () => {
     if (!user) return;
@@ -588,9 +597,19 @@ const UserDietPage = () => {
                   <CardContent className="py-4 space-y-2">
                     <div className="flex items-center justify-between">
                       <p className="font-bold text-sm text-foreground">{tmpl.title}</p>
-                      <Badge variant="secondary" className="text-xs">
-                        <Flame className="h-3 w-3 mr-0.5" /> {tmpl.kcal_day} kcal
-                      </Badge>
+                      <div className="flex items-center gap-1.5">
+                        {getTemplateInfo(tmpl.title) && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setInfoTemplate(tmpl); }}
+                            className="p-1 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                          >
+                            <Info className="h-4 w-4" />
+                          </button>
+                        )}
+                        <Badge variant="secondary" className="text-xs">
+                          <Flame className="h-3 w-3 mr-0.5" /> {tmpl.kcal_day} kcal
+                        </Badge>
+                      </div>
                     </div>
                     <div className="flex gap-3 text-[11px] text-muted-foreground">
                       <span className="text-blue-600 font-medium">P {tmpl.protein_g_day}g</span>
