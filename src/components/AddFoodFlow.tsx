@@ -14,6 +14,7 @@ import { lookupBarcode, calcNutrition, type ProductData } from "@/lib/barcode";
 import { searchFoodProgressive, type FoodSearchResult, type SearchPhase } from "@/lib/search-food";
 import { analyzeFoodPhotos, fuseWithOFF, fileToImageFile, type ImageFile, type FusedFoodData } from "@/lib/ai-food";
 import { Switch } from "@/components/ui/switch";
+import MealRecipeCard from "@/components/MealRecipeCard";
 import { Slider } from "@/components/ui/slider";
 import { useDietCompatibility } from "@/hooks/useDietCompatibility";
 import { addDays, format } from "date-fns";
@@ -144,6 +145,113 @@ const AddFoodFlow = ({
   const [saved, setSaved] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [editingChip, setEditingChip] = useState<"qty" | "storage" | "expiry" | "serving" | null>(null);
+
+  // Plan recipes state
+  const [planRecipes, setPlanRecipes] = useState<any[]>([]);
+  const [planRecipesLoading, setPlanRecipesLoading] = useState(false);
+  const [activePlanTitle, setActivePlanTitle] = useState<string>("");
+
+  // Detect diet category from plan title
+  const CATEGORY_MAP: Record<string, string> = {
+    mediterranea: "mediterranea", keto: "keto", ketogenica: "keto",
+    digiuno: "digiuno", intermittente: "digiuno",
+    massa: "massa", muscolare: "massa",
+    dimagrimento: "dimagrimento", moderato: "dimagrimento",
+  };
+  const detectDietCategory = (title: string) => {
+    const lower = title.toLowerCase();
+    for (const [kw, cat] of Object.entries(CATEGORY_MAP)) {
+      if (lower.includes(kw)) return cat;
+    }
+    return "mediterranea";
+  };
+  const detectIsFemale = (title: string) => title.toLowerCase().includes("donna");
+
+  // Fetch plan recipes when opening in meal context
+  useEffect(() => {
+    if (!open || context !== "meal" || !user) return;
+    const fetchPlanRecipes = async () => {
+      setPlanRecipesLoading(true);
+      const { data: plans } = await supabase
+        .from("diet_plans")
+        .select("title")
+        .eq("client_user_id", user.id)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (!plans || plans.length === 0) {
+        setPlanRecipes([]);
+        setPlanRecipesLoading(false);
+        return;
+      }
+      const planTitle = plans[0].title;
+      setActivePlanTitle(planTitle);
+      const cat = detectDietCategory(planTitle);
+      const { data: recipes } = await supabase
+        .from("template_recipes")
+        .select("*")
+        .eq("diet_category", cat)
+        .order("meal_type")
+        .order("title");
+      setPlanRecipes(recipes || []);
+      setPlanRecipesLoading(false);
+    };
+    fetchPlanRecipes();
+  }, [open, context, user]);
+
+  // Register recipe as meal
+  const handleRegisterRecipeFromFlow = async (ingredients: any[], title: string) => {
+    if (!user || !selectedMealType) return;
+    setSaving(true);
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      let { data: dayData } = await supabase
+        .from("meal_days").select("id")
+        .eq("user_id", user.id).eq("day_date", today).maybeSingle();
+      if (!dayData) {
+        const { data: nd, error: de } = await supabase
+          .from("meal_days").insert({ user_id: user.id, day_date: today })
+          .select("id").single();
+        if (de) throw de;
+        dayData = nd;
+      }
+      let { data: mealData } = await supabase
+        .from("meals").select("id")
+        .eq("meal_day_id", dayData!.id).eq("meal_type", selectedMealType).maybeSingle();
+      if (!mealData) {
+        const { data: nm, error: me } = await supabase
+          .from("meals").insert({ meal_day_id: dayData!.id, meal_type: selectedMealType })
+          .select("id").single();
+        if (me) throw me;
+        mealData = nm;
+      }
+      const totalKcal = ingredients.reduce((s, i) => s + i.kcal, 0);
+      const totalP = ingredients.reduce((s, i) => s + i.protein_g, 0);
+      const totalC = ingredients.reduce((s, i) => s + i.carbs_g, 0);
+      const totalF = ingredients.reduce((s, i) => s + i.fats_g, 0);
+      const { error: itemErr } = await supabase.from("meal_items").insert({
+        meal_id: mealData!.id,
+        source_type: "custom",
+        custom_name: title,
+        dish_name: title,
+        calories: totalKcal,
+        quantity: 1,
+        unit: "porzione",
+        macros: { protein: totalP, carbs: totalC, fats: totalF },
+      });
+      if (itemErr) throw itemErr;
+      toast({ title: `"${title}" registrato! ✅` });
+      setSaved(true);
+      if (navigator.vibrate) navigator.vibrate(50);
+      await new Promise((r) => setTimeout(r, 600));
+      onComplete();
+      onOpenChange(false);
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Errore", description: e.message });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   // Reset on close
   useEffect(() => {
