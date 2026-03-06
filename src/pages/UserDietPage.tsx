@@ -117,103 +117,105 @@ const UserDietPage = () => {
   // Meal items expand
   const [expandedMeals, setExpandedMeals] = useState<Set<string>>(new Set());
   const [savingTemplate, setSavingTemplate] = useState(false);
+  const [confirmTemplate, setConfirmTemplate] = useState<any>(null);
+
+  const loadData = async () => {
+    if (!user) return;
+    // 1. Active plan
+    const { data: plans } = await supabase
+      .from("diet_plans")
+      .select("*, diet_plan_meal_targets(*)")
+      .eq("client_user_id", user.id)
+      .eq("is_active", true)
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    if (plans && plans.length > 0) {
+      const p = plans[0] as any;
+      setPlan(p);
+      setMealTargets(p.diet_plan_meal_targets || []);
+
+      const { data: items } = await supabase
+        .from("diet_plan_items")
+        .select("*")
+        .eq("diet_plan_id", p.id)
+        .order("sort_order");
+      if (items) setPlanItems(items as any);
+
+      const { data: link } = await supabase
+        .from("client_links")
+        .select("professional_id")
+        .eq("client_user_id", user.id)
+        .eq("status", "active")
+        .limit(1)
+        .maybeSingle();
+
+      const proId = link?.professional_id || p.professional_id;
+      if (proId && proId !== user.id) {
+        const [profRes, proDetailRes] = await Promise.all([
+          supabase.from("profiles").select("full_name, email").eq("id", proId).single(),
+          supabase.from("professional_profiles").select("display_name, specialization, city, bio, photo_url").eq("user_id", proId).maybeSingle(),
+        ]);
+        if (profRes.data) setProProfile(profRes.data);
+        if (proDetailRes.data) setProDetailProfile(proDetailRes.data as any);
+      }
+    } else {
+      setPlan(null);
+      setPlanItems([]);
+      setMealTargets([]);
+      setProProfile(null);
+      setProDetailProfile(null);
+      loadCoaches();
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    const { data: dayData } = await supabase
+      .from("meal_days")
+      .select("id, meals(id, meal_type, meal_items(calories, macros))")
+      .eq("user_id", user.id)
+      .eq("day_date", today)
+      .maybeSingle();
+
+    if (dayData) {
+      const meals = (dayData as any).meals || [];
+      const grouped: TodayMealData[] = meals.map((m: any) => {
+        const items = m.meal_items || [];
+        return {
+          meal_type: m.meal_type,
+          kcal: items.reduce((s: number, i: any) => s + (i.calories ?? 0), 0),
+          protein: items.reduce((s: number, i: any) => s + ((i.macros as any)?.protein ?? 0), 0),
+          carbs: items.reduce((s: number, i: any) => s + ((i.macros as any)?.carbs ?? 0), 0),
+          fats: items.reduce((s: number, i: any) => s + ((i.macros as any)?.fats ?? 0), 0),
+        };
+      });
+      setTodayMeals(grouped);
+    }
+
+    const { data: suggs } = await supabase
+      .from("pro_suggestions")
+      .select("*")
+      .eq("client_user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(10);
+    setSuggestions(suggs ?? []);
+
+    const { data: appt } = await supabase
+      .from("appointments")
+      .select("*")
+      .eq("client_user_id", user.id)
+      .eq("status", "scheduled")
+      .gt("starts_at", new Date().toISOString())
+      .order("starts_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    setNextAppointment(appt);
+
+    setLoading(false);
+  };
 
   useEffect(() => {
     if (!user) return;
-    const load = async () => {
-      // 1. Active plan
-      const { data: plans } = await supabase
-        .from("diet_plans")
-        .select("*, diet_plan_meal_targets(*)")
-        .eq("client_user_id", user.id)
-        .eq("is_active", true)
-        .order("created_at", { ascending: false })
-        .limit(1);
-
-      if (plans && plans.length > 0) {
-        const p = plans[0] as any;
-        setPlan(p);
-        setMealTargets(p.diet_plan_meal_targets || []);
-
-        // Load plan items
-        const { data: items } = await supabase
-          .from("diet_plan_items")
-          .select("*")
-          .eq("diet_plan_id", p.id)
-          .order("sort_order");
-        if (items) setPlanItems(items as any);
-
-        // 2. Pro profile
-        const { data: link } = await supabase
-          .from("client_links")
-          .select("professional_id")
-          .eq("client_user_id", user.id)
-          .eq("status", "active")
-          .limit(1)
-          .maybeSingle();
-
-        const proId = link?.professional_id || p.professional_id;
-        if (proId && proId !== user.id) {
-          const [profRes, proDetailRes] = await Promise.all([
-            supabase.from("profiles").select("full_name, email").eq("id", proId).single(),
-            supabase.from("professional_profiles").select("display_name, specialization, city, bio, photo_url").eq("user_id", proId).maybeSingle(),
-          ]);
-          if (profRes.data) setProProfile(profRes.data);
-          if (proDetailRes.data) setProDetailProfile(proDetailRes.data as any);
-        }
-      } else {
-        // No plan — load coaches for discovery
-        loadCoaches();
-      }
-
-      // 3. Today's meals
-      const today = new Date().toISOString().slice(0, 10);
-      const { data: dayData } = await supabase
-        .from("meal_days")
-        .select("id, meals(id, meal_type, meal_items(calories, macros))")
-        .eq("user_id", user.id)
-        .eq("day_date", today)
-        .maybeSingle();
-
-      if (dayData) {
-        const meals = (dayData as any).meals || [];
-        const grouped: TodayMealData[] = meals.map((m: any) => {
-          const items = m.meal_items || [];
-          return {
-            meal_type: m.meal_type,
-            kcal: items.reduce((s: number, i: any) => s + (i.calories ?? 0), 0),
-            protein: items.reduce((s: number, i: any) => s + ((i.macros as any)?.protein ?? 0), 0),
-            carbs: items.reduce((s: number, i: any) => s + ((i.macros as any)?.carbs ?? 0), 0),
-            fats: items.reduce((s: number, i: any) => s + ((i.macros as any)?.fats ?? 0), 0),
-          };
-        });
-        setTodayMeals(grouped);
-      }
-
-      // 4. Suggestions
-      const { data: suggs } = await supabase
-        .from("pro_suggestions")
-        .select("*")
-        .eq("client_user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(10);
-      setSuggestions(suggs ?? []);
-
-      // 5. Next appointment
-      const { data: appt } = await supabase
-        .from("appointments")
-        .select("*")
-        .eq("client_user_id", user.id)
-        .eq("status", "scheduled")
-        .gt("starts_at", new Date().toISOString())
-        .order("starts_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      setNextAppointment(appt);
-
-      setLoading(false);
-    };
-    load();
+    loadData();
   }, [user]);
 
   const loadCoaches = async () => {
