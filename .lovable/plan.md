@@ -1,47 +1,37 @@
 
 
-# Fix: isSelfPlan non funziona perché ci sono due piani attivi
+# Piano: Popolare 300 traduzioni + Prompt IA preciso + Logica DB-first
 
-## Problema
-L'utente `cibarius@utente.it` ha **due piani attivi**:
-1. `Piano nutrizionale` — creato da un nutrizionista (`professional_id = 1475bf7c...`) 
-2. `Digiuno intermittente 16:8` — self-plan creato dal template
+## Stato attuale
+- `ingredient_translation` ha solo 23 righe (il seed iniziale)
+- L'edge function `analyze-meal-photo` usa un prompt generico e non ha logica "dishes cache first"
 
-Quando `saveTemplateAsPlan` ha provato a disattivare il vecchio piano, la RLS ha bloccato l'update silenziosamente (l'utente non è il `professional_id` del vecchio piano). Il codice fa `.limit(1)` e Supabase restituisce il piano più vecchio (del nutrizionista), quindi `isSelfPlan = false` e vengono mostrate tutte le sezioni coach.
+## Cosa fare
 
-## Soluzione
+### 1. Inserire ~260 nuove traduzioni in `ingredient_translation`
 
-### 1. Disattivare il vecchio piano via SQL (una tantum)
-Eseguire una migration che disattiva i piani orfani (dove il professionista non ha più un link attivo con il cliente):
+Useremo una migrazione SQL con `INSERT ... ON CONFLICT DO NOTHING` per aggiungere tutte le righe del CSV fornito senza duplicare quelle gia' presenti. La tabella ha `name_it` UNIQUE, quindi i conflitti vengono gestiti automaticamente.
 
-```sql
-UPDATE diet_plans SET is_active = false 
-WHERE id = '9b968dd0-75ca-4cb3-b4f5-348213c1046e';
-```
+### 2. Aggiornare il prompt IA nell'edge function
 
-### 2. Fix nel codice — `src/pages/UserDietPage.tsx`
+Sostituire il `systemPrompt` attuale (generico) con il prompt dettagliato fornito dall'utente, che include:
+- Regole per pizza (base, salsa, mozzarella, olio, extra visibili)
+- Regole per pasta (tipo pasta, condimento, formaggio)
+- Regole per risotto (riso, soffritto, brodo, burro/parmigiano, ingrediente principale)
+- Output JSON obbligatorio con `name_it` e `notes`
 
-**a) Query dei piani: preferire il self-plan**
-Nella query iniziale (riga 124-129), aggiungere `.order("created_at", { ascending: false })` così il piano più recente (il template) viene preso per primo.
+### 3. Aggiungere logica DB-first (dishes cache)
 
-**b) Logica isSelfPlan più robusta**
-Cambiare la logica `isSelfPlan` (riga 334) per controllare anche se c'è un link attivo con un coach:
+Prima di chiamare l'IA, la funzione controllera' se un piatto simile esiste gia' in `dishes` + `dish_ingredients`:
+1. Se trovato → carica ingredienti dalla cache, calcola macro, restituisci subito (NO IA, NO USDA)
+2. Se non trovato → chiama IA vision → arricchisci con USDA → salva in `dishes`/`dish_ingredients` per le prossime volte
 
-```typescript
-const isSelfPlan = plan 
-  ? (plan.professional_id === plan.client_user_id) || !proProfile
-  : false;
-```
+Questo richiede una modifica strutturale all'handler principale dell'edge function, aggiungendo un blocco di cache lookup prima della chiamata AI e un blocco di cache write dopo l'analisi.
 
-**c) Fix deactivation nella funzione `saveTemplateAsPlan`**
-Filtrare la deactivation solo sui self-plan (che l'utente può modificare via RLS):
+## File coinvolti
 
-```typescript
-await supabase.from("diet_plans").update({ is_active: false })
-  .eq("client_user_id", user.id)
-  .eq("professional_id", user.id)  // solo self-plan
-  .eq("is_active", true);
-```
-
-Questo evita il fallimento silenzioso con i piani del nutrizionista.
+| File | Azione |
+|------|--------|
+| Migrazione SQL | INSERT ~260 righe in `ingredient_translation` |
+| `supabase/functions/analyze-meal-photo/index.ts` | Nuovo prompt + logica dishes cache |
 
