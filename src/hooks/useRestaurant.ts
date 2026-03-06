@@ -9,6 +9,13 @@ export interface Restaurant {
   address: string | null;
   phone: string;
   created_at: string;
+  description: string | null;
+  website: string | null;
+  instagram: string | null;
+  facebook: string | null;
+  image_url: string | null;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export const useRestaurant = () => {
