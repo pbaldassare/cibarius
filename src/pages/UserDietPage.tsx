@@ -545,7 +545,7 @@ const UserDietPage = () => {
                 <Card
                   key={tmpl.id}
                   className="border border-border cursor-pointer hover:border-primary/50 transition-colors"
-                  onClick={() => saveTemplateAsPlan(tmpl)}
+                  onClick={() => setConfirmTemplate(tmpl)}
                 >
                   <CardContent className="py-4 space-y-2">
                     <div className="flex items-center justify-between">
@@ -1090,7 +1090,7 @@ const UserDietPage = () => {
                   <Card
                     key={tmpl.id}
                     className={`border cursor-pointer transition-colors ${isActive ? "border-primary border-2 bg-primary/5" : "border-border hover:border-primary/50"}`}
-                    onClick={() => !isActive && saveTemplateAsPlan(tmpl)}
+                    onClick={() => !isActive && setConfirmTemplate(tmpl)}
                   >
                     <CardContent className="py-3 space-y-1.5">
                       <div className="flex items-center justify-between">
