@@ -226,7 +226,7 @@ const Index = () => {
       if (s === "expired") expired++;
       else if (s === "expiring") expiring++;
     });
-    return { expired, expiring, nodate, total: expired + expiring + nodate };
+    return { expired, expiring, allItems: items.length + prepItems.length, total: expired + expiring };
   }, [items, prepItems]);
 
   // Urgent list: max 3
@@ -394,7 +394,7 @@ const Index = () => {
           {[
             { n: counts.expired, label: "Scaduti", color: "hsl(1,76%,55%)" },
             { n: counts.expiring, label: "In scadenza", color: "hsl(37,90%,51%)" },
-            { n: counts.nodate, label: "Senza data", color: "hsl(215,10%,62%)" },
+            { n: counts.allItems, label: "Totale", color: "hsl(215,50%,55%)" },
           ].map(({ n, label, color }, idx) => (
             <div key={label} className="flex items-center gap-2 flex-1">
               {idx > 0 && <div className="w-px h-7 bg-border" />}
