@@ -18,6 +18,7 @@ const tabs: TabItem[] = [
 
 const UserBottomNav = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
   const [hasActivePlan, setHasActivePlan] = useState(false);
@@ -87,6 +88,7 @@ const UserBottomNav = () => {
                 onClick={() => {
                   const msg = motivationalMessages[Math.floor(Math.random() * motivationalMessages.length)];
                   toast(msg, { duration: 3000 });
+                  navigate("/plan");
                 }}
               >
                 <Icon size={18} strokeWidth={1.6} className="text-white/50" />
