@@ -1181,6 +1181,37 @@ const UserDietPage = () => {
           </div>
         )}
       </main>
+
+      {/* Confirmation dialog for template switch */}
+      <AlertDialog open={!!confirmTemplate} onOpenChange={(open) => !open && setConfirmTemplate(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cambiare piano nutrizionale?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <span className="block">
+                Stai per attivare il piano <strong className="text-foreground">{confirmTemplate?.title}</strong>.
+              </span>
+              <span className="flex gap-3 text-xs">
+                <span className="text-primary font-medium">🔥 {confirmTemplate?.kcal_day} kcal</span>
+                <span className="text-blue-600 font-medium">P {confirmTemplate?.protein_g_day}g</span>
+                <span className="text-amber-600 font-medium">C {confirmTemplate?.carbs_g_day}g</span>
+                <span className="text-rose-600 font-medium">G {confirmTemplate?.fats_g_day}g</span>
+              </span>
+              {confirmTemplate?.notes && (
+                <span className="block text-xs text-muted-foreground italic">{confirmTemplate.notes}</span>
+              )}
+              <span className="block text-xs">Il piano precedente verrà disattivato. I tuoi obiettivi giornalieri saranno aggiornati.</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annulla</AlertDialogCancel>
+            <AlertDialogAction onClick={() => confirmTemplate && saveTemplateAsPlan(confirmTemplate)} disabled={savingTemplate}>
+              {savingTemplate ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              Conferma
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
