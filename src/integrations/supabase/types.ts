@@ -1863,6 +1863,54 @@ export type Database = {
           },
         ]
       }
+      template_recipes: {
+        Row: {
+          carbs_total: number
+          created_at: string | null
+          diet_category: string
+          fats_total: number
+          id: string
+          ingredients: Json
+          instructions: string | null
+          kcal_total: number
+          meal_type: string
+          portion_scale_female: number | null
+          prep_time_min: number | null
+          protein_total: number
+          title: string
+        }
+        Insert: {
+          carbs_total?: number
+          created_at?: string | null
+          diet_category: string
+          fats_total?: number
+          id?: string
+          ingredients?: Json
+          instructions?: string | null
+          kcal_total?: number
+          meal_type: string
+          portion_scale_female?: number | null
+          prep_time_min?: number | null
+          protein_total?: number
+          title: string
+        }
+        Update: {
+          carbs_total?: number
+          created_at?: string | null
+          diet_category?: string
+          fats_total?: number
+          id?: string
+          ingredients?: Json
+          instructions?: string | null
+          kcal_total?: number
+          meal_type?: string
+          portion_scale_female?: number | null
+          prep_time_min?: number | null
+          protein_total?: number
+          title?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
