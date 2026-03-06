@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.analyze-meal-photo]
 verify_jwt = false
+
+[functions.analyze-restaurant-photos]
+verify_jwt = false

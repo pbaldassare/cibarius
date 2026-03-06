@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import MobileHeader from "@/components/MobileHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
-import AddFoodFlow from "@/components/AddFoodFlow";
+import RestaurantAddFlow from "@/components/RestaurantAddFlow";
 import {
   Loader2, Clock, AlertCircle, Package, Plus, ChevronRight,
   ChefHat, FileText, Upload, User, Settings, Zap, HelpCircle,
@@ -322,11 +322,10 @@ const RestaurantPage = () => {
         </button>
       </div>
 
-      <AddFoodFlow
+      <RestaurantAddFlow
         open={addFoodOpen}
         onOpenChange={setAddFoodOpen}
-        context="inventory"
-        defaultRestaurantId={restaurant?.id}
+        restaurantId={restaurant?.id ?? ""}
         onComplete={fetchData}
       />
     </div>
