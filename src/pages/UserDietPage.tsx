@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,7 +20,7 @@ import {
   Loader2, Sparkles, ClipboardList, Trophy, Flame, Plus, Trash2,
   ChevronDown, Lightbulb, BookOpen, Bookmark, Send, Eye,
   UserCheck, ArrowRight, ShoppingCart, CalendarDays, Ruler,
-  Search, MapPin, UserPlus, X, Monitor, Building2, GraduationCap, Pencil,
+  Search, MapPin, UserPlus, X, Monitor, Building2, GraduationCap, Pencil, Info,
 } from "lucide-react";
 
 const MEAL_LABELS: Record<string, string> = {
@@ -31,6 +31,44 @@ const MEAL_LABELS: Record<string, string> = {
 };
 
 const MEAL_ORDER = ["colazione", "pranzo", "spuntino", "cena"];
+
+const TEMPLATE_INFO: Record<string, { target: string; goals: string; description: string }> = {
+  mediterranea: {
+    target: "Adatto a tutti: adulti, famiglie e chi vuole mangiare bene senza rinunce.",
+    goals: "Mantenere un peso sano, proteggere il cuore, avere più energia ogni giorno.",
+    description: "La dieta mediterranea si basa su cereali integrali, frutta, verdura, legumi, pesce e olio d'oliva. È equilibrata, gustosa e riconosciuta come una delle più salutari al mondo. Facile da seguire a lungo termine.",
+  },
+  keto: {
+    target: "Per chi vuole perdere grasso in modo rapido e ha voglia di impegnarsi con costanza.",
+    goals: "Bruciare grassi come energia principale, ridurre la fame nervosa, migliorare concentrazione e lucidità.",
+    description: "La dieta chetogenica riduce molto i carboidrati (sotto i 50g al giorno) e aumenta i grassi buoni. Il corpo entra in uno stato chiamato 'chetosi' e brucia i grassi come carburante. Richiede attenzione nella scelta degli alimenti.",
+  },
+  digiuno: {
+    target: "Per chi ha un ritmo di vita flessibile e preferisce pasti concentrati in poche ore.",
+    goals: "Migliorare il metabolismo, favorire la rigenerazione cellulare, semplificare la gestione dei pasti.",
+    description: "Il digiuno intermittente alterna finestre di alimentazione (es. 8 ore) a periodi di digiuno (es. 16 ore). Non si tratta di mangiare meno, ma di concentrare i pasti. Aiuta a regolare gli zuccheri nel sangue e a ridurre l'infiammazione.",
+  },
+  massa: {
+    target: "Per chi si allena regolarmente e vuole costruire muscolo in modo pulito.",
+    goals: "Aumentare la massa muscolare, migliorare la forza, supportare il recupero dopo l'allenamento.",
+    description: "Il piano di massa prevede un surplus calorico controllato con alto apporto proteico, carboidrati abbondanti per l'energia e grassi bilanciati. Ideale da abbinare a un programma di allenamento con i pesi.",
+  },
+  dimagrimento: {
+    target: "Per chi vuole perdere peso in modo graduale e sostenibile, senza diete estreme.",
+    goals: "Ridurre il grasso corporeo, mantenere la massa muscolare, migliorare il rapporto con il cibo.",
+    description: "Il piano dimagrimento crea un leggero deficit calorico, con proteine alte per proteggere i muscoli e carboidrati e grassi bilanciati per avere energia. Non è una dieta punitiva: è un percorso che puoi mantenere nel tempo.",
+  },
+  vegetariana: {
+    target: "Per chi non mangia carne o pesce e vuole un'alimentazione completa e varia.",
+    goals: "Coprire tutti i nutrienti senza proteine animali dirette, mantenere energia e benessere.",
+    description: "Il piano vegetariano include legumi, uova, latticini, cereali, frutta e verdura. Attenzione a combinare bene le proteine vegetali (es. cereali + legumi) per ottenere tutti gli aminoacidi essenziali.",
+  },
+  vegana: {
+    target: "Per chi segue uno stile di vita 100% vegetale e vuole nutrirsi in modo bilanciato.",
+    goals: "Raggiungere un apporto proteico adeguato, coprire vitamine B12, ferro e omega-3.",
+    description: "Il piano vegano si basa su legumi, cereali, tofu, tempeh, frutta secca, semi e tanta verdura. Fondamentale integrare vitamina B12. Con le giuste combinazioni alimentari si può essere in piena forma senza prodotti animali.",
+  },
+};
 
 interface TodayMealData {
   meal_type: string;
@@ -118,6 +156,15 @@ const UserDietPage = () => {
   const [expandedMeals, setExpandedMeals] = useState<Set<string>>(new Set());
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [confirmTemplate, setConfirmTemplate] = useState<any>(null);
+  const [infoTemplate, setInfoTemplate] = useState<any>(null);
+
+  const getTemplateInfo = (title: string) => {
+    const lower = title.toLowerCase();
+    for (const [key, info] of Object.entries(TEMPLATE_INFO)) {
+      if (lower.includes(key)) return info;
+    }
+    return null;
+  };
 
   const loadData = async () => {
     if (!user) return;
@@ -550,9 +597,19 @@ const UserDietPage = () => {
                   <CardContent className="py-4 space-y-2">
                     <div className="flex items-center justify-between">
                       <p className="font-bold text-sm text-foreground">{tmpl.title}</p>
-                      <Badge variant="secondary" className="text-xs">
-                        <Flame className="h-3 w-3 mr-0.5" /> {tmpl.kcal_day} kcal
-                      </Badge>
+                      <div className="flex items-center gap-1.5">
+                        {getTemplateInfo(tmpl.title) && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setInfoTemplate(tmpl); }}
+                            className="p-1 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                          >
+                            <Info className="h-4 w-4" />
+                          </button>
+                        )}
+                        <Badge variant="secondary" className="text-xs">
+                          <Flame className="h-3 w-3 mr-0.5" /> {tmpl.kcal_day} kcal
+                        </Badge>
+                      </div>
                     </div>
                     <div className="flex gap-3 text-[11px] text-muted-foreground">
                       <span className="text-blue-600 font-medium">P {tmpl.protein_g_day}g</span>
@@ -1212,6 +1269,46 @@ const UserDietPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Template Info Dialog */}
+      <Dialog open={!!infoTemplate} onOpenChange={(open) => { if (!open) setInfoTemplate(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{infoTemplate?.title}</DialogTitle>
+          </DialogHeader>
+          {infoTemplate && (() => {
+            const info = getTemplateInfo(infoTemplate.title);
+            if (!info) return <p className="text-sm text-muted-foreground">Nessuna informazione disponibile.</p>;
+            return (
+              <div className="space-y-4 py-2">
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-primary uppercase tracking-wide">👤 Per chi è adatto</p>
+                  <p className="text-sm text-foreground">{info.target}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-primary uppercase tracking-wide">🎯 Obiettivi</p>
+                  <p className="text-sm text-foreground">{info.goals}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-primary uppercase tracking-wide">📋 Come funziona</p>
+                  <p className="text-sm text-foreground">{info.description}</p>
+                </div>
+                <div className="rounded-lg bg-secondary/60 p-3 space-y-1">
+                  <p className="text-xs font-semibold text-foreground">Valori giornalieri</p>
+                  <p className="text-xs text-muted-foreground">
+                    {infoTemplate.kcal_day} kcal · Proteine {infoTemplate.protein_g_day}g · Carboidrati {infoTemplate.carbs_g_day}g · Grassi {infoTemplate.fats_g_day}g
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
+          <DialogFooter>
+            <Button onClick={() => { setInfoTemplate(null); setConfirmTemplate(infoTemplate); }} className="w-full gap-2">
+              <Sparkles className="h-4 w-4" /> Attiva questo piano
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

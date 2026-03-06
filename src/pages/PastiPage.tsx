@@ -7,7 +7,7 @@ import AddFoodFlow from "@/components/AddFoodFlow";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, UtensilsCrossed, Target, Trash2, Flame, ClipboardList, Camera } from "lucide-react";
+import { Plus, UtensilsCrossed, Target, Trash2, Flame, Camera } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -176,18 +176,6 @@ const PastiPage = () => {
           </div>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => navigate("/diet")}
-              className="flex items-center gap-1 text-sm font-medium text-muted-foreground"
-            >
-              <ClipboardList size={16} />
-            </button>
-            <button
-              onClick={() => navigate("/meals/targets")}
-              className="flex items-center gap-1 text-sm font-medium text-muted-foreground"
-            >
-              <Target size={16} />
-            </button>
-            <button
               onClick={() => navigate("/meals/photo")}
               className="flex items-center gap-1 rounded-xl bg-secondary px-3 py-1.5 text-sm font-medium text-secondary-foreground"
             >
@@ -206,17 +194,13 @@ const PastiPage = () => {
 
         {/* Diet plan box */}
         {dietPlan && (
-          <button
-            onClick={() => navigate("/diet")}
-            className="w-full rounded-xl border-2 border-primary/20 bg-primary/5 p-3 text-left flex items-center gap-3 active:scale-[0.98] transition-transform"
-          >
-            <ClipboardList className="h-5 w-5 text-primary shrink-0" />
+          <div className="w-full rounded-xl border-2 border-primary/20 bg-primary/5 p-3 flex items-center gap-3">
+            <Flame className="h-5 w-5 text-primary shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-foreground">{dietPlan.title}</p>
               <p className="text-xs text-muted-foreground">{dietPlan.kcal_day} kcal · P{dietPlan.protein_g_day} C{dietPlan.carbs_g_day} G{dietPlan.fats_g_day}</p>
             </div>
-            <span className="text-xs text-primary font-medium">Vedi →</span>
-          </button>
+          </div>
         )}
 
         {targetKcal && meals.length > 0 && (
