@@ -163,7 +163,11 @@ const UserDietPage = () => {
     for (const [key, info] of Object.entries(TEMPLATE_INFO)) {
       if (lower.includes(key)) return info;
     }
-    return null;
+    return {
+      target: "Adatto a chi cerca un'alimentazione bilanciata e personalizzata.",
+      goals: "Migliorare il benessere generale, mantenere un peso sano e avere più energia.",
+      description: "Questo piano fornisce una ripartizione equilibrata di proteine, carboidrati e grassi calibrata sui tuoi fabbisogni giornalieri. Segui le indicazioni per ottenere risultati concreti nel tempo.",
+    };
   };
 
   const loadData = async () => {
@@ -597,15 +601,14 @@ const UserDietPage = () => {
                   <CardContent className="py-4 space-y-2">
                     <div className="flex items-center justify-between">
                       <p className="font-bold text-sm text-foreground">{tmpl.title}</p>
-                      <div className="flex items-center gap-1.5">
-                        {getTemplateInfo(tmpl.title) && (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); setInfoTemplate(tmpl); }}
-                            className="p-1 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
-                          >
-                            <Info className="h-4 w-4" />
-                          </button>
-                        )}
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setInfoTemplate(tmpl); }}
+                          className="p-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                          aria-label="Informazioni sul piano"
+                        >
+                          <Info className="h-5 w-5" />
+                        </button>
                         <Badge variant="secondary" className="text-xs">
                           <Flame className="h-3 w-3 mr-0.5" /> {tmpl.kcal_day} kcal
                         </Badge>
