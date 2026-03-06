@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { Home, Plus, Clock, UtensilsCrossed, User } from "lucide-react";
+import { Home, Clock, ClipboardList, UtensilsCrossed, User } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,8 +9,8 @@ interface TabItem { to: string; icon: LucideIcon; label: string }
 
 const tabs: TabItem[] = [
   { to: "/", icon: Home, label: "Home" },
-  { to: "/scan", icon: Plus, label: "Aggiungi" },
   { to: "/expiry", icon: Clock, label: "Scadenze" },
+  { to: "/diet", icon: ClipboardList, label: "Piano" },
   { to: "/meals", icon: UtensilsCrossed, label: "Pasti" },
   { to: "/profile", icon: User, label: "Profilo" },
 ];
