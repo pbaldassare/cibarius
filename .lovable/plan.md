@@ -1,50 +1,37 @@
 
 
-# Piano: Blocco salvataggio senza macronutrienti (solo utente)
+# Piano: Popolare 300 traduzioni + Prompt IA preciso + Logica DB-first
 
-## Problema
-Quando l'AI o il barcode non trovano i dati nutrizionali, l'utente può salvare un prodotto senza calorie/macro. Questo rende inutili il tracking pasti e il monitoraggio dietetico.
+## Stato attuale
+- `ingredient_translation` ha solo 23 righe (il seed iniziale)
+- L'edge function `analyze-meal-photo` usa un prompt generico e non ha logica "dishes cache first"
 
-## Soluzione
-Nel step `summary`, se `calories100g` e' null e il contesto NON e' ristorante (`!defaultRestaurantId`), mostrare un banner con 3 alternative al posto del pulsante "Conferma e salva":
+## Cosa fare
 
-1. **Rifai la foto** - torna allo step `photo_ai` con le foto resettate, suggerendo di inquadrare la tabella nutrizionale
-2. **Cerca prodotti simili** - passa allo step `search` pre-compilando la query col nome del prodotto gia' rilevato
-3. **Inserisci a mano** - espande direttamente la sezione "Dettagli" con focus sui campi nutrizionali
+### 1. Inserire ~260 nuove traduzioni in `ingredient_translation`
 
-Una volta che l'utente compila i macro (anche manualmente), il banner sparisce e il pulsante "Conferma e salva" riappare.
+Useremo una migrazione SQL con `INSERT ... ON CONFLICT DO NOTHING` per aggiungere tutte le righe del CSV fornito senza duplicare quelle gia' presenti. La tabella ha `name_it` UNIQUE, quindi i conflitti vengono gestiti automaticamente.
+
+### 2. Aggiornare il prompt IA nell'edge function
+
+Sostituire il `systemPrompt` attuale (generico) con il prompt dettagliato fornito dall'utente, che include:
+- Regole per pizza (base, salsa, mozzarella, olio, extra visibili)
+- Regole per pasta (tipo pasta, condimento, formaggio)
+- Regole per risotto (riso, soffritto, brodo, burro/parmigiano, ingrediente principale)
+- Output JSON obbligatorio con `name_it` e `notes`
+
+### 3. Aggiungere logica DB-first (dishes cache)
+
+Prima di chiamare l'IA, la funzione controllera' se un piatto simile esiste gia' in `dishes` + `dish_ingredients`:
+1. Se trovato → carica ingredienti dalla cache, calcola macro, restituisci subito (NO IA, NO USDA)
+2. Se non trovato → chiama IA vision → arricchisci con USDA → salva in `dishes`/`dish_ingredients` per le prossime volte
+
+Questo richiede una modifica strutturale all'handler principale dell'edge function, aggiungendo un blocco di cache lookup prima della chiamata AI e un blocco di cache write dopo l'analisi.
 
 ## File coinvolti
 
-| File | Modifica |
-|------|----------|
-| `src/components/AddFoodFlow.tsx` | Aggiungere banner "Dati nutrizionali mancanti" con 3 CTA nel summary step; disabilitare il bottone salva se mancano macro e non e' ristorante |
-
-## Dettaglio tecnico
-
-Nel summary step (~linea 1108), subito dopo il product hero card, aggiungere:
-
-```tsx
-{/* Missing nutrition banner - only for regular users */}
-{calories100g == null && !defaultRestaurantId && (
-  <div className="rounded-2xl border-2 border-amber-300 bg-amber-50 p-4 space-y-3">
-    <div className="flex items-center gap-2">
-      <AlertTriangle className="h-5 w-5 text-amber-600" />
-      <p className="text-sm font-semibold text-amber-800">
-        Dati nutrizionali mancanti
-      </p>
-    </div>
-    <p className="text-xs text-amber-700">
-      Per salvare questo prodotto servono almeno le calorie. Scegli come procedere:
-    </p>
-    {/* 3 buttons: retake photo, search similar, enter manually */}
-  </div>
-)}
-```
-
-Il pulsante "Conferma e salva" in fondo: aggiungere `disabled` se `calories100g == null && !defaultRestaurantId`.
-
-Quando l'utente sceglie "Cerca prodotti simili", pre-popola `query` con il `name` corrente e torna a step `search`.
-Quando sceglie "Inserisci a mano", imposta `showDetails = true` e fa scroll ai campi nutrizionali.
-Quando sceglie "Rifai la foto", resetta `aiPhotos` e torna a step `photo_ai`.
+| File | Azione |
+|------|--------|
+| Migrazione SQL | INSERT ~260 righe in `ingredient_translation` |
+| `supabase/functions/analyze-meal-photo/index.ts` | Nuovo prompt + logica dishes cache |
 

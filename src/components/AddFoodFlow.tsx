@@ -1149,6 +1149,62 @@ const AddFoodFlow = ({
                   </div>
                 </div>
 
+                {/* ── Missing nutrition banner (regular users only) ── */}
+                {calories100g == null && !defaultRestaurantId && (
+                  <div className="rounded-2xl border-2 border-amber-300 bg-amber-50 p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5 text-amber-600" />
+                      <p className="text-sm font-semibold text-amber-800">
+                        Dati nutrizionali mancanti
+                      </p>
+                    </div>
+                    <p className="text-xs text-amber-700">
+                      Per salvare questo prodotto servono almeno le calorie. Scegli come procedere:
+                    </p>
+                    <div className="space-y-2">
+                      {(method === "photo_ai" || method === "scan") && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full gap-2 border-amber-300 text-amber-800 hover:bg-amber-100"
+                          onClick={() => {
+                            setAiPhotos([]);
+                            setFusedData(null);
+                            setScannedCode(null);
+                            setNotFound(false);
+                            setStep(method === "photo_ai" ? "photo_ai" : "scan");
+                          }}
+                        >
+                          <Camera className="h-4 w-4" />
+                          {method === "photo_ai" ? "Rifai la foto" : "Scansiona di nuovo"}
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full gap-2 border-amber-300 text-amber-800 hover:bg-amber-100"
+                        onClick={() => {
+                          setQuery(name || "");
+                          setStep("search");
+                          setMethod("search");
+                        }}
+                      >
+                        <Search className="h-4 w-4" />
+                        Cerca prodotti simili
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full gap-2 border-amber-300 text-amber-800 hover:bg-amber-100"
+                        onClick={() => setShowDetails(true)}
+                      >
+                        <Keyboard className="h-4 w-4" />
+                        Inserisci a mano
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
                 {/* ── Diet compatibility card ── */}
                 {dietCompat.hasPlan && computed.calories != null && (context === "meal" || context === "inventory") && (() => {
                   const result = dietCompat.checkProduct(
@@ -1496,7 +1552,7 @@ const AddFoodFlow = ({
                   saved ? "bg-emerald-500 hover:bg-emerald-500 scale-95" : ""
                 }`}
                 onClick={handleSave}
-                disabled={saving || !name.trim() || saved}
+                disabled={saving || !name.trim() || saved || (calories100g == null && !defaultRestaurantId)}
               >
                 {saved ? (
                   <>
