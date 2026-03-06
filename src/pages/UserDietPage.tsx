@@ -126,6 +126,7 @@ const UserDietPage = () => {
         .select("*, diet_plan_meal_targets(*)")
         .eq("client_user_id", user.id)
         .eq("is_active", true)
+        .order("created_at", { ascending: false })
         .limit(1);
 
       if (plans && plans.length > 0) {
@@ -331,7 +332,7 @@ const UserDietPage = () => {
     setShowSelfPlan(true);
   };
 
-  const isSelfPlan = plan ? plan.professional_id === plan.client_user_id : false;
+  const isSelfPlan = plan ? (plan.professional_id === plan.client_user_id) || !proProfile : false;
 
   const handleCreateSelfPlan = async () => {
     if (!user) return;
@@ -465,9 +466,11 @@ const UserDietPage = () => {
     if (!user || savingTemplate) return;
     setSavingTemplate(true);
     try {
-      // Deactivate any existing active plans first
+      // Deactivate only self-plans (RLS blocks update on pro-created plans)
       await supabase.from("diet_plans").update({ is_active: false })
-        .eq("client_user_id", user.id).eq("is_active", true);
+        .eq("client_user_id", user.id)
+        .eq("professional_id", user.id)
+        .eq("is_active", true);
 
       const { data: newPlan, error } = await supabase.from("diet_plans").insert({
         professional_id: user.id,
