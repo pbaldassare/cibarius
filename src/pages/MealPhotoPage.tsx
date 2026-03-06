@@ -457,46 +457,41 @@ const MealPhotoPage = () => {
               <Slider min={50} max={1000} step={10} value={[portionG]} onValueChange={handlePortionSlider} />
             </div>
 
-            {/* Macro per porzione */}
-            <div className="space-y-1.5">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Per porzione ({portionG}g)</p>
-              <div className="grid grid-cols-4 gap-2">
-                {[
-                  { label: "Kcal", value: totals.kcal, color: "text-primary" },
-                  { label: "Proteine", value: `${totals.protein}g`, color: "text-blue-600" },
-                  { label: "Carbo", value: `${totals.carbs}g`, color: "text-amber-600" },
-                  { label: "Grassi", value: `${totals.fats}g`, color: "text-red-500" },
-                ].map((m) => (
-                  <div key={m.label} className="rounded-xl border-2 border-accent bg-card p-3 text-center">
-                    <p className={`text-lg font-bold ${m.color}`}>{m.value}</p>
-                    <p className="text-[10px] text-muted-foreground">{m.label}</p>
+            {/* Macro: porzione + per 100g affiancati */}
+            {(() => {
+              const f100 = portionG > 0 ? 100 / portionG : 0;
+              const rows = [
+                { label: "Kcal", portion: totals.kcal, per100: Math.round(totals.kcal * f100), unit: "", color: "text-primary" },
+                { label: "Proteine", portion: totals.protein, per100: Math.round(totals.protein * f100 * 10) / 10, unit: "g", color: "text-blue-600" },
+                { label: "Carbo", portion: totals.carbs, per100: Math.round(totals.carbs * f100 * 10) / 10, unit: "g", color: "text-amber-600" },
+                { label: "Grassi", portion: totals.fats, per100: Math.round(totals.fats * f100 * 10) / 10, unit: "g", color: "text-red-500" },
+              ];
+              return (
+                <div className="rounded-2xl border-2 border-accent bg-card overflow-hidden">
+                  {/* Header */}
+                  <div className="grid grid-cols-3 bg-muted/50 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <span></span>
+                    <span className="text-center">Porzione ({portionG}g)</span>
+                    <span className="text-center">Per 100g</span>
                   </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Macro per 100g */}
-            {portionG > 0 && (
-              <div className="space-y-1.5">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Per 100g</p>
-                <div className="grid grid-cols-4 gap-2">
-                  {(() => {
-                    const f = 100 / portionG;
-                    return [
-                      { label: "Kcal", value: Math.round(totals.kcal * f), color: "text-primary" },
-                      { label: "Proteine", value: `${Math.round(totals.protein * f * 10) / 10}g`, color: "text-blue-600" },
-                      { label: "Carbo", value: `${Math.round(totals.carbs * f * 10) / 10}g`, color: "text-amber-600" },
-                      { label: "Grassi", value: `${Math.round(totals.fats * f * 10) / 10}g`, color: "text-red-500" },
-                    ];
-                  })().map((m) => (
-                    <div key={m.label} className="rounded-xl border border-accent bg-card/50 p-2.5 text-center">
-                      <p className={`text-sm font-semibold ${m.color}`}>{m.value}</p>
-                      <p className="text-[10px] text-muted-foreground">{m.label}</p>
+                  {/* Rows */}
+                  {rows.map((r, idx) => (
+                    <div
+                      key={r.label}
+                      className={`grid grid-cols-3 items-center px-3 py-2.5 ${idx < rows.length - 1 ? "border-b border-accent" : ""}`}
+                    >
+                      <span className="text-xs font-medium text-muted-foreground">{r.label}</span>
+                      <p className={`text-center text-lg font-bold ${r.color}`}>
+                        {r.portion}{r.unit}
+                      </p>
+                      <p className={`text-center text-sm font-semibold ${r.color} opacity-75`}>
+                        {r.per100}{r.unit}
+                      </p>
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             <div className="space-y-2">
               <Label className="text-sm font-semibold">Ingredienti</Label>
