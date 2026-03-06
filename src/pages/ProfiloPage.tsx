@@ -466,7 +466,7 @@ const ProfiloPage = () => {
         )}
 
         {/* ═══ Nutrizionista card (for users) ═══ */}
-        {role !== "professional" && <div className="rounded-[18px] bg-card shadow-card overflow-hidden">
+        {role !== "professional" && role !== "restaurant_owner" && role !== "supplier" && <div className="rounded-[18px] bg-card shadow-card overflow-hidden">
           <div className="px-4 pt-4 pb-3">
             <div className="flex items-center gap-2 mb-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
