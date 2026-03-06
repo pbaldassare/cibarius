@@ -1,37 +1,19 @@
 
 
-# Piano: Popolare 300 traduzioni + Prompt IA preciso + Logica DB-first
+# Piano: Riordinare e ottimizzare la bottom nav a 6 tab
 
-## Stato attuale
-- `ingredient_translation` ha solo 23 righe (il seed iniziale)
-- L'edge function `analyze-meal-photo` usa un prompt generico e non ha logica "dishes cache first"
+## Problema
+- Manca il tab "Scadenze" (rimosso per errore)
+- L'ordine attuale è sbagliato
+- 6 tab non entrano con la spaziatura attuale
+- "Pasti" e "Progressi" devono essere disabilitati se non c'è un piano attivo
 
-## Cosa fare
+## Modifiche
 
-### 1. Inserire ~260 nuove traduzioni in `ingredient_translation`
+### `src/components/UserBottomNav.tsx`
 
-Useremo una migrazione SQL con `INSERT ... ON CONFLICT DO NOTHING` per aggiungere tutte le righe del CSV fornito senza duplicare quelle gia' presenti. La tabella ha `name_it` UNIQUE, quindi i conflitti vengono gestiti automaticamente.
-
-### 2. Aggiornare il prompt IA nell'edge function
-
-Sostituire il `systemPrompt` attuale (generico) con il prompt dettagliato fornito dall'utente, che include:
-- Regole per pizza (base, salsa, mozzarella, olio, extra visibili)
-- Regole per pasta (tipo pasta, condimento, formaggio)
-- Regole per risotto (riso, soffritto, brodo, burro/parmigiano, ingrediente principale)
-- Output JSON obbligatorio con `name_it` e `notes`
-
-### 3. Aggiungere logica DB-first (dishes cache)
-
-Prima di chiamare l'IA, la funzione controllera' se un piatto simile esiste gia' in `dishes` + `dish_ingredients`:
-1. Se trovato → carica ingredienti dalla cache, calcola macro, restituisci subito (NO IA, NO USDA)
-2. Se non trovato → chiama IA vision → arricchisci con USDA → salva in `dishes`/`dish_ingredients` per le prossime volte
-
-Questo richiede una modifica strutturale all'handler principale dell'edge function, aggiungendo un blocco di cache lookup prima della chiamata AI e un blocco di cache write dopo l'analisi.
-
-## File coinvolti
-
-| File | Azione |
-|------|--------|
-| Migrazione SQL | INSERT ~260 righe in `ingredient_translation` |
-| `supabase/functions/analyze-meal-photo/index.ts` | Nuovo prompt + logica dishes cache |
+1. **Ordine tab**: Home → Scadenze → Piano → Pasti → Progressi → Profilo
+2. **6 tab in una riga**: ridurre icone a `size={18}`, testo a `text-[9px]`, padding `px-1`, rimuovere il wrapper `rounded-xl px-3` attorno all'icona, ridurre altezza nav a `h-[64px]`
+3. **Controllo piano attivo**: aggiungere un `useEffect` che fa una query a `diet_plans` per verificare se l'utente ha un piano attivo (`status = 'active'`). Se non c'è, i tab "Pasti" e "Progressi" vengono renderizzati come `<div>` disabilitati (opacità ridotta, no click) invece di `<NavLink>`
+4. **Icone**: `Home`, `AlertTriangle` (Scadenze), `ClipboardList` (Piano), `UtensilsCrossed` (Pasti), `TrendingUp` (Progressi), `User` (Profilo)
 
