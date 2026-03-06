@@ -267,11 +267,19 @@ const RestaurantSettingsPage = () => {
                   </div>
                 </div>
 
+                {mapStaticImg && (
+                  <img
+                    src={mapStaticImg}
+                    alt="Mappa"
+                    className="w-full h-48 object-cover rounded-lg border border-border"
+                  />
+                )}
                 {mapSrc && (
                   <iframe
                     src={mapSrc}
                     className="w-full h-48 rounded-lg border border-border"
                     style={{ border: 0 }}
+                    allowFullScreen
                   />
                 )}
 
