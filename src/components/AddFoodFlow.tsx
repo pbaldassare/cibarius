@@ -988,6 +988,28 @@ const AddFoodFlow = ({
                     </button>
                   ))}
 
+                  {/* Ricette dal piano – only for meal context with active plan */}
+                  {context === "meal" && planRecipes.length > 0 && (
+                    <button
+                      onClick={() => {
+                        if (!preselectedMealType && !selectedMealType) {
+                          toast({ variant: "destructive", title: "Seleziona prima il tipo di pasto" });
+                          return;
+                        }
+                        setStep("recipes");
+                      }}
+                      className="flex items-center gap-3 rounded-2xl border-2 border-dashed border-success/30 bg-success/5 p-4 text-left active:scale-[0.98] transition-transform"
+                    >
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-success/20">
+                        <UtensilsCrossed className="h-5 w-5 text-success" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-foreground">🍽️ Ricette dal piano</p>
+                        <p className="text-xs text-muted-foreground">Scegli tra le ricette suggerite</p>
+                      </div>
+                    </button>
+                  )}
+
                   {/* Crea Preparazione link – only for restaurants */}
                   {(context === "inventory" || context === "preparation") && defaultRestaurantId && (
                     <button
