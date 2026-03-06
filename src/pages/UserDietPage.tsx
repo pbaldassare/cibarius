@@ -880,20 +880,9 @@ const UserDietPage = () => {
         )}
 
         {isSelfPlan && (
-          <Card className="border-2 border-amber-500/20 bg-amber-500/5">
-            <CardContent className="py-3 flex items-center gap-2">
-              <ClipboardList className="h-4 w-4 text-amber-600" />
-              <p className="text-xs text-foreground font-medium">Piano personale (senza coach)</p>
-              <div className="ml-auto flex gap-1">
-                <Button size="sm" variant="outline" className="h-6 text-[10px] gap-1" onClick={openEditPlan}>
-                  <Pencil className="h-3 w-3" /> Modifica
-                </Button>
-                <Button size="sm" variant="ghost" className="h-6 text-[10px]" onClick={() => navigate("/invite")}>
-                  Collega un coach
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="text-center py-2">
+            <h2 className="text-lg font-bold text-foreground">Scegli il tuo piano nutrizionale</h2>
+          </div>
         )}
 
         {!isSelfPlan && (<>
