@@ -50,6 +50,7 @@ import RestaurantRecipesPage from "./pages/restaurant/RestaurantRecipesPage";
 import RestaurantSettingsPage from "./pages/restaurant/RestaurantSettingsPage";
 import RestaurantInvoicesPage from "./pages/restaurant/RestaurantInvoicesPage";
 import RestaurantPreparationsPage from "./pages/restaurant/RestaurantPreparationsPage";
+import RestaurantItemPage from "./pages/restaurant/RestaurantItemPage";
 
 // Restaurant admin pages
 import RestaurantAdminPage from "./pages/restaurant-admin/RestaurantAdminPage";
@@ -153,6 +154,7 @@ const App = () => (
                 <Route path="/restaurant/settings" element={<RestaurantSettingsPage />} />
                 <Route path="/restaurant/invoices" element={<RestaurantInvoicesPage />} />
                 <Route path="/restaurant/preparations" element={<RestaurantPreparationsPage />} />
+                <Route path="/restaurant/item/:id" element={<RestaurantItemPage />} />
                 <Route path="/restaurant/profile" element={<ProfiloPage />} />
               </Route>
 
