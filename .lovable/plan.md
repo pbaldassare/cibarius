@@ -1,37 +1,42 @@
 
 
-# Piano: Popolare 300 traduzioni + Prompt IA preciso + Logica DB-first
+# Piano: Pulizia pagina Pasti e info sui template
 
-## Stato attuale
-- `ingredient_translation` ha solo 23 righe (il seed iniziale)
-- L'edge function `analyze-meal-photo` usa un prompt generico e non ha logica "dishes cache first"
+## Modifiche
 
-## Cosa fare
+### 1. `src/pages/PastiPage.tsx` — Rimuovere pulsanti inutili
+- **Rimuovere** il pulsante `ClipboardList` (riga 178-183) che porta a `/diet`
+- **Rimuovere** il pulsante `Target` (riga 184-189) che porta a `/meals/targets`
+- **Rimuovere** il "Vedi →" dalla card del piano nutrizionale (riga 218) e rendere la card non cliccabile (da `<button>` a `<div>`)
 
-### 1. Inserire ~260 nuove traduzioni in `ingredient_translation`
+### 2. `src/pages/UserDietPage.tsx` — Aggiungere icona info su ogni template
+- Aggiungere un pulsante `Info` (icona `i` cerchiata) su ogni card template (righe 544-568)
+- Al click apre un `Dialog` con una descrizione completa del piano: per chi è adatto, obiettivi, benefici, controindicazioni
+- Le descrizioni sono hardcoded in un oggetto `TEMPLATE_INFO` mappato per keyword nel titolo (mediterranea, keto, digiuno, massa, dimagrimento)
+- Testi scritti in linguaggio semplice e accessibile, ma completi
 
-Useremo una migrazione SQL con `INSERT ... ON CONFLICT DO NOTHING` per aggiungere tutte le righe del CSV fornito senza duplicare quelle gia' presenti. La tabella ha `name_it` UNIQUE, quindi i conflitti vengono gestiti automaticamente.
+### Esempio descrizioni template
 
-### 2. Aggiornare il prompt IA nell'edge function
+```typescript
+const TEMPLATE_INFO: Record<string, { target: string; goals: string; description: string }> = {
+  mediterranea: {
+    target: "Adatto a tutti, perfetto per chi vuole mangiare sano senza rinunce",
+    goals: "Mantenere il peso, migliorare la salute del cuore, avere più energia",
+    description: "La dieta mediterranea si basa su cereali integrali, frutta, verdura, pesce e olio d'oliva. È equilibrata e facile da seguire ogni giorno."
+  },
+  keto: {
+    target: "Per chi vuole perdere grasso velocemente e ha disciplina",
+    goals: "Bruciare grassi, ridurre la fame, migliorare la concentrazione",
+    description: "La dieta keto riduce molto i carboidrati e aumenta i grassi buoni. Il corpo usa i grassi come energia principale. Richiede attenzione e costanza."
+  },
+  // ... etc
+};
+```
 
-Sostituire il `systemPrompt` attuale (generico) con il prompt dettagliato fornito dall'utente, che include:
-- Regole per pizza (base, salsa, mozzarella, olio, extra visibili)
-- Regole per pasta (tipo pasta, condimento, formaggio)
-- Regole per risotto (riso, soffritto, brodo, burro/parmigiano, ingrediente principale)
-- Output JSON obbligatorio con `name_it` e `notes`
-
-### 3. Aggiungere logica DB-first (dishes cache)
-
-Prima di chiamare l'IA, la funzione controllera' se un piatto simile esiste gia' in `dishes` + `dish_ingredients`:
-1. Se trovato → carica ingredienti dalla cache, calcola macro, restituisci subito (NO IA, NO USDA)
-2. Se non trovato → chiama IA vision → arricchisci con USDA → salva in `dishes`/`dish_ingredients` per le prossime volte
-
-Questo richiede una modifica strutturale all'handler principale dell'edge function, aggiungendo un blocco di cache lookup prima della chiamata AI e un blocco di cache write dopo l'analisi.
-
-## File coinvolti
+### File coinvolti
 
 | File | Azione |
-|------|--------|
-| Migrazione SQL | INSERT ~260 righe in `ingredient_translation` |
-| `supabase/functions/analyze-meal-photo/index.ts` | Nuovo prompt + logica dishes cache |
+|---|---|
+| `src/pages/PastiPage.tsx` | Rimuovere 2 pulsanti icona + "Vedi →" dalla card piano |
+| `src/pages/UserDietPage.tsx` | Aggiungere icona info + dialog descrittivo per ogni template |
 
