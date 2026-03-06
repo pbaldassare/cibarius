@@ -79,6 +79,7 @@ import ProClientPlanPdfPage from "./pages/pro/ProClientPlanPdfPage";
 // User diet page
 import UserDietPage from "./pages/UserDietPage";
 import UserActivePlanPage from "./pages/UserActivePlanPage";
+import UserProgressPage from "./pages/UserProgressPage";
 import UserPantryRecipesPage from "./pages/UserPantryRecipesPage";
 import UserMessagesPage from "./pages/UserMessagesPage";
 import ShoppingListPage from "./pages/ShoppingListPage";
@@ -142,6 +143,7 @@ const App = () => (
                 <Route path="/messages" element={<UserMessagesPage />} />
                 <Route path="/shopping-list" element={<ShoppingListPage />} />
                 <Route path="/measurements" element={<UserMeasurementsPage />} />
+                <Route path="/progress" element={<UserProgressPage />} />
               </Route>
 
               {/* ═══ RESTAURANT APP (RestaurantLayout) ═══ */}
