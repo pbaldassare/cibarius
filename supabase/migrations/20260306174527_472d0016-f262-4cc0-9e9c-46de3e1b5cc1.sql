@@ -1,0 +1,1 @@
+UPDATE diet_plans SET is_active = false WHERE id = '9b968dd0-75ca-4cb3-b4f5-348213c1046e';
