@@ -465,6 +465,10 @@ const UserDietPage = () => {
     if (!user || savingTemplate) return;
     setSavingTemplate(true);
     try {
+      // Deactivate any existing active plans first
+      await supabase.from("diet_plans").update({ is_active: false })
+        .eq("client_user_id", user.id).eq("is_active", true);
+
       const { data: newPlan, error } = await supabase.from("diet_plans").insert({
         professional_id: user.id,
         client_user_id: user.id,
@@ -1076,6 +1080,57 @@ const UserDietPage = () => {
               );
             })}
         </div>
+
+        {/* ═══ EXPLORE OTHER PLANS ═══ */}
+        {systemTemplates.length > 0 && (
+          <div className="space-y-3">
+            <div>
+              <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                <BookOpen className="h-4 w-4 text-primary" /> Esplora altri piani
+              </h3>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Cambia piano quando vuoi, è gratuito!</p>
+            </div>
+            <div className="grid grid-cols-1 gap-2">
+              {systemTemplates.map((tmpl) => {
+                const isActive = plan?.title === tmpl.title;
+                return (
+                  <Card
+                    key={tmpl.id}
+                    className={`border cursor-pointer transition-colors ${isActive ? "border-primary border-2 bg-primary/5" : "border-border hover:border-primary/50"}`}
+                    onClick={() => !isActive && saveTemplateAsPlan(tmpl)}
+                  >
+                    <CardContent className="py-3 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <p className="font-bold text-sm text-foreground">{tmpl.title}</p>
+                        <div className="flex items-center gap-1.5">
+                          {isActive && (
+                            <Badge className="bg-primary/15 text-primary border-primary/30 text-[9px]">Attivo</Badge>
+                          )}
+                          <Badge variant="secondary" className="text-xs">
+                            <Flame className="h-3 w-3 mr-0.5" /> {tmpl.kcal_day} kcal
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="flex gap-3 text-[11px] text-muted-foreground">
+                        <span className="text-blue-600 font-medium">P {tmpl.protein_g_day}g</span>
+                        <span className="text-amber-600 font-medium">C {tmpl.carbs_g_day}g</span>
+                        <span className="text-rose-600 font-medium">G {tmpl.fats_g_day}g</span>
+                      </div>
+                      {tmpl.notes && (
+                        <p className="text-[10px] text-muted-foreground line-clamp-2">{tmpl.notes}</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+            {savingTemplate && (
+              <div className="flex justify-center py-2">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ═══ 5. SUGGESTIONS ═══ */}
         {suggestions.length > 0 && (
