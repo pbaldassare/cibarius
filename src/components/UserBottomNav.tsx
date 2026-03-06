@@ -88,6 +88,7 @@ const UserBottomNav = () => {
                 onClick={() => {
                   const msg = motivationalMessages[Math.floor(Math.random() * motivationalMessages.length)];
                   toast(msg, { duration: 3000 });
+                  navigate("/plan");
                 }}
               >
                 <Icon size={18} strokeWidth={1.6} className="text-white/50" />
