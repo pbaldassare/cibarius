@@ -406,7 +406,7 @@ const UserDietPage = () => {
       toast({ title: editingPlanId ? "Piano aggiornato! ✅" : "Piano creato! 🎉" });
       setShowSelfPlan(false);
       setEditingPlanId(null);
-      window.location.reload();
+      await loadData();
     } catch (err: any) {
       toast({ variant: "destructive", title: "Errore", description: err?.message });
     }
@@ -514,7 +514,8 @@ const UserDietPage = () => {
       }, { onConflict: "user_id" });
 
       toast({ title: `Piano "${tmpl.title}" attivato! 🎉` });
-      window.location.reload();
+      setConfirmTemplate(null);
+      await loadData();
     } catch (err: any) {
       toast({ variant: "destructive", title: "Errore", description: err?.message });
     }
