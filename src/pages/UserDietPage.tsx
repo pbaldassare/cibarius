@@ -115,6 +115,7 @@ const UserDietPage = () => {
 
   // Meal items expand
   const [expandedMeals, setExpandedMeals] = useState<Set<string>>(new Set());
+  const [savingTemplate, setSavingTemplate] = useState(false);
 
   useEffect(() => {
     if (!user) return;
