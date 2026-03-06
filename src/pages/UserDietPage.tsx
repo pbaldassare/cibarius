@@ -515,7 +515,7 @@ const UserDietPage = () => {
 
       toast({ title: `Piano "${tmpl.title}" attivato! 🎉` });
       setConfirmTemplate(null);
-      await loadData();
+      navigate("/plan");
     } catch (err: any) {
       toast({ variant: "destructive", title: "Errore", description: err?.message });
     }

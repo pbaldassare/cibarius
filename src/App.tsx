@@ -78,6 +78,7 @@ import ProClientPlanPdfPage from "./pages/pro/ProClientPlanPdfPage";
 
 // User diet page
 import UserDietPage from "./pages/UserDietPage";
+import UserActivePlanPage from "./pages/UserActivePlanPage";
 import UserPantryRecipesPage from "./pages/UserPantryRecipesPage";
 import UserMessagesPage from "./pages/UserMessagesPage";
 import ShoppingListPage from "./pages/ShoppingListPage";
