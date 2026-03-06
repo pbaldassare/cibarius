@@ -15,6 +15,8 @@ import {
   Globe, Instagram, Facebook,
 } from "lucide-react";
 
+const GOOGLE_MAPS_KEY = "AIzaSyA76iVcQpSnl76_G6bJVnEeOUmWVd7278I";
+
 const RestaurantSettingsPage = () => {
   const { restaurant, isLoading, refetch } = useRestaurant();
   const { toast } = useToast();
@@ -95,15 +97,15 @@ const RestaurantSettingsPage = () => {
     setSearchingLocation(true);
     try {
       const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`,
-        { headers: { "Accept-Language": "it" } }
+        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&language=it&key=${GOOGLE_MAPS_KEY}`
       );
-      const results = await res.json();
-      if (results.length > 0) {
-        const lat = parseFloat(results[0].lat);
-        const lng = parseFloat(results[0].lon);
-        setLatitude(lat);
-        setLongitude(lng);
+      const data = await res.json();
+      if (data.results?.length > 0) {
+        const loc = data.results[0].geometry.location;
+        setLatitude(loc.lat);
+        setLongitude(loc.lng);
+        // Use the formatted address from Google
+        setAddress(data.results[0].formatted_address);
         toast({ title: "Ubicazione trovata" });
       } else {
         toast({ variant: "destructive", title: "Nessun risultato", description: "Prova un indirizzo più preciso" });
@@ -159,7 +161,13 @@ const RestaurantSettingsPage = () => {
 
   const mapSrc =
     latitude && longitude
-      ? `https://www.openstreetmap.org/export/embed.html?bbox=${longitude - 0.005},${latitude - 0.003},${longitude + 0.005},${latitude + 0.003}&layer=mapnik&marker=${latitude},${longitude}`
+      ? `https://www.google.com/maps/embed/v1/place?key=${GOOGLE_MAPS_KEY}&q=${latitude},${longitude}&zoom=16`
+      : null;
+
+  // Google Maps Static image for the restaurant (place photo or street view)
+  const mapStaticImg =
+    latitude && longitude
+      ? `https://maps.googleapis.com/maps/api/staticmap?center=${latitude},${longitude}&zoom=16&size=600x300&markers=color:red%7C${latitude},${longitude}&key=${GOOGLE_MAPS_KEY}`
       : null;
 
   return (
