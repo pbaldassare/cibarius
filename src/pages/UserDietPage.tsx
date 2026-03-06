@@ -458,22 +458,118 @@ const UserDietPage = () => {
     );
   }
 
+  const [savingTemplate, setSavingTemplate] = useState(false);
+
+  const saveTemplateAsPlan = async (tmpl: any) => {
+    if (!user || savingTemplate) return;
+    setSavingTemplate(true);
+    try {
+      const { data: newPlan, error } = await supabase.from("diet_plans").insert({
+        professional_id: user.id,
+        client_user_id: user.id,
+        title: tmpl.title,
+        kcal_day: tmpl.kcal_day,
+        protein_g_day: tmpl.protein_g_day,
+        carbs_g_day: tmpl.carbs_g_day,
+        fats_g_day: tmpl.fats_g_day,
+        notes: tmpl.notes || null,
+        is_active: true,
+      }).select().single();
+      if (error) throw error;
+
+      // Copy template meals as meal targets
+      const meals = tmpl.diet_plan_template_meals || [];
+      if (meals.length > 0) {
+        await supabase.from("diet_plan_meal_targets").insert(
+          meals.map((m: any) => ({
+            diet_plan_id: newPlan.id,
+            meal_type: m.meal_type,
+            kcal_target: m.kcal_target,
+            protein_g: m.protein_g,
+            carbs_g: m.carbs_g,
+            fats_g: m.fats_g,
+            sugars_g: m.sugars_g ?? 0,
+          }))
+        );
+      }
+
+      // Update nutrition targets
+      await supabase.from("nutrition_targets").upsert({
+        user_id: user.id,
+        kcal_day: tmpl.kcal_day,
+        protein_g: tmpl.protein_g_day,
+        carbs_g: tmpl.carbs_g_day,
+        fats_g: tmpl.fats_g_day,
+      }, { onConflict: "user_id" });
+
+      toast({ title: `Piano "${tmpl.title}" attivato! 🎉` });
+      window.location.reload();
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Errore", description: err?.message });
+    }
+    setSavingTemplate(false);
+  };
+
   if (!plan) {
     return (
       <div>
         <MobileHeader title="Il mio piano" />
-        <main className="px-4 py-10 space-y-6">
-          <div className="text-center space-y-4">
-            <ClipboardList className="h-12 w-12 text-muted-foreground mx-auto" />
-            <p className="text-muted-foreground">Nessun piano nutrizionale attivo.</p>
-            <div className="flex flex-col gap-2">
-              <Button variant="outline" onClick={() => navigate("/invite")} className="gap-2">
-                <Sparkles className="h-4 w-4" /> Collega un professionista
-              </Button>
-              <Button onClick={() => setShowSelfPlan(true)} className="gap-2">
-                <Plus className="h-4 w-4" /> Crea il tuo piano
-              </Button>
+        <main className="px-4 py-6 space-y-6">
+          {/* Motivational header */}
+          <div className="text-center space-y-2">
+            <ClipboardList className="h-10 w-10 text-primary mx-auto" />
+            <h2 className="text-lg font-bold text-foreground">
+              Scegli il piano alimentare per te
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Collegalo alla tua spesa e alle tue abitudini!
+            </p>
+          </div>
+
+          {/* Template cards */}
+          {systemTemplates.length > 0 && (
+            <div className="grid grid-cols-1 gap-3">
+              {systemTemplates.map((tmpl) => (
+                <Card
+                  key={tmpl.id}
+                  className="border border-border cursor-pointer hover:border-primary/50 transition-colors"
+                  onClick={() => saveTemplateAsPlan(tmpl)}
+                >
+                  <CardContent className="py-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="font-bold text-sm text-foreground">{tmpl.title}</p>
+                      <Badge variant="secondary" className="text-xs">
+                        <Flame className="h-3 w-3 mr-0.5" /> {tmpl.kcal_day} kcal
+                      </Badge>
+                    </div>
+                    <div className="flex gap-3 text-[11px] text-muted-foreground">
+                      <span className="text-blue-600 font-medium">P {tmpl.protein_g_day}g</span>
+                      <span className="text-amber-600 font-medium">C {tmpl.carbs_g_day}g</span>
+                      <span className="text-rose-600 font-medium">G {tmpl.fats_g_day}g</span>
+                    </div>
+                    {tmpl.notes && (
+                      <p className="text-[10px] text-muted-foreground line-clamp-2">{tmpl.notes}</p>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
             </div>
+          )}
+
+          {savingTemplate && (
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          )}
+
+          {/* Secondary actions */}
+          <div className="flex flex-col gap-2">
+            <Button onClick={() => setShowSelfPlan(true)} variant="outline" className="gap-2">
+              <Plus className="h-4 w-4" /> Crea il tuo piano personalizzato
+            </Button>
+            <Button variant="ghost" onClick={() => navigate("/invite")} className="gap-2 text-muted-foreground">
+              <Sparkles className="h-4 w-4" /> Collega un professionista
+            </Button>
           </div>
 
           {/* Coach discovery */}
@@ -513,14 +609,12 @@ const UserDietPage = () => {
                             </p>
                           )}
                         </div>
-                        {/* Availability badges */}
                         {(coach.works_online || coach.works_in_person) && (
                           <div className="flex gap-1 mt-1">
                             {coach.works_online && <Badge variant="secondary" className="text-[8px] px-1.5 py-0 gap-0.5"><Monitor className="h-2.5 w-2.5" /> Online</Badge>}
                             {coach.works_in_person && <Badge variant="secondary" className="text-[8px] px-1.5 py-0 gap-0.5"><Building2 className="h-2.5 w-2.5" /> Presenza</Badge>}
                           </div>
                         )}
-                        {/* Additional roles */}
                         {coach.additional_roles && coach.additional_roles.length > 0 && (
                           <div className="flex flex-wrap gap-0.5 mt-1">
                             {coach.additional_roles.slice(0, 3).map(r => (
