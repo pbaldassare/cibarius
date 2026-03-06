@@ -156,7 +156,7 @@ const UserDietPage = () => {
   const [expandedMeals, setExpandedMeals] = useState<Set<string>>(new Set());
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [confirmTemplate, setConfirmTemplate] = useState<any>(null);
-  const [infoTemplate, setInfoTemplate] = useState<any>(null);
+  
 
   const getTemplateInfo = (title: string) => {
     const lower = title.toLowerCase();
@@ -601,24 +601,25 @@ const UserDietPage = () => {
                   <CardContent className="py-4 space-y-2">
                     <div className="flex items-center justify-between">
                       <p className="font-bold text-sm text-foreground">{tmpl.title}</p>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setInfoTemplate(tmpl); }}
-                          className="p-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-                          aria-label="Informazioni sul piano"
-                        >
-                          <Info className="h-5 w-5" />
-                        </button>
-                        <Badge variant="secondary" className="text-xs">
-                          <Flame className="h-3 w-3 mr-0.5" /> {tmpl.kcal_day} kcal
-                        </Badge>
-                      </div>
+                      <Badge variant="secondary" className="text-xs">
+                        <Flame className="h-3 w-3 mr-0.5" /> {tmpl.kcal_day} kcal
+                      </Badge>
                     </div>
                     <div className="flex gap-3 text-[11px] text-muted-foreground">
                       <span className="text-blue-600 font-medium">P {tmpl.protein_g_day}g</span>
                       <span className="text-amber-600 font-medium">C {tmpl.carbs_g_day}g</span>
                       <span className="text-rose-600 font-medium">G {tmpl.fats_g_day}g</span>
                     </div>
+                    {(() => {
+                      const info = getTemplateInfo(tmpl.title);
+                      return (
+                        <div className="mt-1 pt-2 border-t border-dashed border-border space-y-1.5 text-[11px] text-muted-foreground">
+                          <p><span className="font-semibold text-foreground">👤 Per chi:</span> {info.target}</p>
+                          <p><span className="font-semibold text-foreground">🎯 Obiettivi:</span> {info.goals}</p>
+                          <p><span className="font-semibold text-foreground">📋</span> {info.description}</p>
+                        </div>
+                      );
+                    })()}
                     {tmpl.notes && (
                       <p className="text-[10px] text-muted-foreground line-clamp-2">{tmpl.notes}</p>
                     )}
@@ -1273,45 +1274,6 @@ const UserDietPage = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Template Info Dialog */}
-      <Dialog open={!!infoTemplate} onOpenChange={(open) => { if (!open) setInfoTemplate(null); }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{infoTemplate?.title}</DialogTitle>
-          </DialogHeader>
-          {infoTemplate && (() => {
-            const info = getTemplateInfo(infoTemplate.title);
-            if (!info) return <p className="text-sm text-muted-foreground">Nessuna informazione disponibile.</p>;
-            return (
-              <div className="space-y-4 py-2">
-                <div className="space-y-1">
-                  <p className="text-xs font-semibold text-primary uppercase tracking-wide">👤 Per chi è adatto</p>
-                  <p className="text-sm text-foreground">{info.target}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xs font-semibold text-primary uppercase tracking-wide">🎯 Obiettivi</p>
-                  <p className="text-sm text-foreground">{info.goals}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xs font-semibold text-primary uppercase tracking-wide">📋 Come funziona</p>
-                  <p className="text-sm text-foreground">{info.description}</p>
-                </div>
-                <div className="rounded-lg bg-secondary/60 p-3 space-y-1">
-                  <p className="text-xs font-semibold text-foreground">Valori giornalieri</p>
-                  <p className="text-xs text-muted-foreground">
-                    {infoTemplate.kcal_day} kcal · Proteine {infoTemplate.protein_g_day}g · Carboidrati {infoTemplate.carbs_g_day}g · Grassi {infoTemplate.fats_g_day}g
-                  </p>
-                </div>
-              </div>
-            );
-          })()}
-          <DialogFooter>
-            <Button onClick={() => { setInfoTemplate(null); setConfirmTemplate(infoTemplate); }} className="w-full gap-2">
-              <Sparkles className="h-4 w-4" /> Attiva questo piano
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

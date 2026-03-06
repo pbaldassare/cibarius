@@ -1,28 +1,37 @@
 
 
-# Piano: Descrizione inline nelle card dei template
+# Piano: Popolare 300 traduzioni + Prompt IA preciso + Logica DB-first
 
-## Cosa cambiare
+## Stato attuale
+- `ingredient_translation` ha solo 23 righe (il seed iniziale)
+- L'edge function `analyze-meal-photo` usa un prompt generico e non ha logica "dishes cache first"
 
-### `src/pages/UserDietPage.tsx`
+## Cosa fare
 
-Nelle card dei template (righe ~596-626), rimuovere il pulsante Info separato e il Dialog associato. Invece, mostrare la descrizione **direttamente dentro ogni card**, sotto i macro (P/C/G).
+### 1. Inserire ~260 nuove traduzioni in `ingredient_translation`
 
-**Struttura card aggiornata:**
-```
-[Titolo]                    [badge kcal]
-P 120g  C 180g  G 65g
-─────────────────────────────
-👤 Per chi: [target]
-🎯 Obiettivi: [goals]
-📋 [description]
-```
+Useremo una migrazione SQL con `INSERT ... ON CONFLICT DO NOTHING` per aggiungere tutte le righe del CSV fornito senza duplicare quelle gia' presenti. La tabella ha `name_it` UNIQUE, quindi i conflitti vengono gestiti automaticamente.
 
-Modifiche specifiche:
-1. **Righe 601-625** — Dentro `CardContent`, dopo la riga dei macro, aggiungere un blocco con `getTemplateInfo(tmpl.title)` che mostra target, goals e description in testo piccolo (`text-[11px]`)
-2. **Rimuovere il pulsante Info** (righe 605-611) — non serve più, l'info è già visibile
-3. **Rimuovere il Dialog** per `infoTemplate` (righe ~1275-1310) — non più necessario
-4. **Rimuovere lo state** `infoTemplate` (riga 159) — non più usato
+### 2. Aggiornare il prompt IA nell'edge function
 
-Le descrizioni usano il mapping `TEMPLATE_INFO` già esistente con il fallback generico già implementato, quindi tutti i template avranno una descrizione.
+Sostituire il `systemPrompt` attuale (generico) con il prompt dettagliato fornito dall'utente, che include:
+- Regole per pizza (base, salsa, mozzarella, olio, extra visibili)
+- Regole per pasta (tipo pasta, condimento, formaggio)
+- Regole per risotto (riso, soffritto, brodo, burro/parmigiano, ingrediente principale)
+- Output JSON obbligatorio con `name_it` e `notes`
+
+### 3. Aggiungere logica DB-first (dishes cache)
+
+Prima di chiamare l'IA, la funzione controllera' se un piatto simile esiste gia' in `dishes` + `dish_ingredients`:
+1. Se trovato → carica ingredienti dalla cache, calcola macro, restituisci subito (NO IA, NO USDA)
+2. Se non trovato → chiama IA vision → arricchisci con USDA → salva in `dishes`/`dish_ingredients` per le prossime volte
+
+Questo richiede una modifica strutturale all'handler principale dell'edge function, aggiungendo un blocco di cache lookup prima della chiamata AI e un blocco di cache write dopo l'analisi.
+
+## File coinvolti
+
+| File | Azione |
+|------|--------|
+| Migrazione SQL | INSERT ~260 righe in `ingredient_translation` |
+| `supabase/functions/analyze-meal-photo/index.ts` | Nuovo prompt + logica dishes cache |
 
