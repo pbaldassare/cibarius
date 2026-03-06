@@ -1187,29 +1187,32 @@ const AddFoodFlow = ({
 
                 {/* ── Nutrition preview (always visible) ── */}
                 {computed.calories != null && computed.macros && (
-                  <div className="rounded-2xl border border-border bg-card p-3">
-                    <div className="grid grid-cols-4 gap-2 text-center">
-                      <div>
-                        <p className="text-base font-bold text-primary">{computed.calories}</p>
-                        <p className="text-[9px] text-muted-foreground">kcal</p>
-                      </div>
-                      <div>
-                        <p className="text-base font-bold text-destructive">{computed.macros.protein}g</p>
-                        <p className="text-[9px] text-muted-foreground">Prot</p>
-                      </div>
-                      <div>
-                        <p className="text-base font-bold text-accent">{computed.macros.carbs}g</p>
-                        <p className="text-[9px] text-muted-foreground">Carbo</p>
-                      </div>
-                      <div>
-                        <p className="text-base font-bold text-primary">{computed.macros.fats}g</p>
-                        <p className="text-[9px] text-muted-foreground">Grassi</p>
-                      </div>
+                  <div className="rounded-2xl border border-border bg-card overflow-hidden">
+                    {/* Header row */}
+                    <div className="grid grid-cols-5 bg-muted/40 px-3 py-1.5 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      <span></span>
+                      <span className="text-center">Kcal</span>
+                      <span className="text-center">Prot</span>
+                      <span className="text-center">Carbo</span>
+                      <span className="text-center">Grassi</span>
                     </div>
-                    {calories100g != null && quantity !== 100 && (
-                      <p className="text-[10px] text-muted-foreground text-center mt-1.5">
-                        per 100g: {calories100g} kcal · {macros100g?.protein ?? 0}P · {macros100g?.carbs ?? 0}C · {macros100g?.fats ?? 0}G
-                      </p>
+                    {/* Per porzione */}
+                    <div className="grid grid-cols-5 items-center px-3 py-2.5 border-b border-border">
+                      <span className="text-[10px] font-semibold text-muted-foreground">{quantity}{unit}</span>
+                      <p className="text-center text-lg font-bold text-primary">{computed.calories}</p>
+                      <p className="text-center text-base font-bold text-blue-600">{computed.macros.protein}g</p>
+                      <p className="text-center text-base font-bold text-amber-600">{computed.macros.carbs}g</p>
+                      <p className="text-center text-base font-bold text-red-500">{computed.macros.fats}g</p>
+                    </div>
+                    {/* Per 100g */}
+                    {calories100g != null && (
+                      <div className="grid grid-cols-5 items-center px-3 py-2 bg-muted/20">
+                        <span className="text-[10px] font-medium text-muted-foreground">100g</span>
+                        <p className="text-center text-sm font-semibold text-primary/75">{calories100g}</p>
+                        <p className="text-center text-sm font-semibold text-blue-600/75">{macros100g?.protein ?? 0}g</p>
+                        <p className="text-center text-sm font-semibold text-amber-600/75">{macros100g?.carbs ?? 0}g</p>
+                        <p className="text-center text-sm font-semibold text-red-500/75">{macros100g?.fats ?? 0}g</p>
+                      </div>
                     )}
                   </div>
                 )}
