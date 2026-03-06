@@ -22,7 +22,7 @@ import {
   ArrowLeft, Search, ScanLine, Keyboard, Camera, Loader2,
   Package, Plus, Minus, Check, Flame, Archive, Thermometer, Snowflake,
   CalendarSearch, AlertTriangle, Sparkles, X, ImagePlus, ChevronDown, ChevronUp, ChefHat,
-  CheckCircle2, HelpCircle, Zap, ShieldCheck, ShieldAlert, ShieldX,
+  CheckCircle2, HelpCircle, Zap, ShieldCheck, ShieldAlert, ShieldX, UtensilsCrossed,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -876,6 +876,7 @@ const AddFoodFlow = ({
 
   const goBack = () => {
     if (step === "summary") setStep(method === "manual" ? "method" : method === "photo_ai" ? "photo_ai" : method === "scan" ? "scan" : "search");
+    else if (step === "recipes") setStep("method");
     else if (step === "search" || step === "scan" || step === "photo_ai") setStep("method");
     else onOpenChange(false);
   };
@@ -885,6 +886,7 @@ const AddFoodFlow = ({
     if (step === "photo_ai") return "Foto AI";
     if (step === "scan") return "Scansiona barcode";
     if (step === "search") return "Cerca prodotto";
+    if (step === "recipes") return "Ricette dal piano";
     return "Riepilogo";
   };
 
