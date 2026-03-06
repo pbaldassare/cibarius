@@ -1,41 +1,37 @@
 
 
-# Fix: Infinite recursion in profiles RLS policy
+# Piano: Popolare 300 traduzioni + Prompt IA preciso + Logica DB-first
 
-## Problem
-The policy `Users update own profile no role change` has this WITH CHECK:
-```sql
-(auth.uid() = id) AND (role = (SELECT p.role FROM profiles p WHERE p.id = auth.uid()))
-```
-This subquery on `profiles` triggers the same policy again, causing infinite recursion when updating the profile (e.g., uploading avatar).
+## Stato attuale
+- `ingredient_translation` ha solo 23 righe (il seed iniziale)
+- L'edge function `analyze-meal-photo` usa un prompt generico e non ha logica "dishes cache first"
 
-## Solution
+## Cosa fare
 
-### 1. Create a SECURITY DEFINER function to get user's current role
-```sql
-CREATE OR REPLACE FUNCTION public.get_user_role(_user_id uuid)
-RETURNS text
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT role FROM public.profiles WHERE id = _user_id LIMIT 1;
-$$;
-```
+### 1. Inserire ~260 nuove traduzioni in `ingredient_translation`
 
-### 2. Replace the recursive policy
-Drop `Users update own profile no role change` and recreate it using the function:
-```sql
-DROP POLICY "Users update own profile no role change" ON public.profiles;
-CREATE POLICY "Users update own profile no role change"
-  ON public.profiles FOR UPDATE
-  USING (auth.uid() = id)
-  WITH CHECK (auth.uid() = id AND role = public.get_user_role(auth.uid()));
-```
+Useremo una migrazione SQL con `INSERT ... ON CONFLICT DO NOTHING` per aggiungere tutte le righe del CSV fornito senza duplicare quelle gia' presenti. La tabella ha `name_it` UNIQUE, quindi i conflitti vengono gestiti automaticamente.
 
-## Files
-| File | Action |
+### 2. Aggiornare il prompt IA nell'edge function
+
+Sostituire il `systemPrompt` attuale (generico) con il prompt dettagliato fornito dall'utente, che include:
+- Regole per pizza (base, salsa, mozzarella, olio, extra visibili)
+- Regole per pasta (tipo pasta, condimento, formaggio)
+- Regole per risotto (riso, soffritto, brodo, burro/parmigiano, ingrediente principale)
+- Output JSON obbligatorio con `name_it` e `notes`
+
+### 3. Aggiungere logica DB-first (dishes cache)
+
+Prima di chiamare l'IA, la funzione controllera' se un piatto simile esiste gia' in `dishes` + `dish_ingredients`:
+1. Se trovato → carica ingredienti dalla cache, calcola macro, restituisci subito (NO IA, NO USDA)
+2. Se non trovato → chiama IA vision → arricchisci con USDA → salva in `dishes`/`dish_ingredients` per le prossime volte
+
+Questo richiede una modifica strutturale all'handler principale dell'edge function, aggiungendo un blocco di cache lookup prima della chiamata AI e un blocco di cache write dopo l'analisi.
+
+## File coinvolti
+
+| File | Azione |
 |------|--------|
-| SQL Migration | Create `get_user_role` function + replace policy |
+| Migrazione SQL | INSERT ~260 righe in `ingredient_translation` |
+| `supabase/functions/analyze-meal-photo/index.ts` | Nuovo prompt + logica dishes cache |
 

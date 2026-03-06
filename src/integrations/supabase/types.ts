@@ -1851,6 +1851,7 @@ export type Database = {
     }
     Functions: {
       current_user_is_admin: { Args: never; Returns: boolean }
+      get_user_role: { Args: { _user_id: string }; Returns: string }
       has_active_client_link: {
         Args: { _client_id: string; _pro_id: string }
         Returns: boolean
