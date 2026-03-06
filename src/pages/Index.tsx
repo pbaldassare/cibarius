@@ -214,12 +214,11 @@ const Index = () => {
 
   // Counts
   const counts = useMemo(() => {
-    let expired = 0, expiring = 0, nodate = 0;
+    let expired = 0, expiring = 0;
     items.forEach((i) => {
       const s = getStatus(i.expiry_date);
       if (s === "expired") expired++;
       else if (s === "expiring") expiring++;
-      // nodate no longer tracked
     });
     prepItems.forEach((p) => {
       const s = getStatus(p.use_by_date);
