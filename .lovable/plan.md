@@ -1,27 +1,37 @@
 
 
-# Piano: Semplificare la pagina Piano per utenti senza nutrizionista
+# Piano: Popolare 300 traduzioni + Prompt IA preciso + Logica DB-first
 
-## Problema
-L'utente senza coach collegato vede sezioni inutili: Obiettivo di oggi, Consiglio di oggi, Genera ricette smart, Lista spesa, Chat coach, Misurazioni, Posologia per pasto, Ricette consigliate. Queste servono solo a chi ha un nutrizionista.
+## Stato attuale
+- `ingredient_translation` ha solo 23 righe (il seed iniziale)
+- L'edge function `analyze-meal-photo` usa un prompt generico e non ha logica "dishes cache first"
 
-## Soluzione
+## Cosa fare
 
-### File: `src/pages/UserDietPage.tsx`
+### 1. Inserire ~260 nuove traduzioni in `ingredient_translation`
 
-Nella vista con piano attivo (riga 850-1192), wrappare in `!isSelfPlan` le seguenti sezioni per mostrarle solo quando c'è un coach collegato:
+Useremo una migrazione SQL con `INSERT ... ON CONFLICT DO NOTHING` per aggiungere tutte le righe del CSV fornito senza duplicare quelle gia' presenti. La tabella ha `name_it` UNIQUE, quindi i conflitti vengono gestiti automaticamente.
 
-| Sezione | Righe | Condizione |
-|---------|-------|------------|
-| Today's Progress (Obiettivo di oggi) | 897-941 | `!isSelfPlan` |
-| Daily Insight (Consiglio di oggi) | 943-954 | `!isSelfPlan` |
-| Smart Recipes CTA | 956-968 | `!isSelfPlan` |
-| Next Appointment | 970-988 | `!isSelfPlan` |
-| Quick Actions (Lista spesa, Chat, Misurazioni) | 990-1010 | `!isSelfPlan` |
-| Meal Targets (Posologia per pasto) | 1012-1082 | `!isSelfPlan` |
-| Suggestions (Ricette consigliate) | 1135-1189 | `!isSelfPlan` |
+### 2. Aggiornare il prompt IA nell'edge function
 
-La sezione **"Esplora altri piani"** (1084-1133) resta sempre visibile, ed e' l'unico contenuto per chi ha un self-plan (oltre alla card "Piano personale" e il pulsante Modifica/Collega coach).
+Sostituire il `systemPrompt` attuale (generico) con il prompt dettagliato fornito dall'utente, che include:
+- Regole per pizza (base, salsa, mozzarella, olio, extra visibili)
+- Regole per pasta (tipo pasta, condimento, formaggio)
+- Regole per risotto (riso, soffritto, brodo, burro/parmigiano, ingrediente principale)
+- Output JSON obbligatorio con `name_it` e `notes`
 
-Risultato per utente senza coach: vede solo la card "Piano personale" + la galleria template per cambiare piano.
+### 3. Aggiungere logica DB-first (dishes cache)
+
+Prima di chiamare l'IA, la funzione controllera' se un piatto simile esiste gia' in `dishes` + `dish_ingredients`:
+1. Se trovato → carica ingredienti dalla cache, calcola macro, restituisci subito (NO IA, NO USDA)
+2. Se non trovato → chiama IA vision → arricchisci con USDA → salva in `dishes`/`dish_ingredients` per le prossime volte
+
+Questo richiede una modifica strutturale all'handler principale dell'edge function, aggiungendo un blocco di cache lookup prima della chiamata AI e un blocco di cache write dopo l'analisi.
+
+## File coinvolti
+
+| File | Azione |
+|------|--------|
+| Migrazione SQL | INSERT ~260 righe in `ingredient_translation` |
+| `supabase/functions/analyze-meal-photo/index.ts` | Nuovo prompt + logica dishes cache |
 
