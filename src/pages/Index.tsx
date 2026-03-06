@@ -219,7 +219,7 @@ const Index = () => {
       const s = getStatus(i.expiry_date);
       if (s === "expired") expired++;
       else if (s === "expiring") expiring++;
-      else if (s === "nodate") nodate++;
+      // nodate no longer tracked
     });
     prepItems.forEach((p) => {
       const s = getStatus(p.use_by_date);
