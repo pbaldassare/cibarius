@@ -880,8 +880,8 @@ const AddFoodFlow = ({
                     </button>
                   ))}
 
-                  {/* Crea Preparazione link */}
-                  {(context === "inventory" || context === "preparation") && (
+                  {/* Crea Preparazione link – only for restaurants */}
+                  {(context === "inventory" || context === "preparation") && defaultRestaurantId && (
                     <button
                       onClick={() => {
                         onOpenChange(false);
