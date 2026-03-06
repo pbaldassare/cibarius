@@ -1035,6 +1035,48 @@ const AddFoodFlow = ({
               </div>
             )}
 
+            {/* ─── STEP: Recipes from plan ─── */}
+            {step === "recipes" && (
+              <div className="space-y-3">
+                {(() => {
+                  const mealType = selectedMealType || preselectedMealType;
+                  const filtered = planRecipes.filter((r) => r.meal_type === mealType);
+                  const isFemale = detectIsFemale(activePlanTitle);
+                  const portionScale = isFemale ? (filtered[0]?.portion_scale_female ?? 0.8) : 1;
+
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="text-center py-10 text-muted-foreground">
+                        <UtensilsCrossed className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                        <p className="text-sm">Nessuna ricetta per questo pasto</p>
+                      </div>
+                    );
+                  }
+
+                  return filtered.map((recipe) => (
+                    <MealRecipeCard
+                      key={recipe.id}
+                      title={recipe.title}
+                      instructions={recipe.instructions}
+                      prep_time_min={recipe.prep_time_min ?? 10}
+                      ingredients={recipe.ingredients as any[]}
+                      kcal_total={recipe.kcal_total}
+                      protein_total={recipe.protein_total}
+                      carbs_total={recipe.carbs_total}
+                      fats_total={recipe.fats_total}
+                      portionScale={portionScale}
+                      onRegister={(ings, title) => handleRegisterRecipeFromFlow(ings, title)}
+                    />
+                  ));
+                })()}
+                {saving && (
+                  <div className="flex justify-center py-4">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* ─── STEP: Photo AI (multi-photo) ─── */}
             {step === "photo_ai" && (
               <div className="space-y-4">
