@@ -882,6 +882,7 @@ const UserDietPage = () => {
         {isSelfPlan && (
           <div className="text-center py-2">
             <h2 className="text-lg font-bold text-foreground">Scegli il tuo piano nutrizionale</h2>
+            <p className="text-xs text-muted-foreground mt-1">Seleziona un template gratuito adatto ai tuoi obiettivi. Puoi cambiarlo in qualsiasi momento.</p>
           </div>
         )}
 
@@ -1075,15 +1076,9 @@ const UserDietPage = () => {
         </div>
         </>)}
 
-        {/* ═══ EXPLORE OTHER PLANS ═══ */}
+        {/* ═══ TEMPLATE GALLERY ═══ */}
         {systemTemplates.length > 0 && (
           <div className="space-y-3">
-            <div>
-              <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
-                <BookOpen className="h-4 w-4 text-primary" /> Esplora altri piani
-              </h3>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Cambia piano quando vuoi, è gratuito!</p>
-            </div>
             <div className="grid grid-cols-1 gap-2">
               {systemTemplates.map((tmpl) => {
                 const isActive = plan?.title === tmpl.title;
