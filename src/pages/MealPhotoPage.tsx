@@ -457,19 +457,46 @@ const MealPhotoPage = () => {
               <Slider min={50} max={1000} step={10} value={[portionG]} onValueChange={handlePortionSlider} />
             </div>
 
-            <div className="grid grid-cols-4 gap-2">
-              {[
-                { label: "Kcal", value: totals.kcal, color: "text-primary" },
-                { label: "Proteine", value: `${totals.protein}g`, color: "text-blue-600" },
-                { label: "Carbo", value: `${totals.carbs}g`, color: "text-amber-600" },
-                { label: "Grassi", value: `${totals.fats}g`, color: "text-red-500" },
-              ].map((m) => (
-                <div key={m.label} className="rounded-xl border-2 border-accent bg-card p-3 text-center">
-                  <p className={`text-lg font-bold ${m.color}`}>{m.value}</p>
-                  <p className="text-[10px] text-muted-foreground">{m.label}</p>
-                </div>
-              ))}
+            {/* Macro per porzione */}
+            <div className="space-y-1.5">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Per porzione ({portionG}g)</p>
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { label: "Kcal", value: totals.kcal, color: "text-primary" },
+                  { label: "Proteine", value: `${totals.protein}g`, color: "text-blue-600" },
+                  { label: "Carbo", value: `${totals.carbs}g`, color: "text-amber-600" },
+                  { label: "Grassi", value: `${totals.fats}g`, color: "text-red-500" },
+                ].map((m) => (
+                  <div key={m.label} className="rounded-xl border-2 border-accent bg-card p-3 text-center">
+                    <p className={`text-lg font-bold ${m.color}`}>{m.value}</p>
+                    <p className="text-[10px] text-muted-foreground">{m.label}</p>
+                  </div>
+                ))}
+              </div>
             </div>
+
+            {/* Macro per 100g */}
+            {portionG > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Per 100g</p>
+                <div className="grid grid-cols-4 gap-2">
+                  {(() => {
+                    const f = 100 / portionG;
+                    return [
+                      { label: "Kcal", value: Math.round(totals.kcal * f), color: "text-primary" },
+                      { label: "Proteine", value: `${Math.round(totals.protein * f * 10) / 10}g`, color: "text-blue-600" },
+                      { label: "Carbo", value: `${Math.round(totals.carbs * f * 10) / 10}g`, color: "text-amber-600" },
+                      { label: "Grassi", value: `${Math.round(totals.fats * f * 10) / 10}g`, color: "text-red-500" },
+                    ];
+                  })().map((m) => (
+                    <div key={m.label} className="rounded-xl border border-accent bg-card/50 p-2.5 text-center">
+                      <p className={`text-sm font-semibold ${m.color}`}>{m.value}</p>
+                      <p className="text-[10px] text-muted-foreground">{m.label}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label className="text-sm font-semibold">Ingredienti</Label>
