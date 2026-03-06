@@ -212,6 +212,10 @@ const ProfiloPage = () => {
   };
 
   const openSettings = () => {
+    if (role === "restaurant_owner") {
+      navigate("/restaurant/settings");
+      return;
+    }
     setEditName(profile.full_name || "");
     setEditPhone(profile.phone || "");
     setSettingsOpen(true);
