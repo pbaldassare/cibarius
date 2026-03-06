@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { Home, AlertTriangle, ClipboardList, UtensilsCrossed, TrendingUp, User, LucideIcon } from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -71,14 +72,25 @@ const UserBottomNav = () => {
           const showBadge = to === "/profile" && unreadCount > 0;
           const disabled = requiresPlan && !hasActivePlan;
 
+          const motivationalMessages = [
+            "🎯 Crea il tuo piano alimentare per sbloccare questa sezione!",
+            "💪 Un piano ti aiuta a raggiungere i tuoi obiettivi — creane uno!",
+            "🥗 Inizia il tuo percorso: vai su Piano e attiva la tua dieta!",
+            "✨ Sblocca Pasti e Progressi con un piano personalizzato!",
+          ];
+
           if (disabled) {
             return (
               <div
                 key={to}
-                className="flex flex-col items-center gap-0.5 px-1 py-1 opacity-30 cursor-not-allowed"
+                className="flex flex-col items-center gap-0.5 px-1 py-1 opacity-40 cursor-pointer"
+                onClick={() => {
+                  const msg = motivationalMessages[Math.floor(Math.random() * motivationalMessages.length)];
+                  toast(msg, { duration: 3000 });
+                }}
               >
-                <Icon size={18} strokeWidth={1.6} className="text-white/60" />
-                <span className="text-[9px] text-white/60 font-medium">{label}</span>
+                <Icon size={18} strokeWidth={1.6} className="text-white/50" />
+                <span className="text-[9px] text-white/50 font-medium">{label}</span>
               </div>
             );
           }
