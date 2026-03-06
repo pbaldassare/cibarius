@@ -5,9 +5,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import MealRecipeCard from "@/components/MealRecipeCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, Plus, ArrowRight, RefreshCw } from "lucide-react";
+import { Loader2, Plus, ArrowRight, RefreshCw, ChevronDown, ChevronUp, UtensilsCrossed } from "lucide-react";
+import { toast } from "sonner";
 
 const MEAL_LABELS: Record<string, { emoji: string; label: string }> = {
   colazione: { emoji: "☀️", label: "Colazione" },
@@ -16,6 +19,31 @@ const MEAL_LABELS: Record<string, { emoji: string; label: string }> = {
   cena: { emoji: "🌙", label: "Cena" },
 };
 const MEAL_ORDER = ["colazione", "pranzo", "spuntino", "cena"];
+
+// Map plan title keywords to diet_category
+const CATEGORY_MAP: Record<string, string> = {
+  mediterranea: "mediterranea",
+  keto: "keto",
+  ketogenica: "keto",
+  digiuno: "digiuno",
+  intermittente: "digiuno",
+  massa: "massa",
+  muscolare: "massa",
+  dimagrimento: "dimagrimento",
+  moderato: "dimagrimento",
+};
+
+function detectDietCategory(title: string): string {
+  const lower = title.toLowerCase();
+  for (const [keyword, category] of Object.entries(CATEGORY_MAP)) {
+    if (lower.includes(keyword)) return category;
+  }
+  return "mediterranea"; // default
+}
+
+function detectIsFemale(title: string): boolean {
+  return title.toLowerCase().includes("donna");
+}
 
 interface MealTarget {
   meal_type: string;
@@ -31,6 +59,20 @@ interface TodayMeal {
   protein: number;
   carbs: number;
   fats: number;
+}
+
+interface TemplateRecipe {
+  id: string;
+  title: string;
+  meal_type: string;
+  instructions: string | null;
+  prep_time_min: number;
+  ingredients: any[];
+  kcal_total: number;
+  protein_total: number;
+  carbs_total: number;
+  fats_total: number;
+  portion_scale_female: number;
 }
 
 const MacroBar = ({ label, current, target, color }: { label: string; current: number; target: number; color: string }) => {
@@ -55,6 +97,11 @@ const UserActivePlanPage = () => {
   const [plan, setPlan] = useState<any>(null);
   const [mealTargets, setMealTargets] = useState<MealTarget[]>([]);
   const [todayMeals, setTodayMeals] = useState<TodayMeal[]>([]);
+  const [recipes, setRecipes] = useState<TemplateRecipe[]>([]);
+  const [openRecipes, setOpenRecipes] = useState<Record<string, boolean>>({});
+
+  const dietCategory = plan ? detectDietCategory(plan.title) : "mediterranea";
+  const isFemale = plan ? detectIsFemale(plan.title) : false;
 
   const loadData = async () => {
     if (!user) return;
@@ -68,10 +115,11 @@ const UserActivePlanPage = () => {
       .order("created_at", { ascending: false })
       .limit(1);
 
+    let activePlan: any = null;
     if (plans && plans.length > 0) {
-      const p = plans[0] as any;
-      setPlan(p);
-      setMealTargets((p.diet_plan_meal_targets || []) as MealTarget[]);
+      activePlan = plans[0];
+      setPlan(activePlan);
+      setMealTargets((activePlan.diet_plan_meal_targets || []) as MealTarget[]);
     } else {
       setPlan(null);
       setMealTargets([]);
@@ -104,6 +152,19 @@ const UserActivePlanPage = () => {
       setTodayMeals([]);
     }
 
+    // Load recipes for detected category
+    if (activePlan) {
+      const cat = detectDietCategory(activePlan.title);
+      const { data: recipeData } = await supabase
+        .from("template_recipes")
+        .select("*")
+        .eq("diet_category", cat)
+        .order("meal_type")
+        .order("title");
+
+      setRecipes((recipeData || []) as unknown as TemplateRecipe[]);
+    }
+
     setLoading(false);
   };
 
@@ -125,7 +186,88 @@ const UserActivePlanPage = () => {
     [todayMeals]
   );
 
+  const recipesByMeal = useMemo(() => {
+    const map: Record<string, TemplateRecipe[]> = {};
+    for (const r of recipes) {
+      if (!map[r.meal_type]) map[r.meal_type] = [];
+      map[r.meal_type].push(r);
+    }
+    return map;
+  }, [recipes]);
+
   const kcalPct = plan ? Math.min(100, Math.round((todayTotals.kcal / plan.kcal_day) * 100)) : 0;
+
+  const handleRegisterRecipe = async (ingredients: any[], title: string, mealType: string) => {
+    if (!user) return;
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+
+      // Get or create meal_day
+      let { data: dayData } = await supabase
+        .from("meal_days")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("day_date", today)
+        .maybeSingle();
+
+      let dayId: string;
+      if (!dayData) {
+        const { data: newDay, error: dayErr } = await supabase
+          .from("meal_days")
+          .insert({ user_id: user.id, day_date: today })
+          .select("id")
+          .single();
+        if (dayErr) throw dayErr;
+        dayId = newDay.id;
+      } else {
+        dayId = dayData.id;
+      }
+
+      // Get or create meal
+      let { data: mealData } = await supabase
+        .from("meals")
+        .select("id")
+        .eq("meal_day_id", dayId)
+        .eq("meal_type", mealType)
+        .maybeSingle();
+
+      let mealId: string;
+      if (!mealData) {
+        const { data: newMeal, error: mealErr } = await supabase
+          .from("meals")
+          .insert({ meal_day_id: dayId, meal_type: mealType })
+          .select("id")
+          .single();
+        if (mealErr) throw mealErr;
+        mealId = newMeal.id;
+      } else {
+        mealId = mealData.id;
+      }
+
+      // Insert meal_item with total macros of the recipe
+      const totalKcal = ingredients.reduce((s, i) => s + i.kcal, 0);
+      const totalP = ingredients.reduce((s, i) => s + i.protein_g, 0);
+      const totalC = ingredients.reduce((s, i) => s + i.carbs_g, 0);
+      const totalF = ingredients.reduce((s, i) => s + i.fats_g, 0);
+
+      const { error: itemErr } = await supabase.from("meal_items").insert({
+        meal_id: mealId,
+        source_type: "custom",
+        custom_name: title,
+        dish_name: title,
+        calories: totalKcal,
+        quantity: 1,
+        unit: "porzione",
+        macros: { protein: totalP, carbs: totalC, fats: totalF },
+      });
+      if (itemErr) throw itemErr;
+
+      toast.success(`"${title}" registrato! ✅`);
+      loadData(); // refresh progress
+    } catch (e: any) {
+      toast.error("Errore nella registrazione: " + e.message);
+    }
+  };
 
   if (loading) {
     return (
@@ -152,10 +294,11 @@ const UserActivePlanPage = () => {
     );
   }
 
-  // Sort meal targets by MEAL_ORDER
   const sortedTargets = [...mealTargets].sort(
     (a, b) => MEAL_ORDER.indexOf(a.meal_type) - MEAL_ORDER.indexOf(b.meal_type)
   );
+
+  const portionScale = isFemale ? (recipes[0]?.portion_scale_female ?? 0.8) : 1;
 
   return (
     <div>
@@ -209,6 +352,8 @@ const UserActivePlanPage = () => {
           const mealKcal = logged?.kcal ?? 0;
           const mealPct = target.kcal_target > 0 ? Math.min(100, Math.round((mealKcal / target.kcal_target) * 100)) : 0;
           const hasLogged = mealKcal > 0;
+          const mealRecipes = recipesByMeal[target.meal_type] || [];
+          const isRecipesOpen = openRecipes[target.meal_type] || false;
 
           return (
             <Card key={target.meal_type} className="border-0 shadow-[var(--shadow-card)]">
@@ -249,6 +394,47 @@ const UserActivePlanPage = () => {
                   <Plus className="h-3.5 w-3.5 mr-1" />
                   Aggiungi
                 </Button>
+
+                {/* Recipe alternatives */}
+                {mealRecipes.length > 0 && (
+                  <Collapsible
+                    open={isRecipesOpen}
+                    onOpenChange={(v) => setOpenRecipes((prev) => ({ ...prev, [target.meal_type]: v }))}
+                  >
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" size="sm" className="w-full text-xs text-muted-foreground h-8">
+                        <UtensilsCrossed className="h-3.5 w-3.5 mr-1.5" />
+                        {isRecipesOpen ? "Nascondi" : "Vedi"} {mealRecipes.length} ricette suggerite
+                        {isRecipesOpen ? (
+                          <ChevronUp className="h-3 w-3 ml-1" />
+                        ) : (
+                          <ChevronDown className="h-3 w-3 ml-1" />
+                        )}
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="space-y-2 pt-2">
+                        {mealRecipes.map((recipe) => (
+                          <MealRecipeCard
+                            key={recipe.id}
+                            title={recipe.title}
+                            instructions={recipe.instructions}
+                            prep_time_min={recipe.prep_time_min}
+                            ingredients={recipe.ingredients as any[]}
+                            kcal_total={recipe.kcal_total}
+                            protein_total={recipe.protein_total}
+                            carbs_total={recipe.carbs_total}
+                            fats_total={recipe.fats_total}
+                            portionScale={portionScale}
+                            onRegister={(ings, title) =>
+                              handleRegisterRecipe(ings, title, target.meal_type)
+                            }
+                          />
+                        ))}
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                )}
               </CardContent>
             </Card>
           );
