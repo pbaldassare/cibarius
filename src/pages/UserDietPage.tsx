@@ -459,7 +459,7 @@ const UserDietPage = () => {
     );
   }
 
-  const [savingTemplate, setSavingTemplate] = useState(false);
+  // savingTemplate state is declared at top
 
   const saveTemplateAsPlan = async (tmpl: any) => {
     if (!user || savingTemplate) return;
