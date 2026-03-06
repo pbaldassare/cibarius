@@ -1269,6 +1269,46 @@ const UserDietPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Template Info Dialog */}
+      <Dialog open={!!infoTemplate} onOpenChange={(open) => { if (!open) setInfoTemplate(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{infoTemplate?.title}</DialogTitle>
+          </DialogHeader>
+          {infoTemplate && (() => {
+            const info = getTemplateInfo(infoTemplate.title);
+            if (!info) return <p className="text-sm text-muted-foreground">Nessuna informazione disponibile.</p>;
+            return (
+              <div className="space-y-4 py-2">
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-primary uppercase tracking-wide">👤 Per chi è adatto</p>
+                  <p className="text-sm text-foreground">{info.target}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-primary uppercase tracking-wide">🎯 Obiettivi</p>
+                  <p className="text-sm text-foreground">{info.goals}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-primary uppercase tracking-wide">📋 Come funziona</p>
+                  <p className="text-sm text-foreground">{info.description}</p>
+                </div>
+                <div className="rounded-lg bg-secondary/60 p-3 space-y-1">
+                  <p className="text-xs font-semibold text-foreground">Valori giornalieri</p>
+                  <p className="text-xs text-muted-foreground">
+                    {infoTemplate.kcal_day} kcal · Proteine {infoTemplate.protein_g_day}g · Carboidrati {infoTemplate.carbs_g_day}g · Grassi {infoTemplate.fats_g_day}g
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
+          <DialogFooter>
+            <Button onClick={() => { setInfoTemplate(null); setConfirmTemplate(infoTemplate); }} className="w-full gap-2">
+              <Sparkles className="h-4 w-4" /> Attiva questo piano
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
