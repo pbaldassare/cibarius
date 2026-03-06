@@ -1,0 +1,461 @@
+import { useState, useEffect, useMemo } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval, isToday, isSameDay, parseISO } from "date-fns";
+import { it } from "date-fns/locale";
+import { TrendingUp, Check, X, Minus, ChevronLeft, ChevronRight, Save, Flame, Drumstick, Wheat, Droplets } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import { Progress } from "@/components/ui/progress";
+import { Slider } from "@/components/ui/slider";
+import { toast } from "sonner";
+import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
+import { useNavigate } from "react-router-dom";
+
+interface DailyProgressRow {
+  id?: string;
+  user_id: string;
+  day_date: string;
+  plan_id?: string | null;
+  kcal_target: number;
+  kcal_actual: number;
+  protein_target: number;
+  protein_actual: number;
+  carbs_target: number;
+  carbs_actual: number;
+  fats_target: number;
+  fats_actual: number;
+  compliance_pct: number;
+  meals_logged: Record<string, boolean>;
+  notes: string | null;
+}
+
+const MEAL_TYPES = [
+  { key: "colazione", label: "Colazione", icon: "☀️" },
+  { key: "pranzo", label: "Pranzo", icon: "🌤️" },
+  { key: "spuntino", label: "Spuntino", icon: "🍎" },
+  { key: "cena", label: "Cena", icon: "🌙" },
+];
+
+const UserProgressPage = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [history, setHistory] = useState<DailyProgressRow[]>([]);
+  const [activePlan, setActivePlan] = useState<any>(null);
+  const [todayData, setTodayData] = useState<DailyProgressRow | null>(null);
+  const [mealsLogged, setMealsLogged] = useState<Record<string, boolean>>({});
+  const [manualCompliance, setManualCompliance] = useState(0);
+  const [notes, setNotes] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [weekOffset, setWeekOffset] = useState(0);
+
+  const todayStr = format(new Date(), "yyyy-MM-dd");
+
+  // Load data
+  useEffect(() => {
+    if (!user) return;
+    const load = async () => {
+      setLoading(true);
+
+      // Get active plan
+      const { data: plan } = await supabase
+        .from("diet_plans")
+        .select("*")
+        .eq("client_user_id", user.id)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      setActivePlan(plan);
+
+      // Get last 30 days progress
+      const thirtyAgo = format(subDays(new Date(), 30), "yyyy-MM-dd");
+      const { data: rows } = await supabase
+        .from("daily_progress")
+        .select("*")
+        .eq("user_id", user.id)
+        .gte("day_date", thirtyAgo)
+        .order("day_date", { ascending: true });
+
+      const typedRows = (rows || []).map((r: any) => ({
+        ...r,
+        meals_logged: (typeof r.meals_logged === "object" && r.meals_logged !== null ? r.meals_logged : {}) as Record<string, boolean>,
+      }));
+      setHistory(typedRows);
+
+      // Today's entry
+      const todayEntry = typedRows.find((r) => r.day_date === todayStr);
+      if (todayEntry) {
+        setTodayData(todayEntry);
+        setMealsLogged(todayEntry.meals_logged || {});
+        setManualCompliance(todayEntry.compliance_pct || 0);
+        setNotes(todayEntry.notes || "");
+      } else {
+        setMealsLogged({});
+        setManualCompliance(0);
+        setNotes("");
+      }
+
+      // Auto-calculate from meal_logs for today
+      const { data: mealLogs } = await supabase
+        .from("meal_logs")
+        .select("meal_type, kcal, protein_g, carbs_g, fat_g")
+        .eq("user_id", user.id)
+        .gte("created_at", todayStr + "T00:00:00")
+        .lte("created_at", todayStr + "T23:59:59");
+
+      if (mealLogs && mealLogs.length > 0) {
+        const autoMeals: Record<string, boolean> = {};
+        let totalKcal = 0, totalP = 0, totalC = 0, totalF = 0;
+        mealLogs.forEach((ml) => {
+          autoMeals[ml.meal_type] = true;
+          totalKcal += ml.kcal || 0;
+          totalP += ml.protein_g || 0;
+          totalC += ml.carbs_g || 0;
+          totalF += ml.fat_g || 0;
+        });
+        setMealsLogged((prev) => ({ ...prev, ...autoMeals }));
+
+        if (plan) {
+          const compliance = Math.min(100, Math.round((totalKcal / (plan.kcal_day || 2000)) * 100));
+          setManualCompliance(compliance);
+        }
+      }
+
+      setLoading(false);
+    };
+    load();
+  }, [user]);
+
+  // Save today
+  const saveToday = async () => {
+    if (!user) return;
+    setSaving(true);
+
+    const loggedCount = Object.values(mealsLogged).filter(Boolean).length;
+    const autoCompliance = loggedCount > 0 ? Math.round((loggedCount / 4) * 100) : manualCompliance;
+    const finalCompliance = manualCompliance > 0 ? manualCompliance : autoCompliance;
+
+    const row = {
+      user_id: user.id,
+      day_date: todayStr,
+      plan_id: activePlan?.id || null,
+      kcal_target: activePlan?.kcal_day || 0,
+      kcal_actual: 0,
+      protein_target: activePlan?.protein_g_day || 0,
+      protein_actual: 0,
+      carbs_target: activePlan?.carbs_g_day || 0,
+      carbs_actual: 0,
+      fats_target: activePlan?.fats_g_day || 0,
+      fats_actual: 0,
+      compliance_pct: finalCompliance,
+      meals_logged: mealsLogged,
+      notes: notes || null,
+    };
+
+    const { error } = await supabase
+      .from("daily_progress")
+      .upsert(row, { onConflict: "user_id,day_date" });
+
+    if (error) {
+      toast.error("Errore nel salvataggio");
+    } else {
+      toast.success("Giornata salvata!");
+      // Update history
+      setHistory((prev) => {
+        const idx = prev.findIndex((r) => r.day_date === todayStr);
+        if (idx >= 0) {
+          const updated = [...prev];
+          updated[idx] = { ...updated[idx], ...row };
+          return updated;
+        }
+        return [...prev, row as DailyProgressRow];
+      });
+    }
+    setSaving(false);
+  };
+
+  // Week view
+  const currentWeekStart = startOfWeek(subDays(new Date(), weekOffset * 7), { weekStartsOn: 1 });
+  const currentWeekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 1 });
+  const weekDays = eachDayOfInterval({ start: currentWeekStart, end: currentWeekEnd });
+
+  const weekAvg = useMemo(() => {
+    const weekEntries = history.filter((r) => {
+      const d = parseISO(r.day_date);
+      return d >= currentWeekStart && d <= currentWeekEnd;
+    });
+    if (weekEntries.length === 0) return 0;
+    return Math.round(weekEntries.reduce((s, e) => s + (e.compliance_pct || 0), 0) / weekEntries.length);
+  }, [history, weekOffset]);
+
+  // Chart data (last 30 days)
+  const chartData = useMemo(() => {
+    const last30 = [];
+    for (let i = 29; i >= 0; i--) {
+      const d = format(subDays(new Date(), i), "yyyy-MM-dd");
+      const entry = history.find((r) => r.day_date === d);
+      last30.push({
+        day: format(subDays(new Date(), i), "d MMM", { locale: it }),
+        compliance: entry?.compliance_pct || 0,
+      });
+    }
+    return last30;
+  }, [history]);
+
+  // Stats
+  const stats = useMemo(() => {
+    const logged = history.filter((r) => r.compliance_pct > 0);
+    const avg = logged.length > 0 ? Math.round(logged.reduce((s, e) => s + e.compliance_pct, 0) / logged.length) : 0;
+
+    // Streak
+    let streak = 0;
+    for (let i = 0; i <= 30; i++) {
+      const d = format(subDays(new Date(), i), "yyyy-MM-dd");
+      const entry = history.find((r) => r.day_date === d);
+      if (entry && entry.compliance_pct >= 70) streak++;
+      else if (i > 0) break;
+    }
+
+    return { avg, logged: logged.length, streak };
+  }, [history]);
+
+  const getDayStatus = (date: Date) => {
+    const d = format(date, "yyyy-MM-dd");
+    const entry = history.find((r) => r.day_date === d);
+    if (!entry || entry.compliance_pct === 0) return "none";
+    if (entry.compliance_pct >= 80) return "good";
+    if (entry.compliance_pct >= 50) return "warn";
+    return "bad";
+  };
+
+  if (loading) {
+    return (
+      <div className="p-4 space-y-4">
+        <div className="h-8 w-48 bg-muted animate-pulse rounded" />
+        <div className="h-32 bg-muted animate-pulse rounded-xl" />
+        <div className="h-48 bg-muted animate-pulse rounded-xl" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 pb-8 space-y-5">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+          <TrendingUp className="h-5 w-5 text-primary" />
+        </div>
+        <div>
+          <h1 className="text-xl font-bold text-foreground">I miei progressi</h1>
+          <p className="text-xs text-muted-foreground">Traccia il rispetto del tuo piano</p>
+        </div>
+      </div>
+
+      {/* Week overview */}
+      <Card className="p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setWeekOffset((o) => o + 1)}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className="text-sm font-semibold text-foreground">
+            {weekOffset === 0 ? "Questa settimana" : format(currentWeekStart, "d MMM", { locale: it }) + " – " + format(currentWeekEnd, "d MMM", { locale: it })}
+          </span>
+          <Button variant="ghost" size="icon" className="h-8 w-8" disabled={weekOffset === 0} onClick={() => setWeekOffset((o) => o - 1)}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Media settimanale</span>
+            <span className="font-bold text-foreground">{weekAvg}%</span>
+          </div>
+          <Progress value={weekAvg} className="h-2.5" />
+        </div>
+
+        <div className="flex justify-between">
+          {weekDays.map((d) => {
+            const status = getDayStatus(d);
+            const isT = isToday(d);
+            return (
+              <div key={d.toISOString()} className="flex flex-col items-center gap-1">
+                <span className={`text-[10px] font-medium ${isT ? "text-primary" : "text-muted-foreground"}`}>
+                  {format(d, "EEE", { locale: it }).slice(0, 3)}
+                </span>
+                <div
+                  className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold transition-all ${
+                    status === "good"
+                      ? "bg-green-500/15 text-green-600"
+                      : status === "warn"
+                      ? "bg-yellow-500/15 text-yellow-600"
+                      : status === "bad"
+                      ? "bg-red-500/15 text-red-600"
+                      : isT
+                      ? "bg-primary/10 text-primary ring-2 ring-primary/30"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {status === "good" ? <Check className="h-4 w-4" /> : status === "warn" ? "⚠️" : status === "bad" ? <X className="h-3.5 w-3.5" /> : <Minus className="h-3 w-3" />}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
+      {/* Today diary */}
+      <Card className="p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-bold text-foreground">
+            Oggi — {format(new Date(), "d MMMM yyyy", { locale: it })}
+          </h2>
+        </div>
+
+        <div className="space-y-2.5">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Pasti completati</p>
+          {MEAL_TYPES.map((mt) => (
+            <label
+              key={mt.key}
+              className="flex items-center gap-3 rounded-lg border border-border/50 px-3 py-2.5 cursor-pointer hover:bg-accent/50 transition-colors"
+            >
+              <Checkbox
+                checked={!!mealsLogged[mt.key]}
+                onCheckedChange={(checked) =>
+                  setMealsLogged((prev) => ({ ...prev, [mt.key]: !!checked }))
+                }
+              />
+              <span className="text-lg">{mt.icon}</span>
+              <span className="text-sm font-medium text-foreground flex-1">{mt.label}</span>
+              {mealsLogged[mt.key] && (
+                <span className="text-[10px] font-semibold text-green-600 bg-green-500/10 px-2 py-0.5 rounded-full">
+                  ✓ Fatto
+                </span>
+              )}
+            </label>
+          ))}
+        </div>
+
+        {/* Manual compliance slider */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Rispetto del piano</p>
+            <span className={`text-sm font-bold ${manualCompliance >= 80 ? "text-green-600" : manualCompliance >= 50 ? "text-yellow-600" : "text-red-500"}`}>
+              {manualCompliance}%
+            </span>
+          </div>
+          <Slider
+            value={[manualCompliance]}
+            onValueChange={(v) => setManualCompliance(v[0])}
+            max={100}
+            step={5}
+            className="w-full"
+          />
+        </div>
+
+        {/* Notes */}
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Note del giorno</p>
+          <Textarea
+            placeholder="Come è andata oggi? Hai avuto difficoltà?"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={2}
+            className="text-sm resize-none"
+          />
+        </div>
+
+        <Button onClick={saveToday} disabled={saving} className="w-full gap-2">
+          <Save className="h-4 w-4" />
+          {saving ? "Salvataggio..." : "Salva giornata"}
+        </Button>
+      </Card>
+
+      {/* Stats cards */}
+      <div className="grid grid-cols-3 gap-3">
+        <Card className="p-3 text-center space-y-1">
+          <p className="text-2xl font-bold text-primary">{stats.avg}%</p>
+          <p className="text-[10px] text-muted-foreground font-medium">Media 30gg</p>
+        </Card>
+        <Card className="p-3 text-center space-y-1">
+          <p className="text-2xl font-bold text-foreground">{stats.logged}</p>
+          <p className="text-[10px] text-muted-foreground font-medium">Giorni tracciati</p>
+        </Card>
+        <Card className="p-3 text-center space-y-1">
+          <p className="text-2xl font-bold text-green-600">{stats.streak}</p>
+          <p className="text-[10px] text-muted-foreground font-medium">Streak 🔥</p>
+        </Card>
+      </div>
+
+      {/* Chart */}
+      <Card className="p-4 space-y-3">
+        <h3 className="text-sm font-bold text-foreground">Andamento ultimi 30 giorni</h3>
+        <div className="h-40">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={chartData}>
+              <defs>
+                <linearGradient id="compGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <XAxis dataKey="day" tick={{ fontSize: 9 }} interval={4} stroke="hsl(var(--muted-foreground))" />
+              <YAxis domain={[0, 100]} tick={{ fontSize: 9 }} stroke="hsl(var(--muted-foreground))" width={28} />
+              <Tooltip
+                contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid hsl(var(--border))" }}
+                formatter={(v: number) => [`${v}%`, "Compliance"]}
+              />
+              <Area
+                type="monotone"
+                dataKey="compliance"
+                stroke="hsl(var(--primary))"
+                strokeWidth={2}
+                fill="url(#compGrad)"
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </Card>
+
+      {/* Recent history */}
+      <Card className="p-4 space-y-3">
+        <h3 className="text-sm font-bold text-foreground">Storico recente</h3>
+        <div className="space-y-2">
+          {[...history]
+            .filter((r) => r.day_date !== todayStr && r.compliance_pct > 0)
+            .reverse()
+            .slice(0, 10)
+            .map((r) => (
+              <div key={r.day_date} className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2">
+                <span className="text-sm text-foreground font-medium">
+                  {format(parseISO(r.day_date), "d MMM", { locale: it })}
+                </span>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`text-sm font-bold ${
+                      r.compliance_pct >= 80 ? "text-green-600" : r.compliance_pct >= 50 ? "text-yellow-600" : "text-red-500"
+                    }`}
+                  >
+                    {r.compliance_pct}%
+                  </span>
+                  <span className="text-sm">
+                    {r.compliance_pct >= 80 ? "✅" : r.compliance_pct >= 50 ? "⚠️" : "❌"}
+                  </span>
+                </div>
+              </div>
+            ))}
+          {history.filter((r) => r.compliance_pct > 0).length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              Nessun giorno ancora registrato. Compila oggi per iniziare!
+            </p>
+          )}
+        </div>
+      </Card>
+    </div>
+  );
+};
+
+export default UserProgressPage;

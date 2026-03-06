@@ -184,6 +184,71 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_progress: {
+        Row: {
+          carbs_actual: number | null
+          carbs_target: number | null
+          compliance_pct: number | null
+          created_at: string | null
+          day_date: string
+          fats_actual: number | null
+          fats_target: number | null
+          id: string
+          kcal_actual: number
+          kcal_target: number
+          meals_logged: Json | null
+          notes: string | null
+          plan_id: string | null
+          protein_actual: number | null
+          protein_target: number | null
+          user_id: string
+        }
+        Insert: {
+          carbs_actual?: number | null
+          carbs_target?: number | null
+          compliance_pct?: number | null
+          created_at?: string | null
+          day_date: string
+          fats_actual?: number | null
+          fats_target?: number | null
+          id?: string
+          kcal_actual?: number
+          kcal_target?: number
+          meals_logged?: Json | null
+          notes?: string | null
+          plan_id?: string | null
+          protein_actual?: number | null
+          protein_target?: number | null
+          user_id: string
+        }
+        Update: {
+          carbs_actual?: number | null
+          carbs_target?: number | null
+          compliance_pct?: number | null
+          created_at?: string | null
+          day_date?: string
+          fats_actual?: number | null
+          fats_target?: number | null
+          id?: string
+          kcal_actual?: number
+          kcal_target?: number
+          meals_logged?: Json | null
+          notes?: string | null
+          plan_id?: string | null
+          protein_actual?: number | null
+          protein_target?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_progress_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "diet_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       diet_plan_items: {
         Row: {
           calories: number
