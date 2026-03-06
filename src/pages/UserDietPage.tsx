@@ -32,6 +32,44 @@ const MEAL_LABELS: Record<string, string> = {
 
 const MEAL_ORDER = ["colazione", "pranzo", "spuntino", "cena"];
 
+const TEMPLATE_INFO: Record<string, { target: string; goals: string; description: string }> = {
+  mediterranea: {
+    target: "Adatto a tutti: adulti, famiglie e chi vuole mangiare bene senza rinunce.",
+    goals: "Mantenere un peso sano, proteggere il cuore, avere più energia ogni giorno.",
+    description: "La dieta mediterranea si basa su cereali integrali, frutta, verdura, legumi, pesce e olio d'oliva. È equilibrata, gustosa e riconosciuta come una delle più salutari al mondo. Facile da seguire a lungo termine.",
+  },
+  keto: {
+    target: "Per chi vuole perdere grasso in modo rapido e ha voglia di impegnarsi con costanza.",
+    goals: "Bruciare grassi come energia principale, ridurre la fame nervosa, migliorare concentrazione e lucidità.",
+    description: "La dieta chetogenica riduce molto i carboidrati (sotto i 50g al giorno) e aumenta i grassi buoni. Il corpo entra in uno stato chiamato 'chetosi' e brucia i grassi come carburante. Richiede attenzione nella scelta degli alimenti.",
+  },
+  digiuno: {
+    target: "Per chi ha un ritmo di vita flessibile e preferisce pasti concentrati in poche ore.",
+    goals: "Migliorare il metabolismo, favorire la rigenerazione cellulare, semplificare la gestione dei pasti.",
+    description: "Il digiuno intermittente alterna finestre di alimentazione (es. 8 ore) a periodi di digiuno (es. 16 ore). Non si tratta di mangiare meno, ma di concentrare i pasti. Aiuta a regolare gli zuccheri nel sangue e a ridurre l'infiammazione.",
+  },
+  massa: {
+    target: "Per chi si allena regolarmente e vuole costruire muscolo in modo pulito.",
+    goals: "Aumentare la massa muscolare, migliorare la forza, supportare il recupero dopo l'allenamento.",
+    description: "Il piano di massa prevede un surplus calorico controllato con alto apporto proteico, carboidrati abbondanti per l'energia e grassi bilanciati. Ideale da abbinare a un programma di allenamento con i pesi.",
+  },
+  dimagrimento: {
+    target: "Per chi vuole perdere peso in modo graduale e sostenibile, senza diete estreme.",
+    goals: "Ridurre il grasso corporeo, mantenere la massa muscolare, migliorare il rapporto con il cibo.",
+    description: "Il piano dimagrimento crea un leggero deficit calorico, con proteine alte per proteggere i muscoli e carboidrati e grassi bilanciati per avere energia. Non è una dieta punitiva: è un percorso che puoi mantenere nel tempo.",
+  },
+  vegetariana: {
+    target: "Per chi non mangia carne o pesce e vuole un'alimentazione completa e varia.",
+    goals: "Coprire tutti i nutrienti senza proteine animali dirette, mantenere energia e benessere.",
+    description: "Il piano vegetariano include legumi, uova, latticini, cereali, frutta e verdura. Attenzione a combinare bene le proteine vegetali (es. cereali + legumi) per ottenere tutti gli aminoacidi essenziali.",
+  },
+  vegana: {
+    target: "Per chi segue uno stile di vita 100% vegetale e vuole nutrirsi in modo bilanciato.",
+    goals: "Raggiungere un apporto proteico adeguato, coprire vitamine B12, ferro e omega-3.",
+    description: "Il piano vegano si basa su legumi, cereali, tofu, tempeh, frutta secca, semi e tanta verdura. Fondamentale integrare vitamina B12. Con le giuste combinazioni alimentari si può essere in piena forma senza prodotti animali.",
+  },
+};
+
 interface TodayMealData {
   meal_type: string;
   kcal: number;
