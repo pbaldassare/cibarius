@@ -1,37 +1,40 @@
 
 
-# Piano: Popolare 300 traduzioni + Prompt IA preciso + Logica DB-first
+# Piano: Aggiungere opzione "Ricette dal piano" nel flusso Aggiungi Alimento
 
-## Stato attuale
-- `ingredient_translation` ha solo 23 righe (il seed iniziale)
-- L'edge function `analyze-meal-photo` usa un prompt generico e non ha logica "dishes cache first"
+## Obiettivo
+Quando l'utente ha un piano nutrizionale attivo e sta aggiungendo un pasto (`context === "meal"`), mostrare un'opzione aggiuntiva "Ricette dal piano" nella schermata di scelta metodo. Al click, mostra le ricette (`template_recipes`) filtrate per:
+1. **Categoria dieta** — ricavata dal titolo del piano attivo (stessa logica `detectDietCategory` di `UserActivePlanPage`)
+2. **Tipo di pasto** — il `selectedMealType` già scelto dall'utente (colazione/pranzo/cena/spuntino)
 
-## Cosa fare
+Selezionando una ricetta, gli ingredienti vengono registrati come pasto (stessa logica di `handleRegisterRecipe` in `UserActivePlanPage`).
 
-### 1. Inserire ~260 nuove traduzioni in `ingredient_translation`
+## Modifiche su `src/components/AddFoodFlow.tsx`
 
-Useremo una migrazione SQL con `INSERT ... ON CONFLICT DO NOTHING` per aggiungere tutte le righe del CSV fornito senza duplicare quelle gia' presenti. La tabella ha `name_it` UNIQUE, quindi i conflitti vengono gestiti automaticamente.
+### 1. Nuovo step e stato
+- Aggiungere `"recipes"` al tipo `Step`
+- Nuovi state: `planRecipes` (array ricette), `recipesLoading`, `activePlanTitle` (per scale female)
+- Al mount (quando `open && context === "meal"`), fetch piano attivo e ricette template corrispondenti
 
-### 2. Aggiornare il prompt IA nell'edge function
+### 2. Nuovo bottone nel metodo selector
+- Dopo "Foto AI" e prima di "Scansiona barcode", aggiungere un bottone "Ricette dal piano" (icona `UtensilsCrossed` o `ChefHat`) con stile simile al bottone Foto AI ma con bordo verde/secondario
+- Visibile solo se `context === "meal"` E ci sono ricette disponibili (`planRecipes.length > 0`)
+- Richiede che `selectedMealType` sia già selezionato (stessa validazione degli altri metodi)
 
-Sostituire il `systemPrompt` attuale (generico) con il prompt dettagliato fornito dall'utente, che include:
-- Regole per pizza (base, salsa, mozzarella, olio, extra visibili)
-- Regole per pasta (tipo pasta, condimento, formaggio)
-- Regole per risotto (riso, soffritto, brodo, burro/parmigiano, ingrediente principale)
-- Output JSON obbligatorio con `name_it` e `notes`
+### 3. Nuovo step "recipes"
+- Mostra le ricette filtrate per `selectedMealType` usando `MealRecipeCard` (già esistente)
+- Applica `portionScale` se il piano è per donna (stessa logica `detectIsFemale`)
+- Il bottone "Registra pasto" su ogni card chiama la logica di salvataggio:
+  - Crea `meal_day` + `meal` se necessario
+  - Inserisce ogni ingrediente come `meal_item` con macro scalati
+  - Chiude il flow e chiama `onComplete`
 
-### 3. Aggiungere logica DB-first (dishes cache)
-
-Prima di chiamare l'IA, la funzione controllera' se un piatto simile esiste gia' in `dishes` + `dish_ingredients`:
-1. Se trovato → carica ingredienti dalla cache, calcola macro, restituisci subito (NO IA, NO USDA)
-2. Se non trovato → chiama IA vision → arricchisci con USDA → salva in `dishes`/`dish_ingredients` per le prossime volte
-
-Questo richiede una modifica strutturale all'handler principale dell'edge function, aggiungendo un blocco di cache lookup prima della chiamata AI e un blocco di cache write dopo l'analisi.
+### 4. Logica di salvataggio ricetta
+Riutilizza la stessa logica di `handleRegisterRecipe` da `UserActivePlanPage`: per ogni ingrediente della ricetta, crea un `meal_item` con `source_type: "custom"`, `custom_name`, `calories`, `macros`, `quantity`.
 
 ## File coinvolti
 
 | File | Azione |
-|------|--------|
-| Migrazione SQL | INSERT ~260 righe in `ingredient_translation` |
-| `supabase/functions/analyze-meal-photo/index.ts` | Nuovo prompt + logica dishes cache |
+|---|---|
+| `src/components/AddFoodFlow.tsx` | Aggiungere step ricette, bottone nel metodo, fetch piano+ricette, salvataggio |
 
