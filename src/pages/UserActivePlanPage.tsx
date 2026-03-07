@@ -1,15 +1,20 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { format } from "date-fns";
+import { it } from "date-fns/locale";
 import MobileHeader from "@/components/MobileHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import { Slider } from "@/components/ui/slider";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import MealRecipeCard from "@/components/MealRecipeCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, Plus, ArrowRight, RefreshCw, ChevronDown, ChevronUp, UtensilsCrossed } from "lucide-react";
+import { Loader2, Plus, ArrowRight, RefreshCw, ChevronDown, ChevronUp, UtensilsCrossed, Save } from "lucide-react";
 import { toast } from "sonner";
 
 const MEAL_LABELS: Record<string, { emoji: string; label: string }> = {
@@ -99,6 +104,12 @@ const UserActivePlanPage = () => {
   const [todayMeals, setTodayMeals] = useState<TodayMeal[]>([]);
   const [recipes, setRecipes] = useState<TemplateRecipe[]>([]);
   const [openRecipes, setOpenRecipes] = useState<Record<string, boolean>>({});
+
+  // Save-day state
+  const [mealsLogged, setMealsLogged] = useState<Record<string, boolean>>({});
+  const [manualCompliance, setManualCompliance] = useState(0);
+  const [dayNotes, setDayNotes] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const dietCategory = plan ? detectDietCategory(plan.title) : "mediterranea";
   const isFemale = plan ? detectIsFemale(plan.title) : false;
