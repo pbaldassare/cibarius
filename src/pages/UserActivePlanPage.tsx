@@ -342,6 +342,7 @@ const UserActivePlanPage = () => {
     setSaving(false);
   };
 
+  if (loading) {
     return (
       <div>
         <MobileHeader title="Il mio piano" />
