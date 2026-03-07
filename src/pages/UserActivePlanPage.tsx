@@ -14,6 +14,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import MealRecipeCard from "@/components/MealRecipeCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useFavorites } from "@/hooks/useFavorites";
 import { Loader2, Plus, ArrowRight, RefreshCw, ChevronDown, ChevronUp, UtensilsCrossed, Save } from "lucide-react";
 import { toast } from "sonner";
 
