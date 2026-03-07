@@ -28,13 +28,6 @@ interface DailyProgressRow {
   notes: string | null;
 }
 
-const MEAL_TYPES = [
-  { key: "colazione", label: "Colazione", icon: "☀️" },
-  { key: "pranzo", label: "Pranzo", icon: "🌤️" },
-  { key: "spuntino", label: "Spuntino", icon: "🍎" },
-  { key: "cena", label: "Cena", icon: "🌙" },
-];
-
 const UserProgressPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
