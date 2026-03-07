@@ -488,6 +488,82 @@ const UserActivePlanPage = () => {
           <RefreshCw className="h-4 w-4 mr-2" />
           Cambia piano
         </Button>
+
+        {/* Save day card */}
+        <Card className="border-0 shadow-[var(--shadow-card)]">
+          <CardContent className="p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-bold text-foreground">
+                Salva giornata
+              </h3>
+              <span className="text-xs text-muted-foreground">
+                {format(new Date(), "d MMMM yyyy", { locale: it })}
+              </span>
+            </div>
+
+            {/* Meals completed checkboxes */}
+            <div className="space-y-2.5">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Pasti completati</p>
+              {MEAL_ORDER.map((key) => {
+                const ml = MEAL_LABELS[key];
+                return (
+                  <label
+                    key={key}
+                    className="flex items-center gap-3 rounded-lg border border-border/50 px-3 py-2.5 cursor-pointer hover:bg-accent/50 transition-colors"
+                  >
+                    <Checkbox
+                      checked={!!mealsLogged[key]}
+                      onCheckedChange={(checked) =>
+                        setMealsLogged((prev) => ({ ...prev, [key]: !!checked }))
+                      }
+                    />
+                    <span className="text-lg">{ml.emoji}</span>
+                    <span className="text-sm font-medium text-foreground flex-1">{ml.label}</span>
+                    {mealsLogged[key] && (
+                      <span className="text-[10px] font-semibold text-success bg-success/10 px-2 py-0.5 rounded-full">
+                        ✓ Fatto
+                      </span>
+                    )}
+                  </label>
+                );
+              })}
+            </div>
+
+            {/* Compliance slider */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Rispetto del piano</p>
+                <span className={`text-sm font-bold ${manualCompliance >= 80 ? "text-success" : manualCompliance >= 50 ? "text-warning" : "text-destructive"}`}>
+                  {manualCompliance}%
+                </span>
+              </div>
+              <Slider
+                value={[manualCompliance]}
+                onValueChange={(v) => setManualCompliance(v[0])}
+                max={100}
+                step={5}
+                className="w-full"
+              />
+            </div>
+
+            {/* Notes */}
+            <div className="space-y-1.5">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Note del giorno</p>
+              <Textarea
+                placeholder="Come è andata oggi? Hai avuto difficoltà?"
+                value={dayNotes}
+                onChange={(e) => setDayNotes(e.target.value)}
+                rows={2}
+                className="text-sm resize-none"
+              />
+            </div>
+
+            <Button onClick={handleSaveDay} disabled={saving} className="w-full gap-2">
+              <Save className="h-4 w-4" />
+              {saving ? "Salvataggio..." : "Salva giornata"}
+            </Button>
+          </CardContent>
+        </Card>
       </main>
     </div>
   );
