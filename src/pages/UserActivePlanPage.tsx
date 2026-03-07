@@ -501,6 +501,16 @@ const UserActivePlanPage = () => {
                             carbs_total={recipe.carbs_total}
                             fats_total={recipe.fats_total}
                             portionScale={portionScale}
+                            isFavorite={isFavorite("template_recipe", recipe.id)}
+                            onToggleFavorite={() =>
+                              toggleFavorite("template_recipe", recipe.id, [target.meal_type], {
+                                name: recipe.title,
+                                kcal: recipe.kcal_total,
+                                protein: recipe.protein_total,
+                                carbs: recipe.carbs_total,
+                                fats: recipe.fats_total,
+                              })
+                            }
                             onRegister={(ings, title) =>
                               handleRegisterRecipe(ings, title, target.meal_type)
                             }
