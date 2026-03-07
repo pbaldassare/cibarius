@@ -1,15 +1,20 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { format } from "date-fns";
+import { it } from "date-fns/locale";
 import MobileHeader from "@/components/MobileHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import { Slider } from "@/components/ui/slider";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import MealRecipeCard from "@/components/MealRecipeCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, Plus, ArrowRight, RefreshCw, ChevronDown, ChevronUp, UtensilsCrossed } from "lucide-react";
+import { Loader2, Plus, ArrowRight, RefreshCw, ChevronDown, ChevronUp, UtensilsCrossed, Save } from "lucide-react";
 import { toast } from "sonner";
 
 const MEAL_LABELS: Record<string, { emoji: string; label: string }> = {
@@ -100,6 +105,12 @@ const UserActivePlanPage = () => {
   const [recipes, setRecipes] = useState<TemplateRecipe[]>([]);
   const [openRecipes, setOpenRecipes] = useState<Record<string, boolean>>({});
 
+  // Save-day state
+  const [mealsLogged, setMealsLogged] = useState<Record<string, boolean>>({});
+  const [manualCompliance, setManualCompliance] = useState(0);
+  const [dayNotes, setDayNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+
   const dietCategory = plan ? detectDietCategory(plan.title) : "mediterranea";
   const isFemale = plan ? detectIsFemale(plan.title) : false;
 
@@ -148,8 +159,36 @@ const UserActivePlanPage = () => {
           };
         })
       );
+      // Auto-populate mealsLogged from today's meals
+      const autoMeals: Record<string, boolean> = {};
+      meals.forEach((m: any) => { autoMeals[m.meal_type] = true; });
+      setMealsLogged(autoMeals);
+      // Auto-calc compliance
+      if (activePlan) {
+        const totalKcal = meals.reduce((s: number, m: any) => {
+          const items = m.meal_items || [];
+          return s + items.reduce((ss: number, i: any) => ss + (i.calories ?? 0), 0);
+        }, 0);
+        setManualCompliance(Math.min(100, Math.round((totalKcal / (activePlan.kcal_day || 2000)) * 100)));
+      }
     } else {
       setTodayMeals([]);
+      setMealsLogged({});
+      setManualCompliance(0);
+    }
+
+    // Load existing daily_progress for today to pre-populate
+    const { data: existingProgress } = await supabase
+      .from("daily_progress")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("day_date", today)
+      .maybeSingle();
+    if (existingProgress) {
+      const ml = existingProgress.meals_logged as Record<string, boolean> | null;
+      if (ml && Object.keys(ml).length > 0) setMealsLogged(ml);
+      if (existingProgress.compliance_pct) setManualCompliance(existingProgress.compliance_pct);
+      if (existingProgress.notes) setDayNotes(existingProgress.notes);
     }
 
     // Load recipes for detected category
@@ -267,6 +306,40 @@ const UserActivePlanPage = () => {
     } catch (e: any) {
       toast.error("Errore nella registrazione: " + e.message);
     }
+  };
+
+  const handleSaveDay = async () => {
+    if (!user || !plan) return;
+    setSaving(true);
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    const row = {
+      user_id: user.id,
+      day_date: todayStr,
+      plan_id: plan.id,
+      kcal_target: plan.kcal_day || 0,
+      kcal_actual: todayTotals.kcal,
+      protein_target: plan.protein_g_day || 0,
+      protein_actual: todayTotals.protein,
+      carbs_target: plan.carbs_g_day || 0,
+      carbs_actual: todayTotals.carbs,
+      fats_target: plan.fats_g_day || 0,
+      fats_actual: todayTotals.fats,
+      compliance_pct: manualCompliance,
+      meals_logged: mealsLogged,
+      notes: dayNotes || null,
+    };
+
+    const { error } = await supabase
+      .from("daily_progress")
+      .upsert(row, { onConflict: "user_id,day_date" });
+
+    if (error) {
+      toast.error("Errore nel salvataggio");
+    } else {
+      toast.success("Giornata salvata! ✅");
+    }
+    setSaving(false);
   };
 
   if (loading) {
@@ -449,6 +522,82 @@ const UserActivePlanPage = () => {
           <RefreshCw className="h-4 w-4 mr-2" />
           Cambia piano
         </Button>
+
+        {/* Save day card */}
+        <Card className="border-0 shadow-[var(--shadow-card)]">
+          <CardContent className="p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-bold text-foreground">
+                Salva giornata
+              </h3>
+              <span className="text-xs text-muted-foreground">
+                {format(new Date(), "d MMMM yyyy", { locale: it })}
+              </span>
+            </div>
+
+            {/* Meals completed checkboxes */}
+            <div className="space-y-2.5">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Pasti completati</p>
+              {MEAL_ORDER.map((key) => {
+                const ml = MEAL_LABELS[key];
+                return (
+                  <label
+                    key={key}
+                    className="flex items-center gap-3 rounded-lg border border-border/50 px-3 py-2.5 cursor-pointer hover:bg-accent/50 transition-colors"
+                  >
+                    <Checkbox
+                      checked={!!mealsLogged[key]}
+                      onCheckedChange={(checked) =>
+                        setMealsLogged((prev) => ({ ...prev, [key]: !!checked }))
+                      }
+                    />
+                    <span className="text-lg">{ml.emoji}</span>
+                    <span className="text-sm font-medium text-foreground flex-1">{ml.label}</span>
+                    {mealsLogged[key] && (
+                      <span className="text-[10px] font-semibold text-success bg-success/10 px-2 py-0.5 rounded-full">
+                        ✓ Fatto
+                      </span>
+                    )}
+                  </label>
+                );
+              })}
+            </div>
+
+            {/* Compliance slider */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Rispetto del piano</p>
+                <span className={`text-sm font-bold ${manualCompliance >= 80 ? "text-success" : manualCompliance >= 50 ? "text-warning" : "text-destructive"}`}>
+                  {manualCompliance}%
+                </span>
+              </div>
+              <Slider
+                value={[manualCompliance]}
+                onValueChange={(v) => setManualCompliance(v[0])}
+                max={100}
+                step={5}
+                className="w-full"
+              />
+            </div>
+
+            {/* Notes */}
+            <div className="space-y-1.5">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Note del giorno</p>
+              <Textarea
+                placeholder="Come è andata oggi? Hai avuto difficoltà?"
+                value={dayNotes}
+                onChange={(e) => setDayNotes(e.target.value)}
+                rows={2}
+                className="text-sm resize-none"
+              />
+            </div>
+
+            <Button onClick={handleSaveDay} disabled={saving} className="w-full gap-2">
+              <Save className="h-4 w-4" />
+              {saving ? "Salvataggio..." : "Salva giornata"}
+            </Button>
+          </CardContent>
+        </Card>
       </main>
     </div>
   );
