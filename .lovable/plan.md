@@ -1,37 +1,35 @@
 
 
-# Piano: Popolare 300 traduzioni + Prompt IA preciso + Logica DB-first
+# Piano: Spostare il salvataggio giornata nella pagina Piano
 
-## Stato attuale
-- `ingredient_translation` ha solo 23 righe (il seed iniziale)
-- L'edge function `analyze-meal-photo` usa un prompt generico e non ha logica "dishes cache first"
+## Problema
+Il salvataggio della giornata (pasti completati, compliance, note) è attualmente nella pagina Progressi. L'utente vuole che sia nella pagina Piano (`UserActivePlanPage.tsx`), sotto il bottone "Cambia piano". La pagina Progressi deve mostrare solo i miglioramenti (grafici, streak, storico).
 
-## Cosa fare
+## Modifiche
 
-### 1. Inserire ~260 nuove traduzioni in `ingredient_translation`
+### 1. `src/pages/UserActivePlanPage.tsx` — Aggiungere sezione "Salva giornata"
 
-Useremo una migrazione SQL con `INSERT ... ON CONFLICT DO NOTHING` per aggiungere tutte le righe del CSV fornito senza duplicare quelle gia' presenti. La tabella ha `name_it` UNIQUE, quindi i conflitti vengono gestiti automaticamente.
+Sotto il bottone "Cambia piano", aggiungere una card con:
+- **Pasti completati**: 4 checkbox (colazione/pranzo/spuntino/cena), auto-populate dalle `todayMeals` già caricate
+- **Slider compliance**: percentuale di rispetto del piano (auto-calcolata dal rapporto kcal consumate/target)
+- **Note del giorno**: textarea
+- **Bottone "Salva giornata"**: upsert su `daily_progress` con i dati del piano attivo + pasti loggati + compliance + note
 
-### 2. Aggiornare il prompt IA nell'edge function
+La logica di salvataggio è identica a quella attuale in `UserProgressPage` (upsert su `daily_progress` con `onConflict: "user_id,day_date"`), ma i dati `kcal_actual`, `protein_actual`, ecc. vengono popolati dai `todayTotals` già calcolati nella pagina.
 
-Sostituire il `systemPrompt` attuale (generico) con il prompt dettagliato fornito dall'utente, che include:
-- Regole per pizza (base, salsa, mozzarella, olio, extra visibili)
-- Regole per pasta (tipo pasta, condimento, formaggio)
-- Regole per risotto (riso, soffritto, brodo, burro/parmigiano, ingrediente principale)
-- Output JSON obbligatorio con `name_it` e `notes`
+Nuovi state: `mealsLogged`, `manualCompliance`, `dayNotes`, `saving`.
+Auto-init: al load, se esiste già una riga `daily_progress` per oggi, pre-popola i campi. Altrimenti, auto-popola `mealsLogged` dalle `todayMeals` e calcola compliance da `kcalPct`.
 
-### 3. Aggiungere logica DB-first (dishes cache)
+### 2. `src/pages/UserProgressPage.tsx` — Rimuovere il form di salvataggio
 
-Prima di chiamare l'IA, la funzione controllera' se un piatto simile esiste gia' in `dishes` + `dish_ingredients`:
-1. Se trovato → carica ingredienti dalla cache, calcola macro, restituisci subito (NO IA, NO USDA)
-2. Se non trovato → chiama IA vision → arricchisci con USDA → salva in `dishes`/`dish_ingredients` per le prossime volte
+Rimuovere la card "Oggi" con checkbox, slider, textarea e bottone "Salva giornata" (righe ~310-375). Rimuovere gli state correlati (`mealsLogged`, `manualCompliance`, `notes`, `saving`, `saveToday`).
 
-Questo richiede una modifica strutturale all'handler principale dell'edge function, aggiungendo un blocco di cache lookup prima della chiamata AI e un blocco di cache write dopo l'analisi.
+Mantenere: header, week overview, stats cards, grafico 30 giorni, storico recente. La pagina diventa read-only per visualizzare i progressi.
 
 ## File coinvolti
 
 | File | Azione |
-|------|--------|
-| Migrazione SQL | INSERT ~260 righe in `ingredient_translation` |
-| `supabase/functions/analyze-meal-photo/index.ts` | Nuovo prompt + logica dishes cache |
+|---|---|
+| `src/pages/UserActivePlanPage.tsx` | Aggiungere form salvataggio giornata sotto "Cambia piano" |
+| `src/pages/UserProgressPage.tsx` | Rimuovere form salvataggio, mantenere solo visualizzazione |
 
