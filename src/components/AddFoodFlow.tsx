@@ -153,6 +153,13 @@ const AddFoodFlow = ({
   const [planRecipesLoading, setPlanRecipesLoading] = useState(false);
   const [activePlanTitle, setActivePlanTitle] = useState<string>("");
 
+  // Receipt QR state
+  interface ReceiptProduct { name: string; quantity: number; unit: string; price: number | null; category: string; selected: boolean; }
+  const [receiptProducts, setReceiptProducts] = useState<ReceiptProduct[]>([]);
+  const [receiptLoading, setReceiptLoading] = useState(false);
+  const [receiptStorageType, setReceiptStorageType] = useState("frigo");
+  const [receiptSaving, setReceiptSaving] = useState(false);
+
   // Detect diet category from plan title
   const CATEGORY_MAP: Record<string, string> = {
     mediterranea: "mediterranea", keto: "keto", ketogenica: "keto",
