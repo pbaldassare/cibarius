@@ -308,7 +308,40 @@ const UserActivePlanPage = () => {
     }
   };
 
-  if (loading) {
+  const handleSaveDay = async () => {
+    if (!user || !plan) return;
+    setSaving(true);
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    const row = {
+      user_id: user.id,
+      day_date: todayStr,
+      plan_id: plan.id,
+      kcal_target: plan.kcal_day || 0,
+      kcal_actual: todayTotals.kcal,
+      protein_target: plan.protein_g_day || 0,
+      protein_actual: todayTotals.protein,
+      carbs_target: plan.carbs_g_day || 0,
+      carbs_actual: todayTotals.carbs,
+      fats_target: plan.fats_g_day || 0,
+      fats_actual: todayTotals.fats,
+      compliance_pct: manualCompliance,
+      meals_logged: mealsLogged,
+      notes: dayNotes || null,
+    };
+
+    const { error } = await supabase
+      .from("daily_progress")
+      .upsert(row, { onConflict: "user_id,day_date" });
+
+    if (error) {
+      toast.error("Errore nel salvataggio");
+    } else {
+      toast.success("Giornata salvata! ✅");
+    }
+    setSaving(false);
+  };
+
     return (
       <div>
         <MobileHeader title="Il mio piano" />
