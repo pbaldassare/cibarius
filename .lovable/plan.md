@@ -1,37 +1,79 @@
 
 
-# Piano: Popolare 300 traduzioni + Prompt IA preciso + Logica DB-first
+# Piano: Preferiti su prodotti e ricette con accesso rapido nei Pasti
 
-## Stato attuale
-- `ingredient_translation` ha solo 23 righe (il seed iniziale)
-- L'edge function `analyze-meal-photo` usa un prompt generico e non ha logica "dishes cache first"
+## Cosa costruire
 
-## Cosa fare
+Un sistema di "preferiti" (cuoricino) su **prodotti** e **ricette template** che l'utente può salvare. Ogni preferito è associato a uno o più tipi di pasto (colazione/pranzo/cena/spuntino). Nella pagina Pasti, i preferiti appaiono come suggerimenti rapidi per registrare velocemente un alimento.
 
-### 1. Inserire ~260 nuove traduzioni in `ingredient_translation`
+## Database
 
-Useremo una migrazione SQL con `INSERT ... ON CONFLICT DO NOTHING` per aggiungere tutte le righe del CSV fornito senza duplicare quelle gia' presenti. La tabella ha `name_it` UNIQUE, quindi i conflitti vengono gestiti automaticamente.
+Nuova tabella `user_favorites`:
 
-### 2. Aggiornare il prompt IA nell'edge function
+```sql
+CREATE TABLE public.user_favorites (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  item_type text NOT NULL, -- 'product' | 'template_recipe'
+  item_id uuid NOT NULL,
+  meal_types jsonb NOT NULL DEFAULT '[]', -- es. ["colazione","pranzo"]
+  item_snapshot jsonb DEFAULT '{}', -- nome, kcal, macro cached
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(user_id, item_type, item_id)
+);
 
-Sostituire il `systemPrompt` attuale (generico) con il prompt dettagliato fornito dall'utente, che include:
-- Regole per pizza (base, salsa, mozzarella, olio, extra visibili)
-- Regole per pasta (tipo pasta, condimento, formaggio)
-- Regole per risotto (riso, soffritto, brodo, burro/parmigiano, ingrediente principale)
-- Output JSON obbligatorio con `name_it` e `notes`
+ALTER TABLE public.user_favorites ENABLE ROW LEVEL SECURITY;
 
-### 3. Aggiungere logica DB-first (dishes cache)
+CREATE POLICY "User owns favorites"
+  ON public.user_favorites FOR ALL
+  TO authenticated
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
+```
 
-Prima di chiamare l'IA, la funzione controllera' se un piatto simile esiste gia' in `dishes` + `dish_ingredients`:
-1. Se trovato → carica ingredienti dalla cache, calcola macro, restituisci subito (NO IA, NO USDA)
-2. Se non trovato → chiama IA vision → arricchisci con USDA → salva in `dishes`/`dish_ingredients` per le prossime volte
+- `item_snapshot` salva nome/kcal/macro per visualizzazione veloce senza join
+- `meal_types` è un array JSON con i tipi di pasto associati
 
-Questo richiede una modifica strutturale all'handler principale dell'edge function, aggiungendo un blocco di cache lookup prima della chiamata AI e un blocco di cache write dopo l'analisi.
+## Modifiche UI
+
+### 1. `MealRecipeCard.tsx` — Aggiungere cuoricino
+- Nuova prop opzionale: `isFavorite`, `onToggleFavorite`
+- Icona Heart (piena se preferito, vuota se no) nel header della card accanto al titolo
+- Al click, toggle nel DB
+
+### 2. `UserActivePlanPage.tsx` — Cuoricino sulle ricette suggerite
+- Fetch `user_favorites` dell'utente al mount (dove `item_type = 'template_recipe'`)
+- Passare `isFavorite` e `onToggleFavorite` a ogni `MealRecipeCard`
+- Al toggle: upsert/delete su `user_favorites` con `meal_types` = [meal_type corrente della ricetta]
+
+### 3. `ProductCard.tsx` — Aggiungere cuoricino (opzionale)
+- Nuova prop `isFavorite`, `onToggleFavorite`
+- Heart icon accanto allo score
+
+### 4. `PastiPage.tsx` — Sezione "Preferiti" per ogni pasto
+- Fetch `user_favorites` dell'utente
+- Per ogni meal_type, sotto il bottone "+ Aggiungi", mostrare i preferiti filtrati per quel `meal_type` in `meal_types`
+- Card compatte con nome, kcal, bottone "+" per registrare istantaneamente (crea meal_item con i dati dallo snapshot)
+- Distinguere visivamente prodotti vs ricette (icona diversa)
+
+### 5. `AddFoodFlow.tsx` — Cuoricino nella summary
+- Nella schermata di riepilogo prodotto (step "summary"), aggiungere un cuoricino per salvare come preferito
+- Mostrare un mini-selector dei meal_types associati
+
+## Flusso utente
+
+1. L'utente vede una ricetta nel Piano → clicca il cuoricino → diventa preferita per quel tipo di pasto
+2. Va nella pagina Pasti → sotto ogni pasto vede i suoi preferiti → un tap per registrare
+3. Può anche marcare come preferito un prodotto durante l'aggiunta alimento
 
 ## File coinvolti
 
 | File | Azione |
-|------|--------|
-| Migrazione SQL | INSERT ~260 righe in `ingredient_translation` |
-| `supabase/functions/analyze-meal-photo/index.ts` | Nuovo prompt + logica dishes cache |
+|---|---|
+| Migration SQL | Creare tabella `user_favorites` con RLS |
+| `src/components/MealRecipeCard.tsx` | Aggiungere Heart icon con props favorite |
+| `src/components/ProductCard.tsx` | Aggiungere Heart icon con props favorite |
+| `src/pages/UserActivePlanPage.tsx` | Fetch favorites, passare props a MealRecipeCard |
+| `src/pages/PastiPage.tsx` | Fetch favorites, mostrare sezione preferiti per meal_type |
+| `src/components/AddFoodFlow.tsx` | Cuoricino nella summary step |
 
