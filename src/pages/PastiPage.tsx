@@ -347,6 +347,37 @@ const PastiPage = () => {
                     </div>
                   )}
 
+                  {/* Favorites quick-add */}
+                  {(() => {
+                    const mealFavs = getFavoritesForMeal(meal.meal_type);
+                    if (mealFavs.length === 0) return null;
+                    return (
+                      <div className="pt-1">
+                        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                          <Heart className="h-3 w-3 text-destructive" /> Preferiti
+                        </p>
+                        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                          {mealFavs.map((fav) => (
+                            <button
+                              key={fav.id}
+                              onClick={() => handleQuickAddFavorite(fav, meal.meal_type)}
+                              className="flex items-center gap-1.5 rounded-lg bg-secondary/60 border border-border/40 px-2.5 py-1.5 text-xs shrink-0 hover:bg-secondary transition-colors"
+                            >
+                              {fav.item_type === "template_recipe" ? (
+                                <ChefHat className="h-3 w-3 text-primary" />
+                              ) : (
+                                <Package className="h-3 w-3 text-primary" />
+                              )}
+                              <span className="font-medium text-foreground max-w-[120px] truncate">{fav.item_snapshot.name}</span>
+                              <span className="text-muted-foreground">{fav.item_snapshot.kcal || 0}</span>
+                              <Plus className="h-3 w-3 text-primary" />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   <button
                     onClick={() => setSheetOpen(true)}
                     className="flex items-center gap-1 text-xs font-medium text-primary pt-1"
