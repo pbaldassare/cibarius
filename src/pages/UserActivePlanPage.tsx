@@ -99,6 +99,7 @@ const MacroBar = ({ label, current, target, color }: { label: string; current: n
 const UserActivePlanPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { isFavorite, toggleFavorite } = useFavorites();
   const [loading, setLoading] = useState(true);
   const [plan, setPlan] = useState<any>(null);
   const [mealTargets, setMealTargets] = useState<MealTarget[]>([]);
