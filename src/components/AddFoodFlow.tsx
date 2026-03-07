@@ -472,6 +472,31 @@ const AddFoodFlow = ({
     setScanLoading(true);
     setNotFound(false);
 
+    // Detect QR code (URL or non-numeric text) → receipt flow
+    const isQrReceipt = code.startsWith("http://") || code.startsWith("https://") || !/^\d+$/.test(code.trim());
+    if (isQrReceipt) {
+      setScanLoading(false);
+      setReceiptLoading(true);
+      setStep("receipt");
+      try {
+        const { data: fnData, error: fnError } = await supabase.functions.invoke("parse-receipt-qr", {
+          body: { qr_content: code },
+        });
+        if (fnError) throw fnError;
+        const products = (fnData?.products || []).map((p: any) => ({ ...p, selected: true }));
+        setReceiptProducts(products);
+        if (products.length === 0) {
+          toast({ variant: "destructive", title: "Nessun prodotto trovato nello scontrino" });
+        }
+      } catch (e: any) {
+        toast({ variant: "destructive", title: "Errore analisi scontrino", description: e.message });
+        setStep("scan");
+      } finally {
+        setReceiptLoading(false);
+      }
+      return;
+    }
+
     const data = await lookupBarcode(code);
     if (data && data.name) {
       // Upsert product by barcode
@@ -481,7 +506,6 @@ const AddFoodFlow = ({
 
       if (existing) {
         setProductId(existing.id);
-        // Try to update product with latest OFF data (may fail silently if RLS blocks)
         const { error: updErr } = await supabase.from("products").update({
           name: data.name,
           brand: data.brand || null,
@@ -503,7 +527,6 @@ const AddFoodFlow = ({
         }).select("id").single();
         if (insErr) {
           console.error("Product insert error:", insErr);
-          // If insert failed due to duplicate barcode, try to fetch existing
           const { data: fallback } = await supabase
             .from("products").select("id").eq("barcode", code).maybeSingle();
           if (fallback) setProductId(fallback.id);
