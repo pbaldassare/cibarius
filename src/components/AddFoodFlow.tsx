@@ -23,14 +23,16 @@ import {
   Package, Plus, Minus, Check, Flame, Archive, Thermometer, Snowflake,
   CalendarSearch, AlertTriangle, Sparkles, X, ImagePlus, ChevronDown, ChevronUp, ChefHat,
   CheckCircle2, HelpCircle, Zap, ShieldCheck, ShieldAlert, ShieldX, UtensilsCrossed,
+  Receipt, ShoppingCart,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 
 /* ─── Types ─── */
 export type AddFoodContext = "inventory" | "meal" | "recipe" | "preparation";
 type MealType = "colazione" | "pranzo" | "cena" | "spuntino";
 type Method = "photo_ai" | "search" | "scan" | "manual";
-type Step = "method" | "photo_ai" | "scan" | "search" | "summary" | "recipes";
+type Step = "method" | "photo_ai" | "scan" | "search" | "summary" | "recipes" | "receipt";
 
 interface SearchProduct {
   id: string;
