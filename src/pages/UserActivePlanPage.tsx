@@ -14,6 +14,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import MealRecipeCard from "@/components/MealRecipeCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useFavorites } from "@/hooks/useFavorites";
 import { Loader2, Plus, ArrowRight, RefreshCw, ChevronDown, ChevronUp, UtensilsCrossed, Save } from "lucide-react";
 import { toast } from "sonner";
 
@@ -98,6 +99,7 @@ const MacroBar = ({ label, current, target, color }: { label: string; current: n
 const UserActivePlanPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { isFavorite, toggleFavorite } = useFavorites();
   const [loading, setLoading] = useState(true);
   const [plan, setPlan] = useState<any>(null);
   const [mealTargets, setMealTargets] = useState<MealTarget[]>([]);
@@ -499,6 +501,16 @@ const UserActivePlanPage = () => {
                             carbs_total={recipe.carbs_total}
                             fats_total={recipe.fats_total}
                             portionScale={portionScale}
+                            isFavorite={isFavorite("template_recipe", recipe.id)}
+                            onToggleFavorite={() =>
+                              toggleFavorite("template_recipe", recipe.id, [target.meal_type], {
+                                name: recipe.title,
+                                kcal: recipe.kcal_total,
+                                protein: recipe.protein_total,
+                                carbs: recipe.carbs_total,
+                                fats: recipe.fats_total,
+                              })
+                            }
                             onRegister={(ings, title) =>
                               handleRegisterRecipe(ings, title, target.meal_type)
                             }

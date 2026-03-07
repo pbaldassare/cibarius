@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, ChevronUp, Clock, Flame } from "lucide-react";
+import { ChevronDown, ChevronUp, Clock, Flame, Heart } from "lucide-react";
 
 interface Ingredient {
   name: string;
@@ -23,8 +23,10 @@ interface MealRecipeCardProps {
   protein_total: number;
   carbs_total: number;
   fats_total: number;
-  portionScale?: number; // 1 for male, portion_scale_female for female
+  portionScale?: number;
   onRegister?: (ingredients: Ingredient[], title: string) => void;
+  isFavorite?: boolean;
+  onToggleFavorite?: () => void;
 }
 
 const MealRecipeCard = ({
@@ -38,6 +40,8 @@ const MealRecipeCard = ({
   fats_total,
   portionScale = 1,
   onRegister,
+  isFavorite,
+  onToggleFavorite,
 }: MealRecipeCardProps) => {
   const [open, setOpen] = useState(false);
 
@@ -47,7 +51,19 @@ const MealRecipeCard = ({
     <Card className="border border-border/50 shadow-none bg-muted/30">
       <CardContent className="p-3 space-y-2">
         <div className="flex items-start justify-between gap-2">
-          <h4 className="font-medium text-sm text-foreground leading-tight">{title}</h4>
+          <div className="flex items-center gap-1.5 min-w-0">
+            {onToggleFavorite && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
+                className="shrink-0 p-0.5 transition-colors"
+              >
+                <Heart
+                  className={`h-4 w-4 ${isFavorite ? "fill-destructive text-destructive" : "text-muted-foreground"}`}
+                />
+              </button>
+            )}
+            <h4 className="font-medium text-sm text-foreground leading-tight truncate">{title}</h4>
+          </div>
           <div className="flex items-center gap-1.5 shrink-0">
             <Badge variant="secondary" className="text-[10px] font-normal gap-1 px-1.5 py-0.5">
               <Clock className="h-2.5 w-2.5" />

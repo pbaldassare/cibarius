@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { getScoreColor } from "./ScoreBadge";
+import { Heart } from "lucide-react";
 
 interface ProductCardProps {
   name: string;
@@ -7,6 +8,8 @@ interface ProductCardProps {
   score: number;
   emoji?: string;
   onClick?: () => void;
+  isFavorite?: boolean;
+  onToggleFavorite?: () => void;
 }
 
 const getLabel = (score: number) => {
@@ -15,7 +18,7 @@ const getLabel = (score: number) => {
   return "Scarso";
 };
 
-const ProductCard = ({ name, brand, score, emoji = "🍫", onClick }: ProductCardProps) => {
+const ProductCard = ({ name, brand, score, emoji = "🍫", onClick, isFavorite, onToggleFavorite }: ProductCardProps) => {
   return (
     <button
       onClick={onClick}
@@ -29,6 +32,16 @@ const ProductCard = ({ name, brand, score, emoji = "🍫", onClick }: ProductCar
         <p className="text-sm text-muted-foreground">{brand}</p>
       </div>
       <div className="flex items-center gap-2 shrink-0">
+        {onToggleFavorite && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
+            className="p-1 transition-colors"
+          >
+            <Heart
+              className={`h-4 w-4 ${isFavorite ? "fill-destructive text-destructive" : "text-muted-foreground"}`}
+            />
+          </button>
+        )}
         <span className={cn("h-3 w-3 rounded-full", getScoreColor(score))} />
         <span className="text-sm font-semibold text-foreground">{score}</span>
       </div>

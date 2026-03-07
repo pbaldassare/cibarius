@@ -7,7 +7,8 @@ import AddFoodFlow from "@/components/AddFoodFlow";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, UtensilsCrossed, Target, Trash2, Flame, Camera } from "lucide-react";
+import { useFavorites } from "@/hooks/useFavorites";
+import { Plus, UtensilsCrossed, Target, Trash2, Flame, Camera, Heart, ChefHat, Package } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -59,6 +60,7 @@ const PastiPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { getFavoritesForMeal, loading: favsLoading } = useFavorites();
   const [loading, setLoading] = useState(true);
   const [mealDay, setMealDay] = useState<MealDay | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -110,6 +112,45 @@ const PastiPage = () => {
   const handleDeleteItem = async (itemId: string) => {
     await supabase.from("meal_items").delete().eq("id", itemId);
     fetchMeals();
+  };
+
+  const handleQuickAddFavorite = async (fav: any, mealType: string) => {
+    if (!user) return;
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      let { data: dayData } = await supabase
+        .from("meal_days").select("id").eq("user_id", user.id).eq("day_date", today).maybeSingle();
+      if (!dayData) {
+        const { data: nd, error: de } = await supabase
+          .from("meal_days").insert({ user_id: user.id, day_date: today }).select("id").single();
+        if (de) throw de;
+        dayData = nd;
+      }
+      let { data: mealData } = await supabase
+        .from("meals").select("id").eq("meal_day_id", dayData!.id).eq("meal_type", mealType).maybeSingle();
+      if (!mealData) {
+        const { data: nm, error: me } = await supabase
+          .from("meals").insert({ meal_day_id: dayData!.id, meal_type: mealType }).select("id").single();
+        if (me) throw me;
+        mealData = nm;
+      }
+      const snap = fav.item_snapshot;
+      const { error } = await supabase.from("meal_items").insert({
+        meal_id: mealData!.id,
+        source_type: "custom",
+        custom_name: snap.name,
+        dish_name: snap.name,
+        calories: snap.kcal || 0,
+        quantity: 1,
+        unit: "porzione",
+        macros: { protein: snap.protein || 0, carbs: snap.carbs || 0, fats: snap.fats || 0 },
+      });
+      if (error) throw error;
+      toast({ title: `"${snap.name}" aggiunto! ✅` });
+      fetchMeals();
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Errore", description: e.message });
+    }
   };
 
   // ═══ Edit meal item handlers ═══
@@ -305,6 +346,37 @@ const PastiPage = () => {
                       ))}
                     </div>
                   )}
+
+                  {/* Favorites quick-add */}
+                  {(() => {
+                    const mealFavs = getFavoritesForMeal(meal.meal_type);
+                    if (mealFavs.length === 0) return null;
+                    return (
+                      <div className="pt-1">
+                        <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                          <Heart className="h-3 w-3 text-destructive" /> Preferiti
+                        </p>
+                        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                          {mealFavs.map((fav) => (
+                            <button
+                              key={fav.id}
+                              onClick={() => handleQuickAddFavorite(fav, meal.meal_type)}
+                              className="flex items-center gap-1.5 rounded-lg bg-secondary/60 border border-border/40 px-2.5 py-1.5 text-xs shrink-0 hover:bg-secondary transition-colors"
+                            >
+                              {fav.item_type === "template_recipe" ? (
+                                <ChefHat className="h-3 w-3 text-primary" />
+                              ) : (
+                                <Package className="h-3 w-3 text-primary" />
+                              )}
+                              <span className="font-medium text-foreground max-w-[120px] truncate">{fav.item_snapshot.name}</span>
+                              <span className="text-muted-foreground">{fav.item_snapshot.kcal || 0}</span>
+                              <Plus className="h-3 w-3 text-primary" />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   <button
                     onClick={() => setSheetOpen(true)}

@@ -1976,6 +1976,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_favorites: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          item_snapshot: Json | null
+          item_type: string
+          meal_types: Json
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          item_snapshot?: Json | null
+          item_type: string
+          meal_types?: Json
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          item_snapshot?: Json | null
+          item_type?: string
+          meal_types?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
