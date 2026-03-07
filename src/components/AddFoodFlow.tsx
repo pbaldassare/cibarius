@@ -298,6 +298,8 @@ const AddFoodFlow = ({
         setShowDetails(false);
         setSaved(false);
         setEditingChip(null);
+        setReceiptProducts([]);
+        setReceiptStorageType("frigo");
       }, 300);
     }
   }, [open, preselectedMealType]);
@@ -909,6 +911,7 @@ const AddFoodFlow = ({
   const goBack = () => {
     if (step === "summary") setStep(method === "manual" ? "method" : method === "photo_ai" ? "photo_ai" : method === "scan" ? "scan" : "search");
     else if (step === "recipes") setStep("method");
+    else if (step === "receipt") setStep("scan");
     else if (step === "search" || step === "scan" || step === "photo_ai") setStep("method");
     else onOpenChange(false);
   };
@@ -918,6 +921,7 @@ const AddFoodFlow = ({
     if (step === "photo_ai") return "Foto AI";
     if (step === "scan") return "Scansiona barcode";
     if (step === "search") return "Cerca prodotto";
+    if (step === "receipt") return "Scontrino QR";
     if (step === "recipes") return "Ricette dal piano";
     return "Riepilogo";
   };
