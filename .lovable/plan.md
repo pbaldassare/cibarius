@@ -1,37 +1,67 @@
 
 
-# Piano: Popolare 300 traduzioni + Prompt IA preciso + Logica DB-first
+# Piano: Scansione QR code scontrini supermercato
 
-## Stato attuale
-- `ingredient_translation` ha solo 23 righe (il seed iniziale)
-- L'edge function `analyze-meal-photo` usa un prompt generico e non ha logica "dishes cache first"
+## Cosa costruire
 
-## Cosa fare
+Quando l'utente scansiona un QR code dalla fotocamera e il contenuto non è un barcode prodotto (EAN/UPC numerico), ma un URL o testo strutturato (tipico degli scontrini digitali), il sistema:
 
-### 1. Inserire ~260 nuove traduzioni in `ingredient_translation`
+1. Riconosce che è un QR da scontrino (contiene URL o testo non numerico)
+2. Invia il contenuto a un edge function AI che estrae la lista prodotti
+3. Mostra la lista prodotti estratta con nome, quantità e prezzo
+4. L'utente può selezionare quali prodotti aggiungere all'inventario in batch
 
-Useremo una migrazione SQL con `INSERT ... ON CONFLICT DO NOTHING` per aggiungere tutte le righe del CSV fornito senza duplicare quelle gia' presenti. La tabella ha `name_it` UNIQUE, quindi i conflitti vengono gestiti automaticamente.
+## Modifiche
 
-### 2. Aggiornare il prompt IA nell'edge function
+### 1. Edge Function `supabase/functions/parse-receipt-qr/index.ts`
 
-Sostituire il `systemPrompt` attuale (generico) con il prompt dettagliato fornito dall'utente, che include:
-- Regole per pizza (base, salsa, mozzarella, olio, extra visibili)
-- Regole per pasta (tipo pasta, condimento, formaggio)
-- Regole per risotto (riso, soffritto, brodo, burro/parmigiano, ingrediente principale)
-- Output JSON obbligatorio con `name_it` e `notes`
+Nuova edge function che:
+- Riceve `{ qr_content: string }` (URL o testo raw dal QR)
+- Se è un URL, fa fetch della pagina e ne estrae il contenuto testuale
+- Invia il contenuto all'AI (Lovable Gateway, gemini-3-flash) con tool calling per estrarre un array strutturato di prodotti:
+  ```
+  { name, quantity, unit, price, category }
+  ```
+- Restituisce `{ products: [...] }`
 
-### 3. Aggiungere logica DB-first (dishes cache)
+### 2. `src/components/BarcodeScanner.tsx` — Nessuna modifica
 
-Prima di chiamare l'IA, la funzione controllera' se un piatto simile esiste gia' in `dishes` + `dish_ingredients`:
-1. Se trovato → carica ingredienti dalla cache, calcola macro, restituisci subito (NO IA, NO USDA)
-2. Se non trovato → chiama IA vision → arricchisci con USDA → salva in `dishes`/`dish_ingredients` per le prossime volte
+Il componente già rileva sia barcode che QR code tramite `html5-qrcode`. La callback `onDetected` restituisce il testo decodificato qualunque esso sia.
 
-Questo richiede una modifica strutturale all'handler principale dell'edge function, aggiungendo un blocco di cache lookup prima della chiamata AI e un blocco di cache write dopo l'analisi.
+### 3. `src/components/AddFoodFlow.tsx` — Gestire QR scontrino
+
+Nel callback `handleBarcode`:
+- **Detectare** se il codice scansionato è un URL (inizia con `http`) o testo non numerico → è un QR scontrino
+- Se è un QR scontrino:
+  - Nuovo step `"receipt"` aggiunto al tipo `Step`
+  - Chiamare `parse-receipt-qr` edge function
+  - Mostrare la lista prodotti estratta con checkbox per selezionare quali aggiungere
+  - Bottone "Aggiungi selezionati" che per ogni prodotto selezionato:
+    - Cerca/crea il `product` nel DB
+    - Crea un `inventory_item` con `storage_type` scelto dall'utente
+  - Se il QR non produce risultati utili, fallback al flusso manuale
+
+### 4. `supabase/config.toml` — Registrare la funzione
+
+Aggiungere:
+```toml
+[functions.parse-receipt-qr]
+verify_jwt = false
+```
+
+## Flusso utente
+
+1. Utente va in Scadenze o Aggiungi → sceglie "Scansiona barcode"
+2. Inquadra il QR dello scontrino → il sistema riconosce che non è un barcode
+3. Mostra spinner "Analizzo scontrino..."
+4. Appare la lista prodotti con checkbox + scelta conservazione (frigo/dispensa/freezer)
+5. Un tap "Aggiungi tutti" o selezione singola → prodotti aggiunti all'inventario
 
 ## File coinvolti
 
 | File | Azione |
-|------|--------|
-| Migrazione SQL | INSERT ~260 righe in `ingredient_translation` |
-| `supabase/functions/analyze-meal-photo/index.ts` | Nuovo prompt + logica dishes cache |
+|---|---|
+| `supabase/functions/parse-receipt-qr/index.ts` | Creare edge function AI per parsing scontrino |
+| `supabase/config.toml` | Registrare funzione |
+| `src/components/AddFoodFlow.tsx` | Aggiungere step "receipt", logica detect QR scontrino, UI lista prodotti |
 
