@@ -60,6 +60,7 @@ const PastiPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { getFavoritesForMeal, loading: favsLoading } = useFavorites();
   const [loading, setLoading] = useState(true);
   const [mealDay, setMealDay] = useState<MealDay | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
