@@ -1,16 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval, isToday, isSameDay, parseISO } from "date-fns";
+import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval, isToday, parseISO } from "date-fns";
 import { it } from "date-fns/locale";
-import { TrendingUp, Check, X, Minus, ChevronLeft, ChevronRight, Save, Flame, Drumstick, Wheat, Droplets } from "lucide-react";
+import { TrendingUp, Check, X, Minus, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
-import { Slider } from "@/components/ui/slider";
-import { toast } from "sonner";
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
 import { useNavigate } from "react-router-dom";
 
@@ -43,13 +39,7 @@ const UserProgressPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [history, setHistory] = useState<DailyProgressRow[]>([]);
-  const [activePlan, setActivePlan] = useState<any>(null);
-  const [todayData, setTodayData] = useState<DailyProgressRow | null>(null);
-  const [mealsLogged, setMealsLogged] = useState<Record<string, boolean>>({});
-  const [manualCompliance, setManualCompliance] = useState(0);
-  const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
 
   const todayStr = format(new Date(), "yyyy-MM-dd");
