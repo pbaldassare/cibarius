@@ -159,8 +159,36 @@ const UserActivePlanPage = () => {
           };
         })
       );
+      // Auto-populate mealsLogged from today's meals
+      const autoMeals: Record<string, boolean> = {};
+      meals.forEach((m: any) => { autoMeals[m.meal_type] = true; });
+      setMealsLogged(autoMeals);
+      // Auto-calc compliance
+      if (activePlan) {
+        const totalKcal = meals.reduce((s: number, m: any) => {
+          const items = m.meal_items || [];
+          return s + items.reduce((ss: number, i: any) => ss + (i.calories ?? 0), 0);
+        }, 0);
+        setManualCompliance(Math.min(100, Math.round((totalKcal / (activePlan.kcal_day || 2000)) * 100)));
+      }
     } else {
       setTodayMeals([]);
+      setMealsLogged({});
+      setManualCompliance(0);
+    }
+
+    // Load existing daily_progress for today to pre-populate
+    const { data: existingProgress } = await supabase
+      .from("daily_progress")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("day_date", today)
+      .maybeSingle();
+    if (existingProgress) {
+      const ml = existingProgress.meals_logged as Record<string, boolean> | null;
+      if (ml && Object.keys(ml).length > 0) setMealsLogged(ml);
+      if (existingProgress.compliance_pct) setManualCompliance(existingProgress.compliance_pct);
+      if (existingProgress.notes) setDayNotes(existingProgress.notes);
     }
 
     // Load recipes for detected category
