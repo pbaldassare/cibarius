@@ -1313,6 +1313,143 @@ const AddFoodFlow = ({
               </div>
             )}
 
+            {/* ─── STEP: Receipt QR ─── */}
+            {step === "receipt" && (
+              <div className="space-y-4 pb-20">
+                {receiptLoading ? (
+                  <div className="flex flex-col items-center gap-3 py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="text-sm font-medium text-foreground">Analizzo scontrino…</p>
+                    <p className="text-xs text-muted-foreground">L'AI sta estraendo i prodotti</p>
+                  </div>
+                ) : receiptProducts.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Receipt className="h-10 w-10 mx-auto mb-3 text-muted-foreground opacity-40" />
+                    <p className="text-sm text-muted-foreground">Nessun prodotto trovato nello scontrino</p>
+                    <Button variant="outline" size="sm" className="mt-4" onClick={() => setStep("scan")}>
+                      Riprova scansione
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold text-foreground">
+                        {receiptProducts.filter(p => p.selected).length}/{receiptProducts.length} prodotti selezionati
+                      </p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs h-7"
+                        onClick={() => {
+                          const allSelected = receiptProducts.every(p => p.selected);
+                          setReceiptProducts(prev => prev.map(p => ({ ...p, selected: !allSelected })));
+                        }}
+                      >
+                        {receiptProducts.every(p => p.selected) ? "Deseleziona tutti" : "Seleziona tutti"}
+                      </Button>
+                    </div>
+
+                    <div className="space-y-1">
+                      {receiptProducts.map((p, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => setReceiptProducts(prev => prev.map((pp, i) => i === idx ? { ...pp, selected: !pp.selected } : pp))}
+                          className={`flex w-full items-center gap-3 rounded-xl p-3 text-left transition-colors ${p.selected ? "bg-primary/5 border border-primary/20" : "bg-card border border-border opacity-60"}`}
+                        >
+                          <Checkbox checked={p.selected} className="shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate">{p.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {p.quantity} {p.unit}
+                              {p.price != null && ` · €${p.price.toFixed(2)}`}
+                              {p.category && ` · ${p.category}`}
+                            </p>
+                          </div>
+                          <ShoppingCart className="h-4 w-4 text-muted-foreground shrink-0" />
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Storage type selector */}
+                    {context === "inventory" && (
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold text-foreground">Conservazione</p>
+                        <div className="grid grid-cols-3 gap-2">
+                          {storageOptions.map(({ key, label, icon: Icon }) => (
+                            <button
+                              key={key}
+                              onClick={() => setReceiptStorageType(key)}
+                              className={`flex flex-col items-center gap-1 rounded-xl p-3 text-xs font-semibold transition-colors ${
+                                receiptStorageType === key
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-card border border-border text-foreground"
+                              }`}
+                            >
+                              <Icon className="h-4 w-4" />
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Add selected CTA */}
+                    <Button
+                      className="w-full h-12 text-base font-bold gap-2"
+                      disabled={receiptSaving || receiptProducts.filter(p => p.selected).length === 0}
+                      onClick={async () => {
+                        if (!user) return;
+                        setReceiptSaving(true);
+                        try {
+                          const selected = receiptProducts.filter(p => p.selected);
+                          let addedCount = 0;
+                          for (const item of selected) {
+                            // Create product
+                            const { data: prod, error: prodErr } = await supabase.from("products").insert({
+                              name: item.name,
+                              category: item.category || null,
+                            }).select("id").single();
+                            if (prodErr) { console.error("Receipt product insert:", prodErr); continue; }
+
+                            if (context === "inventory") {
+                              const insertData: any = {
+                                product_id: prod.id,
+                                quantity: item.quantity,
+                                unit: item.unit === "pz" ? "pezzi" : item.unit,
+                                storage_type: receiptStorageType,
+                                expiry_date: format(addDays(new Date(), 3), "yyyy-MM-dd"),
+                              };
+                              if (defaultRestaurantId) insertData.restaurant_id = defaultRestaurantId;
+                              else insertData.owner_user_id = user.id;
+                              const { error: invErr } = await supabase.from("inventory_items").insert(insertData);
+                              if (invErr) { console.error("Receipt inventory insert:", invErr); continue; }
+                            }
+                            addedCount++;
+                          }
+                          toast({ title: `${addedCount} prodotti aggiunti! ✓` });
+                          setSaved(true);
+                          if (navigator.vibrate) navigator.vibrate(50);
+                          await new Promise(r => setTimeout(r, 600));
+                          onComplete();
+                          onOpenChange(false);
+                        } catch (e: any) {
+                          toast({ variant: "destructive", title: "Errore", description: e.message });
+                        } finally {
+                          setReceiptSaving(false);
+                        }
+                      }}
+                    >
+                      {receiptSaving ? (
+                        <><Loader2 className="h-5 w-5 animate-spin" /> Salvataggio…</>
+                      ) : (
+                        <><Plus className="h-5 w-5" /> Aggiungi {receiptProducts.filter(p => p.selected).length} prodotti</>
+                      )}
+                    </Button>
+                  </>
+                )}
+              </div>
+            )}
+
             {/* ─── STEP: Summary — "1 tap → confirm" ─── */}
             {step === "summary" && (
               <div className="space-y-4 pb-20">
