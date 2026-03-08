@@ -160,6 +160,11 @@ const AddFoodFlow = ({
   const [receiptStorageType, setReceiptStorageType] = useState("frigo");
   const [receiptSaving, setReceiptSaving] = useState(false);
 
+  // Receipt photo state
+  const receiptPhotoInputRef = useRef<HTMLInputElement>(null);
+  const [receiptPhotoPreview, setReceiptPhotoPreview] = useState<string | null>(null);
+  const [receiptSaving, setReceiptSaving] = useState(false);
+
   // Detect diet category from plan title
   const CATEGORY_MAP: Record<string, string> = {
     mediterranea: "mediterranea", keto: "keto", ketogenica: "keto",
