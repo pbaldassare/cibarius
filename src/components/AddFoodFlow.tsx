@@ -562,6 +562,44 @@ const AddFoodFlow = ({
     setScanLoading(false);
   }, [scanLoading, scannedCode]);
 
+  // ─── Receipt photo handler ───
+  const handleReceiptPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = () => setReceiptPhotoPreview(reader.result as string);
+    reader.readAsDataURL(file);
+
+    // Convert to base64
+    const arrayBuffer = await file.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    let binary = "";
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    const base64 = btoa(binary);
+
+    setReceiptLoading(true);
+    setStep("receipt");
+    try {
+      const { data: fnData, error: fnError } = await supabase.functions.invoke("parse-receipt-qr", {
+        body: { receipt_image: { base64, mime_type: file.type } },
+      });
+      if (fnError) throw fnError;
+      const products = (fnData?.products || []).map((p: any) => ({ ...p, selected: true }));
+      setReceiptProducts(products);
+      if (products.length === 0) {
+        toast({ variant: "destructive", title: "Nessun prodotto trovato nello scontrino" });
+      }
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Errore analisi scontrino", description: e.message });
+      setStep("receipt_photo");
+    } finally {
+      setReceiptLoading(false);
+    }
+  };
+
   // ─── Multi-photo AI ───
   const handleAddAiPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
