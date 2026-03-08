@@ -1000,6 +1000,26 @@ const AddFoodFlow = ({
                     </div>
                   </button>
 
+                  {/* Foto scontrino */}
+                  <button
+                    onClick={() => {
+                      if (context === "meal" && !preselectedMealType && !selectedMealType) {
+                        toast({ variant: "destructive", title: "Seleziona prima il tipo di pasto" });
+                        return;
+                      }
+                      setStep("receipt_photo");
+                    }}
+                    className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 text-left active:scale-[0.98] transition-transform"
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                      <Receipt className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold" style={{ color: "#111827" }}>📋 Foto scontrino</p>
+                      <p className="text-xs" style={{ color: "#4B5563" }}>Fotografa lo scontrino e carica tutto</p>
+                    </div>
+                  </button>
+
                   {[
                     { m: "scan" as Method, icon: ScanLine, label: "Scansiona barcode", desc: "Usa la fotocamera" },
                     { m: "search" as Method, icon: Search, label: "Cerca prodotto", desc: "Cerca nel database" },
