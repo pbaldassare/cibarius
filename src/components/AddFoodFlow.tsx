@@ -32,7 +32,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 export type AddFoodContext = "inventory" | "meal" | "recipe" | "preparation";
 type MealType = "colazione" | "pranzo" | "cena" | "spuntino";
 type Method = "photo_ai" | "search" | "scan" | "manual";
-type Step = "method" | "photo_ai" | "scan" | "search" | "summary" | "recipes" | "receipt";
+type Step = "method" | "photo_ai" | "scan" | "search" | "summary" | "recipes" | "receipt" | "receipt_photo";
 
 interface SearchProduct {
   id: string;
