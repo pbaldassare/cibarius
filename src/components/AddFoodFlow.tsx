@@ -304,6 +304,7 @@ const AddFoodFlow = ({
         setEditingChip(null);
         setReceiptProducts([]);
         setReceiptStorageType("frigo");
+        setReceiptPhotoPreview(null);
       }, 300);
     }
   }, [open, preselectedMealType]);
