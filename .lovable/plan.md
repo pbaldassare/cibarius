@@ -1,50 +1,37 @@
 
 
-# Piano: Foto scontrino per estrarre lista prodotti
+# Piano: Popolare 300 traduzioni + Prompt IA preciso + Logica DB-first
 
-## Cosa costruire
+## Stato attuale
+- `ingredient_translation` ha solo 23 righe (il seed iniziale)
+- L'edge function `analyze-meal-photo` usa un prompt generico e non ha logica "dishes cache first"
 
-Aggiungere la possibilità di fotografare uno scontrino fisico (come nella foto condivisa) e usare l'AI vision per estrarre la lista prodotti. Il flusso riusa la stessa UI "receipt" già costruita per i QR code.
+## Cosa fare
 
-## Modifiche
+### 1. Inserire ~260 nuove traduzioni in `ingredient_translation`
 
-### 1. Edge Function `parse-receipt-qr/index.ts` — Supporto immagini
+Useremo una migrazione SQL con `INSERT ... ON CONFLICT DO NOTHING` per aggiungere tutte le righe del CSV fornito senza duplicare quelle gia' presenti. La tabella ha `name_it` UNIQUE, quindi i conflitti vengono gestiti automaticamente.
 
-Aggiungere un parametro opzionale `receipt_image` (base64 + mime_type). Se presente, inviare l'immagine all'AI come content multimodale (testo + immagine) anziché solo testo. Il prompt resta identico. La funzione accetta ora sia `qr_content` che `receipt_image`, almeno uno dei due deve essere presente.
+### 2. Aggiornare il prompt IA nell'edge function
 
-### 2. `AddFoodFlow.tsx` — Nuovo metodo "Foto scontrino"
+Sostituire il `systemPrompt` attuale (generico) con il prompt dettagliato fornito dall'utente, che include:
+- Regole per pizza (base, salsa, mozzarella, olio, extra visibili)
+- Regole per pasta (tipo pasta, condimento, formaggio)
+- Regole per risotto (riso, soffritto, brodo, burro/parmigiano, ingrediente principale)
+- Output JSON obbligatorio con `name_it` e `notes`
 
-- Aggiungere un bottone nella schermata "method" (dopo "Scansiona barcode"): **"📋 Foto scontrino"** con descrizione "Fotografa lo scontrino e carica tutto"
-- Nuovo step `"receipt_photo"` (o riuso di `"receipt"` direttamente) con:
-  - Input fotocamera per scattare/scegliere foto dello scontrino
-  - Al click "Analizza", inviare la foto base64 a `parse-receipt-qr` con campo `receipt_image`
-  - Mostrare lo spinner "Analizzo scontrino..."
-  - Poi passare allo step `"receipt"` con la stessa UI di selezione prodotti, checkbox, conservazione e "Aggiungi selezionati"
+### 3. Aggiungere logica DB-first (dishes cache)
 
-Il flusso diventa:
-1. Utente sceglie "Foto scontrino" dal menu metodi
-2. Scatta/seleziona foto → pulsante "Analizza"
-3. AI estrae prodotti → lista con checkbox (stesso UI del QR receipt)
-4. Seleziona e salva in batch
+Prima di chiamare l'IA, la funzione controllera' se un piatto simile esiste gia' in `dishes` + `dish_ingredients`:
+1. Se trovato → carica ingredienti dalla cache, calcola macro, restituisci subito (NO IA, NO USDA)
+2. Se non trovato → chiama IA vision → arricchisci con USDA → salva in `dishes`/`dish_ingredients` per le prossime volte
 
-### Dettaglio tecnico
-
-**Edge function** - aggiungere al body del messaggio user un blocco `image_url` quando `receipt_image` è fornito:
-```typescript
-const userContent = receipt_image
-  ? [
-      { type: "text", text: `Ecco la foto dello scontrino:` },
-      { type: "image_url", image_url: { url: `data:${receipt_image.mime_type};base64,${receipt_image.base64}` } }
-    ]
-  : `Ecco il contenuto dello scontrino:\n\n${textContent}`;
-```
-
-**AddFoodFlow** - nuovo state `receiptPhoto` (ImageFile | null), un ref per l'input, e logica per invocare la funzione con `receipt_image` poi settare `receiptProducts` e passare allo step `receipt`.
+Questo richiede una modifica strutturale all'handler principale dell'edge function, aggiungendo un blocco di cache lookup prima della chiamata AI e un blocco di cache write dopo l'analisi.
 
 ## File coinvolti
 
 | File | Azione |
-|---|---|
-| `supabase/functions/parse-receipt-qr/index.ts` | Supporto input immagine base64 multimodale |
-| `src/components/AddFoodFlow.tsx` | Bottone "Foto scontrino" + step cattura foto + invio a edge function |
+|------|--------|
+| Migrazione SQL | INSERT ~260 righe in `ingredient_translation` |
+| `supabase/functions/analyze-meal-photo/index.ts` | Nuovo prompt + logica dishes cache |
 

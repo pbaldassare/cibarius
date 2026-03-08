@@ -32,7 +32,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 export type AddFoodContext = "inventory" | "meal" | "recipe" | "preparation";
 type MealType = "colazione" | "pranzo" | "cena" | "spuntino";
 type Method = "photo_ai" | "search" | "scan" | "manual";
-type Step = "method" | "photo_ai" | "scan" | "search" | "summary" | "recipes" | "receipt";
+type Step = "method" | "photo_ai" | "scan" | "search" | "summary" | "recipes" | "receipt" | "receipt_photo";
 
 interface SearchProduct {
   id: string;
@@ -159,6 +159,10 @@ const AddFoodFlow = ({
   const [receiptLoading, setReceiptLoading] = useState(false);
   const [receiptStorageType, setReceiptStorageType] = useState("frigo");
   const [receiptSaving, setReceiptSaving] = useState(false);
+
+  // Receipt photo state
+  const receiptPhotoInputRef = useRef<HTMLInputElement>(null);
+  const [receiptPhotoPreview, setReceiptPhotoPreview] = useState<string | null>(null);
 
   // Detect diet category from plan title
   const CATEGORY_MAP: Record<string, string> = {
@@ -300,6 +304,7 @@ const AddFoodFlow = ({
         setEditingChip(null);
         setReceiptProducts([]);
         setReceiptStorageType("frigo");
+        setReceiptPhotoPreview(null);
       }, 300);
     }
   }, [open, preselectedMealType]);
@@ -556,6 +561,44 @@ const AddFoodFlow = ({
     }
     setScanLoading(false);
   }, [scanLoading, scannedCode]);
+
+  // ─── Receipt photo handler ───
+  const handleReceiptPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = () => setReceiptPhotoPreview(reader.result as string);
+    reader.readAsDataURL(file);
+
+    // Convert to base64
+    const arrayBuffer = await file.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    let binary = "";
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    const base64 = btoa(binary);
+
+    setReceiptLoading(true);
+    setStep("receipt");
+    try {
+      const { data: fnData, error: fnError } = await supabase.functions.invoke("parse-receipt-qr", {
+        body: { receipt_image: { base64, mime_type: file.type } },
+      });
+      if (fnError) throw fnError;
+      const products = (fnData?.products || []).map((p: any) => ({ ...p, selected: true }));
+      setReceiptProducts(products);
+      if (products.length === 0) {
+        toast({ variant: "destructive", title: "Nessun prodotto trovato nello scontrino" });
+      }
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Errore analisi scontrino", description: e.message });
+      setStep("receipt_photo");
+    } finally {
+      setReceiptLoading(false);
+    }
+  };
 
   // ─── Multi-photo AI ───
   const handleAddAiPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1000,6 +1043,26 @@ const AddFoodFlow = ({
                     </div>
                   </button>
 
+                  {/* Foto scontrino */}
+                  <button
+                    onClick={() => {
+                      if (context === "meal" && !preselectedMealType && !selectedMealType) {
+                        toast({ variant: "destructive", title: "Seleziona prima il tipo di pasto" });
+                        return;
+                      }
+                      setStep("receipt_photo");
+                    }}
+                    className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 text-left active:scale-[0.98] transition-transform"
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                      <Receipt className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold" style={{ color: "#111827" }}>📋 Foto scontrino</p>
+                      <p className="text-xs" style={{ color: "#4B5563" }}>Fotografa lo scontrino e carica tutto</p>
+                    </div>
+                  </button>
+
                   {[
                     { m: "scan" as Method, icon: ScanLine, label: "Scansiona barcode", desc: "Usa la fotocamera" },
                     { m: "search" as Method, icon: Search, label: "Cerca prodotto", desc: "Cerca nel database" },
@@ -1313,6 +1376,56 @@ const AddFoodFlow = ({
               </div>
             )}
 
+            {/* ─── STEP: Receipt Photo ─── */}
+            {step === "receipt_photo" && (
+              <div className="space-y-4">
+                <div className="rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Receipt className="h-5 w-5 text-primary" />
+                    <p className="text-sm font-semibold text-foreground">Fotografa lo scontrino</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Scatta una foto dello scontrino o della lista della spesa e l'AI estrarrà i prodotti automaticamente.
+                  </p>
+
+                  {receiptPhotoPreview ? (
+                    <div className="relative rounded-xl overflow-hidden border border-border max-h-48">
+                      <img src={receiptPhotoPreview} alt="Scontrino" className="w-full h-full object-contain" />
+                      <button
+                        onClick={() => setReceiptPhotoPreview(null)}
+                        className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-white"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => receiptPhotoInputRef.current?.click()}
+                      className="flex w-full flex-col items-center gap-2 rounded-xl border-2 border-dashed border-border bg-card py-8"
+                    >
+                      <Camera className="h-8 w-8 text-muted-foreground" />
+                      <span className="text-sm font-medium text-muted-foreground">Tocca per scattare o scegliere foto</span>
+                    </button>
+                  )}
+
+                  <input
+                    ref={receiptPhotoInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={handleReceiptPhoto}
+                  />
+                </div>
+
+                {!receiptPhotoPreview && (
+                  <p className="text-center text-xs text-muted-foreground">
+                    Supporta scontrini cartacei, liste della spesa e ricevute digitali
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* ─── STEP: Receipt QR ─── */}
             {step === "receipt" && (
               <div className="space-y-4 pb-20">
@@ -1326,8 +1439,11 @@ const AddFoodFlow = ({
                   <div className="text-center py-12">
                     <Receipt className="h-10 w-10 mx-auto mb-3 text-muted-foreground opacity-40" />
                     <p className="text-sm text-muted-foreground">Nessun prodotto trovato nello scontrino</p>
-                    <Button variant="outline" size="sm" className="mt-4" onClick={() => setStep("scan")}>
-                      Riprova scansione
+                    <Button variant="outline" size="sm" className="mt-4" onClick={() => setStep("receipt_photo")}>
+                      Riprova con foto
+                    </Button>
+                    <Button variant="outline" size="sm" className="mt-2" onClick={() => setStep("scan")}>
+                      Riprova scansione QR
                     </Button>
                   </div>
                 ) : (
