@@ -1376,6 +1376,56 @@ const AddFoodFlow = ({
               </div>
             )}
 
+            {/* ─── STEP: Receipt Photo ─── */}
+            {step === "receipt_photo" && (
+              <div className="space-y-4">
+                <div className="rounded-2xl border-2 border-dashed border-primary/30 bg-primary/5 p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Receipt className="h-5 w-5 text-primary" />
+                    <p className="text-sm font-semibold text-foreground">Fotografa lo scontrino</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Scatta una foto dello scontrino o della lista della spesa e l'AI estrarrà i prodotti automaticamente.
+                  </p>
+
+                  {receiptPhotoPreview ? (
+                    <div className="relative rounded-xl overflow-hidden border border-border max-h-48">
+                      <img src={receiptPhotoPreview} alt="Scontrino" className="w-full h-full object-contain" />
+                      <button
+                        onClick={() => setReceiptPhotoPreview(null)}
+                        className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-white"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => receiptPhotoInputRef.current?.click()}
+                      className="flex w-full flex-col items-center gap-2 rounded-xl border-2 border-dashed border-border bg-card py-8"
+                    >
+                      <Camera className="h-8 w-8 text-muted-foreground" />
+                      <span className="text-sm font-medium text-muted-foreground">Tocca per scattare o scegliere foto</span>
+                    </button>
+                  )}
+
+                  <input
+                    ref={receiptPhotoInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={handleReceiptPhoto}
+                  />
+                </div>
+
+                {!receiptPhotoPreview && (
+                  <p className="text-center text-xs text-muted-foreground">
+                    Supporta scontrini cartacei, liste della spesa e ricevute digitali
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* ─── STEP: Receipt QR ─── */}
             {step === "receipt" && (
               <div className="space-y-4 pb-20">
