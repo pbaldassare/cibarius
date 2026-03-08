@@ -1439,8 +1439,11 @@ const AddFoodFlow = ({
                   <div className="text-center py-12">
                     <Receipt className="h-10 w-10 mx-auto mb-3 text-muted-foreground opacity-40" />
                     <p className="text-sm text-muted-foreground">Nessun prodotto trovato nello scontrino</p>
-                    <Button variant="outline" size="sm" className="mt-4" onClick={() => setStep("scan")}>
-                      Riprova scansione
+                    <Button variant="outline" size="sm" className="mt-4" onClick={() => setStep("receipt_photo")}>
+                      Riprova con foto
+                    </Button>
+                    <Button variant="outline" size="sm" className="mt-2" onClick={() => setStep("scan")}>
+                      Riprova scansione QR
                     </Button>
                   </div>
                 ) : (
