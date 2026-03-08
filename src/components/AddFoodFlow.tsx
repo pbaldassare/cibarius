@@ -158,6 +158,7 @@ const AddFoodFlow = ({
   const [receiptProducts, setReceiptProducts] = useState<ReceiptProduct[]>([]);
   const [receiptLoading, setReceiptLoading] = useState(false);
   const [receiptStorageType, setReceiptStorageType] = useState("frigo");
+  const [receiptSaving, setReceiptSaving] = useState(false);
 
   // Receipt photo state
   const receiptPhotoInputRef = useRef<HTMLInputElement>(null);
