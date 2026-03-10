@@ -47,40 +47,42 @@ const categoryEmoji: Record<string, string> = {
 /** keyword → emoji for matching product names */
 const nameKeywords: [string, string][] = [
   // Dolci / snack
-  ["caramell", "🍬"],
+  ["caramell", "🍬"],  // caramella, caramelle
   ["candy", "🍬"],
+  ["candies", "🍬"],
   ["lollipop", "🍭"],
-  ["barrett", "🍫"],
-  ["barretta", "🍫"],
+  ["barrett", "🍫"],  // barretta, barrette
   ["protein bar", "🍫"],
   ["energy bar", "🍫"],
-  ["cioccolat", "🍫"],
-  ["chocolate", "🍫"],
-  ["biscott", "🍪"],
+  ["cioccolat", "🍫"],  // cioccolato, cioccolatini
+  ["chocolat", "🍫"],
+  ["biscott", "🍪"],  // biscotto, biscotti
   ["cookie", "🍪"],
   ["wafer", "🍪"],
   ["croissant", "🥐"],
   ["brioche", "🥐"],
-  ["cornetto", "🥐"],
+  ["cornett", "🥐"],  // cornetto, cornetti
   ["muffin", "🧁"],
   ["cupcake", "🧁"],
-  ["torta", "🎂"],
+  ["tort", "🎂"],  // torta, torte, tortina
   ["cake", "🎂"],
-  ["gelato", "🍦"],
+  ["gelat", "🍦"],  // gelato, gelati
   ["ice cream", "🍦"],
   ["patatine", "🍟"],
   ["chips", "🍟"],
   ["popcorn", "🍿"],
   ["cracker", "🍘"],
-  ["grissini", "🥖"],
-  ["merendina", "🧁"],
+  ["grissin", "🥖"],  // grissini, grissino
+  ["merendin", "🧁"],  // merendina, merendine
   ["snack", "🍿"],
   ["chewing", "🍬"],
-  ["gomma", "🍬"],
-  ["marmellata", "🍯"],
-  ["confettura", "🍯"],
+  ["gomm", "🍬"],  // gomma, gomme
+  ["marmellat", "🍯"],  // marmellata, marmellate
+  ["confettur", "🍯"],
   ["nutella", "🍫"],
-  ["crema", "🍫"],
+  ["crema nocc", "🍫"],
+  ["crema cioc", "🍫"],
+  ["crema spalm", "🍫"],
 
   // Bevande
   ["acqua", "💧"],
@@ -89,135 +91,135 @@ const nameKeywords: [string, string][] = [
   ["cola", "🥤"],
   ["fanta", "🥤"],
   ["sprite", "🥤"],
-  ["aranciata", "🥤"],
-  ["gassosa", "🥤"],
-  ["succo", "🧃"],
+  ["aranciat", "🥤"],  // aranciata, aranciate
+  ["gassos", "🥤"],
+  ["succ", "🧃"],  // succo, succhi
   ["juice", "🧃"],
   ["latte", "🥛"],
   ["milk", "🥛"],
   ["yogurt", "🥛"],
   ["caffè", "☕"],
+  ["caffe", "☕"],
   ["coffee", "☕"],
   ["espresso", "☕"],
-  ["cappuccino", "☕"],
-  ["tè", "🍵"],
+  ["cappuccin", "☕"],
+  ["tè ", "🍵"],
   ["tea", "🍵"],
-  ["tisana", "🍵"],
-  ["vino", "🍷"],
+  ["tisan", "🍵"],  // tisana, tisane
+  ["vino", "🍷"],  // vino
   ["wine", "🍷"],
-  ["birra", "🍺"],
+  ["birr", "🍺"],  // birra, birre
   ["beer", "🍺"],
-  ["prosecco", "🥂"],
-  ["spumante", "🥂"],
+  ["prosecc", "🥂"],
+  ["spumant", "🥂"],
   ["champagne", "🥂"],
   ["smoothie", "🥤"],
-  ["frullato", "🥤"],
+  ["frullat", "🥤"],  // frullato, frullati
   ["energy drink", "🥤"],
 
   // Pane / cereali
-  ["pane", "🍞"],
+  ["pane ", "🍞"],
+  ["panin", "🥪"],  // panino, panini
   ["bread", "🍞"],
-  ["panino", "🥪"],
   ["sandwich", "🥪"],
   ["toast", "🍞"],
-  ["fette biscottate", "🍞"],
-  ["cereali", "🥣"],
+  ["fette biscottat", "🍞"],
+  ["cereal", "🥣"],  // cereali, cereale
   ["muesli", "🥣"],
   ["granola", "🥣"],
   ["cornflakes", "🥣"],
-  ["avena", "🌾"],
+  ["aven", "🌾"],  // avena
   ["oat", "🌾"],
-  ["riso", "🍚"],
+  ["riso", "🍚"],  // riso (exact enough)
   ["rice", "🍚"],
-  ["pasta", "🍝"],
-  ["spaghetti", "🍝"],
+  ["pasta", "🍝"],  // pasta, paste
+  ["spaghett", "🍝"],
   ["penne", "🍝"],
-  ["fusilli", "🍝"],
-  ["tagliatelle", "🍝"],
-  ["lasagna", "🍝"],
-  ["gnocchi", "🍝"],
-  ["farina", "🌾"],
+  ["fusill", "🍝"],
+  ["tagliatell", "🍝"],
+  ["lasagn", "🍝"],
+  ["gnocch", "🍝"],
+  ["farin", "🌾"],  // farina, farine
   ["flour", "🌾"],
-  ["pizza", "🍕"],
-  ["focaccia", "🍕"],
+  ["pizz", "🍕"],  // pizza, pizze
+  ["focacc", "🍕"],
   ["baguette", "🥖"],
-  ["piadina", "🥙"],
+  ["piadin", "🥙"],
   ["wrap", "🥙"],
-  ["tortilla", "🌮"],
+  ["tortill", "🌮"],
 
   // Frutta
+  ["mele", "🍎"],  // mele, mela — "melone" won't match because we check melon first
   ["mela", "🍎"],
-  ["apple", "🍎"],
-  ["banana", "🍌"],
-  ["arancia", "🍊"],
+  ["banan", "🍌"],  // banana, banane
+  ["aranc", "🍊"],  // arancia, arance, arancio
   ["orange", "🍊"],
-  ["mandarino", "🍊"],
-  ["limone", "🍋"],
+  ["mandarin", "🍊"],
+  ["limon", "🍋"],  // limone, limoni
   ["lemon", "🍋"],
-  ["fragola", "🍓"],
+  ["fragol", "🍓"],  // fragola, fragole
   ["strawberr", "🍓"],
-  ["pesca", "🍑"],
+  ["pesch", "🍑"],  // pesca, pesche
   ["peach", "🍑"],
   ["uva", "🍇"],
   ["grape", "🍇"],
-  ["ciliegia", "🍒"],
+  ["cilieg", "🍒"],  // ciliegia, ciliegie
   ["cherry", "🍒"],
-  ["anguria", "🍉"],
+  ["anguri", "🍉"],  // anguria, angurie
   ["watermelon", "🍉"],
-  ["melone", "🍈"],
-  ["melon", "🍈"],
-  ["pera", "🍐"],
+  ["melon", "🍈"],  // melone, meloni
+  ["pere", "🍐"],  // pere
+  ["pera", "🍐"],  // pera
   ["pear", "🍐"],
   ["ananas", "🍍"],
   ["pineapple", "🍍"],
-  ["cocco", "🥥"],
+  ["cocco", "🥥"],  // cocco
   ["coconut", "🥥"],
   ["kiwi", "🥝"],
   ["avocado", "🥑"],
   ["mango", "🥭"],
-  ["mirtill", "🫐"],
+  ["mirtill", "🫐"],  // mirtillo, mirtilli
   ["blueberr", "🫐"],
-  ["frutta secca", "🥜"],
-  ["noci", "🥜"],
+  ["frutta secc", "🥜"],
+  ["noc", "🥜"],  // noce, noci, nocciola, nocciole
   ["walnut", "🥜"],
-  ["mandorle", "🥜"],
+  ["mandorl", "🥜"],  // mandorla, mandorle
   ["almond", "🥜"],
-  ["nocciole", "🥜"],
   ["hazelnut", "🥜"],
-  ["arachidi", "🥜"],
+  ["arachid", "🥜"],  // arachide, arachidi
   ["peanut", "🥜"],
-  ["pistacchi", "🥜"],
+  ["pistacch", "🥜"],  // pistacchio, pistacchi
 
   // Verdura
-  ["pomodor", "🍅"],
+  ["pomodor", "🍅"],  // pomodoro, pomodori
   ["tomato", "🍅"],
-  ["carota", "🥕"],
+  ["carot", "🥕"],  // carota, carote
   ["carrot", "🥕"],
-  ["patata", "🥔"],
+  ["patat", "🥔"],  // patata, patate, patatine already above
   ["potato", "🥔"],
-  ["insalata", "🥗"],
-  ["lattuga", "🥬"],
-  ["spinaci", "🥬"],
+  ["insalat", "🥗"],  // insalata, insalate
+  ["lattug", "🥬"],
+  ["spinac", "🥬"],  // spinaci, spinacio
   ["spinach", "🥬"],
   ["broccol", "🥦"],
-  ["zucchina", "🥒"],
-  ["cetriolo", "🥒"],
+  ["zucchin", "🥒"],  // zucchina, zucchine
+  ["cetriol", "🥒"],  // cetriolo, cetrioli
   ["cucumber", "🥒"],
-  ["peperone", "🫑"],
+  ["peperon", "🫑"],  // peperone, peperoni
   ["pepper", "🫑"],
-  ["cipolla", "🧅"],
+  ["cipoll", "🧅"],  // cipolla, cipolle
   ["onion", "🧅"],
   ["aglio", "🧄"],
   ["garlic", "🧄"],
   ["mais", "🌽"],
   ["corn", "🌽"],
-  ["fungh", "🍄"],
+  ["fungh", "🍄"],  // fungo, funghi
   ["mushroom", "🍄"],
-  ["melanzana", "🍆"],
+  ["melanzan", "🍆"],  // melanzana, melanzane
   ["eggplant", "🍆"],
   ["peperoncin", "🌶️"],
   ["chili", "🌶️"],
-  ["zucca", "🎃"],
+  ["zucca", "🎃"],  // zucca, zucche
 
   // Proteine
   ["pollo", "🍗"],
@@ -304,11 +306,24 @@ const nameKeywords: [string, string][] = [
 ];
 
 export function getFoodEmoji(category: string | null | undefined, name?: string | null): string {
-  // 1. Try matching product name keywords first (more specific)
+  // 1. Try matching product name keywords (longer keywords checked first for specificity)
   if (name) {
-    const lower = name.toLowerCase().trim();
+    const lower = ` ${name.toLowerCase().trim()} `; // pad with spaces for word boundary
+    // First pass: multi-word / longer keywords (≥5 chars)
     for (const [kw, emoji] of nameKeywords) {
-      if (lower.includes(kw)) return emoji;
+      if (kw.length >= 5 && lower.includes(kw)) return emoji;
+    }
+    // Second pass: shorter keywords (use word-boundary-ish matching)
+    for (const [kw, emoji] of nameKeywords) {
+      if (kw.length < 5) {
+        // For short keywords, check they appear as word start
+        const idx = lower.indexOf(kw);
+        if (idx >= 0) {
+          // Check the char before is a space or start
+          const before = lower[idx - 1];
+          if (before === ' ' || before === undefined) return emoji;
+        }
+      }
     }
   }
 
