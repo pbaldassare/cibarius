@@ -160,7 +160,7 @@ const nameKeywords: [string, string][] = [
   ["lemon", "🍋"],
   ["fragol", "🍓"],  // fragola, fragole
   ["strawberr", "🍓"],
-  ["pesc", "🍑"],  // pesca, pesche
+  ["pesch", "🍑"],  // pesca, pesche
   ["peach", "🍑"],
   ["uva", "🍇"],
   ["grape", "🍇"],
