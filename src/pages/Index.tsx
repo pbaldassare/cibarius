@@ -554,7 +554,7 @@ const Index = () => {
                   return (
                     <div key={r.id} className="flex items-center gap-2 rounded-[14px] bg-card pl-0 pr-3 py-2 shadow-card">
                       <div className={`w-[3px] self-stretch rounded-full ${cfg.barColor}`} />
-                      <FoodThumb imageUrl={r.image_url} category={r.category} />
+                      <FoodThumb imageUrl={r.image_url} category={r.category} name={r.name} />
                       <div className="flex-1 min-w-0 ml-0.5">
                         <p className="text-[13px] font-medium truncate text-foreground">{r.name}</p>
                         <p className="text-[11px] text-muted-foreground">
