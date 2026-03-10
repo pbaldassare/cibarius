@@ -132,7 +132,7 @@ const nameKeywords: [string, string][] = [
   ["oat", "🌾"],
   ["riso", "🍚"],  // riso (exact enough)
   ["rice", "🍚"],
-  ["past", "🍝"],  // pasta, paste
+  ["pasta", "🍝"],  // pasta, paste
   ["spaghett", "🍝"],
   ["penne", "🍝"],
   ["fusill", "🍝"],
