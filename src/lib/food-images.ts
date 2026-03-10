@@ -173,7 +173,7 @@ const nameKeywords: [string, string][] = [
   ["pera", "🍐"],  // pera
   ["ananas", "🍍"],
   ["pineapple", "🍍"],
-  ["cocc", "🥥"],  // cocco
+  ["cocco", "🥥"],  // cocco
   ["coconut", "🥥"],
   ["kiwi", "🥝"],
   ["avocado", "🥑"],
