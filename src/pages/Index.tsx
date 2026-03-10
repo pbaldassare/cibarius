@@ -454,7 +454,7 @@ const Index = () => {
                       onClick={() => openEdit(item)}
                     >
                       <div className={`w-[3px] self-stretch rounded-full ml-0 ${cfg.barColor}`} />
-                      <FoodThumb imageUrl={item.image_url} category={item.category} />
+                      <FoodThumb imageUrl={item.image_url} category={item.category} name={item.name} />
                       <div className="flex-1 min-w-0 ml-0.5">
                         <p className="text-[13px] font-medium truncate text-foreground">{item.name}</p>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
