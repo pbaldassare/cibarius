@@ -25,6 +25,7 @@ import {
   CheckCircle2, HelpCircle, Zap, ShieldCheck, ShieldAlert, ShieldX, UtensilsCrossed,
   Receipt, ShoppingCart,
 } from "lucide-react";
+import { getFoodEmoji } from "@/lib/food-images";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -1332,7 +1333,7 @@ const AddFoodFlow = ({
                         {p.image_url ? (
                           <img src={p.image_url} alt="" className="h-full w-full object-cover" />
                         ) : (
-                          <Package className="h-5 w-5 text-muted-foreground" />
+                          <span className="text-lg">{getFoodEmoji(null)}</span>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">

@@ -10,6 +10,7 @@ import {
   Loader2, Clock, AlertCircle, Package, Plus, ChevronRight,
   ChefHat, FileText, Upload, User, Settings, Zap, HelpCircle,
 } from "lucide-react";
+import { getFoodEmoji } from "@/lib/food-images";
 
 /* ─── types ─── */
 interface InventoryItem {
@@ -267,7 +268,7 @@ const RestaurantPage = () => {
                       ) : item.type === "prep" ? (
                         <ChefHat className="h-4 w-4 text-muted-foreground" />
                       ) : (
-                        <Package className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-lg">{getFoodEmoji(null)}</span>
                       )}
                     </div>
                     <div className="flex-1 min-w-0">

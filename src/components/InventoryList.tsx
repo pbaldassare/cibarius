@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Search, Package, Loader2, Flame, ScanLine, Trash2, AlertCircle, Clock, Home, Refrigerator, Snowflake } from "lucide-react";
+import { getFoodEmoji } from "@/lib/food-images";
 import EmptyState from "@/components/EmptyState";
 import ListSkeleton from "@/components/ListSkeleton";
 
@@ -471,7 +472,7 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
                         className="h-full w-full object-cover"
                       />
                     ) : (
-                      <Package className="h-8 w-8 text-muted-foreground" />
+                      <span className="text-3xl">{getFoodEmoji(item.product.category)}</span>
                     )}
                   </div>
 
