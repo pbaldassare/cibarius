@@ -268,7 +268,7 @@ const RestaurantPage = () => {
                       ) : item.type === "prep" ? (
                         <ChefHat className="h-4 w-4 text-muted-foreground" />
                       ) : (
-                        <span className="text-lg">{getFoodEmoji(null)}</span>
+                        <span className="text-lg">{getFoodEmoji(null, item.name)}</span>
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
