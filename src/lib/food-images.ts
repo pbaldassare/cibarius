@@ -106,7 +106,7 @@ const nameKeywords: [string, string][] = [
   ["tè ", "🍵"],
   ["tea", "🍵"],
   ["tisan", "🍵"],  // tisana, tisane
-  ["vin", "🍷"],  // vino, vini
+  ["vino", "🍷"],  // vino
   ["wine", "🍷"],
   ["birr", "🍺"],  // birra, birre
   ["beer", "🍺"],
