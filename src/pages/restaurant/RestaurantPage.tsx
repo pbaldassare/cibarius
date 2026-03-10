@@ -10,6 +10,7 @@ import {
   Loader2, Clock, AlertCircle, Package, Plus, ChevronRight,
   ChefHat, FileText, Upload, User, Settings, Zap, HelpCircle,
 } from "lucide-react";
+import { getFoodEmoji } from "@/lib/food-images";
 
 /* ─── types ─── */
 interface InventoryItem {
