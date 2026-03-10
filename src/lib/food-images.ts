@@ -168,8 +168,9 @@ const nameKeywords: [string, string][] = [
   ["anguri", "🍉"],  // anguria, angurie
   ["watermelon", "🍉"],
   ["melon", "🍈"],  // melone, meloni
-  ["pere ", "🍐"],  // pere (with space)
+  ["pere", "🍐"],  // pere
   ["pera", "🍐"],  // pera
+  ["pear", "🍐"],
   ["ananas", "🍍"],
   ["pineapple", "🍍"],
   ["cocco", "🥥"],  // cocco
