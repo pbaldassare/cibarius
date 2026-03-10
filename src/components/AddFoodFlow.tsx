@@ -25,6 +25,7 @@ import {
   CheckCircle2, HelpCircle, Zap, ShieldCheck, ShieldAlert, ShieldX, UtensilsCrossed,
   Receipt, ShoppingCart,
 } from "lucide-react";
+import { getFoodEmoji } from "@/lib/food-images";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 
