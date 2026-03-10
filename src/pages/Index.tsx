@@ -56,8 +56,8 @@ const storageLabel: Record<string, string> = {
 };
 
 /* ─── Food Thumbnail ─── */
-const FoodThumb = ({ imageUrl, category }: { imageUrl: string | null | undefined; category: string | null | undefined }) => {
-  const img = getFoodImage(imageUrl, category);
+const FoodThumb = ({ imageUrl, category, name }: { imageUrl: string | null | undefined; category: string | null | undefined; name?: string | null }) => {
+  const img = getFoodImage(imageUrl, category, name);
   if (img.type === "image") {
     return (
       <img
