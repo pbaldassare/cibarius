@@ -305,11 +305,24 @@ const nameKeywords: [string, string][] = [
 ];
 
 export function getFoodEmoji(category: string | null | undefined, name?: string | null): string {
-  // 1. Try matching product name keywords first (more specific)
+  // 1. Try matching product name keywords (longer keywords checked first for specificity)
   if (name) {
-    const lower = name.toLowerCase().trim();
+    const lower = ` ${name.toLowerCase().trim()} `; // pad with spaces for word boundary
+    // First pass: multi-word / longer keywords (≥5 chars)
     for (const [kw, emoji] of nameKeywords) {
-      if (lower.includes(kw)) return emoji;
+      if (kw.length >= 5 && lower.includes(kw)) return emoji;
+    }
+    // Second pass: shorter keywords (use word-boundary-ish matching)
+    for (const [kw, emoji] of nameKeywords) {
+      if (kw.length < 5) {
+        // For short keywords, check they appear as word start
+        const idx = lower.indexOf(kw);
+        if (idx >= 0) {
+          // Check the char before is a space or start
+          const before = lower[idx - 1];
+          if (before === ' ' || before === undefined) return emoji;
+        }
+      }
     }
   }
 
