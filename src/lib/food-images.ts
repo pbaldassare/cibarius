@@ -80,7 +80,9 @@ const nameKeywords: [string, string][] = [
   ["marmellat", "🍯"],  // marmellata, marmellate
   ["confettur", "🍯"],
   ["nutella", "🍫"],
-  ["crem", "🍫"],  // crema, creme
+  ["crema nocc", "🍫"],
+  ["crema cioc", "🍫"],
+  ["crema spalm", "🍫"],
 
   // Bevande
   ["acqua", "💧"],
