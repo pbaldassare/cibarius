@@ -12,6 +12,7 @@ import {
   Package, Clock, AlertCircle, Check, Trash2, CalendarClock,
   Plus, ChefHat, CheckSquare, Flame, Refrigerator, Snowflake, Home,
 } from "lucide-react";
+import { getFoodEmoji } from "@/lib/food-images";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
