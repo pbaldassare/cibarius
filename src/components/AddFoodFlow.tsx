@@ -1333,7 +1333,7 @@ const AddFoodFlow = ({
                         {p.image_url ? (
                           <img src={p.image_url} alt="" className="h-full w-full object-cover" />
                         ) : (
-                          <Package className="h-5 w-5 text-muted-foreground" />
+                          <span className="text-lg">{getFoodEmoji(p.category)}</span>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
