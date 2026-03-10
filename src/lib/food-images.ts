@@ -149,9 +149,8 @@ const nameKeywords: [string, string][] = [
   ["tortill", "🌮"],
 
   // Frutta
-  ["mela", "🍎"],  // mela
-  ["mele ", "🍎"],  // mele (with space to avoid "melone")
-  ["apple", "🍎"],
+  ["mele", "🍎"],  // mele, mela — "melone" won't match because we check melon first
+  ["mela", "🍎"],
   ["banan", "🍌"],  // banana, banane
   ["aranc", "🍊"],  // arancia, arance, arancio
   ["orange", "🍊"],
