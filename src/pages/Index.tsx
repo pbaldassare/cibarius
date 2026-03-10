@@ -581,7 +581,7 @@ const Index = () => {
         <DialogContent className="max-w-[92vw] rounded-[18px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3">
-              {editItem && <FoodThumb imageUrl={editItem.image_url} category={editItem.category} />}
+              {editItem && <FoodThumb imageUrl={editItem.image_url} category={editItem.category} name={editItem.name} />}
               <span className="truncate">{editItem?.name}</span>
             </DialogTitle>
             <DialogDescription className="sr-only">Modifica prodotto urgente</DialogDescription>
