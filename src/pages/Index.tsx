@@ -56,8 +56,8 @@ const storageLabel: Record<string, string> = {
 };
 
 /* ─── Food Thumbnail ─── */
-const FoodThumb = ({ imageUrl, category }: { imageUrl: string | null | undefined; category: string | null | undefined }) => {
-  const img = getFoodImage(imageUrl, category);
+const FoodThumb = ({ imageUrl, category, name }: { imageUrl: string | null | undefined; category: string | null | undefined; name?: string | null }) => {
+  const img = getFoodImage(imageUrl, category, name);
   if (img.type === "image") {
     return (
       <img
@@ -454,7 +454,7 @@ const Index = () => {
                       onClick={() => openEdit(item)}
                     >
                       <div className={`w-[3px] self-stretch rounded-full ml-0 ${cfg.barColor}`} />
-                      <FoodThumb imageUrl={item.image_url} category={item.category} />
+                      <FoodThumb imageUrl={item.image_url} category={item.category} name={item.name} />
                       <div className="flex-1 min-w-0 ml-0.5">
                         <p className="text-[13px] font-medium truncate text-foreground">{item.name}</p>
                         <p className="text-[11px] text-muted-foreground mt-0.5">
@@ -554,7 +554,7 @@ const Index = () => {
                   return (
                     <div key={r.id} className="flex items-center gap-2 rounded-[14px] bg-card pl-0 pr-3 py-2 shadow-card">
                       <div className={`w-[3px] self-stretch rounded-full ${cfg.barColor}`} />
-                      <FoodThumb imageUrl={r.image_url} category={r.category} />
+                      <FoodThumb imageUrl={r.image_url} category={r.category} name={r.name} />
                       <div className="flex-1 min-w-0 ml-0.5">
                         <p className="text-[13px] font-medium truncate text-foreground">{r.name}</p>
                         <p className="text-[11px] text-muted-foreground">
@@ -581,7 +581,7 @@ const Index = () => {
         <DialogContent className="max-w-[92vw] rounded-[18px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3">
-              {editItem && <FoodThumb imageUrl={editItem.image_url} category={editItem.category} />}
+              {editItem && <FoodThumb imageUrl={editItem.image_url} category={editItem.category} name={editItem.name} />}
               <span className="truncate">{editItem?.name}</span>
             </DialogTitle>
             <DialogDescription className="sr-only">Modifica prodotto urgente</DialogDescription>

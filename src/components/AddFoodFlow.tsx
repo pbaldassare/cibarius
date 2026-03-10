@@ -1333,7 +1333,7 @@ const AddFoodFlow = ({
                         {p.image_url ? (
                           <img src={p.image_url} alt="" className="h-full w-full object-cover" />
                         ) : (
-                          <span className="text-lg">{getFoodEmoji(null)}</span>
+                          <span className="text-lg">{getFoodEmoji(null, p.name)}</span>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">

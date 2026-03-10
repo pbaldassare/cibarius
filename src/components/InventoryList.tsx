@@ -472,7 +472,7 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
                         className="h-full w-full object-cover"
                       />
                     ) : (
-                      <span className="text-3xl">{getFoodEmoji(item.product.category)}</span>
+                      <span className="text-3xl">{getFoodEmoji(item.product.category, item.product.name)}</span>
                     )}
                   </div>
 
