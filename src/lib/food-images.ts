@@ -219,7 +219,7 @@ const nameKeywords: [string, string][] = [
   ["eggplant", "🍆"],
   ["peperoncin", "🌶️"],
   ["chili", "🌶️"],
-  ["zucc", "🎃"],  // zucca, zucche
+  ["zucca", "🎃"],  // zucca, zucche
 
   // Proteine
   ["pollo", "🍗"],
