@@ -47,40 +47,40 @@ const categoryEmoji: Record<string, string> = {
 /** keyword → emoji for matching product names */
 const nameKeywords: [string, string][] = [
   // Dolci / snack
-  ["caramell", "🍬"],
+  ["caramell", "🍬"],  // caramella, caramelle
   ["candy", "🍬"],
+  ["candies", "🍬"],
   ["lollipop", "🍭"],
-  ["barrett", "🍫"],
-  ["barretta", "🍫"],
+  ["barrett", "🍫"],  // barretta, barrette
   ["protein bar", "🍫"],
   ["energy bar", "🍫"],
-  ["cioccolat", "🍫"],
-  ["chocolate", "🍫"],
-  ["biscott", "🍪"],
+  ["cioccolat", "🍫"],  // cioccolato, cioccolatini
+  ["chocolat", "🍫"],
+  ["biscott", "🍪"],  // biscotto, biscotti
   ["cookie", "🍪"],
   ["wafer", "🍪"],
   ["croissant", "🥐"],
   ["brioche", "🥐"],
-  ["cornetto", "🥐"],
+  ["cornett", "🥐"],  // cornetto, cornetti
   ["muffin", "🧁"],
   ["cupcake", "🧁"],
-  ["torta", "🎂"],
+  ["tort", "🎂"],  // torta, torte, tortina
   ["cake", "🎂"],
-  ["gelato", "🍦"],
+  ["gelat", "🍦"],  // gelato, gelati
   ["ice cream", "🍦"],
   ["patatine", "🍟"],
   ["chips", "🍟"],
   ["popcorn", "🍿"],
   ["cracker", "🍘"],
-  ["grissini", "🥖"],
-  ["merendina", "🧁"],
+  ["grissin", "🥖"],  // grissini, grissino
+  ["merendin", "🧁"],  // merendina, merendine
   ["snack", "🍿"],
   ["chewing", "🍬"],
-  ["gomma", "🍬"],
-  ["marmellata", "🍯"],
-  ["confettura", "🍯"],
+  ["gomm", "🍬"],  // gomma, gomme
+  ["marmellat", "🍯"],  // marmellata, marmellate
+  ["confettur", "🍯"],
   ["nutella", "🍫"],
-  ["crema", "🍫"],
+  ["crem", "🍫"],  // crema, creme
 
   // Bevande
   ["acqua", "💧"],
@@ -89,135 +89,134 @@ const nameKeywords: [string, string][] = [
   ["cola", "🥤"],
   ["fanta", "🥤"],
   ["sprite", "🥤"],
-  ["aranciata", "🥤"],
-  ["gassosa", "🥤"],
-  ["succo", "🧃"],
+  ["aranciat", "🥤"],  // aranciata, aranciate
+  ["gassos", "🥤"],
+  ["succ", "🧃"],  // succo, succhi
   ["juice", "🧃"],
   ["latte", "🥛"],
   ["milk", "🥛"],
   ["yogurt", "🥛"],
   ["caffè", "☕"],
+  ["caffe", "☕"],
   ["coffee", "☕"],
   ["espresso", "☕"],
-  ["cappuccino", "☕"],
-  ["tè", "🍵"],
+  ["cappuccin", "☕"],
+  ["tè ", "🍵"],
   ["tea", "🍵"],
-  ["tisana", "🍵"],
-  ["vino", "🍷"],
+  ["tisan", "🍵"],  // tisana, tisane
+  ["vin", "🍷"],  // vino, vini
   ["wine", "🍷"],
-  ["birra", "🍺"],
+  ["birr", "🍺"],  // birra, birre
   ["beer", "🍺"],
-  ["prosecco", "🥂"],
-  ["spumante", "🥂"],
+  ["prosecc", "🥂"],
+  ["spumant", "🥂"],
   ["champagne", "🥂"],
   ["smoothie", "🥤"],
-  ["frullato", "🥤"],
+  ["frullat", "🥤"],  // frullato, frullati
   ["energy drink", "🥤"],
 
   // Pane / cereali
-  ["pane", "🍞"],
+  ["pane ", "🍞"],
+  ["panin", "🥪"],  // panino, panini
   ["bread", "🍞"],
-  ["panino", "🥪"],
   ["sandwich", "🥪"],
   ["toast", "🍞"],
-  ["fette biscottate", "🍞"],
-  ["cereali", "🥣"],
+  ["fette biscottat", "🍞"],
+  ["cereal", "🥣"],  // cereali, cereale
   ["muesli", "🥣"],
   ["granola", "🥣"],
   ["cornflakes", "🥣"],
-  ["avena", "🌾"],
+  ["aven", "🌾"],  // avena
   ["oat", "🌾"],
-  ["riso", "🍚"],
+  ["ris", "🍚"],  // riso
   ["rice", "🍚"],
-  ["pasta", "🍝"],
-  ["spaghetti", "🍝"],
+  ["past", "🍝"],  // pasta, paste
+  ["spaghett", "🍝"],
   ["penne", "🍝"],
-  ["fusilli", "🍝"],
-  ["tagliatelle", "🍝"],
-  ["lasagna", "🍝"],
-  ["gnocchi", "🍝"],
-  ["farina", "🌾"],
+  ["fusill", "🍝"],
+  ["tagliatell", "🍝"],
+  ["lasagn", "🍝"],
+  ["gnocch", "🍝"],
+  ["farin", "🌾"],  // farina, farine
   ["flour", "🌾"],
-  ["pizza", "🍕"],
-  ["focaccia", "🍕"],
+  ["pizz", "🍕"],  // pizza, pizze
+  ["focacc", "🍕"],
   ["baguette", "🥖"],
-  ["piadina", "🥙"],
+  ["piadin", "🥙"],
   ["wrap", "🥙"],
-  ["tortilla", "🌮"],
+  ["tortill", "🌮"],
 
   // Frutta
-  ["mela", "🍎"],
+  ["mel", "🍎"],  // mela, mele — NOTE: put before "melon"
   ["apple", "🍎"],
-  ["banana", "🍌"],
-  ["arancia", "🍊"],
+  ["banan", "🍌"],  // banana, banane
+  ["aranc", "🍊"],  // arancia, arance, arancio
   ["orange", "🍊"],
-  ["mandarino", "🍊"],
-  ["limone", "🍋"],
+  ["mandarin", "🍊"],
+  ["limon", "🍋"],  // limone, limoni
   ["lemon", "🍋"],
-  ["fragola", "🍓"],
+  ["fragol", "🍓"],  // fragola, fragole
   ["strawberr", "🍓"],
-  ["pesca", "🍑"],
+  ["pesc", "🍑"],  // pesca, pesche
   ["peach", "🍑"],
   ["uva", "🍇"],
   ["grape", "🍇"],
-  ["ciliegia", "🍒"],
+  ["cilieg", "🍒"],  // ciliegia, ciliegie
   ["cherry", "🍒"],
-  ["anguria", "🍉"],
+  ["anguri", "🍉"],  // anguria, angurie
   ["watermelon", "🍉"],
-  ["melone", "🍈"],
-  ["melon", "🍈"],
-  ["pera", "🍐"],
+  ["melon", "🍈"],  // melone, meloni
+  ["per", "🍐"],  // pera, pere — short stem, careful
   ["pear", "🍐"],
   ["ananas", "🍍"],
   ["pineapple", "🍍"],
-  ["cocco", "🥥"],
+  ["cocc", "🥥"],  // cocco
   ["coconut", "🥥"],
   ["kiwi", "🥝"],
   ["avocado", "🥑"],
   ["mango", "🥭"],
-  ["mirtill", "🫐"],
+  ["mirtill", "🫐"],  // mirtillo, mirtilli
   ["blueberr", "🫐"],
-  ["frutta secca", "🥜"],
-  ["noci", "🥜"],
+  ["frutta secc", "🥜"],
+  ["noc", "🥜"],  // noce, noci, nocciola, nocciole
   ["walnut", "🥜"],
-  ["mandorle", "🥜"],
+  ["mandorl", "🥜"],  // mandorla, mandorle
   ["almond", "🥜"],
-  ["nocciole", "🥜"],
   ["hazelnut", "🥜"],
-  ["arachidi", "🥜"],
+  ["arachid", "🥜"],  // arachide, arachidi
   ["peanut", "🥜"],
-  ["pistacchi", "🥜"],
+  ["pistacch", "🥜"],  // pistacchio, pistacchi
 
   // Verdura
-  ["pomodor", "🍅"],
+  ["pomodor", "🍅"],  // pomodoro, pomodori
   ["tomato", "🍅"],
-  ["carota", "🥕"],
+  ["carot", "🥕"],  // carota, carote
   ["carrot", "🥕"],
-  ["patata", "🥔"],
+  ["patat", "🥔"],  // patata, patate, patatine already above
   ["potato", "🥔"],
-  ["insalata", "🥗"],
-  ["lattuga", "🥬"],
-  ["spinaci", "🥬"],
+  ["insalat", "🥗"],  // insalata, insalate
+  ["lattug", "🥬"],
+  ["spinac", "🥬"],  // spinaci, spinacio
   ["spinach", "🥬"],
   ["broccol", "🥦"],
-  ["zucchina", "🥒"],
-  ["cetriolo", "🥒"],
+  ["zucchin", "🥒"],  // zucchina, zucchine
+  ["cetriol", "🥒"],  // cetriolo, cetrioli
   ["cucumber", "🥒"],
-  ["peperone", "🫑"],
+  ["peperon", "🫑"],  // peperone, peperoni
   ["pepper", "🫑"],
-  ["cipolla", "🧅"],
+  ["cipoll", "🧅"],  // cipolla, cipolle
   ["onion", "🧅"],
   ["aglio", "🧄"],
   ["garlic", "🧄"],
   ["mais", "🌽"],
   ["corn", "🌽"],
-  ["fungh", "🍄"],
+  ["fungh", "🍄"],  // fungo, funghi
   ["mushroom", "🍄"],
-  ["melanzana", "🍆"],
+  ["melanzan", "🍆"],  // melanzana, melanzane
   ["eggplant", "🍆"],
   ["peperoncin", "🌶️"],
   ["chili", "🌶️"],
-  ["zucca", "🎃"],
+  ["zucc", "🎃"],  // zucca, zucche
 
   // Proteine
   ["pollo", "🍗"],
