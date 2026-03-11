@@ -675,6 +675,48 @@ export type Database = {
         }
         Relationships: []
       }
+      ingredient_categories: {
+        Row: {
+          category: string
+          id: string
+          ingredient_name: string
+          subcategory: string | null
+        }
+        Insert: {
+          category: string
+          id?: string
+          ingredient_name: string
+          subcategory?: string | null
+        }
+        Update: {
+          category?: string
+          id?: string
+          ingredient_name?: string
+          subcategory?: string | null
+        }
+        Relationships: []
+      }
+      ingredient_compatibility_matrix: {
+        Row: {
+          category_a: string
+          category_b: string
+          id: string
+          is_compatible: boolean
+        }
+        Insert: {
+          category_a: string
+          category_b: string
+          id?: string
+          is_compatible?: boolean
+        }
+        Update: {
+          category_a?: string
+          category_b?: string
+          id?: string
+          is_compatible?: boolean
+        }
+        Relationships: []
+      }
       ingredient_translation: {
         Row: {
           id: string
