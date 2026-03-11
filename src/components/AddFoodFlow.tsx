@@ -303,6 +303,14 @@ const AddFoodFlow = ({
         macros: { protein: totalP, carbs: totalC, fats: totalF },
       });
       if (itemErr) throw itemErr;
+      // Auto-deduct from pantry
+      const pantryItems = ingredients.map(i => ({
+        custom_name: i.name,
+        dish_name: i.name,
+        quantity: i.grams,
+        unit: "g" as const,
+      }));
+      await deductPantryFromMeal(user.id, pantryItems);
       toast({ title: `"${title}" registrato! ✅` });
       setSaved(true);
       if (navigator.vibrate) navigator.vibrate(50);
