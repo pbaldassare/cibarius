@@ -95,6 +95,7 @@ import SupplierCatalogPage from "./pages/supplier/SupplierCatalogPage";
 import SupplierReportsPage from "./pages/supplier/SupplierReportsPage";
 import SupplierInvitePage from "./pages/supplier/SupplierInvitePage";
 
+import JoinReferralPage from "./pages/JoinReferralPage";
 import NotFound from "./pages/NotFound";
 import PwaInstallBanner from "./components/PwaInstallBanner";
 import { PwaInstallProvider } from "./hooks/usePwaInstall";
