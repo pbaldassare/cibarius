@@ -509,20 +509,12 @@ const Index = () => {
                     <p className="text-[11px] text-muted-foreground mt-1">{aiSuggestion.reason}</p>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => navigate("/suggest-meal")}
+                <button
+                    onClick={() => navigate("/anti-waste")}
                     className="flex-1 h-9 rounded-[10px] text-[12px] font-semibold btn-brand active:scale-[0.97] transition-all"
                   >
-                    Vedi ricette AI
+                    Trova ricette
                   </button>
-                  <button
-                    onClick={() => navigate("/anti-waste")}
-                    className="flex-1 h-9 rounded-[10px] text-[12px] font-semibold border border-border text-foreground active:scale-[0.97] transition-all"
-                  >
-                    Ricette rapide
-                  </button>
-                </div>
               </div>
             </div>
           </section>
