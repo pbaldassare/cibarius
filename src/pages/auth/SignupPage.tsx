@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, UserPlus, Eye, EyeOff, User, UtensilsCrossed, Stethoscope, ArrowLeft, ArrowRight, Check } from "lucide-react";
 import cibariusLogo from "@/assets/cibarius-logo.png";
 import AuthFeatureCarousel from "@/components/AuthFeatureCarousel";
+import ReferralBadge from "@/components/ReferralBadge";
 
 
 type AccountType = "user" | "restaurant_owner" | "professional";
