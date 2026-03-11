@@ -580,7 +580,7 @@ const ProfiloPage = () => {
           {!isPwaInstalled && (
             <button
               onClick={() => {
-                if (pwaPrompt) {
+                if (canInstall) {
                   handlePwaInstall();
                 } else if (isIos) {
                   toast({ title: "Installa Cibarius", description: "Tocca Condividi ↑ poi \"Aggiungi alla schermata Home\"" });
