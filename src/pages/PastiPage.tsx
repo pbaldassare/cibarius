@@ -64,6 +64,7 @@ const PastiPage = () => {
   const [loading, setLoading] = useState(true);
   const [mealDay, setMealDay] = useState<MealDay | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheetMealType, setSheetMealType] = useState<string | undefined>(undefined);
   const [targetKcal, setTargetKcal] = useState<number | null>(null);
   const [dietPlan, setDietPlan] = useState<any>(null);
   const [mealTargets, setMealTargets] = useState<MealTarget[]>([]);
@@ -224,7 +225,7 @@ const PastiPage = () => {
               Foto AI
             </button>
             <button
-              onClick={() => setSheetOpen(true)}
+              onClick={() => { setSheetMealType(undefined); setSheetOpen(true); }}
               className="flex items-center gap-1 rounded-xl bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground"
             >
               <Plus size={16} />
@@ -271,7 +272,7 @@ const PastiPage = () => {
             title="Nessun pasto registrato"
             description="Aggiungi il tuo primo alimento per tracciare le calorie di oggi."
             actions={[
-              { label: "Aggiungi alimento", icon: Plus, onClick: () => setSheetOpen(true) },
+              { label: "Aggiungi alimento", icon: Plus, onClick: () => { setSheetMealType(undefined); setSheetOpen(true); } },
               { label: "Obiettivi", icon: Target, variant: "outline", onClick: () => navigate("/meals/targets") },
             ]}
           />
@@ -379,7 +380,7 @@ const PastiPage = () => {
                   })()}
 
                   <button
-                    onClick={() => setSheetOpen(true)}
+                    onClick={() => { setSheetMealType(meal.meal_type); setSheetOpen(true); }}
                     className="flex items-center gap-1 text-xs font-medium text-primary pt-1"
                   >
                     <Plus size={14} /> Aggiungi alimento
@@ -395,6 +396,7 @@ const PastiPage = () => {
         open={sheetOpen}
         onOpenChange={setSheetOpen}
         context="meal"
+        mealType={sheetMealType as any}
         onComplete={fetchMeals}
       />
 
