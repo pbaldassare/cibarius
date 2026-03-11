@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
+import { deductPantryFromMeal } from "@/lib/pantry-deduction";
 import { autoMatchProduct } from "@/lib/nutrition";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -302,6 +303,14 @@ const AddFoodFlow = ({
         macros: { protein: totalP, carbs: totalC, fats: totalF },
       });
       if (itemErr) throw itemErr;
+      // Auto-deduct from pantry
+      const pantryItems = ingredients.map(i => ({
+        custom_name: i.name,
+        dish_name: i.name,
+        quantity: i.grams,
+        unit: "g" as const,
+      }));
+      await deductPantryFromMeal(user.id, pantryItems);
       toast({ title: `"${title}" registrato! ✅` });
       setSaved(true);
       if (navigator.vibrate) navigator.vibrate(50);
@@ -956,6 +965,15 @@ const AddFoodFlow = ({
           macros: computed.macros as any,
         });
         if (error) throw error;
+
+        // Auto-deduct from pantry
+        await deductPantryFromMeal(user.id, [{
+          custom_name: name.trim(),
+          dish_name: name.trim(),
+          product_id: pid || undefined,
+          quantity,
+          unit,
+        }]);
 
         if (saveToInventory) {
           const invData: any = {
