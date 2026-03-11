@@ -155,11 +155,59 @@ const AddFoodFlow = ({
   const [activePlanTitle, setActivePlanTitle] = useState<string>("");
 
   // Receipt QR state
-  interface ReceiptProduct { name: string; quantity: number; unit: string; price: number | null; category: string; selected: boolean; }
+  interface ReceiptProduct { name: string; quantity: number; unit: string; price: number | null; category: string; selected: boolean; storage_type: string; }
   const [receiptProducts, setReceiptProducts] = useState<ReceiptProduct[]>([]);
   const [receiptLoading, setReceiptLoading] = useState(false);
-  const [receiptStorageType, setReceiptStorageType] = useState("frigo");
   const [receiptSaving, setReceiptSaving] = useState(false);
+
+  // Smart storage assignment based on category + product name
+  const guessStorage = (category: string, name: string): string => {
+    const lower = (name + " " + category).toLowerCase();
+    // Freezer items
+    const freezerKw = ["surgelat", "gelat", "ghiacci", "frozen", "congelat"];
+    if (freezerKw.some(k => lower.includes(k))) return "freezer";
+    // Fridge items
+    const fridgeKw = [
+      "latte", "yogurt", "formaggio", "mozzarella", "ricotta", "burro", "panna",
+      "uov", "carne", "pollo", "manzo", "maiale", "tacchino", "salume", "prosciutt",
+      "wurstel", "würstel", "bresaola", "speck", "mortadella", "salsiccia",
+      "pesce", "salmone", "tonno fresc", "gamberi", "insalata", "verdur",
+      "latticin", "affettat", "stracchino", "gorgonzola", "parmigian", "pecorino",
+      "mascarpone", "philadelphia", "skyr", "kefir",
+      "succo", "spremut",
+      "zucchini", "pomodor", "carota", "peperone", "spinaci", "broccol",
+      "cavolfiore", "melanzana", "sedano", "finocchi", "radicchio",
+      "frutta", "mela", "pera", "banana", "arancia", "fragol", "kiwi",
+      "uva", "pesca", "albicocca", "mandarino", "limone", "anguria", "melone",
+    ];
+    if (fridgeKw.some(k => lower.includes(k))) return "frigo";
+    // Pantry items (ambient)
+    const pantryKw = [
+      "pasta", "riso", "farina", "zuccher", "olio", "aceto", "sale",
+      "caffè", "caffe", "tea", "the", "tisana", "biscott", "crackers", "cracker",
+      "grissini", "fette biscottate", "pane", "cereali", "muesli",
+      "marmellata", "miele", "nutella", "cioccolat", "cacao",
+      "conserv", "pelat", "passata", "sugo", "tonno", "fagioli", "ceci", "lenticch",
+      "legum", "spezie", "pepe", "origano", "basilico secco",
+      "dado", "brodo", "salsa", "ketchup", "maionese", "senape",
+      "caramell", "gomm", "snack", "barrett", "merendin",
+      "acqua", "birra", "vino", "bibita", "cola", "aranciata",
+      "bevand", "drink", "energy",
+      "scatola", "latta", "secco", "disidrat", "frutta secca",
+      "noci", "mandorl", "nocciolin", "pistacch", "arachid",
+    ];
+    if (pantryKw.some(k => lower.includes(k))) return "ambiente";
+    // Default by category
+    const catMap: Record<string, string> = {
+      latticini: "frigo", carne: "frigo", pesce: "frigo", salumi: "frigo",
+      frutta: "frigo", verdura: "frigo", uova: "frigo",
+      surgelati: "freezer",
+      cereali: "ambiente", bevande: "ambiente", dolci: "ambiente",
+      conserve: "ambiente", condimenti: "ambiente", snack: "ambiente",
+      altro: "ambiente",
+    };
+    return catMap[lower.split(" ").find(w => catMap[w]) || ""] || "frigo";
+  };
 
   // Receipt photo state
   const receiptPhotoInputRef = useRef<HTMLInputElement>(null);
@@ -304,7 +352,6 @@ const AddFoodFlow = ({
         setSaved(false);
         setEditingChip(null);
         setReceiptProducts([]);
-        setReceiptStorageType("frigo");
         setReceiptPhotoPreview(null);
       }, 300);
     }
@@ -491,7 +538,7 @@ const AddFoodFlow = ({
           body: { qr_content: code },
         });
         if (fnError) throw fnError;
-        const products = (fnData?.products || []).map((p: any) => ({ ...p, selected: true }));
+        const products = (fnData?.products || []).map((p: any) => ({ ...p, selected: true, storage_type: guessStorage(p.category || "", p.name || "") }));
         setReceiptProducts(products);
         if (products.length === 0) {
           toast({ variant: "destructive", title: "Nessun prodotto trovato nello scontrino" });
@@ -588,7 +635,7 @@ const AddFoodFlow = ({
         body: { receipt_image: { base64, mime_type: file.type } },
       });
       if (fnError) throw fnError;
-      const products = (fnData?.products || []).map((p: any) => ({ ...p, selected: true }));
+      const products = (fnData?.products || []).map((p: any) => ({ ...p, selected: true, storage_type: guessStorage(p.category || "", p.name || "") }));
       setReceiptProducts(products);
       if (products.length === 0) {
         toast({ variant: "destructive", title: "Nessun prodotto trovato nello scontrino" });
@@ -1467,48 +1514,40 @@ const AddFoodFlow = ({
                     </div>
 
                     <div className="space-y-1">
-                      {receiptProducts.map((p, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => setReceiptProducts(prev => prev.map((pp, i) => i === idx ? { ...pp, selected: !pp.selected } : pp))}
-                          className={`flex w-full items-center gap-3 rounded-xl p-3 text-left transition-colors ${p.selected ? "bg-primary/5 border border-primary/20" : "bg-card border border-border opacity-60"}`}
-                        >
-                          <Checkbox checked={p.selected} className="shrink-0" />
+                    {receiptProducts.map((p, idx) => {
+                      const stOpt = storageOptions.find(s => s.key === p.storage_type) || storageOptions[1];
+                      const StIcon = stOpt.icon;
+                      return (
+                        <div key={idx} className={`flex w-full items-center gap-3 rounded-xl p-3 transition-colors ${p.selected ? "bg-primary/5 border border-primary/20" : "bg-card border border-border opacity-60"}`}>
+                          <button onClick={() => setReceiptProducts(prev => prev.map((pp, i) => i === idx ? { ...pp, selected: !pp.selected } : pp))} className="shrink-0">
+                            <Checkbox checked={p.selected} />
+                          </button>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-foreground truncate">{p.name}</p>
                             <p className="text-xs text-muted-foreground">
                               {p.quantity} {p.unit}
                               {p.price != null && ` · €${p.price.toFixed(2)}`}
-                              {p.category && ` · ${p.category}`}
                             </p>
                           </div>
-                          <ShoppingCart className="h-4 w-4 text-muted-foreground shrink-0" />
-                        </button>
-                      ))}
+                          {context === "inventory" && (
+                            <button
+                              onClick={() => {
+                                const keys = storageOptions.map(s => s.key);
+                                const nextIdx = (keys.indexOf(p.storage_type as typeof keys[number]) + 1) % keys.length;
+                                setReceiptProducts(prev => prev.map((pp, i) => i === idx ? { ...pp, storage_type: keys[nextIdx] } : pp));
+                              }}
+                              className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium bg-muted text-muted-foreground hover:bg-accent transition-colors shrink-0"
+                              title={`Cambia conservazione (${stOpt.label})`}
+                            >
+                              <StIcon className="h-3.5 w-3.5" />
+                              {stOpt.label}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
                     </div>
 
-                    {/* Storage type selector */}
-                    {context === "inventory" && (
-                      <div className="space-y-2">
-                        <p className="text-xs font-semibold text-foreground">Conservazione</p>
-                        <div className="grid grid-cols-3 gap-2">
-                          {storageOptions.map(({ key, label, icon: Icon }) => (
-                            <button
-                              key={key}
-                              onClick={() => setReceiptStorageType(key)}
-                              className={`flex flex-col items-center gap-1 rounded-xl p-3 text-xs font-semibold transition-colors ${
-                                receiptStorageType === key
-                                  ? "bg-primary text-primary-foreground"
-                                  : "bg-card border border-border text-foreground"
-                              }`}
-                            >
-                              <Icon className="h-4 w-4" />
-                              {label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
 
                     {/* Add selected CTA */}
                     <Button
@@ -1533,7 +1572,7 @@ const AddFoodFlow = ({
                                 product_id: prod.id,
                                 quantity: item.quantity,
                                 unit: item.unit === "pz" ? "pezzi" : item.unit,
-                                storage_type: receiptStorageType,
+                                storage_type: item.storage_type || "frigo",
                                 expiry_date: format(addDays(new Date(), 3), "yyyy-MM-dd"),
                               };
                               if (defaultRestaurantId) insertData.restaurant_id = defaultRestaurantId;
