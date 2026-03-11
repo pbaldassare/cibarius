@@ -1526,30 +1526,43 @@ const AddFoodFlow = ({
                       const stOpt = storageOptions.find(s => s.key === p.storage_type) || storageOptions[1];
                       const StIcon = stOpt.icon;
                       return (
-                        <div key={idx} className={`flex w-full items-center gap-3 rounded-xl p-3 transition-colors ${p.selected ? "bg-primary/5 border border-primary/20" : "bg-card border border-border opacity-60"}`}>
-                          <button onClick={() => setReceiptProducts(prev => prev.map((pp, i) => i === idx ? { ...pp, selected: !pp.selected } : pp))} className="shrink-0">
-                            <Checkbox checked={p.selected} />
-                          </button>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-foreground truncate">{p.name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {p.quantity} {p.unit}
-                              {p.price != null && ` · €${p.price.toFixed(2)}`}
-                            </p>
-                          </div>
-                          {context === "inventory" && (
-                            <button
-                              onClick={() => {
-                                const keys = storageOptions.map(s => s.key);
-                                const nextIdx = (keys.indexOf(p.storage_type as typeof keys[number]) + 1) % keys.length;
-                                setReceiptProducts(prev => prev.map((pp, i) => i === idx ? { ...pp, storage_type: keys[nextIdx] } : pp));
-                              }}
-                              className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium bg-muted text-muted-foreground hover:bg-accent transition-colors shrink-0"
-                              title={`Cambia conservazione (${stOpt.label})`}
-                            >
-                              <StIcon className="h-3.5 w-3.5" />
-                              {stOpt.label}
+                        <div key={idx} className={`rounded-xl p-3 transition-colors ${p.selected ? "bg-primary/5 border border-primary/20" : "bg-card border border-border opacity-60"}`}>
+                          <div className="flex w-full items-center gap-3">
+                            <button onClick={() => setReceiptProducts(prev => prev.map((pp, i) => i === idx ? { ...pp, selected: !pp.selected } : pp))} className="shrink-0">
+                              <Checkbox checked={p.selected} />
                             </button>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-foreground truncate">{p.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {p.quantity} {p.unit}
+                                {p.price != null && ` · €${p.price.toFixed(2)}`}
+                              </p>
+                            </div>
+                            {context === "inventory" && (
+                              <button
+                                onClick={() => {
+                                  const keys = storageOptions.map(s => s.key);
+                                  const nextIdx = (keys.indexOf(p.storage_type as typeof keys[number]) + 1) % keys.length;
+                                  setReceiptProducts(prev => prev.map((pp, i) => i === idx ? { ...pp, storage_type: keys[nextIdx] } : pp));
+                                }}
+                                className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium bg-muted text-muted-foreground hover:bg-accent transition-colors shrink-0"
+                                title={`Cambia conservazione (${stOpt.label})`}
+                              >
+                                <StIcon className="h-3.5 w-3.5" />
+                                {stOpt.label}
+                              </button>
+                            )}
+                          </div>
+                          {context === "inventory" && p.selected && (
+                            <div className="flex items-center gap-2 mt-2 ml-8">
+                              <CalendarSearch className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              <Input
+                                type="date"
+                                value={p.expiry_date}
+                                onChange={(e) => setReceiptProducts(prev => prev.map((pp, i) => i === idx ? { ...pp, expiry_date: e.target.value } : pp))}
+                                className="h-7 text-xs w-auto"
+                              />
+                            </div>
                           )}
                         </div>
                       );
