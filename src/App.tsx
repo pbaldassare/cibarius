@@ -85,6 +85,7 @@ import UserMessagesPage from "./pages/UserMessagesPage";
 import ShoppingListPage from "./pages/ShoppingListPage";
 import UserMeasurementsPage from "./pages/UserMeasurementsPage";
 import ProClientMeasurementsPage from "./pages/pro/ProClientMeasurementsPage";
+import ProCouponPage from "./pages/pro/ProCouponPage";
 
 // Supplier pages
 import SupplierPage from "./pages/supplier/SupplierPage";
