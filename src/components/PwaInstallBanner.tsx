@@ -1,46 +1,26 @@
 import { useState, useEffect } from "react";
 import { X, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-}
+import { usePwaInstall } from "@/hooks/usePwaInstall";
 
 const PwaInstallBanner = () => {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const { canInstall, isInstalled, isIos, install } = usePwaInstall();
   const [showBanner, setShowBanner] = useState(false);
-  const [isIos, setIsIos] = useState(false);
 
   useEffect(() => {
-    // Already installed as PWA
-    if (window.matchMedia("(display-mode: standalone)").matches) return;
+    if (isInstalled) return;
 
     const dismissed = localStorage.getItem("pwa-banner-dismissed");
-    if (dismissed && Date.now() - Number(dismissed) < 2 * 60 * 60 * 1000) return; // 2 ore
+    if (dismissed && Date.now() - Number(dismissed) < 2 * 60 * 60 * 1000) return;
 
-    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !(window as any).MSStream;
-    setIsIos(ios);
-    if (ios) {
+    if (isIos || canInstall) {
       setShowBanner(true);
-      return;
     }
-
-    const handler = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
-      setShowBanner(true);
-    };
-    window.addEventListener("beforeinstallprompt", handler);
-    return () => window.removeEventListener("beforeinstallprompt", handler);
-  }, []);
+  }, [isInstalled, isIos, canInstall]);
 
   const handleInstall = async () => {
-    if (!deferredPrompt) return;
-    await deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === "accepted") setShowBanner(false);
-    setDeferredPrompt(null);
+    const accepted = await install();
+    if (accepted) setShowBanner(false);
   };
 
   const handleDismiss = () => {
@@ -69,7 +49,7 @@ const PwaInstallBanner = () => {
           )}
         </div>
         <div className="flex items-center gap-1 shrink-0">
-          {!isIos && (
+          {canInstall && (
             <Button size="sm" className="h-8 text-xs px-3" onClick={handleInstall}>
               Installa
             </Button>

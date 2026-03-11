@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { usePwaInstall } from "@/hooks/usePwaInstall";
 import MobileHeader from "@/components/MobileHeader";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -44,10 +45,7 @@ interface ProProfileData {
   is_visible: boolean;
 }
 
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-}
+
 
 const ProfiloPage = () => {
   const { user, signOut } = useAuth();
@@ -99,33 +97,7 @@ const ProfiloPage = () => {
   const [deleting, setDeleting] = useState(false);
 
   // PWA install
-  const [pwaPrompt, setPwaPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isPwaInstalled, setIsPwaInstalled] = useState(false);
-  const [isIos, setIsIos] = useState(false);
-
-  useEffect(() => {
-    const standalone = window.matchMedia("(display-mode: standalone)").matches;
-    setIsPwaInstalled(standalone);
-    if (standalone) return;
-
-    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !(window as any).MSStream;
-    setIsIos(ios);
-
-    const handler = (e: Event) => {
-      e.preventDefault();
-      setPwaPrompt(e as BeforeInstallPromptEvent);
-    };
-    window.addEventListener("beforeinstallprompt", handler);
-    return () => window.removeEventListener("beforeinstallprompt", handler);
-  }, []);
-
-  const handlePwaInstall = async () => {
-    if (!pwaPrompt) return;
-    await pwaPrompt.prompt();
-    const { outcome } = await pwaPrompt.userChoice;
-    if (outcome === "accepted") setIsPwaInstalled(true);
-    setPwaPrompt(null);
-  };
+  const { canInstall, isInstalled: isPwaInstalled, isIos, install: handlePwaInstall } = usePwaInstall();
 
   useEffect(() => {
     if (!user) return;
@@ -608,7 +580,7 @@ const ProfiloPage = () => {
           {!isPwaInstalled && (
             <button
               onClick={() => {
-                if (pwaPrompt) {
+                if (canInstall) {
                   handlePwaInstall();
                 } else if (isIos) {
                   toast({ title: "Installa Cibarius", description: "Tocca Condividi ↑ poi \"Aggiungi alla schermata Home\"" });

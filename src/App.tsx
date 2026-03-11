@@ -95,6 +95,7 @@ import SupplierInvitePage from "./pages/supplier/SupplierInvitePage";
 
 import NotFound from "./pages/NotFound";
 import PwaInstallBanner from "./components/PwaInstallBanner";
+import { PwaInstallProvider } from "./hooks/usePwaInstall";
 
 const queryClient = new QueryClient();
 
@@ -104,6 +105,7 @@ const RG = ({ roles, children }: { roles: string[]; children: React.ReactNode })
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
+    <PwaInstallProvider>
     <TooltipProvider>
       <Toaster />
       <Sonner />
@@ -217,6 +219,7 @@ const App = () => (
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
+    </PwaInstallProvider>
   </QueryClientProvider>
 );
 
