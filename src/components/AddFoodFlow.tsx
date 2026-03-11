@@ -155,7 +155,7 @@ const AddFoodFlow = ({
   const [activePlanTitle, setActivePlanTitle] = useState<string>("");
 
   // Receipt QR state
-  interface ReceiptProduct { name: string; quantity: number; unit: string; price: number | null; category: string; selected: boolean; storage_type: string; }
+  interface ReceiptProduct { name: string; quantity: number; unit: string; price: number | null; category: string; selected: boolean; storage_type: string; expiry_date: string; }
   const [receiptProducts, setReceiptProducts] = useState<ReceiptProduct[]>([]);
   const [receiptLoading, setReceiptLoading] = useState(false);
   const [receiptSaving, setReceiptSaving] = useState(false);
