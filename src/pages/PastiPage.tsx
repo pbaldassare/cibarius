@@ -59,6 +59,7 @@ const mealOrder = ["colazione", "pranzo", "spuntino", "cena"];
 const PastiPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const { getFavoritesForMeal, loading: favsLoading } = useFavorites();
   const [loading, setLoading] = useState(true);
