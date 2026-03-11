@@ -168,11 +168,7 @@ const ExpiryPage = () => {
 
   const handleChangeStorage = async (item: ExpiryItem, newStorage: string) => {
     if (item.storage_type === newStorage) return;
-    if (item.type === "product") {
-      await supabase.from("inventory_items").update({ storage_type: newStorage }).eq("id", item.id);
-    } else {
-      await supabase.from("preparations").update({ storage_type: newStorage }).eq("id", item.id);
-    }
+    await supabase.from("inventory_items").update({ storage_type: newStorage }).eq("id", item.id);
     toast({ title: `Spostato in ${storageLabel[newStorage] ?? newStorage} ✓` });
     setActionSheet((prev) => prev ? { ...prev, storage_type: newStorage } : null);
     fetchItems();
