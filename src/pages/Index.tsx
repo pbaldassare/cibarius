@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import {
   Clock, Plus, Search, Zap, ChevronRight,
-  BookOpen, SlidersHorizontal, X, Trash2, Leaf,
+  BookOpen, SlidersHorizontal, X, Trash2, Leaf, Sparkles,
 } from "lucide-react";
 
 /* ─── types ─── */
