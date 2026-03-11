@@ -111,20 +111,6 @@ const ExpiryPage = () => {
         });
       }
     }
-    if (prepRes.data) {
-      for (const p of prepRes.data as any[]) {
-        result.push({
-          id: p.id, type: "preparation",
-          name: p.name,
-          image_url: p.image_url ?? null,
-          expiry_date: p.use_by_date,
-          storage_type: p.storage_type ?? "frigo",
-          quantity: p.portions, unit: "porzioni",
-          brand: null, calories_100g: null, macros_100g: null,
-          calories_total: null, macros_total: null,
-        });
-      }
-    }
 
     setItems(result);
     setLoading(false);
