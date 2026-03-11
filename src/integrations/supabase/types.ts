@@ -1026,6 +1026,108 @@ export type Database = {
         }
         Relationships: []
       }
+      nutritionist_commissions: {
+        Row: {
+          client_user_id: string
+          commission_amount: number
+          commission_percent: number
+          coupon_id: string | null
+          created_at: string
+          final_paid_amount: number
+          id: string
+          nutritionist_user_id: string
+          original_amount: number
+          paid_at: string | null
+          payment_id: string | null
+          status: string
+        }
+        Insert: {
+          client_user_id: string
+          commission_amount: number
+          commission_percent: number
+          coupon_id?: string | null
+          created_at?: string
+          final_paid_amount: number
+          id?: string
+          nutritionist_user_id: string
+          original_amount: number
+          paid_at?: string | null
+          payment_id?: string | null
+          status?: string
+        }
+        Update: {
+          client_user_id?: string
+          commission_amount?: number
+          commission_percent?: number
+          coupon_id?: string | null
+          created_at?: string
+          final_paid_amount?: number
+          id?: string
+          nutritionist_user_id?: string
+          original_amount?: number
+          paid_at?: string | null
+          payment_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nutritionist_commissions_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "nutritionist_coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nutritionist_commissions_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nutritionist_coupons: {
+        Row: {
+          client_discount_percent: number
+          coupon_code: string
+          created_at: string
+          current_uses: number
+          id: string
+          is_active: boolean
+          max_uses: number | null
+          nutritionist_commission_percent: number
+          nutritionist_user_id: string
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          client_discount_percent?: number
+          coupon_code: string
+          created_at?: string
+          current_uses?: number
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          nutritionist_commission_percent?: number
+          nutritionist_user_id: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          client_discount_percent?: number
+          coupon_code?: string
+          created_at?: string
+          current_uses?: number
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          nutritionist_commission_percent?: number
+          nutritionist_user_id?: string
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: []
+      }
       preparation_allergens: {
         Row: {
           allergen_id: string
@@ -1693,6 +1795,53 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_payments: {
+        Row: {
+          coupon_code: string | null
+          coupon_id: string | null
+          created_at: string
+          discount_amount: number
+          discount_percent: number
+          final_amount: number
+          id: string
+          original_amount: number
+          payment_status: string
+          user_id: string
+        }
+        Insert: {
+          coupon_code?: string | null
+          coupon_id?: string | null
+          created_at?: string
+          discount_amount?: number
+          discount_percent?: number
+          final_amount: number
+          id?: string
+          original_amount: number
+          payment_status?: string
+          user_id: string
+        }
+        Update: {
+          coupon_code?: string | null
+          coupon_id?: string | null
+          created_at?: string
+          discount_amount?: number
+          discount_percent?: number
+          final_amount?: number
+          id?: string
+          original_amount?: number
+          payment_status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_payments_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "nutritionist_coupons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supplier_invites: {
         Row: {
           created_at: string
@@ -2005,6 +2154,44 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_nutritionist_links: {
+        Row: {
+          client_user_id: string
+          coupon_id: string | null
+          id: string
+          is_active: boolean
+          link_source: string
+          linked_at: string
+          nutritionist_user_id: string
+        }
+        Insert: {
+          client_user_id: string
+          coupon_id?: string | null
+          id?: string
+          is_active?: boolean
+          link_source?: string
+          linked_at?: string
+          nutritionist_user_id: string
+        }
+        Update: {
+          client_user_id?: string
+          coupon_id?: string | null
+          id?: string
+          is_active?: boolean
+          link_source?: string
+          linked_at?: string
+          nutritionist_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_nutritionist_links_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "nutritionist_coupons"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
