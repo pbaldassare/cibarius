@@ -15,7 +15,7 @@ import MealRecipeCard from "@/components/MealRecipeCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useFavorites } from "@/hooks/useFavorites";
-import { Loader2, Plus, ArrowRight, RefreshCw, ChevronDown, ChevronUp, UtensilsCrossed, Save, AlertTriangle } from "lucide-react";
+import { Loader2, Plus, ArrowRight, RefreshCw, ChevronDown, ChevronUp, UtensilsCrossed, Save, AlertTriangle, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 const MEAL_LABELS: Record<string, { emoji: string; label: string }> = {
@@ -106,6 +106,8 @@ const UserActivePlanPage = () => {
   const [todayMeals, setTodayMeals] = useState<TodayMeal[]>([]);
   const [recipes, setRecipes] = useState<TemplateRecipe[]>([]);
   const [openRecipes, setOpenRecipes] = useState<Record<string, boolean>>({});
+  const [aiRecipes, setAiRecipes] = useState<Record<string, any>>({}); // per meal_type
+  const [aiLoading, setAiLoading] = useState<Record<string, boolean>>({});
 
   // Save-day state
   const [mealsLogged, setMealsLogged] = useState<Record<string, boolean>>({});
@@ -300,6 +302,32 @@ const UserActivePlanPage = () => {
     } catch (e: any) {
       toast.error("Errore nella registrazione: " + e.message);
     }
+  };
+
+  const handleGenerateAiRecipe = async (mealType: string, remainingKcal: number, target: MealTarget) => {
+    setAiLoading((prev) => ({ ...prev, [mealType]: true }));
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-meal-recipe", {
+        body: {
+          meal_type: mealType,
+          kcal_target: Math.round(remainingKcal),
+          protein_g: Math.round(target.protein_g * (remainingKcal / target.kcal_target)),
+          carbs_g: Math.round(target.carbs_g * (remainingKcal / target.kcal_target)),
+          fats_g: Math.round(target.fats_g * (remainingKcal / target.kcal_target)),
+          diet_category: dietCategory,
+          is_female: isFemale,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (data?.recipe) {
+        setAiRecipes((prev) => ({ ...prev, [mealType]: data.recipe }));
+        toast.success("Ricetta generata! 🍽️");
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Errore nella generazione");
+    }
+    setAiLoading((prev) => ({ ...prev, [mealType]: false }));
   };
 
   const handleSaveDay = async () => {
@@ -549,6 +577,49 @@ const UserActivePlanPage = () => {
                       </div>
                     </CollapsibleContent>
                   </Collapsible>
+                )}
+
+                {/* AI generated recipe */}
+                {aiRecipes[target.meal_type] && (
+                  <div className="pt-1">
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                      <Sparkles className="h-3 w-3 text-primary" /> Ricetta AI su misura
+                    </p>
+                    <MealRecipeCard
+                      title={aiRecipes[target.meal_type].title}
+                      instructions={aiRecipes[target.meal_type].instructions}
+                      prep_time_min={aiRecipes[target.meal_type].prep_time_min}
+                      ingredients={aiRecipes[target.meal_type].ingredients}
+                      kcal_total={aiRecipes[target.meal_type].kcal_total}
+                      protein_total={aiRecipes[target.meal_type].protein_total}
+                      carbs_total={aiRecipes[target.meal_type].carbs_total}
+                      fats_total={aiRecipes[target.meal_type].fats_total}
+                      portionScale={1}
+                      onRegister={(ings, title) => handleRegisterRecipe(ings, title, target.meal_type)}
+                    />
+                  </div>
+                )}
+
+                {/* Generate AI recipe button */}
+                {hasLogged && remainingKcal > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-xs h-8 gap-1.5 border-primary/30 text-primary hover:bg-primary/5"
+                    disabled={!!aiLoading[target.meal_type]}
+                    onClick={() => handleGenerateAiRecipe(target.meal_type, remainingKcal, target)}
+                  >
+                    {aiLoading[target.meal_type] ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-3.5 w-3.5" />
+                    )}
+                    {aiLoading[target.meal_type]
+                      ? "Generazione in corso..."
+                      : aiRecipes[target.meal_type]
+                        ? `Rigenera ricetta (≤${Math.round(remainingKcal)} kcal)`
+                        : `Genera ricetta AI (≤${Math.round(remainingKcal)} kcal)`}
+                  </Button>
                 )}
               </CardContent>
             </Card>
