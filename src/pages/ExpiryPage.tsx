@@ -23,7 +23,7 @@ import { Input } from "@/components/ui/input";
 
 interface ExpiryItem {
   id: string;
-  type: "product" | "preparation";
+  type: "product";
   name: string;
   image_url: string | null;
   expiry_date: string | null;
