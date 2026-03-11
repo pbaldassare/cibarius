@@ -461,7 +461,7 @@ const Index = () => {
                           {item.date && <>Scade il {new Date(item.date).toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" })}</>}
                           {item.date && " · "}
                           {storageLabel[item.storage] ?? item.storage}
-                          {item.qty != null && ` · x${item.qty}`}
+                          {item.qty != null && ` · ${item.qty}${item.unit ? ` ${item.unit}` : ""}`}
                         </p>
                       </div>
                       <span
