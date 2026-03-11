@@ -98,6 +98,35 @@ const ProfiloPage = () => {
   // Deleting
   const [deleting, setDeleting] = useState(false);
 
+  // PWA install
+  const [pwaPrompt, setPwaPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [isPwaInstalled, setIsPwaInstalled] = useState(false);
+  const [isIos, setIsIos] = useState(false);
+
+  useEffect(() => {
+    const standalone = window.matchMedia("(display-mode: standalone)").matches;
+    setIsPwaInstalled(standalone);
+    if (standalone) return;
+
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !(window as any).MSStream;
+    setIsIos(ios);
+
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setPwaPrompt(e as BeforeInstallPromptEvent);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  const handlePwaInstall = async () => {
+    if (!pwaPrompt) return;
+    await pwaPrompt.prompt();
+    const { outcome } = await pwaPrompt.userChoice;
+    if (outcome === "accepted") setIsPwaInstalled(true);
+    setPwaPrompt(null);
+  };
+
   useEffect(() => {
     if (!user) return;
     // Load profile
