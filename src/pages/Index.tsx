@@ -247,36 +247,59 @@ const Index = () => {
 
   useEffect(() => { fetchItems(); }, [user]);
 
-  // Smart suggestions using DB-driven ingredient compatibility
-  const aiSuggestions = useMemo(() => {
-    if (items.length === 0 || !compatLoaded) return [];
+  // Smart suggestion with reason_type
+  type ReasonType = "expiration_soon" | "ingredients_available" | "quick_recipe" | "common_combination" | "balanced_meal";
+
+  interface SmartSuggestion {
+    items: string[];
+    recipes: string[];
+    reason_type: ReasonType;
+  }
+
+  const aiSuggestion = useMemo((): SmartSuggestion | null => {
+    if (items.length === 0 || !compatLoaded) return null;
 
     const expiring = items.filter(i => {
       const s = getStatus(i.expiry_date);
       return s === "expired" || s === "today" || s === "tomorrow" || s === "soon";
     });
 
-    if (expiring.length === 0) return [];
-    if (expiring.length === 1) {
-      return [{
-        title: `${expiring[0].product.name} sta per scadere`,
-        reason: "Usalo oggi per evitare spreco!",
-        items: [expiring[0].product.name],
-        recipes: [],
-      }];
+    // Priority 1: expiring items with compatible pairs
+    if (expiring.length >= 2) {
+      const names = expiring.map(i => i.product.name);
+      const groups = buildGroups(names, 1);
+      if (groups.length > 0) {
+        return {
+          items: groups[0].items.slice(0, 2),
+          recipes: groups[0].recipes.slice(0, 2),
+          reason_type: "expiration_soon",
+        };
+      }
     }
 
-    const names = expiring.map(i => i.product.name);
-    const groups = buildGroups(names, 2);
+    // Priority 2: single expiring item
+    if (expiring.length === 1) {
+      return {
+        items: [expiring[0].product.name],
+        recipes: [],
+        reason_type: "expiration_soon",
+      };
+    }
 
-    return groups.map(g => ({
-      title: `Consuma prima: ${g.items.join(" e ")}`,
-      reason: g.recipes.length > 0
-        ? `Ricette possibili: ${g.recipes.join(", ")}`
-        : "Da consumare presto!",
-      items: g.items,
-      recipes: g.recipes,
-    }));
+    // Priority 3: available ingredients (no expiry urgency but have items)
+    if (items.length >= 2) {
+      const names = items.slice(0, 10).map(i => i.product.name);
+      const groups = buildGroups(names, 1);
+      if (groups.length > 0 && groups[0].recipes.length > 0) {
+        return {
+          items: groups[0].items.slice(0, 2),
+          recipes: groups[0].recipes.slice(0, 2),
+          reason_type: groups[0].recipes.length > 0 ? "quick_recipe" : "ingredients_available",
+        };
+      }
+    }
+
+    return null;
   }, [items, compatLoaded, buildGroups]);
 
   // Counts
@@ -504,50 +527,58 @@ const Index = () => {
         </section>
 
         {/* ═══ 3 — SUGGERIMENTO CIBARIUS ═══ */}
-        {aiSuggestions.length > 0 && (
-          <section className="space-y-2.5">
-            <SectionHeader title="💡 Suggerimento Cibarius" />
+        {(aiSuggestion || counts.total > 0) && (
+          <section>
             <div className="rounded-[18px] bg-card shadow-card overflow-hidden">
               <div className="h-1 w-full" style={{ background: "linear-gradient(90deg, hsl(262,83%,58%), hsl(330,80%,60%))" }} />
-              <div className="p-4 space-y-3">
-                {aiSuggestions.length === 1 ? (
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl shrink-0 bg-primary/10">
-                      <Sparkles className="h-5 w-5 text-primary" />
+              <div className="px-4 py-3 flex items-center gap-3">
+                {aiSuggestion ? (
+                  <>
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl shrink-0 bg-primary/10">
+                      {aiSuggestion.reason_type === "expiration_soon" && <Clock className="h-[18px] w-[18px] text-warning" />}
+                      {aiSuggestion.reason_type === "quick_recipe" && <UtensilsCrossed className="h-[18px] w-[18px] text-primary" />}
+                      {aiSuggestion.reason_type === "ingredients_available" && <Package className="h-[18px] w-[18px] text-success" />}
+                      {aiSuggestion.reason_type === "common_combination" && <Sparkles className="h-[18px] w-[18px] text-accent-foreground" />}
+                      {aiSuggestion.reason_type === "balanced_meal" && <Leaf className="h-[18px] w-[18px] text-success" />}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-semibold text-foreground">{aiSuggestions[0].title}</p>
-                      {aiSuggestions[0].recipes.length > 0 ? (
-                        <p className="text-[11px] text-muted-foreground mt-1">
-                          Prova: {aiSuggestions[0].recipes.map(r => r.charAt(0).toUpperCase() + r.slice(1)).join(", ")}
-                        </p>
-                      ) : aiSuggestions[0].reason ? (
-                        <p className="text-[11px] text-muted-foreground mt-1">{aiSuggestions[0].reason}</p>
-                      ) : null}
+                      <p className="text-[13px] font-semibold text-foreground leading-snug">
+                        Usa prima {aiSuggestion.items.join(" e ")}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {aiSuggestion.reason_type === "expiration_soon" && "⏳ Scadono presto"}
+                        {aiSuggestion.reason_type === "quick_recipe" && "🍳 Ricetta veloce possibile"}
+                        {aiSuggestion.reason_type === "ingredients_available" && "🧺 Hai già gli ingredienti"}
+                        {aiSuggestion.reason_type === "common_combination" && "⭐ Usati spesso insieme"}
+                        {aiSuggestion.reason_type === "balanced_meal" && "🥗 Buona combinazione per un pasto"}
+                      </p>
                     </div>
-                  </div>
+                    <button
+                      onClick={() => navigate("/anti-waste")}
+                      className="shrink-0 h-8 px-3 rounded-lg text-[11px] font-semibold btn-brand active:scale-[0.97] transition-all"
+                    >
+                      Trova ricette
+                    </button>
+                  </>
                 ) : (
-                  <div className="grid grid-cols-2 gap-2.5">
-                    {aiSuggestions.map((sug, idx) => (
-                      <div key={idx} className={`rounded-xl p-3 ${idx === 0 ? "bg-primary/5 border border-primary/15" : "bg-warning/5 border border-warning/15"}`}>
-                        <p className="text-[11px] font-bold text-foreground leading-snug">{sug.items.join(" + ")}</p>
-                        {sug.recipes.length > 0 && (
-                          <div className="mt-1.5 space-y-0.5">
-                            {sug.recipes.map((r, ri) => (
-                              <p key={ri} className="text-[10px] text-muted-foreground">• {r.charAt(0).toUpperCase() + r.slice(1)}</p>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                  <>
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl shrink-0 bg-warning/10">
+                      <AlertTriangle className="h-[18px] w-[18px] text-warning" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-semibold text-foreground leading-snug">
+                        Hai {counts.total} prodott{counts.total === 1 ? "o" : "i"} da consumare presto
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">⏳ Controlla le scadenze</p>
+                    </div>
+                    <button
+                      onClick={() => navigate("/anti-waste")}
+                      className="shrink-0 h-8 px-3 rounded-lg text-[11px] font-semibold btn-brand active:scale-[0.97] transition-all"
+                    >
+                      Anti-spreco
+                    </button>
+                  </>
                 )}
-                <button
-                  onClick={() => navigate("/anti-waste")}
-                  className="w-full h-9 rounded-[10px] text-[12px] font-semibold btn-brand active:scale-[0.97] transition-all"
-                >
-                  Trova ricette
-                </button>
               </div>
             </div>
           </section>
