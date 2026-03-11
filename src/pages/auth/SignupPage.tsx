@@ -91,6 +91,10 @@ const SignupPage = () => {
       role: accountType!,
       phone: phone || "",
     };
+    // Include referral code in metadata if present
+    if (refCode) {
+      metadata.ref_coupon_code = refCode;
+    }
 
     if (accountType === "restaurant_owner") {
       metadata.restaurant_name = restaurantName;
