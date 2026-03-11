@@ -322,26 +322,6 @@ const ExpiryPage = () => {
           })}
         </div>
 
-        {/* Inline filters */}
-        <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
-          {([
-            { key: "all", label: "Tutto" },
-            { key: "product", label: "Prodotti" },
-            { key: "preparation", label: "Prep" },
-          ] as const).map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setTypeFilter(key)}
-              className={`rounded-full px-3 py-1 text-[12px] font-medium border transition-colors ${
-                typeFilter === key
-                  ? "bg-primary/10 text-primary border-primary"
-                  : "bg-card text-muted-foreground border-border"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
         <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
           {([
             { key: "all", label: "Tutti", icon: null },
