@@ -45,7 +45,7 @@ interface ProProfileData {
   is_visible: boolean;
 }
 
-// PWA install hook is used from usePwaInstall
+
 
 const ProfiloPage = () => {
   const { user, signOut } = useAuth();
