@@ -396,6 +396,7 @@ const PastiPage = () => {
         open={sheetOpen}
         onOpenChange={setSheetOpen}
         context="meal"
+        mealType={sheetMealType as any}
         onComplete={fetchMeals}
       />
 
