@@ -37,7 +37,7 @@ async function searchOFF_World(query: string): Promise<NormalizedResult[]> {
     const res = await fetch(url);
     if (!res.ok) return [];
     const json = await res.json();
-    return mapOFFProducts(json.products ?? [], "off_world");
+    return mapOFFProducts(json.products ?? [], "off_world", query);
   } catch {
     return [];
   }
