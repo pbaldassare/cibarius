@@ -135,7 +135,7 @@ const ExpiryPage = () => {
       if (a.expiry_date && b.expiry_date) return a.expiry_date.localeCompare(b.expiry_date);
       return a.expiry_date ? -1 : 1;
     });
-  }, [items, activeTab, storageFilter, typeFilter, searchQuery]);
+  }, [items, activeTab, storageFilter, searchQuery]);
 
   const handleConsume = async (item: ExpiryItem) => {
     if (item.type === "product") {
