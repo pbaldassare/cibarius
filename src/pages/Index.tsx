@@ -247,16 +247,35 @@ const Index = () => {
 
   useEffect(() => { fetchItems(); }, [user]);
 
-  // Meal context based on time of day
+  // Meal context based on time of day — reactive every 5 minutes
   type MealContext = "colazione" | "pranzo" | "snack" | "cena" | "generico";
-  const mealContext = useMemo((): MealContext => {
-    const h = new Date().getHours();
-    if (h >= 5 && h < 11) return "colazione";
-    if (h >= 11 && h < 15) return "pranzo";
-    if (h >= 15 && h < 18) return "snack";
-    if (h >= 18 && h < 22) return "cena";
-    return "generico";
+  const [timeSlot, setTimeSlot] = useState(() => new Date().getHours());
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const h = new Date().getHours();
+      setTimeSlot(prev => prev !== h ? h : prev);
+    }, 5 * 60_000);
+    return () => clearInterval(interval);
   }, []);
+
+  const mealContext = useMemo((): MealContext => {
+    if (timeSlot >= 5 && timeSlot < 11) return "colazione";
+    if (timeSlot >= 11 && timeSlot < 15) return "pranzo";
+    if (timeSlot >= 15 && timeSlot < 18) return "snack";
+    if (timeSlot >= 18 && timeSlot < 22) return "cena";
+    return "generico";
+  }, [timeSlot]);
+
+  // Realtime: re-fetch on inventory/meal changes
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase.channel("home-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "inventory_items", filter: `owner_user_id=eq.${user.id}` }, () => fetchItems())
+      .on("postgres_changes", { event: "*", schema: "public", table: "meal_days", filter: `user_id=eq.${user.id}` }, () => fetchItems())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
 
   const mealContextCfg: Record<MealContext, { icon: string; text: string }> = {
     colazione: { icon: "☀️", text: "Perfetto per una colazione veloce" },
@@ -534,8 +553,10 @@ const Index = () => {
         {(aiSuggestion || counts.total > 0) && (
           <section>
             <div className="rounded-[18px] bg-card shadow-card overflow-hidden">
-              <div className="h-1 w-full" style={{ background: "linear-gradient(90deg, hsl(262,83%,58%), hsl(330,80%,60%))" }} />
-              <div className="px-4 py-3 flex items-center gap-3">
+              <div className="px-4 pt-2.5 pb-0">
+                <p className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">Consiglio del momento</p>
+              </div>
+              <div className="px-4 py-2.5 flex items-center gap-3">
                 {aiSuggestion ? (
                   <>
                     <div className="flex h-9 w-9 items-center justify-center rounded-xl shrink-0 bg-primary/10 text-base">
