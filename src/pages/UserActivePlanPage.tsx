@@ -109,7 +109,6 @@ const UserActivePlanPage = () => {
 
   // Save-day state
   const [mealsLogged, setMealsLogged] = useState<Record<string, boolean>>({});
-  const [manualCompliance, setManualCompliance] = useState(0);
   const [dayNotes, setDayNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
