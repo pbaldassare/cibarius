@@ -623,6 +623,7 @@ const ProfiloPage = () => {
               <ChevronRight size={16} className="text-muted-foreground" />
             </button>
           )}
+        </div>
 
         {/* Delete account */}
         <button
