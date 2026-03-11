@@ -538,23 +538,19 @@ const Index = () => {
               <div className="px-4 py-3 flex items-center gap-3">
                 {aiSuggestion ? (
                   <>
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl shrink-0 bg-primary/10">
-                      {aiSuggestion.reason_type === "expiration_soon" && <Clock className="h-[18px] w-[18px] text-warning" />}
-                      {aiSuggestion.reason_type === "quick_recipe" && <UtensilsCrossed className="h-[18px] w-[18px] text-primary" />}
-                      {aiSuggestion.reason_type === "ingredients_available" && <Package className="h-[18px] w-[18px] text-success" />}
-                      {aiSuggestion.reason_type === "common_combination" && <Sparkles className="h-[18px] w-[18px] text-accent-foreground" />}
-                      {aiSuggestion.reason_type === "balanced_meal" && <Leaf className="h-[18px] w-[18px] text-success" />}
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl shrink-0 bg-primary/10 text-base">
+                      {aiSuggestion.isExpiring && mealContext === "generico"
+                        ? "⏳"
+                        : mealContextCfg[mealContext].icon}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[13px] font-semibold text-foreground leading-snug">
                         Usa prima {aiSuggestion.items.join(" e ")}
                       </p>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
-                        {aiSuggestion.reason_type === "expiration_soon" && "⏳ Scadono presto"}
-                        {aiSuggestion.reason_type === "quick_recipe" && "🍳 Ricetta veloce possibile"}
-                        {aiSuggestion.reason_type === "ingredients_available" && "🧺 Hai già gli ingredienti"}
-                        {aiSuggestion.reason_type === "common_combination" && "⭐ Usati spesso insieme"}
-                        {aiSuggestion.reason_type === "balanced_meal" && "🥗 Buona combinazione per un pasto"}
+                        {aiSuggestion.isExpiring && mealContext === "generico"
+                          ? mealContextCfg.generico.text
+                          : mealContextCfg[mealContext].text}
                       </p>
                     </div>
                     <button
