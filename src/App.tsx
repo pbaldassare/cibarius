@@ -87,6 +87,7 @@ import ShoppingListPage from "./pages/ShoppingListPage";
 import UserMeasurementsPage from "./pages/UserMeasurementsPage";
 import ProClientMeasurementsPage from "./pages/pro/ProClientMeasurementsPage";
 import ProCouponPage from "./pages/pro/ProCouponPage";
+import MealRemindersPage from "./pages/MealRemindersPage";
 
 // Supplier pages
 import SupplierPage from "./pages/supplier/SupplierPage";
