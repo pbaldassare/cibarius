@@ -229,7 +229,41 @@ const PastiPage = () => {
     }
   };
 
-  // If plan has meal targets, only show meals that are in the plan (or have items already)
+  // Handle adding a favorite meal combo to the diary
+  const handleAddComboToDay = async (items: any[], mealType: string) => {
+    if (!user) return;
+    const today = new Date().toISOString().slice(0, 10);
+    let { data: dayData } = await supabase
+      .from("meal_days").select("id").eq("user_id", user.id).eq("day_date", today).maybeSingle();
+    if (!dayData) {
+      const { data: nd, error: de } = await supabase
+        .from("meal_days").insert({ user_id: user.id, day_date: today }).select("id").single();
+      if (de) throw de;
+      dayData = nd;
+    }
+    let { data: mealData } = await supabase
+      .from("meals").select("id").eq("meal_day_id", dayData!.id).eq("meal_type", mealType).maybeSingle();
+    if (!mealData) {
+      const { data: nm, error: me } = await supabase
+        .from("meals").insert({ meal_day_id: dayData!.id, meal_type: mealType }).select("id").single();
+      if (me) throw me;
+      mealData = nm;
+    }
+    for (const item of items) {
+      await supabase.from("meal_items").insert({
+        meal_id: mealData!.id,
+        source_type: "custom",
+        custom_name: item.ingredient_name,
+        dish_name: item.ingredient_name,
+        calories: item.kcal || 0,
+        quantity: item.grams,
+        unit: "g",
+        macros: { protein: item.protein_g || 0, carbs: item.carbs_g || 0, fats: item.fats_g || 0 },
+      });
+    }
+    fetchMeals();
+  };
+
   const allowedMealTypes = mealTargets.length > 0
     ? mealTargets.map((t) => t.meal_type)
     : null;
