@@ -407,8 +407,6 @@ const ExpiryPage = () => {
                     <div className="flex items-center gap-1.5">
                       <p className="text-[15px] font-medium truncate text-foreground">{item.name}</p>
                     </div>
-                      )}
-                    </div>
                     <div className="flex items-center gap-2 mt-0.5">
                       {item.expiry_date && (
                         <span className="text-[12px] flex items-center gap-0.5 text-muted-foreground">
