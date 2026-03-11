@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { safeSupabaseOp } from "@/lib/offline-sync";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Loader2, Zap, Leaf, Flame } from "lucide-react";
