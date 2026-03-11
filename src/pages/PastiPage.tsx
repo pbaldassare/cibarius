@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import MobileHeader from "@/components/MobileHeader";
 import EmptyState from "@/components/EmptyState";
 import ListSkeleton from "@/components/ListSkeleton";
