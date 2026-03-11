@@ -380,7 +380,7 @@ const PastiPage = () => {
                   })()}
 
                   <button
-                    onClick={() => setSheetOpen(true)}
+                    onClick={() => { setSheetMealType(meal.meal_type); setSheetOpen(true); }}
                     className="flex items-center gap-1 text-xs font-medium text-primary pt-1"
                   >
                     <Plus size={14} /> Aggiungi alimento
