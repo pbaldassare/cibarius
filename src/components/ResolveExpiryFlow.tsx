@@ -11,6 +11,7 @@ import {
   X, Check, ArrowRightLeft, ChefHat,
   Thermometer, Snowflake, Archive, SkipForward,
 } from "lucide-react";
+import { getFoodEmoji } from "@/lib/food-images";
 
 type ExpiryStatus = "expired" | "expiring" | "nodate";
 
