@@ -8,6 +8,7 @@ import FavoriteMealCombos from "@/components/FavoriteMealCombos";
 import QuickDaySheet from "@/components/QuickDaySheet";
 import QuickDayBadge from "@/components/QuickDayBadge";
 import MealFAB from "@/components/MealFAB";
+import OfflineStatusBanner from "@/components/OfflineStatusBanner";
 import { supabase } from "@/integrations/supabase/client";
 import { deductPantryFromMeal } from "@/lib/pantry-deduction";
 import { useAuth } from "@/hooks/useAuth";
@@ -322,6 +323,9 @@ const PastiPage = () => {
             </div>
           </div>
         )}
+
+        {/* Offline status */}
+        <OfflineStatusBanner />
 
         {/* Quick day badge */}
         <QuickDayBadge key={quickDayRefresh} />
