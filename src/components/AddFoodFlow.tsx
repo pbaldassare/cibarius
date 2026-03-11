@@ -155,7 +155,7 @@ const AddFoodFlow = ({
   const [activePlanTitle, setActivePlanTitle] = useState<string>("");
 
   // Receipt QR state
-  interface ReceiptProduct { name: string; quantity: number; unit: string; price: number | null; category: string; selected: boolean; storage_type: string; }
+  interface ReceiptProduct { name: string; quantity: number; unit: string; price: number | null; category: string; selected: boolean; storage_type: string; expiry_date: string; }
   const [receiptProducts, setReceiptProducts] = useState<ReceiptProduct[]>([]);
   const [receiptLoading, setReceiptLoading] = useState(false);
   const [receiptSaving, setReceiptSaving] = useState(false);
@@ -538,7 +538,11 @@ const AddFoodFlow = ({
           body: { qr_content: code },
         });
         if (fnError) throw fnError;
-        const products = (fnData?.products || []).map((p: any) => ({ ...p, selected: true, storage_type: guessStorage(p.category || "", p.name || "") }));
+        const products = (fnData?.products || []).map((p: any) => {
+          const st = guessStorage(p.category || "", p.name || "");
+          const days = st === "freezer" ? 90 : st === "ambiente" ? 30 : 5;
+          return { ...p, selected: true, storage_type: st, expiry_date: format(addDays(new Date(), days), "yyyy-MM-dd") };
+        });
         setReceiptProducts(products);
         if (products.length === 0) {
           toast({ variant: "destructive", title: "Nessun prodotto trovato nello scontrino" });
@@ -635,7 +639,11 @@ const AddFoodFlow = ({
         body: { receipt_image: { base64, mime_type: file.type } },
       });
       if (fnError) throw fnError;
-      const products = (fnData?.products || []).map((p: any) => ({ ...p, selected: true, storage_type: guessStorage(p.category || "", p.name || "") }));
+      const products = (fnData?.products || []).map((p: any) => {
+        const st = guessStorage(p.category || "", p.name || "");
+        const days = st === "freezer" ? 90 : st === "ambiente" ? 30 : 5;
+        return { ...p, selected: true, storage_type: st, expiry_date: format(addDays(new Date(), days), "yyyy-MM-dd") };
+      });
       setReceiptProducts(products);
       if (products.length === 0) {
         toast({ variant: "destructive", title: "Nessun prodotto trovato nello scontrino" });
@@ -1518,30 +1526,43 @@ const AddFoodFlow = ({
                       const stOpt = storageOptions.find(s => s.key === p.storage_type) || storageOptions[1];
                       const StIcon = stOpt.icon;
                       return (
-                        <div key={idx} className={`flex w-full items-center gap-3 rounded-xl p-3 transition-colors ${p.selected ? "bg-primary/5 border border-primary/20" : "bg-card border border-border opacity-60"}`}>
-                          <button onClick={() => setReceiptProducts(prev => prev.map((pp, i) => i === idx ? { ...pp, selected: !pp.selected } : pp))} className="shrink-0">
-                            <Checkbox checked={p.selected} />
-                          </button>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-foreground truncate">{p.name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {p.quantity} {p.unit}
-                              {p.price != null && ` · €${p.price.toFixed(2)}`}
-                            </p>
-                          </div>
-                          {context === "inventory" && (
-                            <button
-                              onClick={() => {
-                                const keys = storageOptions.map(s => s.key);
-                                const nextIdx = (keys.indexOf(p.storage_type as typeof keys[number]) + 1) % keys.length;
-                                setReceiptProducts(prev => prev.map((pp, i) => i === idx ? { ...pp, storage_type: keys[nextIdx] } : pp));
-                              }}
-                              className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium bg-muted text-muted-foreground hover:bg-accent transition-colors shrink-0"
-                              title={`Cambia conservazione (${stOpt.label})`}
-                            >
-                              <StIcon className="h-3.5 w-3.5" />
-                              {stOpt.label}
+                        <div key={idx} className={`rounded-xl p-3 transition-colors ${p.selected ? "bg-primary/5 border border-primary/20" : "bg-card border border-border opacity-60"}`}>
+                          <div className="flex w-full items-center gap-3">
+                            <button onClick={() => setReceiptProducts(prev => prev.map((pp, i) => i === idx ? { ...pp, selected: !pp.selected } : pp))} className="shrink-0">
+                              <Checkbox checked={p.selected} />
                             </button>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-foreground truncate">{p.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {p.quantity} {p.unit}
+                                {p.price != null && ` · €${p.price.toFixed(2)}`}
+                              </p>
+                            </div>
+                            {context === "inventory" && (
+                              <button
+                                onClick={() => {
+                                  const keys = storageOptions.map(s => s.key);
+                                  const nextIdx = (keys.indexOf(p.storage_type as typeof keys[number]) + 1) % keys.length;
+                                  setReceiptProducts(prev => prev.map((pp, i) => i === idx ? { ...pp, storage_type: keys[nextIdx] } : pp));
+                                }}
+                                className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium bg-muted text-muted-foreground hover:bg-accent transition-colors shrink-0"
+                                title={`Cambia conservazione (${stOpt.label})`}
+                              >
+                                <StIcon className="h-3.5 w-3.5" />
+                                {stOpt.label}
+                              </button>
+                            )}
+                          </div>
+                          {context === "inventory" && p.selected && (
+                            <div className="flex items-center gap-2 mt-2 ml-8">
+                              <CalendarSearch className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              <Input
+                                type="date"
+                                value={p.expiry_date}
+                                onChange={(e) => setReceiptProducts(prev => prev.map((pp, i) => i === idx ? { ...pp, expiry_date: e.target.value } : pp))}
+                                className="h-7 text-xs w-auto"
+                              />
+                            </div>
                           )}
                         </div>
                       );
@@ -1573,7 +1594,7 @@ const AddFoodFlow = ({
                                 quantity: item.quantity,
                                 unit: item.unit === "pz" ? "pezzi" : item.unit,
                                 storage_type: item.storage_type || "frigo",
-                                expiry_date: format(addDays(new Date(), 3), "yyyy-MM-dd"),
+                                expiry_date: item.expiry_date || format(addDays(new Date(), 3), "yyyy-MM-dd"),
                               };
                               if (defaultRestaurantId) insertData.restaurant_id = defaultRestaurantId;
                               else insertData.owner_user_id = user.id;
