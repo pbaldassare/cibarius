@@ -230,7 +230,12 @@ const FavoriteMealCombos = ({ mealType, onAddToDay }: Props) => {
                   <div className="flex-1 min-w-0">
                     <IngredientAutocomplete
                       value={item.name}
-                      onSelect={(ing) => handleIngredientSelect(idx, ing)}
+                      onChange={(name) => {
+                        const updated = [...newItems];
+                        updated[idx] = { ...updated[idx], name };
+                        setNewItems(updated);
+                      }}
+                      onSelect={(ing) => handleIngredientSelect(idx, { name: ing.name, kcal_per_100g: ing.per100.kcal, protein_per_100g: ing.per100.protein, carbs_per_100g: ing.per100.carbs, fat_per_100g: ing.per100.fats })}
                       placeholder="Cerca ingrediente..."
                     />
                   </div>
