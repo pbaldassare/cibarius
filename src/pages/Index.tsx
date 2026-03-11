@@ -11,6 +11,7 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { useToast } from "@/hooks/use-toast";
 import { getFoodImage } from "@/lib/food-images";
 import AddFoodFlow from "@/components/AddFoodFlow";
+import MealReminderBanner from "@/components/MealReminderBanner";
 import ResolveExpiryFlow from "@/components/ResolveExpiryFlow";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
