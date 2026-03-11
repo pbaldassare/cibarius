@@ -8,6 +8,7 @@ import {
   ChevronRight, Settings, Heart, Bell, LogOut, UserX, Stethoscope, Sparkles,
   ClipboardList, MessageSquareWarning, Trash2, Camera, MapPin, GraduationCap,
   Globe, Instagram, Facebook, Linkedin, Briefcase, Monitor, Building2, Eye, EyeOff, Pencil, X,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +42,11 @@ interface ProProfileData {
   works_online: boolean;
   works_in_person: boolean;
   is_visible: boolean;
+}
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
 const ProfiloPage = () => {
@@ -91,6 +97,35 @@ const ProfiloPage = () => {
 
   // Deleting
   const [deleting, setDeleting] = useState(false);
+
+  // PWA install
+  const [pwaPrompt, setPwaPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [isPwaInstalled, setIsPwaInstalled] = useState(false);
+  const [isIos, setIsIos] = useState(false);
+
+  useEffect(() => {
+    const standalone = window.matchMedia("(display-mode: standalone)").matches;
+    setIsPwaInstalled(standalone);
+    if (standalone) return;
+
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !(window as any).MSStream;
+    setIsIos(ios);
+
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setPwaPrompt(e as BeforeInstallPromptEvent);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
+
+  const handlePwaInstall = async () => {
+    if (!pwaPrompt) return;
+    await pwaPrompt.prompt();
+    const { outcome } = await pwaPrompt.userChoice;
+    if (outcome === "accepted") setIsPwaInstalled(true);
+    setPwaPrompt(null);
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -569,7 +604,25 @@ const ProfiloPage = () => {
             <MessageSquareWarning size={20} className="text-muted-foreground shrink-0" />
             <span className="flex-1 text-[15px] font-medium text-foreground">Segnala un problema o suggerimento</span>
             <ChevronRight size={16} className="text-muted-foreground" />
-          </button>
+           </button>
+          {!isPwaInstalled && (
+            <button
+              onClick={() => {
+                if (pwaPrompt) {
+                  handlePwaInstall();
+                } else if (isIos) {
+                  toast({ title: "Installa Cibarius", description: "Tocca Condividi ↑ poi \"Aggiungi alla schermata Home\"" });
+                } else {
+                  toast({ title: "Installa Cibarius", description: "Apri il menù del browser (⋮) e seleziona \"Installa app\" o \"Aggiungi alla schermata Home\"" });
+                }
+              }}
+              className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors active:bg-secondary border-t border-border"
+            >
+              <Download size={20} className="text-primary shrink-0" />
+              <span className="flex-1 text-[15px] font-medium text-foreground">Installa app</span>
+              <ChevronRight size={16} className="text-muted-foreground" />
+            </button>
+          )}
         </div>
 
         {/* Delete account */}
