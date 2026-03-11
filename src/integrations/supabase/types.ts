@@ -1464,6 +1464,7 @@ export type Database = {
           is_visible: boolean | null
           linkedin: string | null
           photo_url: string | null
+          public_slug: string | null
           specialization: string
           user_id: string
           website: string | null
@@ -1484,6 +1485,7 @@ export type Database = {
           is_visible?: boolean | null
           linkedin?: string | null
           photo_url?: string | null
+          public_slug?: string | null
           specialization?: string
           user_id: string
           website?: string | null
@@ -1504,6 +1506,7 @@ export type Database = {
           is_visible?: boolean | null
           linkedin?: string | null
           photo_url?: string | null
+          public_slug?: string | null
           specialization?: string
           user_id?: string
           website?: string | null
