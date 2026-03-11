@@ -138,11 +138,7 @@ const ExpiryPage = () => {
   }, [items, activeTab, storageFilter, searchQuery]);
 
   const handleConsume = async (item: ExpiryItem) => {
-    if (item.type === "product") {
-      await supabase.from("inventory_items").delete().eq("id", item.id);
-    } else {
-      await supabase.from("preparations").delete().eq("id", item.id);
-    }
+    await supabase.from("inventory_items").delete().eq("id", item.id);
     toast({ title: "Segnato come consumato ✓" });
     setActionSheet(null);
     fetchItems();
