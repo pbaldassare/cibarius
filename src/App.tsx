@@ -123,6 +123,7 @@ const App = () => (
             <Route path="/auth/forgot" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/join/:code" element={<JoinReferralPage />} />
+            <Route path="/n/:slug" element={<NutritionistPublicPage />} />
 
             {/* Protected routes */}
             <Route element={<ProtectedRoute />}>
