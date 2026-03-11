@@ -272,7 +272,7 @@ const PastiPage = () => {
             title="Nessun pasto registrato"
             description="Aggiungi il tuo primo alimento per tracciare le calorie di oggi."
             actions={[
-              { label: "Aggiungi alimento", icon: Plus, onClick: () => setSheetOpen(true) },
+              { label: "Aggiungi alimento", icon: Plus, onClick: () => { setSheetMealType(undefined); setSheetOpen(true); } },
               { label: "Obiettivi", icon: Target, variant: "outline", onClick: () => navigate("/meals/targets") },
             ]}
           />
