@@ -537,6 +537,57 @@ export type Database = {
         }
         Relationships: []
       }
+      favorite_meal_items: {
+        Row: {
+          carbs_g: number | null
+          fats_g: number | null
+          favorite_meal_id: string
+          grams: number
+          id: string
+          ingredient_id: string | null
+          ingredient_name: string
+          kcal: number | null
+          protein_g: number | null
+        }
+        Insert: {
+          carbs_g?: number | null
+          fats_g?: number | null
+          favorite_meal_id: string
+          grams?: number
+          id?: string
+          ingredient_id?: string | null
+          ingredient_name: string
+          kcal?: number | null
+          protein_g?: number | null
+        }
+        Update: {
+          carbs_g?: number | null
+          fats_g?: number | null
+          favorite_meal_id?: string
+          grams?: number
+          id?: string
+          ingredient_id?: string | null
+          ingredient_name?: string
+          kcal?: number | null
+          protein_g?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorite_meal_items_favorite_meal_id_fkey"
+            columns: ["favorite_meal_id"]
+            isOneToOne: false
+            referencedRelation: "user_favorite_meals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "favorite_meal_items_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       food_templates: {
         Row: {
           calories_100g: number
@@ -1588,6 +1639,42 @@ export type Database = {
         }
         Relationships: []
       }
+      quick_day_logs: {
+        Row: {
+          created_at: string
+          day_date: string
+          day_type: string
+          estimated_carbs: number | null
+          estimated_fats: number | null
+          estimated_kcal: number
+          estimated_protein: number | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          day_date?: string
+          day_type: string
+          estimated_carbs?: number | null
+          estimated_fats?: number | null
+          estimated_kcal?: number
+          estimated_protein?: number | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          day_date?: string
+          day_type?: string
+          estimated_carbs?: number | null
+          estimated_fats?: number | null
+          estimated_kcal?: number
+          estimated_protein?: number | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       recipe_allergens: {
         Row: {
           allergen_id: string
@@ -2167,6 +2254,27 @@ export type Database = {
           prep_time_min?: number | null
           protein_total?: number
           title?: string
+        }
+        Relationships: []
+      }
+      user_favorite_meals: {
+        Row: {
+          created_at: string
+          id: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          title?: string
+          user_id?: string
         }
         Relationships: []
       }

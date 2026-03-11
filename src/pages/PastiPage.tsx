@@ -4,6 +4,10 @@ import MobileHeader from "@/components/MobileHeader";
 import EmptyState from "@/components/EmptyState";
 import ListSkeleton from "@/components/ListSkeleton";
 import AddFoodFlow from "@/components/AddFoodFlow";
+import FavoriteMealCombos from "@/components/FavoriteMealCombos";
+import QuickDaySheet from "@/components/QuickDaySheet";
+import QuickDayBadge from "@/components/QuickDayBadge";
+import MealFAB from "@/components/MealFAB";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -75,7 +79,7 @@ const PastiPage = () => {
   const [editMealQty, setEditMealQty] = useState("");
   const [editMealUnit, setEditMealUnit] = useState("g");
   const [savingMealEdit, setSavingMealEdit] = useState(false);
-
+  const [quickDayOpen, setQuickDayOpen] = useState(false);
   const prevTotalRef = { current: 0 };
   const fetchMeals = useCallback(async () => {
     if (!user) return;
@@ -225,7 +229,41 @@ const PastiPage = () => {
     }
   };
 
-  // If plan has meal targets, only show meals that are in the plan (or have items already)
+  // Handle adding a favorite meal combo to the diary
+  const handleAddComboToDay = async (items: any[], mealType: string) => {
+    if (!user) return;
+    const today = new Date().toISOString().slice(0, 10);
+    let { data: dayData } = await supabase
+      .from("meal_days").select("id").eq("user_id", user.id).eq("day_date", today).maybeSingle();
+    if (!dayData) {
+      const { data: nd, error: de } = await supabase
+        .from("meal_days").insert({ user_id: user.id, day_date: today }).select("id").single();
+      if (de) throw de;
+      dayData = nd;
+    }
+    let { data: mealData } = await supabase
+      .from("meals").select("id").eq("meal_day_id", dayData!.id).eq("meal_type", mealType).maybeSingle();
+    if (!mealData) {
+      const { data: nm, error: me } = await supabase
+        .from("meals").insert({ meal_day_id: dayData!.id, meal_type: mealType }).select("id").single();
+      if (me) throw me;
+      mealData = nm;
+    }
+    for (const item of items) {
+      await supabase.from("meal_items").insert({
+        meal_id: mealData!.id,
+        source_type: "custom",
+        custom_name: item.ingredient_name,
+        dish_name: item.ingredient_name,
+        calories: item.kcal || 0,
+        quantity: item.grams,
+        unit: "g",
+        macros: { protein: item.protein_g || 0, carbs: item.carbs_g || 0, fats: item.fats_g || 0 },
+      });
+    }
+    fetchMeals();
+  };
+
   const allowedMealTypes = mealTargets.length > 0
     ? mealTargets.map((t) => t.meal_type)
     : null;
@@ -280,6 +318,9 @@ const PastiPage = () => {
             </div>
           </div>
         )}
+
+        {/* Quick day badge */}
+        <QuickDayBadge />
 
         {targetKcal && meals.length > 0 && totalKcal > targetKcal && (
           <div className="rounded-xl border-2 border-destructive/40 bg-destructive/10 p-3 flex items-center gap-3">
@@ -438,7 +479,29 @@ const PastiPage = () => {
             })}
           </div>
         )}
+
+        {/* Favorite meal combos */}
+        <div id="favorite-combos">
+          <FavoriteMealCombos
+            mealType={meals.length > 0 ? meals[0]?.meal_type : "pranzo"}
+            onAddToDay={handleAddComboToDay}
+          />
+        </div>
       </main>
+
+      {/* FAB */}
+      <MealFAB
+        onSearchOpen={() => { setSheetMealType(undefined); setSheetOpen(true); }}
+        onQuickDayOpen={() => setQuickDayOpen(true)}
+      />
+
+      {/* Quick Day Sheet */}
+      <QuickDaySheet
+        open={quickDayOpen}
+        onOpenChange={setQuickDayOpen}
+        targetKcal={targetKcal}
+        onComplete={fetchMeals}
+      />
 
       <AddFoodFlow
         open={sheetOpen}
