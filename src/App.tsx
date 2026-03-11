@@ -158,6 +158,7 @@ const App = () => (
                 <Route path="/shopping-list" element={<ShoppingListPage />} />
                 <Route path="/measurements" element={<UserMeasurementsPage />} />
                 <Route path="/progress" element={<UserProgressPage />} />
+                <Route path="/subscription" element={<SubscriptionPage />} />
               </Route>
 
               {/* ═══ RESTAURANT APP (RestaurantLayout) ═══ */}
