@@ -1514,24 +1514,38 @@ const AddFoodFlow = ({
                     </div>
 
                     <div className="space-y-1">
-                      {receiptProducts.map((p, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => setReceiptProducts(prev => prev.map((pp, i) => i === idx ? { ...pp, selected: !pp.selected } : pp))}
-                          className={`flex w-full items-center gap-3 rounded-xl p-3 text-left transition-colors ${p.selected ? "bg-primary/5 border border-primary/20" : "bg-card border border-border opacity-60"}`}
-                        >
-                          <Checkbox checked={p.selected} className="shrink-0" />
+                    {receiptProducts.map((p, idx) => {
+                      const stOpt = storageOptions.find(s => s.key === p.storage_type) || storageOptions[1];
+                      const StIcon = stOpt.icon;
+                      return (
+                        <div key={idx} className={`flex w-full items-center gap-3 rounded-xl p-3 transition-colors ${p.selected ? "bg-primary/5 border border-primary/20" : "bg-card border border-border opacity-60"}`}>
+                          <button onClick={() => setReceiptProducts(prev => prev.map((pp, i) => i === idx ? { ...pp, selected: !pp.selected } : pp))} className="shrink-0">
+                            <Checkbox checked={p.selected} />
+                          </button>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-foreground truncate">{p.name}</p>
                             <p className="text-xs text-muted-foreground">
                               {p.quantity} {p.unit}
                               {p.price != null && ` · €${p.price.toFixed(2)}`}
-                              {p.category && ` · ${p.category}`}
                             </p>
                           </div>
-                          <ShoppingCart className="h-4 w-4 text-muted-foreground shrink-0" />
-                        </button>
-                      ))}
+                          {context === "inventory" && (
+                            <button
+                              onClick={() => {
+                                const keys = storageOptions.map(s => s.key);
+                                const nextIdx = (keys.indexOf(p.storage_type) + 1) % keys.length;
+                                setReceiptProducts(prev => prev.map((pp, i) => i === idx ? { ...pp, storage_type: keys[nextIdx] } : pp));
+                              }}
+                              className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium bg-muted text-muted-foreground hover:bg-accent transition-colors shrink-0"
+                              title={`Cambia conservazione (${stOpt.label})`}
+                            >
+                              <StIcon className="h-3.5 w-3.5" />
+                              {stOpt.label}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
                     </div>
 
                     {/* Storage type selector */}
