@@ -121,6 +121,7 @@ const App = () => (
             <Route path="/auth/signup" element={<SignupPage />} />
             <Route path="/auth/forgot" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/join/:code" element={<JoinReferralPage />} />
 
             {/* Protected routes */}
             <Route element={<ProtectedRoute />}>
