@@ -16,7 +16,7 @@ export async function deductPantryFromMeal(userId: string, mealItems: Array<{
   // Get user's inventory
   const { data: inventory } = await supabase
     .from("inventory_items")
-    .select("id, quantity, unit, product_id, product:products(id, name)")
+    .select("id, quantity, unit, product_id, expiry_date, product:products(id, name)")
     .eq("owner_user_id", userId);
 
   if (!inventory || inventory.length === 0) return;
