@@ -106,6 +106,8 @@ const UserActivePlanPage = () => {
   const [todayMeals, setTodayMeals] = useState<TodayMeal[]>([]);
   const [recipes, setRecipes] = useState<TemplateRecipe[]>([]);
   const [openRecipes, setOpenRecipes] = useState<Record<string, boolean>>({});
+  const [aiRecipes, setAiRecipes] = useState<Record<string, any>>({}); // per meal_type
+  const [aiLoading, setAiLoading] = useState<Record<string, boolean>>({});
 
   // Save-day state
   const [mealsLogged, setMealsLogged] = useState<Record<string, boolean>>({});
