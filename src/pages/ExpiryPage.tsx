@@ -71,7 +71,6 @@ const ExpiryPage = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>("expired");
   const [storageFilter, setStorageFilter] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
   const [actionSheet, setActionSheet] = useState<ExpiryItem | null>(null);
   const [addFoodOpen, setAddFoodOpen] = useState(false);
   const [newDate, setNewDate] = useState("");
