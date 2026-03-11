@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import {
   Clock, Plus, Search, Zap, ChevronRight,
-  BookOpen, SlidersHorizontal, X, Trash2, Leaf,
+  BookOpen, SlidersHorizontal, X, Trash2, Leaf, Sparkles,
 } from "lucide-react";
 
 /* ─── types ─── */
@@ -491,6 +491,24 @@ const Index = () => {
 
         {/* ═══ WASTE SAVINGS ═══ */}
         <WasteSavingsCard />
+
+        {/* ═══ COSA MANGIO OGGI? ═══ */}
+        <button
+          onClick={() => navigate("/suggest-meal")}
+          className="relative w-full overflow-hidden rounded-[18px] bg-card shadow-card active:scale-[0.98] transition-transform text-left"
+        >
+          <div className="h-1.5 w-full" style={{ background: "linear-gradient(90deg, hsl(262,83%,58%), hsl(330,80%,60%))" }} />
+          <div className="flex items-center gap-4 px-5 py-3.5">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl" style={{ background: "hsl(262,83%,58%,0.15)" }}>
+              <Sparkles className="h-5 w-5" style={{ color: "hsl(262,83%,58%)" }} strokeWidth={2} />
+            </div>
+            <div className="flex-1">
+              <p className="text-[14px] font-bold text-foreground">Cosa mangio oggi?</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Suggerimenti AI dalla tua dispensa</p>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+          </div>
+        </button>
 
         {/* ═══ ANTI-WASTE CTA ═══ */}
         <button
