@@ -107,6 +107,17 @@ const PastiPage = () => {
 
   useEffect(() => { fetchMeals(); }, [fetchMeals]);
 
+  // Deep link: auto-open add meal sheet from ?add=colazione
+  useEffect(() => {
+    const addMeal = searchParams.get("add");
+    if (addMeal && ["colazione", "pranzo", "cena", "spuntino"].includes(addMeal)) {
+      setSheetMealType(addMeal);
+      setSheetOpen(true);
+      searchParams.delete("add");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams]);
+
   useEffect(() => {
     if (!user) return;
     supabase.from("nutrition_targets").select("kcal_day").eq("user_id", user.id).maybeSingle().then(({ data }) => {
