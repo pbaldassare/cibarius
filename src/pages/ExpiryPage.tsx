@@ -406,10 +406,7 @@ const ExpiryPage = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
                       <p className="text-[15px] font-medium truncate text-foreground">{item.name}</p>
-                      {isPrep && (
-                        <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-accent/10 text-accent">
-                          PREP
-                        </span>
+                    </div>
                       )}
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
