@@ -1533,7 +1533,7 @@ const AddFoodFlow = ({
                             <button
                               onClick={() => {
                                 const keys = storageOptions.map(s => s.key);
-                                const nextIdx = (keys.indexOf(p.storage_type) + 1) % keys.length;
+                                const nextIdx = (keys.indexOf(p.storage_type as typeof keys[number]) + 1) % keys.length;
                                 setReceiptProducts(prev => prev.map((pp, i) => i === idx ? { ...pp, storage_type: keys[nextIdx] } : pp));
                               }}
                               className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium bg-muted text-muted-foreground hover:bg-accent transition-colors shrink-0"
