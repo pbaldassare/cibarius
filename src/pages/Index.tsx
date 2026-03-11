@@ -247,13 +247,30 @@ const Index = () => {
 
   useEffect(() => { fetchItems(); }, [user]);
 
-  // Smart suggestion with reason_type
-  type ReasonType = "expiration_soon" | "ingredients_available" | "quick_recipe" | "common_combination" | "balanced_meal";
+  // Meal context based on time of day
+  type MealContext = "colazione" | "pranzo" | "snack" | "cena" | "generico";
+  const mealContext = useMemo((): MealContext => {
+    const h = new Date().getHours();
+    if (h >= 5 && h < 11) return "colazione";
+    if (h >= 11 && h < 15) return "pranzo";
+    if (h >= 15 && h < 18) return "snack";
+    if (h >= 18 && h < 22) return "cena";
+    return "generico";
+  }, []);
 
+  const mealContextCfg: Record<MealContext, { icon: string; text: string }> = {
+    colazione: { icon: "☀️", text: "Perfetto per una colazione veloce" },
+    pranzo:    { icon: "🍽", text: "Puoi preparare un pranzo semplice" },
+    snack:     { icon: "🥪", text: "Perfetto per uno spuntino veloce" },
+    cena:      { icon: "🍳", text: "Ideale per una cena leggera" },
+    generico:  { icon: "⏳", text: "Questi ingredienti stanno per scadere" },
+  };
+
+  // Smart suggestion
   interface SmartSuggestion {
     items: string[];
     recipes: string[];
-    reason_type: ReasonType;
+    isExpiring: boolean;
   }
 
   const aiSuggestion = useMemo((): SmartSuggestion | null => {
@@ -269,33 +286,20 @@ const Index = () => {
       const names = expiring.map(i => i.product.name);
       const groups = buildGroups(names, 1);
       if (groups.length > 0) {
-        return {
-          items: groups[0].items.slice(0, 2),
-          recipes: groups[0].recipes.slice(0, 2),
-          reason_type: "expiration_soon",
-        };
+        return { items: groups[0].items.slice(0, 2), recipes: groups[0].recipes.slice(0, 2), isExpiring: true };
       }
     }
 
-    // Priority 2: single expiring item
     if (expiring.length === 1) {
-      return {
-        items: [expiring[0].product.name],
-        recipes: [],
-        reason_type: "expiration_soon",
-      };
+      return { items: [expiring[0].product.name], recipes: [], isExpiring: true };
     }
 
-    // Priority 3: available ingredients (no expiry urgency but have items)
+    // Priority 2: available ingredients
     if (items.length >= 2) {
       const names = items.slice(0, 10).map(i => i.product.name);
       const groups = buildGroups(names, 1);
       if (groups.length > 0 && groups[0].recipes.length > 0) {
-        return {
-          items: groups[0].items.slice(0, 2),
-          recipes: groups[0].recipes.slice(0, 2),
-          reason_type: groups[0].recipes.length > 0 ? "quick_recipe" : "ingredients_available",
-        };
+        return { items: groups[0].items.slice(0, 2), recipes: groups[0].recipes.slice(0, 2), isExpiring: false };
       }
     }
 
@@ -534,23 +538,19 @@ const Index = () => {
               <div className="px-4 py-3 flex items-center gap-3">
                 {aiSuggestion ? (
                   <>
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl shrink-0 bg-primary/10">
-                      {aiSuggestion.reason_type === "expiration_soon" && <Clock className="h-[18px] w-[18px] text-warning" />}
-                      {aiSuggestion.reason_type === "quick_recipe" && <UtensilsCrossed className="h-[18px] w-[18px] text-primary" />}
-                      {aiSuggestion.reason_type === "ingredients_available" && <Package className="h-[18px] w-[18px] text-success" />}
-                      {aiSuggestion.reason_type === "common_combination" && <Sparkles className="h-[18px] w-[18px] text-accent-foreground" />}
-                      {aiSuggestion.reason_type === "balanced_meal" && <Leaf className="h-[18px] w-[18px] text-success" />}
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl shrink-0 bg-primary/10 text-base">
+                      {aiSuggestion.isExpiring && mealContext === "generico"
+                        ? "⏳"
+                        : mealContextCfg[mealContext].icon}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[13px] font-semibold text-foreground leading-snug">
                         Usa prima {aiSuggestion.items.join(" e ")}
                       </p>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
-                        {aiSuggestion.reason_type === "expiration_soon" && "⏳ Scadono presto"}
-                        {aiSuggestion.reason_type === "quick_recipe" && "🍳 Ricetta veloce possibile"}
-                        {aiSuggestion.reason_type === "ingredients_available" && "🧺 Hai già gli ingredienti"}
-                        {aiSuggestion.reason_type === "common_combination" && "⭐ Usati spesso insieme"}
-                        {aiSuggestion.reason_type === "balanced_meal" && "🥗 Buona combinazione per un pasto"}
+                        {aiSuggestion.isExpiring && mealContext === "generico"
+                          ? mealContextCfg.generico.text
+                          : mealContextCfg[mealContext].text}
                       </p>
                     </div>
                     <button
