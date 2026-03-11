@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useFavorites } from "@/hooks/useFavorites";
-import { Plus, UtensilsCrossed, Target, Trash2, Flame, Camera, Heart, ChefHat, Package } from "lucide-react";
+import { Plus, UtensilsCrossed, Target, Trash2, Flame, Camera, Heart, ChefHat, Package, AlertTriangle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -75,6 +75,7 @@ const PastiPage = () => {
   const [editMealUnit, setEditMealUnit] = useState("g");
   const [savingMealEdit, setSavingMealEdit] = useState(false);
 
+  const prevTotalRef = { current: 0 };
   const fetchMeals = useCallback(async () => {
     if (!user) return;
     const today = new Date().toISOString().slice(0, 10);
@@ -84,9 +85,24 @@ const PastiPage = () => {
       .eq("user_id", user.id)
       .eq("day_date", today)
       .maybeSingle();
+    
+    // Check if we just exceeded the target
+    const newTotal = (data as MealDay | null)?.meals?.reduce(
+      (sum, m) => sum + m.meal_items.reduce((s, i) => s + (i.calories ?? 0), 0), 0
+    ) ?? 0;
+    const target = targetKcal || dietPlan?.kcal_day;
+    if (target && newTotal > target && prevTotalRef.current <= target && prevTotalRef.current > 0) {
+      toast({
+        variant: "destructive",
+        title: "⚠️ Obiettivo calorico superato!",
+        description: `Hai raggiunto ${Math.round(newTotal)} kcal su ${target} kcal previste (+${Math.round(newTotal - target)} kcal).`,
+      });
+    }
+    prevTotalRef.current = newTotal;
+    
     setMealDay(data as MealDay | null);
     setLoading(false);
-  }, [user]);
+  }, [user, targetKcal, dietPlan]);
 
   useEffect(() => { fetchMeals(); }, [fetchMeals]);
 
@@ -253,13 +269,25 @@ const PastiPage = () => {
           </div>
         )}
 
+        {targetKcal && meals.length > 0 && totalKcal > targetKcal && (
+          <div className="rounded-xl border-2 border-destructive/40 bg-destructive/10 p-3 flex items-center gap-3">
+            <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-destructive">Obiettivo superato!</p>
+              <p className="text-xs text-destructive/80">
+                +{Math.round(totalKcal - targetKcal)} kcal in eccesso ({totalKcal} / {targetKcal} kcal)
+              </p>
+            </div>
+          </div>
+        )}
+
         {targetKcal && meals.length > 0 && (
-          <div className="rounded-xl border-2 border-accent bg-card p-4 space-y-2">
+          <div className={`rounded-xl border-2 ${totalKcal > targetKcal ? "border-destructive/30" : "border-accent"} bg-card p-4 space-y-2`}>
             <div className="flex items-center gap-2">
-              <Flame size={18} className="text-primary" />
+              <Flame size={18} className={totalKcal > targetKcal ? "text-destructive" : "text-primary"} />
               <span className="text-sm font-semibold text-foreground">Bilancio calorie</span>
             </div>
-            <Progress value={Math.min((totalKcal / targetKcal) * 100, 100)} className="h-2.5" />
+            <Progress value={Math.min((totalKcal / targetKcal) * 100, 100)} className={`h-2.5 ${totalKcal > targetKcal ? "[&>div]:bg-destructive" : ""}`} />
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>{totalKcal} assunte</span>
               <span className={`font-semibold ${totalKcal >= targetKcal ? "text-destructive" : "text-primary"}`}>

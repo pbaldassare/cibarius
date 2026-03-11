@@ -10,11 +10,12 @@ import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import MealRecipeCard from "@/components/MealRecipeCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useFavorites } from "@/hooks/useFavorites";
-import { Loader2, Plus, ArrowRight, RefreshCw, ChevronDown, ChevronUp, UtensilsCrossed, Save } from "lucide-react";
+import { Loader2, Plus, ArrowRight, RefreshCw, ChevronDown, ChevronUp, UtensilsCrossed, Save, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
 const MEAL_LABELS: Record<string, { emoji: string; label: string }> = {
@@ -393,20 +394,31 @@ const UserActivePlanPage = () => {
           </CardContent>
         </Card>
 
+        {/* Excess calorie warning banner */}
+        {todayTotals.kcal > plan.kcal_day && (
+          <Alert className="border-destructive/50 bg-destructive/10">
+            <AlertTriangle className="h-4 w-4 text-destructive" />
+            <AlertDescription className="text-sm font-medium text-destructive">
+              ⚠️ Hai superato il tuo obiettivo di <strong>{Math.round(todayTotals.kcal - plan.kcal_day)} kcal</strong>! 
+              ({Math.round(todayTotals.kcal)} / {plan.kcal_day} kcal)
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Today's overall progress */}
         <Card className="border-0 shadow-[var(--shadow-card)]">
           <CardContent className="p-4 space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-sm text-foreground">Progresso di oggi</h3>
-              <span className="text-xs font-bold text-primary tabular-nums">
+              <span className={`text-xs font-bold tabular-nums ${todayTotals.kcal > plan.kcal_day ? "text-destructive" : "text-primary"}`}>
                 {kcalPct}% ({Math.round(todayTotals.kcal)}/{plan.kcal_day})
               </span>
             </div>
-            <Progress value={kcalPct} className="h-2.5 bg-muted" />
+            <Progress value={kcalPct} className={`h-2.5 bg-muted ${todayTotals.kcal > plan.kcal_day ? "[&>div]:bg-destructive" : ""}`} />
             <div className="space-y-1.5">
-              <MacroBar label="P" current={todayTotals.protein} target={plan.protein_g_day} color="bg-blue-500" />
-              <MacroBar label="C" current={todayTotals.carbs} target={plan.carbs_g_day} color="bg-amber-500" />
-              <MacroBar label="G" current={todayTotals.fats} target={plan.fats_g_day} color="bg-rose-400" />
+              <MacroBar label="P" current={todayTotals.protein} target={plan.protein_g_day} color={todayTotals.protein > plan.protein_g_day ? "bg-destructive" : "bg-blue-500"} />
+              <MacroBar label="C" current={todayTotals.carbs} target={plan.carbs_g_day} color={todayTotals.carbs > plan.carbs_g_day ? "bg-destructive" : "bg-amber-500"} />
+              <MacroBar label="G" current={todayTotals.fats} target={plan.fats_g_day} color={todayTotals.fats > plan.fats_g_day ? "bg-destructive" : "bg-rose-400"} />
             </div>
           </CardContent>
         </Card>
