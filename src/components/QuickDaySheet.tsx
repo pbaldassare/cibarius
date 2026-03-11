@@ -65,10 +65,10 @@ const QuickDaySheet = ({ open, onOpenChange, targetKcal, onComplete }: Props) =>
     try {
       const today = new Date().toISOString().slice(0, 10);
 
-      // Upsert quick day log
-      const { error } = await supabase
-        .from("quick_day_logs" as any)
-        .upsert({
+      const { offline, error } = await safeSupabaseOp({
+        table: "quick_day_logs",
+        method: "upsert",
+        payload: {
           user_id: user.id,
           day_date: today,
           day_type: dayType,
@@ -76,12 +76,14 @@ const QuickDaySheet = ({ open, onOpenChange, targetKcal, onComplete }: Props) =>
           estimated_protein: protein,
           estimated_carbs: carbs,
           estimated_fats: fats,
-        } as any, { onConflict: "user_id,day_date" });
-      if (error) throw error;
+        },
+        onConflict: "user_id,day_date",
+      });
+      if (error) throw new Error(error);
 
       toast({
-        title: "Giorno veloce registrato ✅",
-        description: `${DAY_TYPES.find((d) => d.key === dayType)?.label} — ~${kcal} kcal stimati`,
+        title: offline ? "Salvato offline 📴" : "Giorno veloce registrato ✅",
+        description: `${DAY_TYPES.find((d) => d.key === dayType)?.label} — ~${kcal} kcal stimati${offline ? " (verrà sincronizzato)" : ""}`,
       });
       onComplete();
       onOpenChange(false);
