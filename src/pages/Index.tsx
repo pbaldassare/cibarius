@@ -137,6 +137,7 @@ const Index = () => {
   const { role, profile, isLoading: roleLoading } = useRole();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { loaded: compatLoaded, buildGroups } = useIngredientCompatibility();
 
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [prepItems, setPrepItems] = useState<any[]>([]);
@@ -150,9 +151,6 @@ const Index = () => {
   // Nutritionist link
   const [hasNutritionist, setHasNutritionist] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
-
-  // AI suggestion (lightweight)
-  // AI suggestions now computed via useMemo (aiSuggestions)
 
   // Waste stats
   const [wasteStats, setWasteStats] = useState<{ count: number; weightKg: number; money: number } | null>(null);
