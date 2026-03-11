@@ -484,6 +484,11 @@ const UserActivePlanPage = () => {
                 </Button>
 
                 {/* Recipe alternatives */}
+                {/* Message when meal target reached */}
+                {hasLogged && remainingKcal === 0 && (
+                  <p className="text-[10px] text-success italic text-center">✅ Obiettivo pasto raggiunto</p>
+                )}
+
                 {mealRecipes.length > 0 && (
                   <Collapsible
                     open={isRecipesOpen}
@@ -492,7 +497,8 @@ const UserActivePlanPage = () => {
                     <CollapsibleTrigger asChild>
                       <Button variant="ghost" size="sm" className="w-full text-xs text-muted-foreground h-8">
                         <UtensilsCrossed className="h-3.5 w-3.5 mr-1.5" />
-                        {isRecipesOpen ? "Nascondi" : "Vedi"} {mealRecipes.length} ricette suggerite
+                        {isRecipesOpen ? "Nascondi" : "Vedi"} {mealRecipes.length} ricette
+                        {hasLogged && remainingKcal > 0 ? ` (≤${Math.round(remainingKcal)} kcal)` : " suggerite"}
                         {isRecipesOpen ? (
                           <ChevronUp className="h-3 w-3 ml-1" />
                         ) : (
