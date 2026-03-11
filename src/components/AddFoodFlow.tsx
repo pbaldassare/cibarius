@@ -352,7 +352,6 @@ const AddFoodFlow = ({
         setSaved(false);
         setEditingChip(null);
         setReceiptProducts([]);
-        setReceiptStorageType("frigo");
         setReceiptPhotoPreview(null);
       }, 300);
     }
