@@ -51,7 +51,7 @@ function scheduleLocalNotification(
     const body = isFollowUp ? msgs.second : msgs.first;
     const tag = isFollowUp ? `meal-followup-${mealType}` : `meal-${mealType}`;
 
-    const actions: NotificationAction[] = isFollowUp
+    const actions: Array<{ action: string; title: string }> = isFollowUp
       ? [
           { action: "photo", title: "📷 Scatta foto" },
           { action: "add", title: "➕ Aggiungi pasto" },
