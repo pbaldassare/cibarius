@@ -430,7 +430,17 @@ const UserActivePlanPage = () => {
           const mealKcal = logged?.kcal ?? 0;
           const mealPct = target.kcal_target > 0 ? Math.min(100, Math.round((mealKcal / target.kcal_target) * 100)) : 0;
           const hasLogged = mealKcal > 0;
-          const mealRecipes = recipesByMeal[target.meal_type] || [];
+          const remainingKcal = Math.max(0, target.kcal_target - mealKcal);
+          const allMealRecipes = recipesByMeal[target.meal_type] || [];
+          // Filter recipes: show only those fitting remaining kcal (with 20% tolerance), or all if nothing logged
+          const mealRecipes = hasLogged && remainingKcal > 0
+            ? allMealRecipes.filter((r) => {
+                const scaledKcal = r.kcal_total * portionScale;
+                return scaledKcal <= remainingKcal * 1.2;
+              })
+            : hasLogged && remainingKcal === 0
+              ? [] // meal target already reached
+              : allMealRecipes;
           const isRecipesOpen = openRecipes[target.meal_type] || false;
 
           return (
