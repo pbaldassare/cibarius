@@ -432,9 +432,9 @@ const ResolveExpiryFlow = ({ open, onOpenChange, onComplete }: Props) => {
                   ) : (
                     <div className="h-36 w-full bg-secondary flex items-center justify-center">
                       {current.type === "preparation" ? (
-                        <ChefHat className="h-14 w-14 text-muted-foreground/30" strokeWidth={1.2} />
+                        <ChefHat className="h-14 w-14 text-muted-foreground/50" strokeWidth={1.4} />
                       ) : (
-                        <Package className="h-14 w-14 text-muted-foreground/30" strokeWidth={1.2} />
+                        <span className="text-6xl">{getFoodEmoji(current.name)}</span>
                       )}
                     </div>
                   )}
