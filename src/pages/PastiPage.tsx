@@ -322,6 +322,7 @@ const PastiPage = () => {
         {/* Quick day badge */}
         <QuickDayBadge />
 
+        {targetKcal && meals.length > 0 && totalKcal > targetKcal && (
           <div className="rounded-xl border-2 border-destructive/40 bg-destructive/10 p-3 flex items-center gap-3">
             <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
             <div className="flex-1 min-w-0">
