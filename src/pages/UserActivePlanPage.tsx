@@ -430,7 +430,17 @@ const UserActivePlanPage = () => {
           const mealKcal = logged?.kcal ?? 0;
           const mealPct = target.kcal_target > 0 ? Math.min(100, Math.round((mealKcal / target.kcal_target) * 100)) : 0;
           const hasLogged = mealKcal > 0;
-          const mealRecipes = recipesByMeal[target.meal_type] || [];
+          const remainingKcal = Math.max(0, target.kcal_target - mealKcal);
+          const allMealRecipes = recipesByMeal[target.meal_type] || [];
+          // Filter recipes: show only those fitting remaining kcal (with 20% tolerance), or all if nothing logged
+          const mealRecipes = hasLogged && remainingKcal > 0
+            ? allMealRecipes.filter((r) => {
+                const scaledKcal = r.kcal_total * portionScale;
+                return scaledKcal <= remainingKcal * 1.2;
+              })
+            : hasLogged && remainingKcal === 0
+              ? [] // meal target already reached
+              : allMealRecipes;
           const isRecipesOpen = openRecipes[target.meal_type] || false;
 
           return (
@@ -474,6 +484,11 @@ const UserActivePlanPage = () => {
                 </Button>
 
                 {/* Recipe alternatives */}
+                {/* Message when meal target reached */}
+                {hasLogged && remainingKcal === 0 && (
+                  <p className="text-[10px] text-success italic text-center">✅ Obiettivo pasto raggiunto</p>
+                )}
+
                 {mealRecipes.length > 0 && (
                   <Collapsible
                     open={isRecipesOpen}
@@ -482,7 +497,8 @@ const UserActivePlanPage = () => {
                     <CollapsibleTrigger asChild>
                       <Button variant="ghost" size="sm" className="w-full text-xs text-muted-foreground h-8">
                         <UtensilsCrossed className="h-3.5 w-3.5 mr-1.5" />
-                        {isRecipesOpen ? "Nascondi" : "Vedi"} {mealRecipes.length} ricette suggerite
+                        {isRecipesOpen ? "Nascondi" : "Vedi"} {mealRecipes.length} ricette
+                        {hasLogged && remainingKcal > 0 ? ` (≤${Math.round(remainingKcal)} kcal)` : " suggerite"}
                         {isRecipesOpen ? (
                           <ChevronUp className="h-3 w-3 ml-1" />
                         ) : (
