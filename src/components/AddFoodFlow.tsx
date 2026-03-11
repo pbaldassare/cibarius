@@ -155,11 +155,59 @@ const AddFoodFlow = ({
   const [activePlanTitle, setActivePlanTitle] = useState<string>("");
 
   // Receipt QR state
-  interface ReceiptProduct { name: string; quantity: number; unit: string; price: number | null; category: string; selected: boolean; }
+  interface ReceiptProduct { name: string; quantity: number; unit: string; price: number | null; category: string; selected: boolean; storage_type: string; }
   const [receiptProducts, setReceiptProducts] = useState<ReceiptProduct[]>([]);
   const [receiptLoading, setReceiptLoading] = useState(false);
-  const [receiptStorageType, setReceiptStorageType] = useState("frigo");
   const [receiptSaving, setReceiptSaving] = useState(false);
+
+  // Smart storage assignment based on category + product name
+  const guessStorage = (category: string, name: string): string => {
+    const lower = (name + " " + category).toLowerCase();
+    // Freezer items
+    const freezerKw = ["surgelat", "gelat", "ghiacci", "frozen", "congelat"];
+    if (freezerKw.some(k => lower.includes(k))) return "freezer";
+    // Fridge items
+    const fridgeKw = [
+      "latte", "yogurt", "formaggio", "mozzarella", "ricotta", "burro", "panna",
+      "uov", "carne", "pollo", "manzo", "maiale", "tacchino", "salume", "prosciutt",
+      "wurstel", "würstel", "bresaola", "speck", "mortadella", "salsiccia",
+      "pesce", "salmone", "tonno fresc", "gamberi", "insalata", "verdur",
+      "latticin", "affettat", "stracchino", "gorgonzola", "parmigian", "pecorino",
+      "mascarpone", "philadelphia", "skyr", "kefir",
+      "succo", "spremut",
+      "zucchini", "pomodor", "carota", "peperone", "spinaci", "broccol",
+      "cavolfiore", "melanzana", "sedano", "finocchi", "radicchio",
+      "frutta", "mela", "pera", "banana", "arancia", "fragol", "kiwi",
+      "uva", "pesca", "albicocca", "mandarino", "limone", "anguria", "melone",
+    ];
+    if (fridgeKw.some(k => lower.includes(k))) return "frigo";
+    // Pantry items (ambient)
+    const pantryKw = [
+      "pasta", "riso", "farina", "zuccher", "olio", "aceto", "sale",
+      "caffè", "caffe", "tea", "the", "tisana", "biscott", "crackers", "cracker",
+      "grissini", "fette biscottate", "pane", "cereali", "muesli",
+      "marmellata", "miele", "nutella", "cioccolat", "cacao",
+      "conserv", "pelat", "passata", "sugo", "tonno", "fagioli", "ceci", "lenticch",
+      "legum", "spezie", "pepe", "origano", "basilico secco",
+      "dado", "brodo", "salsa", "ketchup", "maionese", "senape",
+      "caramell", "gomm", "snack", "barrett", "merendin",
+      "acqua", "birra", "vino", "bibita", "cola", "aranciata",
+      "bevand", "drink", "energy",
+      "scatola", "latta", "secco", "disidrat", "frutta secca",
+      "noci", "mandorl", "nocciolin", "pistacch", "arachid",
+    ];
+    if (pantryKw.some(k => lower.includes(k))) return "ambiente";
+    // Default by category
+    const catMap: Record<string, string> = {
+      latticini: "frigo", carne: "frigo", pesce: "frigo", salumi: "frigo",
+      frutta: "frigo", verdura: "frigo", uova: "frigo",
+      surgelati: "freezer",
+      cereali: "ambiente", bevande: "ambiente", dolci: "ambiente",
+      conserve: "ambiente", condimenti: "ambiente", snack: "ambiente",
+      altro: "ambiente",
+    };
+    return catMap[lower.split(" ").find(w => catMap[w]) || ""] || "frigo";
+  };
 
   // Receipt photo state
   const receiptPhotoInputRef = useRef<HTMLInputElement>(null);
