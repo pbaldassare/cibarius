@@ -434,7 +434,7 @@ const ResolveExpiryFlow = ({ open, onOpenChange, onComplete }: Props) => {
                       {current.type === "preparation" ? (
                         <ChefHat className="h-14 w-14 text-muted-foreground/50" strokeWidth={1.4} />
                       ) : (
-                        <span className="text-6xl">{getFoodEmoji(current.name)}</span>
+                        <span className="text-6xl">{getFoodEmoji(null, current.name)}</span>
                       )}
                     </div>
                   )}
