@@ -1,10 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Ticket, Check, X } from "lucide-react";
-
+import { getSavedReferralCode } from "@/pages/JoinReferralPage";
 interface CouponResult {
   valid: boolean;
   coupon_id?: string;
