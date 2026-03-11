@@ -304,7 +304,33 @@ const UserActivePlanPage = () => {
     }
   };
 
-  const handleSaveDay = async () => {
+  const handleGenerateAiRecipe = async (mealType: string, remainingKcal: number, target: MealTarget) => {
+    setAiLoading((prev) => ({ ...prev, [mealType]: true }));
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-meal-recipe", {
+        body: {
+          meal_type: mealType,
+          kcal_target: Math.round(remainingKcal),
+          protein_g: Math.round(target.protein_g * (remainingKcal / target.kcal_target)),
+          carbs_g: Math.round(target.carbs_g * (remainingKcal / target.kcal_target)),
+          fats_g: Math.round(target.fats_g * (remainingKcal / target.kcal_target)),
+          diet_category: dietCategory,
+          is_female: isFemale,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (data?.recipe) {
+        setAiRecipes((prev) => ({ ...prev, [mealType]: data.recipe }));
+        toast.success("Ricetta generata! 🍽️");
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Errore nella generazione");
+    }
+    setAiLoading((prev) => ({ ...prev, [mealType]: false }));
+  };
+
+
     if (!user || !plan) return;
     setSaving(true);
     const todayStr = new Date().toISOString().slice(0, 10);
