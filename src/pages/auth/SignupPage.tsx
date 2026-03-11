@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, Navigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { getSavedReferralCode, saveReferralCode } from "@/pages/JoinReferralPage";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
