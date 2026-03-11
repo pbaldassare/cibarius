@@ -225,7 +225,7 @@ const PastiPage = () => {
               Foto AI
             </button>
             <button
-              onClick={() => setSheetOpen(true)}
+              onClick={() => { setSheetMealType(undefined); setSheetOpen(true); }}
               className="flex items-center gap-1 rounded-xl bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground"
             >
               <Plus size={16} />
