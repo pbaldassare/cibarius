@@ -416,7 +416,7 @@ const ExpiryPage = () => {
                       )}
                       <span className="text-[11px] text-muted-foreground">
                         {storageLabel[item.storage_type] ?? item.storage_type}
-                        {item.quantity ? ` · x${item.quantity}` : ""}
+                        {item.quantity ? ` · ${item.quantity}${item.unit ? ` ${item.unit}` : ""}` : ""}
                       </span>
                     </div>
                   </div>
