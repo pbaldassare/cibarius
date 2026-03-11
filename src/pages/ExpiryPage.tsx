@@ -398,8 +398,6 @@ const ExpiryPage = () => {
                   <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] bg-secondary overflow-hidden">
                     {item.image_url ? (
                       <img src={item.image_url} alt="" className="h-full w-full object-cover" />
-                    ) : isPrep ? (
-                      <ChefHat className="h-5 w-5 text-muted-foreground" />
                     ) : (
                       <span className="text-xl">{getFoodEmoji(null, item.name)}</span>
                     )}
