@@ -569,7 +569,7 @@ const UserActivePlanPage = () => {
               })}
             </div>
 
-            {/* Compliance slider */}
+            {/* Compliance auto-calculated */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Rispetto del piano</p>
@@ -577,13 +577,7 @@ const UserActivePlanPage = () => {
                   {manualCompliance}%
                 </span>
               </div>
-              <Slider
-                value={[manualCompliance]}
-                onValueChange={(v) => setManualCompliance(v[0])}
-                max={100}
-                step={5}
-                className="w-full"
-              />
+              <Progress value={manualCompliance} className="h-2.5" />
             </div>
 
             {/* Notes */}
