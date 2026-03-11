@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
-import { Users, TrendingUp, MessageSquare, UserPlus, Loader2, BookmarkCheck, BarChart3, CalendarDays } from "lucide-react";
+import { Users, TrendingUp, MessageSquare, UserPlus, Loader2, BookmarkCheck, BarChart3, CalendarDays, Ticket } from "lucide-react";
 
 const ProPage = () => {
   const { user } = useAuth();
@@ -69,9 +69,12 @@ const ProPage = () => {
           <Button variant="outline" className="gap-2" onClick={() => navigate("/pro/templates")}>
             <BookmarkCheck className="h-4 w-4" /> Template
           </Button>
-          <Button variant="outline" className="gap-2" onClick={() => navigate("/pro/appointments")}>
-            <CalendarDays className="h-4 w-4" /> Appuntamenti
-          </Button>
+           <Button variant="outline" className="gap-2" onClick={() => navigate("/pro/appointments")}>
+              <CalendarDays className="h-4 w-4" /> Appuntamenti
+            </Button>
+            <Button variant="outline" className="gap-2" onClick={() => navigate("/pro/coupon")}>
+              <Ticket className="h-4 w-4" /> Guadagni Coupon
+            </Button>
         </div>
 
         {/* Recent notes */}

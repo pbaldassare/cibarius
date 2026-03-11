@@ -41,6 +41,7 @@ import AdminSettingsPage from "./pages/admin/AdminSettingsPage";
 import AdminSeedPage from "./pages/admin/AdminSeedPage";
 import AdminProductReviewPage from "./pages/admin/AdminProductReviewPage";
 import AdminSupportPage from "./pages/admin/AdminSupportPage";
+import AdminCouponsPage from "./pages/admin/AdminCouponsPage";
 
 // Restaurant app pages
 import RestaurantOnboardingPage from "./pages/restaurant/RestaurantOnboardingPage";
@@ -85,6 +86,7 @@ import UserMessagesPage from "./pages/UserMessagesPage";
 import ShoppingListPage from "./pages/ShoppingListPage";
 import UserMeasurementsPage from "./pages/UserMeasurementsPage";
 import ProClientMeasurementsPage from "./pages/pro/ProClientMeasurementsPage";
+import ProCouponPage from "./pages/pro/ProCouponPage";
 
 // Supplier pages
 import SupplierPage from "./pages/supplier/SupplierPage";
@@ -188,6 +190,7 @@ const App = () => (
                 <Route path="/pro/client/:clientId/plan-pdf" element={<RG roles={["professional", "admin"]}><ProClientPlanPdfPage /></RG>} />
                 <Route path="/pro/appointments" element={<RG roles={["professional", "admin"]}><ProAppointmentsPage /></RG>} />
                 <Route path="/pro/client/:clientId/measurements" element={<RG roles={["professional", "admin"]}><ProClientMeasurementsPage /></RG>} />
+                <Route path="/pro/coupon" element={<RG roles={["professional", "admin"]}><ProCouponPage /></RG>} />
                 <Route path="/pro/profile" element={<RG roles={["professional", "admin"]}><ProfiloPage /></RG>} />
               </Route>
 
@@ -206,6 +209,7 @@ const App = () => (
               <Route path="/admin/seed" element={<RG roles={["admin"]}><AdminSeedPage /></RG>} />
               <Route path="/admin/product-review" element={<RG roles={["admin"]}><AdminProductReviewPage /></RG>} />
               <Route path="/admin/support" element={<RG roles={["admin"]}><AdminSupportPage /></RG>} />
+              <Route path="/admin/coupons" element={<RG roles={["admin"]}><AdminCouponsPage /></RG>} />
 
               {/* Restaurant admin routes (no mobile layout) */}
               <Route path="/restaurant-admin" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><RestaurantAdminPage /></RestaurantGuard></RG>} />

@@ -29,3 +29,9 @@ verify_jwt = false
 
 [functions.generate-meal-recipe]
 verify_jwt = false
+
+[functions.validate-coupon]
+verify_jwt = false
+
+[functions.process-coupon-payment]
+verify_jwt = false

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, ShieldCheck, Activity, Package, MessageSquareWarning } from "lucide-react";
+import { Users, ShieldCheck, Activity, Package, MessageSquareWarning, Ticket } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -67,6 +67,17 @@ const AdminPage = () => {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">Gestisci problemi e suggerimenti</p>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link to="/admin/coupons">
+          <Card className="transition-shadow hover:shadow-md">
+            <CardHeader className="flex flex-row items-center gap-3 pb-2">
+              <Ticket className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base">Gestione Coupon</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">Coupon referral nutrizionisti</p>
             </CardContent>
           </Card>
         </Link>
