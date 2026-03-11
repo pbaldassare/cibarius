@@ -228,9 +228,7 @@ const UserActivePlanPage = () => {
 
   const kcalPct = plan ? Math.min(100, Math.round((todayTotals.kcal / plan.kcal_day) * 100)) : 0;
 
-  // Auto-calculated compliance from actual kcal data
   const manualCompliance = kcalPct;
-  const setManualCompliance = (_v: number) => {}; // slider is now read-only display
 
   const handleRegisterRecipe = async (ingredients: any[], title: string, mealType: string) => {
     if (!user) return;
