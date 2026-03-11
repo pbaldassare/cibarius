@@ -504,7 +504,7 @@ const PastiPage = () => {
         open={quickDayOpen}
         onOpenChange={setQuickDayOpen}
         targetKcal={targetKcal}
-        onComplete={fetchMeals}
+        onComplete={() => { fetchMeals(); setQuickDayRefresh(k => k + 1); }}
       />
 
       <AddFoodFlow
