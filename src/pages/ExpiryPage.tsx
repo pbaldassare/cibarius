@@ -153,11 +153,7 @@ const ExpiryPage = () => {
 
   const handleUpdateDate = async (item: ExpiryItem) => {
     if (!newDate) return;
-    if (item.type === "product") {
-      await supabase.from("inventory_items").update({ expiry_date: newDate }).eq("id", item.id);
-    } else {
-      await supabase.from("preparations").update({ use_by_date: newDate }).eq("id", item.id);
-    }
+    await supabase.from("inventory_items").update({ expiry_date: newDate }).eq("id", item.id);
     toast({ title: "Data aggiornata ✓" });
     setActionSheet(null);
     setNewDate("");
