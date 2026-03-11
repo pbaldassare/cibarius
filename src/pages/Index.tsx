@@ -511,7 +511,7 @@ const Index = () => {
                 </div>
                 <button
                     onClick={() => navigate("/anti-waste")}
-                    className="flex-1 h-9 rounded-[10px] text-[12px] font-semibold btn-brand active:scale-[0.97] transition-all"
+                    className="w-full h-10 rounded-[10px] text-[13px] font-semibold btn-brand active:scale-[0.97] transition-all px-4"
                   >
                     Trova ricette
                   </button>
