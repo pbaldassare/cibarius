@@ -89,6 +89,7 @@ import ProClientMeasurementsPage from "./pages/pro/ProClientMeasurementsPage";
 import ProCouponPage from "./pages/pro/ProCouponPage";
 import MealRemindersPage from "./pages/MealRemindersPage";
 import AntiWastePage from "./pages/AntiWastePage";
+import SuggestMealPage from "./pages/SuggestMealPage";
 
 // Supplier pages
 import SupplierPage from "./pages/supplier/SupplierPage";
