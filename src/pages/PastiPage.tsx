@@ -269,13 +269,25 @@ const PastiPage = () => {
           </div>
         )}
 
+        {targetKcal && meals.length > 0 && totalKcal > targetKcal && (
+          <div className="rounded-xl border-2 border-destructive/40 bg-destructive/10 p-3 flex items-center gap-3">
+            <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-destructive">Obiettivo superato!</p>
+              <p className="text-xs text-destructive/80">
+                +{Math.round(totalKcal - targetKcal)} kcal in eccesso ({totalKcal} / {targetKcal} kcal)
+              </p>
+            </div>
+          </div>
+        )}
+
         {targetKcal && meals.length > 0 && (
-          <div className="rounded-xl border-2 border-accent bg-card p-4 space-y-2">
+          <div className={`rounded-xl border-2 ${totalKcal > targetKcal ? "border-destructive/30" : "border-accent"} bg-card p-4 space-y-2`}>
             <div className="flex items-center gap-2">
-              <Flame size={18} className="text-primary" />
+              <Flame size={18} className={totalKcal > targetKcal ? "text-destructive" : "text-primary"} />
               <span className="text-sm font-semibold text-foreground">Bilancio calorie</span>
             </div>
-            <Progress value={Math.min((totalKcal / targetKcal) * 100, 100)} className="h-2.5" />
+            <Progress value={Math.min((totalKcal / targetKcal) * 100, 100)} className={`h-2.5 ${totalKcal > targetKcal ? "[&>div]:bg-destructive" : ""}`} />
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>{totalKcal} assunte</span>
               <span className={`font-semibold ${totalKcal >= targetKcal ? "text-destructive" : "text-primary"}`}>
