@@ -209,6 +209,7 @@ const App = () => (
               <Route path="/admin/seed" element={<RG roles={["admin"]}><AdminSeedPage /></RG>} />
               <Route path="/admin/product-review" element={<RG roles={["admin"]}><AdminProductReviewPage /></RG>} />
               <Route path="/admin/support" element={<RG roles={["admin"]}><AdminSupportPage /></RG>} />
+              <Route path="/admin/coupons" element={<RG roles={["admin"]}><AdminCouponsPage /></RG>} />
 
               {/* Restaurant admin routes (no mobile layout) */}
               <Route path="/restaurant-admin" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><RestaurantAdminPage /></RestaurantGuard></RG>} />
