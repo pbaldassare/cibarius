@@ -2,14 +2,29 @@ import { useEffect } from "react";
 import { useAuth } from "./useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
-const MEAL_MESSAGES: Record<string, string> = {
-  colazione: "Hai già registrato la colazione? ☀️",
-  pranzo: "Ricordati di registrare il pranzo su Cibarius 🍝",
-  cena: "Vuoi registrare la cena? 🌙",
+const MEAL_MESSAGES: Record<string, { first: string; second: string }> = {
+  colazione: {
+    first: "Hai già registrato la colazione? ☀️",
+    second: "Non hai ancora registrato la colazione ☀️",
+  },
+  pranzo: {
+    first: "Ricordati di registrare il pranzo su Cibarius 🍝",
+    second: "Non hai ancora registrato il pranzo 🍝",
+  },
+  cena: {
+    first: "Vuoi registrare la cena? 🌙",
+    second: "Non hai ancora registrato la cena 🌙",
+  },
 };
 
-// Schedule local notifications using the Notification API
-function scheduleLocalNotification(mealType: string, timeStr: string) {
+const FOLLOWUP_DELAY_MS = 90 * 60 * 1000; // 90 minutes
+
+function scheduleLocalNotification(
+  mealType: string,
+  timeStr: string,
+  isFollowUp: boolean,
+  checkMealLogged: () => Promise<boolean>
+) {
   if (!("Notification" in window) || Notification.permission !== "granted") return null;
 
   const [hours, minutes] = timeStr.split(":").map(Number);
@@ -17,19 +32,41 @@ function scheduleLocalNotification(mealType: string, timeStr: string) {
   const target = new Date();
   target.setHours(hours, minutes, 0, 0);
 
-  // If time already passed today, skip
+  if (isFollowUp) {
+    target.setTime(target.getTime() + FOLLOWUP_DELAY_MS);
+  }
+
   if (target <= now) return null;
 
   const delay = target.getTime() - now.getTime();
-  
-  return setTimeout(() => {
+  const msgs = MEAL_MESSAGES[mealType] || { first: "Registra il tuo pasto", second: "Non hai ancora registrato il pasto" };
+
+  return setTimeout(async () => {
+    // For follow-up, check if meal was logged in the meantime
+    if (isFollowUp) {
+      const logged = await checkMealLogged();
+      if (logged) return;
+    }
+
+    const body = isFollowUp ? msgs.second : msgs.first;
+    const tag = isFollowUp ? `meal-followup-${mealType}` : `meal-${mealType}`;
+
+    const actions: NotificationAction[] = isFollowUp
+      ? [
+          { action: "photo", title: "📷 Scatta foto" },
+          { action: "add", title: "➕ Aggiungi pasto" },
+          { action: "skip", title: "Salta" },
+        ]
+      : [];
+
     const notification = new Notification("Cibarius", {
-      body: MEAL_MESSAGES[mealType] || `Registra il tuo pasto su Cibarius`,
+      body,
       icon: "/icons/icon-192.png",
       badge: "/icons/icon-192.png",
-      tag: `meal-${mealType}`,
-      data: { url: `/meals?add=${mealType}` },
-    });
+      tag,
+      data: { url: `/meals?add=${mealType}`, mealType, isFollowUp },
+      ...(isFollowUp && actions.length > 0 ? { actions } : {}),
+    } as NotificationOptions);
 
     notification.onclick = () => {
       window.focus();
@@ -47,6 +84,20 @@ export function useMealReminders() {
     if (!("Notification" in window) || Notification.permission !== "granted") return;
 
     let timers: ReturnType<typeof setTimeout>[] = [];
+
+    const checkMealLoggedFactory = (mealType: string) => async (): Promise<boolean> => {
+      const today = new Date().toISOString().slice(0, 10);
+      const { data: mealDay } = await supabase
+        .from("meal_days")
+        .select("id, meals(meal_type)")
+        .eq("user_id", user.id)
+        .eq("day_date", today)
+        .maybeSingle();
+
+      if (!mealDay) return false;
+      const meals = (mealDay as any).meals || [];
+      return meals.some((m: any) => m.meal_type === mealType);
+    };
 
     const loadAndSchedule = async () => {
       const { data: settings } = await supabase
@@ -81,8 +132,14 @@ export function useMealReminders() {
       meals.forEach(({ key, enabled, time }) => {
         if (!enabled) return;
         if (loggedMeals.has(key)) return;
-        const timer = scheduleLocalNotification(key, time);
-        if (timer) timers.push(timer);
+
+        // Schedule first notification
+        const timer1 = scheduleLocalNotification(key, time, false, checkMealLoggedFactory(key));
+        if (timer1) timers.push(timer1);
+
+        // Schedule follow-up notification (90 min later, checks if meal was logged)
+        const timer2 = scheduleLocalNotification(key, time, true, checkMealLoggedFactory(key));
+        if (timer2) timers.push(timer2);
       });
     };
 

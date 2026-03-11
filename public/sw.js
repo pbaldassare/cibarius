@@ -70,21 +70,46 @@ self.addEventListener('push', (event) => {
     }
   } catch {}
 
+  const options = {
+    body: data.body,
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    tag: data.tag || 'meal-reminder',
+    data: { url: data.url, mealType: data.mealType },
+  };
+
+  // Add action buttons for follow-up notifications
+  if (data.isFollowUp && data.mealType) {
+    options.actions = [
+      { action: 'photo', title: '📷 Scatta foto' },
+      { action: 'add', title: '➕ Aggiungi pasto' },
+      { action: 'skip', title: 'Salta' },
+    ];
+  }
+
   event.waitUntil(
-    self.registration.showNotification(data.title, {
-      body: data.body,
-      icon: '/icons/icon-192.png',
-      badge: '/icons/icon-192.png',
-      tag: data.tag || 'meal-reminder',
-      data: { url: data.url },
-    })
+    self.registration.showNotification(data.title, options)
   );
 });
 
 // Notification click handler — deep link to the meal page
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const url = event.notification.data?.url || '/meals';
+
+  const mealType = event.notification.data?.mealType;
+  const action = event.action;
+
+  let url = event.notification.data?.url || '/meals';
+
+  if (action === 'photo' && mealType) {
+    url = `/meal-photo?meal=${mealType}`;
+  } else if (action === 'add' && mealType) {
+    url = `/meals?add=${mealType}`;
+  } else if (action === 'skip') {
+    // Just close, don't navigate
+    return;
+  }
+
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
