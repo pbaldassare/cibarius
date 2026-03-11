@@ -192,17 +192,13 @@ const ExpiryPage = () => {
 
   const handleBulkDelete = async () => {
     setDeleting(true);
-    const productIds: string[] = [];
-    const prepIds: string[] = [];
+    const ids: string[] = [];
     selectedIds.forEach((key) => {
-      const [type, ...rest] = key.split("-");
-      const id = rest.join("-");
-      if (type === "product") productIds.push(id);
-      else prepIds.push(id);
+      const [, ...rest] = key.split("-");
+      ids.push(rest.join("-"));
     });
 
-    if (productIds.length) await supabase.from("inventory_items").delete().in("id", productIds);
-    if (prepIds.length) await supabase.from("preparations").delete().in("id", prepIds);
+    if (ids.length) await supabase.from("inventory_items").delete().in("id", ids);
 
     toast({ title: `${selectedIds.size} elementi eliminati ✓` });
     setConfirmDeleteOpen(false);
