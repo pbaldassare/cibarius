@@ -53,26 +53,33 @@ export async function deductPantryFromMeal(userId: string, mealItems: Array<{
 
     const newQty = Math.max(0, currentQty - deductQty);
 
+    // Only track as waste saving if the item is NOT expired
+    const isExpired = invItem.expiry_date
+      ? new Date(invItem.expiry_date).getTime() < new Date().setHours(0, 0, 0, 0)
+      : false;
+
     if (newQty <= 0) {
-      // Track as waste saving before deleting
-      await supabase.from("waste_savings" as any).insert({
-        user_id: userId,
-        item_name: invItem.product?.name || mealName,
-        weight_g: currentQty * (invItem.unit === "kg" ? 1000 : 1),
-        estimated_price: 1.0,
-        source: "consumed",
-      } as any);
+      if (!isExpired) {
+        await supabase.from("waste_savings" as any).insert({
+          user_id: userId,
+          item_name: invItem.product?.name || mealName,
+          weight_g: currentQty * (invItem.unit === "kg" ? 1000 : 1),
+          estimated_price: 1.0,
+          source: "consumed",
+        } as any);
+      }
 
       await supabase.from("inventory_items").delete().eq("id", invItem.id);
     } else {
-      // Track partial consumption
-      await supabase.from("waste_savings" as any).insert({
-        user_id: userId,
-        item_name: invItem.product?.name || mealName,
-        weight_g: deductQty * (invItem.unit === "kg" ? 1000 : invItem.unit === "g" || !invItem.unit ? 1 : 1),
-        estimated_price: 0.5,
-        source: "consumed",
-      } as any);
+      if (!isExpired) {
+        await supabase.from("waste_savings" as any).insert({
+          user_id: userId,
+          item_name: invItem.product?.name || mealName,
+          weight_g: deductQty * (invItem.unit === "kg" ? 1000 : invItem.unit === "g" || !invItem.unit ? 1 : 1),
+          estimated_price: 0.5,
+          source: "consumed",
+        } as any);
+      }
 
       await supabase
         .from("inventory_items")

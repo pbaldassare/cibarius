@@ -180,6 +180,20 @@ const ResolveExpiryFlow = ({ open, onOpenChange, onComplete }: Props) => {
   const handleConsumed = async () => {
     if (!current || acting) return;
     setActing(true);
+
+    // Track as waste saving ONLY if not already expired
+    if (current.status !== "expired" && user) {
+      const weightG = current.quantity ?? 1;
+      const unitMultiplier = current.unit === "kg" ? 1000 : current.unit === "l" ? 1000 : 1;
+      await supabase.from("waste_savings" as any).insert({
+        user_id: user.id,
+        item_name: current.name,
+        weight_g: weightG * unitMultiplier,
+        estimated_price: 1.0,
+        source: "consumed",
+      } as any);
+    }
+
     if (current.type === "inventory") {
       await supabase.from("inventory_items").delete().eq("id", current.id);
     } else {
