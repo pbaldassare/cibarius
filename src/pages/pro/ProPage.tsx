@@ -69,9 +69,12 @@ const ProPage = () => {
           <Button variant="outline" className="gap-2" onClick={() => navigate("/pro/templates")}>
             <BookmarkCheck className="h-4 w-4" /> Template
           </Button>
-          <Button variant="outline" className="gap-2" onClick={() => navigate("/pro/appointments")}>
-            <CalendarDays className="h-4 w-4" /> Appuntamenti
-          </Button>
+           <Button variant="outline" className="gap-2" onClick={() => navigate("/pro/appointments")}>
+              <CalendarDays className="h-4 w-4" /> Appuntamenti
+            </Button>
+            <Button variant="outline" className="gap-2" onClick={() => navigate("/pro/coupon")}>
+              <Ticket className="h-4 w-4" /> Guadagni Coupon
+            </Button>
         </div>
 
         {/* Recent notes */}

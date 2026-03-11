@@ -70,6 +70,17 @@ const AdminPage = () => {
             </CardContent>
           </Card>
         </Link>
+        <Link to="/admin/coupons">
+          <Card className="transition-shadow hover:shadow-md">
+            <CardHeader className="flex flex-row items-center gap-3 pb-2">
+              <Ticket className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base">Gestione Coupon</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">Coupon referral nutrizionisti</p>
+            </CardContent>
+          </Card>
+        </Link>
         <Card>
           <CardHeader className="flex flex-row items-center gap-3 pb-2">
             <Activity className="h-5 w-5 text-primary" />
