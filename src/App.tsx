@@ -88,6 +88,7 @@ import UserMeasurementsPage from "./pages/UserMeasurementsPage";
 import ProClientMeasurementsPage from "./pages/pro/ProClientMeasurementsPage";
 import ProCouponPage from "./pages/pro/ProCouponPage";
 import MealRemindersPage from "./pages/MealRemindersPage";
+import AntiWastePage from "./pages/AntiWastePage";
 
 // Supplier pages
 import SupplierPage from "./pages/supplier/SupplierPage";
@@ -146,6 +147,7 @@ const App = () => (
                 <Route path="/my-recipes" element={<UserPantryRecipesPage />} />
                 <Route path="/reminders" element={<RemindersPage />} />
                 <Route path="/meal-reminders" element={<MealRemindersPage />} />
+                <Route path="/anti-waste" element={<AntiWastePage />} />
                 <Route path="/invite" element={<InvitePage />} />
                 <Route path="/recipes" element={<PublicRecipesPage />} />
                 <Route path="/recipes/:recipeId" element={<RecipeDetailPage />} />

@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { getFoodImage } from "@/lib/food-images";
 import AddFoodFlow from "@/components/AddFoodFlow";
 import MealReminderBanner from "@/components/MealReminderBanner";
+import WasteSavingsCard from "@/components/WasteSavingsCard";
 import ResolveExpiryFlow from "@/components/ResolveExpiryFlow";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
@@ -21,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import {
   Clock, Plus, Search, Zap, ChevronRight,
-  BookOpen, SlidersHorizontal, X, Trash2,
+  BookOpen, SlidersHorizontal, X, Trash2, Leaf,
 } from "lucide-react";
 
 /* ─── types ─── */
@@ -487,6 +488,27 @@ const Index = () => {
             <p className="text-[13px] text-muted-foreground">Nessun prodotto urgente 🎉</p>
           </div>
         )}
+
+        {/* ═══ WASTE SAVINGS ═══ */}
+        <WasteSavingsCard />
+
+        {/* ═══ ANTI-WASTE CTA ═══ */}
+        <button
+          onClick={() => navigate("/anti-waste")}
+          className="relative w-full overflow-hidden rounded-[18px] bg-card shadow-card active:scale-[0.98] transition-transform text-left"
+        >
+          <div className="h-1.5 w-full" style={{ background: "linear-gradient(90deg, hsl(152,56%,46%), hsl(37,90%,51%))" }} />
+          <div className="flex items-center gap-4 px-5 py-3.5">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-success/15">
+              <Leaf className="h-5 w-5 text-success" strokeWidth={2} />
+            </div>
+            <div className="flex-1">
+              <p className="text-[14px] font-bold text-foreground">Ricette anti-spreco</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Cucina con quello che hai in casa</p>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+          </div>
+        </button>
 
         {/* ═══ RICETTE HERO CARD ═══ */}
         <button

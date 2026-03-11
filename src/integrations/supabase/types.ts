@@ -2346,6 +2346,36 @@ export type Database = {
           },
         ]
       }
+      waste_savings: {
+        Row: {
+          estimated_price: number | null
+          id: string
+          item_name: string
+          saved_at: string
+          source: string
+          user_id: string
+          weight_g: number | null
+        }
+        Insert: {
+          estimated_price?: number | null
+          id?: string
+          item_name: string
+          saved_at?: string
+          source?: string
+          user_id: string
+          weight_g?: number | null
+        }
+        Update: {
+          estimated_price?: number | null
+          id?: string
+          item_name?: string
+          saved_at?: string
+          source?: string
+          user_id?: string
+          weight_g?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

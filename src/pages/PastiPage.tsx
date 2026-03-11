@@ -9,6 +9,7 @@ import QuickDaySheet from "@/components/QuickDaySheet";
 import QuickDayBadge from "@/components/QuickDayBadge";
 import MealFAB from "@/components/MealFAB";
 import { supabase } from "@/integrations/supabase/client";
+import { deductPantryFromMeal } from "@/lib/pantry-deduction";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useFavorites } from "@/hooks/useFavorites";
@@ -179,6 +180,8 @@ const PastiPage = () => {
         macros: { protein: snap.protein || 0, carbs: snap.carbs || 0, fats: snap.fats || 0 },
       });
       if (error) throw error;
+      // Auto-deduct from pantry
+      await deductPantryFromMeal(user.id, [{ custom_name: snap.name, dish_name: snap.name, quantity: 1, unit: "porzione" }]);
       toast({ title: `"${snap.name}" aggiunto! ✅` });
       fetchMeals();
     } catch (e: any) {
