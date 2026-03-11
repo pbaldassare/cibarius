@@ -363,7 +363,7 @@ const ExpiryPage = () => {
             {filtered.map((item) => {
               const status = getStatus(item.expiry_date);
               const cfg = statusCfg[status];
-              const isPrep = item.type === "preparation";
+              const itemKey = `product-${item.id}`;
               const itemKey = `${item.type}-${item.id}`;
               const isSelected = selectedIds.has(itemKey);
 
