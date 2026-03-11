@@ -23,7 +23,7 @@ import { Input } from "@/components/ui/input";
 
 interface ExpiryItem {
   id: string;
-  type: "product" | "preparation";
+  type: "product";
   name: string;
   image_url: string | null;
   expiry_date: string | null;
@@ -71,7 +71,6 @@ const ExpiryPage = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>("expired");
   const [storageFilter, setStorageFilter] = useState("all");
-  const [typeFilter, setTypeFilter] = useState("all");
   const [actionSheet, setActionSheet] = useState<ExpiryItem | null>(null);
   const [addFoodOpen, setAddFoodOpen] = useState(false);
   const [newDate, setNewDate] = useState("");
@@ -85,17 +84,11 @@ const ExpiryPage = () => {
 
   const fetchItems = async () => {
     if (!user) return;
-    const [invRes, prepRes] = await Promise.all([
-      supabase
+    const invRes = await supabase
         .from("inventory_items")
         .select("id, expiry_date, storage_type, quantity, unit, calories_total, macros_total, product:products(name, image_url, brand, calories_100g, macros_100g)")
         .eq("owner_user_id", user.id)
-        .order("expiry_date", { ascending: true, nullsFirst: false }),
-      supabase
-        .from("preparations")
-        .select("id, name, use_by_date, storage_type, portions, image_url")
-        .eq("owner_user_id", user.id),
-    ]);
+        .order("expiry_date", { ascending: true, nullsFirst: false });
 
     const result: ExpiryItem[] = [];
     if (invRes.data) {
@@ -117,20 +110,6 @@ const ExpiryPage = () => {
         });
       }
     }
-    if (prepRes.data) {
-      for (const p of prepRes.data as any[]) {
-        result.push({
-          id: p.id, type: "preparation",
-          name: p.name,
-          image_url: p.image_url ?? null,
-          expiry_date: p.use_by_date,
-          storage_type: p.storage_type ?? "frigo",
-          quantity: p.portions, unit: "porzioni",
-          brand: null, calories_100g: null, macros_100g: null,
-          calories_total: null, macros_total: null,
-        });
-      }
-    }
 
     setItems(result);
     setLoading(false);
@@ -142,7 +121,7 @@ const ExpiryPage = () => {
     let list = items;
     if (activeTab !== "all") list = list.filter((i) => getStatus(i.expiry_date) === activeTab);
     if (storageFilter !== "all") list = list.filter((i) => i.storage_type === storageFilter);
-    if (typeFilter !== "all") list = list.filter((i) => i.type === typeFilter);
+    
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       list = list.filter((i) => i.name.toLowerCase().includes(q));
@@ -155,25 +134,17 @@ const ExpiryPage = () => {
       if (a.expiry_date && b.expiry_date) return a.expiry_date.localeCompare(b.expiry_date);
       return a.expiry_date ? -1 : 1;
     });
-  }, [items, activeTab, storageFilter, typeFilter, searchQuery]);
+  }, [items, activeTab, storageFilter, searchQuery]);
 
   const handleConsume = async (item: ExpiryItem) => {
-    if (item.type === "product") {
-      await supabase.from("inventory_items").delete().eq("id", item.id);
-    } else {
-      await supabase.from("preparations").delete().eq("id", item.id);
-    }
+    await supabase.from("inventory_items").delete().eq("id", item.id);
     toast({ title: "Segnato come consumato ✓" });
     setActionSheet(null);
     fetchItems();
   };
 
   const handleTrash = async (item: ExpiryItem) => {
-    if (item.type === "product") {
-      await supabase.from("inventory_items").delete().eq("id", item.id);
-    } else {
-      await supabase.from("preparations").delete().eq("id", item.id);
-    }
+    await supabase.from("inventory_items").delete().eq("id", item.id);
     toast({ title: "Segnato come buttato 🗑" });
     setActionSheet(null);
     fetchItems();
@@ -181,11 +152,7 @@ const ExpiryPage = () => {
 
   const handleUpdateDate = async (item: ExpiryItem) => {
     if (!newDate) return;
-    if (item.type === "product") {
-      await supabase.from("inventory_items").update({ expiry_date: newDate }).eq("id", item.id);
-    } else {
-      await supabase.from("preparations").update({ use_by_date: newDate }).eq("id", item.id);
-    }
+    await supabase.from("inventory_items").update({ expiry_date: newDate }).eq("id", item.id);
     toast({ title: "Data aggiornata ✓" });
     setActionSheet(null);
     setNewDate("");
@@ -200,11 +167,7 @@ const ExpiryPage = () => {
 
   const handleChangeStorage = async (item: ExpiryItem, newStorage: string) => {
     if (item.storage_type === newStorage) return;
-    if (item.type === "product") {
-      await supabase.from("inventory_items").update({ storage_type: newStorage }).eq("id", item.id);
-    } else {
-      await supabase.from("preparations").update({ storage_type: newStorage }).eq("id", item.id);
-    }
+    await supabase.from("inventory_items").update({ storage_type: newStorage }).eq("id", item.id);
     toast({ title: `Spostato in ${storageLabel[newStorage] ?? newStorage} ✓` });
     setActionSheet((prev) => prev ? { ...prev, storage_type: newStorage } : null);
     fetchItems();
@@ -228,17 +191,13 @@ const ExpiryPage = () => {
 
   const handleBulkDelete = async () => {
     setDeleting(true);
-    const productIds: string[] = [];
-    const prepIds: string[] = [];
+    const ids: string[] = [];
     selectedIds.forEach((key) => {
-      const [type, ...rest] = key.split("-");
-      const id = rest.join("-");
-      if (type === "product") productIds.push(id);
-      else prepIds.push(id);
+      const [, ...rest] = key.split("-");
+      ids.push(rest.join("-"));
     });
 
-    if (productIds.length) await supabase.from("inventory_items").delete().in("id", productIds);
-    if (prepIds.length) await supabase.from("preparations").delete().in("id", prepIds);
+    if (ids.length) await supabase.from("inventory_items").delete().in("id", ids);
 
     toast({ title: `${selectedIds.size} elementi eliminati ✓` });
     setConfirmDeleteOpen(false);
@@ -363,26 +322,6 @@ const ExpiryPage = () => {
           })}
         </div>
 
-        {/* Inline filters */}
-        <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
-          {([
-            { key: "all", label: "Tutto" },
-            { key: "product", label: "Prodotti" },
-            { key: "preparation", label: "Prep" },
-          ] as const).map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setTypeFilter(key)}
-              className={`rounded-full px-3 py-1 text-[12px] font-medium border transition-colors ${
-                typeFilter === key
-                  ? "bg-primary/10 text-primary border-primary"
-                  : "bg-card text-muted-foreground border-border"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
         <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
           {([
             { key: "all", label: "Tutti", icon: null },
@@ -424,8 +363,7 @@ const ExpiryPage = () => {
             {filtered.map((item) => {
               const status = getStatus(item.expiry_date);
               const cfg = statusCfg[status];
-              const isPrep = item.type === "preparation";
-              const itemKey = `${item.type}-${item.id}`;
+              const itemKey = `product-${item.id}`;
               const isSelected = selectedIds.has(itemKey);
 
               return (
@@ -460,8 +398,6 @@ const ExpiryPage = () => {
                   <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] bg-secondary overflow-hidden">
                     {item.image_url ? (
                       <img src={item.image_url} alt="" className="h-full w-full object-cover" />
-                    ) : isPrep ? (
-                      <ChefHat className="h-5 w-5 text-muted-foreground" />
                     ) : (
                       <span className="text-xl">{getFoodEmoji(null, item.name)}</span>
                     )}
@@ -470,11 +406,6 @@ const ExpiryPage = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
                       <p className="text-[15px] font-medium truncate text-foreground">{item.name}</p>
-                      {isPrep && (
-                        <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-accent/10 text-accent">
-                          PREP
-                        </span>
-                      )}
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
                       {item.expiry_date && (
