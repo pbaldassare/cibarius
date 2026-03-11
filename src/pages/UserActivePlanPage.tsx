@@ -330,7 +330,7 @@ const UserActivePlanPage = () => {
     setAiLoading((prev) => ({ ...prev, [mealType]: false }));
   };
 
-
+  const handleSaveDay = async () => {
     if (!user || !plan) return;
     setSaving(true);
     const todayStr = new Date().toISOString().slice(0, 10);
