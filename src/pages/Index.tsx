@@ -248,25 +248,154 @@ const Index = () => {
 
   useEffect(() => { fetchItems(); }, [user]);
 
-  // Build AI suggestion from expiring items (local, no API call on home)
-  useEffect(() => {
-    if (items.length === 0) return;
+  // Smart AI suggestions: group expiring items by food compatibility
+  const aiSuggestions = useMemo(() => {
+    if (items.length === 0) return [];
+
     const expiring = items.filter(i => {
       const s = getStatus(i.expiry_date);
       return s === "expired" || s === "today" || s === "tomorrow" || s === "soon";
     });
-    if (expiring.length >= 2) {
-      const names = expiring.slice(0, 3).map(i => i.product.name.toLowerCase());
-      setAiSuggestion({
-        title: `Puoi usare ${names.join(", ")} prima che scadano`,
-        reason: `Hai ${expiring.length} ingredienti da consumare presto. Prova una ricetta con questi ingredienti!`,
-      });
-    } else if (expiring.length === 1) {
-      setAiSuggestion({
+
+    if (expiring.length === 0) return [];
+    if (expiring.length === 1) {
+      return [{
         title: `${expiring[0].product.name} sta per scadere`,
         reason: "Usalo oggi per evitare spreco!",
-      });
+        items: [expiring[0].product.name],
+        recipes: [],
+      }];
     }
+
+    // Classify each ingredient into a food category
+    type FoodCat = "verdure" | "cereali" | "proteine" | "latticini" | "dolci" | "frutta" | "altro";
+    const catKeywords: Record<FoodCat, string[]> = {
+      verdure: ["insalata", "lattuga", "zucchine", "pomodor", "carote", "spinaci", "peperoni", "melanzane", "cipolla", "broccoli", "cavolfiore", "rucola", "verdur", "sedano", "finocchi", "fagiolini", "piselli", "funghi", "carciofi", "patate", "cavolo"],
+      cereali: ["pasta", "riso", "pane", "farina", "fette biscottate", "cereali", "avena", "crackers", "grissini", "tortellini", "gnocchi", "couscous", "orzo", "farro", "piadina", "pangrattato", "biscotti secchi"],
+      proteine: ["pollo", "carne", "manzo", "maiale", "tacchino", "pesce", "tonno", "salmone", "uova", "prosciutto", "bresaola", "wurstel", "hamburger", "merluzzo", "gamberi", "vitello", "polpo", "acciughe", "sgombro", "salame", "mortadella"],
+      latticini: ["latte", "formaggio", "mozzarella", "parmigiano", "yogurt", "ricotta", "burro", "panna", "stracchino", "gorgonzola", "mascarpone", "pecorino", "provolone", "crescenza", "fontina", "philadelphia"],
+      dolci: ["cioccolato", "nutella", "miele", "marmellata", "zucchero", "cacao", "biscotti", "merendine", "torta", "crema", "wafer", "caramelle", "gelato"],
+      frutta: ["mela", "mele", "banana", "arancia", "fragole", "kiwi", "pera", "pere", "uva", "limone", "pesca", "pesche", "albicocche", "ananas", "frutta", "mandarini", "ciliegie", "frutti di bosco", "mirtilli", "cocco"],
+      altro: [],
+    };
+
+    const classify = (name: string): FoodCat => {
+      const lower = name.toLowerCase();
+      for (const [cat, keywords] of Object.entries(catKeywords) as [FoodCat, string[]][]) {
+        if (cat === "altro") continue;
+        if (keywords.some(kw => lower.includes(kw))) return cat;
+      }
+      return "altro";
+    };
+
+    // Compatibility matrix (which categories combine well)
+    const compatible: Record<string, string[]> = {
+      verdure: ["proteine", "latticini", "cereali"],
+      cereali: ["proteine", "dolci", "verdure", "latticini"],
+      proteine: ["verdure", "cereali", "latticini"],
+      latticini: ["verdure", "cereali", "proteine", "frutta"],
+      dolci: ["cereali", "latticini", "frutta"],
+      frutta: ["latticini", "dolci", "cereali"],
+      altro: ["verdure", "cereali", "proteine", "latticini", "dolci", "frutta", "altro"],
+    };
+
+    // Quick recipe suggestions per category combo
+    const recipeHints: Record<string, string[]> = {
+      "cereali+proteine": ["pasta con ragù", "riso con pollo", "panino farcito"],
+      "cereali+dolci": ["pancake", "torta veloce", "biscotti fatti in casa"],
+      "cereali+verdure": ["pasta al pomodoro", "riso con verdure", "bruschetta"],
+      "cereali+latticini": ["pasta al formaggio", "risotto al parmigiano", "crostini con stracchino"],
+      "verdure+proteine": ["insalata di pollo", "frittata di verdure", "verdure con carne"],
+      "verdure+latticini": ["insalata con parmigiano", "zucchine gratinate", "caprese"],
+      "proteine+latticini": ["omelette al formaggio", "piadina farcita", "polpette al sugo"],
+      "dolci+latticini": ["tiramisù veloce", "yogurt con cioccolato", "crema al mascarpone"],
+      "dolci+frutta": ["macedonia con cioccolato", "frutta al miele", "smoothie dolce"],
+      "frutta+latticini": ["smoothie", "yogurt con frutta", "macedonia con panna"],
+      "frutta+cereali": ["porridge con frutta", "pancake alla banana", "muesli"],
+    };
+
+    const getRecipes = (cat1: string, cat2: string): string[] => {
+      return recipeHints[`${cat1}+${cat2}`] || recipeHints[`${cat2}+${cat1}`] || [];
+    };
+
+    // Group expiring items by category
+    const grouped: Record<string, typeof expiring> = {};
+    for (const item of expiring) {
+      const cat = classify(item.product.name);
+      if (!grouped[cat]) grouped[cat] = [];
+      grouped[cat].push(item);
+    }
+
+    // Build compatible groups (max 2)
+    type SuggestionGroup = { title: string; reason: string; items: string[]; recipes: string[] };
+    const suggestions: SuggestionGroup[] = [];
+    const usedItems = new Set<string>();
+
+    const cats = Object.keys(grouped).filter(c => c !== "altro");
+    
+    // Try pairing different categories
+    for (const cat1 of cats) {
+      if (suggestions.length >= 2) break;
+      for (const cat2 of cats) {
+        if (suggestions.length >= 2) break;
+        if (cat1 === cat2) continue;
+        if (!compatible[cat1]?.includes(cat2)) continue;
+        
+        const items1 = grouped[cat1].filter(i => !usedItems.has(i.id));
+        const items2 = grouped[cat2].filter(i => !usedItems.has(i.id));
+        if (items1.length === 0 || items2.length === 0) continue;
+
+        const pick1 = items1.slice(0, 2);
+        const pick2 = items2.slice(0, 2);
+        const names = [...pick1, ...pick2].map(i => i.product.name);
+        const recipes = getRecipes(cat1, cat2);
+
+        for (const i of [...pick1, ...pick2]) usedItems.add(i.id);
+
+        suggestions.push({
+          title: `Consuma prima: ${names.join(" e ")}`,
+          reason: recipes.length > 0
+            ? `Ricette possibili: ${recipes.slice(0, 2).join(", ")}`
+            : `${names.length} ingredienti da usare prima che scadano`,
+          items: names,
+          recipes: recipes.slice(0, 2),
+        });
+      }
+    }
+
+    // If only one category or leftover items in same category, group them
+    if (suggestions.length < 2) {
+      for (const cat of [...cats, "altro"]) {
+        if (suggestions.length >= 2) break;
+        const remaining = (grouped[cat] || []).filter(i => !usedItems.has(i.id));
+        if (remaining.length < 1) continue;
+        
+        const pick = remaining.slice(0, 3);
+        const names = pick.map(i => i.product.name);
+        for (const i of pick) usedItems.add(i.id);
+
+        // Same-category recipes
+        const sameRecipes: Record<string, string[]> = {
+          verdure: ["minestrone", "verdure al forno"],
+          cereali: ["pasta in bianco", "riso al burro"],
+          proteine: ["grigliata mista", "polpette"],
+          latticini: ["tagliere di formaggi", "fonduta"],
+          dolci: ["dolce veloce", "merenda golosa"],
+          frutta: ["macedonia", "smoothie"],
+        };
+
+        suggestions.push({
+          title: `Consuma prima: ${names.join(" e ")}`,
+          reason: (sameRecipes[cat] || []).length > 0
+            ? `Ricette possibili: ${(sameRecipes[cat] || []).slice(0, 2).join(", ")}`
+            : `Da consumare presto!`,
+          items: names,
+          recipes: (sameRecipes[cat] || []).slice(0, 2),
+        });
+      }
+    }
+
+    return suggestions;
   }, [items]);
 
   // Counts
