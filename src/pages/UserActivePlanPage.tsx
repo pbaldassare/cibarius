@@ -432,15 +432,26 @@ const UserActivePlanPage = () => {
           const hasLogged = mealKcal > 0;
           const remainingKcal = Math.max(0, target.kcal_target - mealKcal);
           const allMealRecipes = recipesByMeal[target.meal_type] || [];
-          // Filter recipes: show only those fitting remaining kcal (with 20% tolerance), or all if nothing logged
-          const mealRecipes = hasLogged && remainingKcal > 0
-            ? allMealRecipes.filter((r) => {
-                const scaledKcal = r.kcal_total * portionScale;
-                return scaledKcal <= remainingKcal * 1.2;
-              })
-            : hasLogged && remainingKcal === 0
-              ? [] // meal target already reached
-              : allMealRecipes;
+          // Filter & sort recipes by proximity to remaining kcal budget
+          const mealRecipes = (() => {
+            if (hasLogged && remainingKcal === 0) return []; // target reached
+            if (!hasLogged) return allMealRecipes; // nothing logged yet, show all
+            // Sort by closeness to remaining budget, prefer those within budget
+            const sorted = [...allMealRecipes]
+              .map((r) => ({ ...r, _scaledKcal: r.kcal_total * portionScale }))
+              .sort((a, b) => {
+                const diffA = Math.abs(a._scaledKcal - remainingKcal);
+                const diffB = Math.abs(b._scaledKcal - remainingKcal);
+                const aFits = a._scaledKcal <= remainingKcal * 1.2;
+                const bFits = b._scaledKcal <= remainingKcal * 1.2;
+                if (aFits && !bFits) return -1;
+                if (!aFits && bFits) return 1;
+                return diffA - diffB;
+              });
+            // Show fitting recipes, or at least top 3 closest
+            const fitting = sorted.filter((r) => r._scaledKcal <= remainingKcal * 1.2);
+            return fitting.length > 0 ? fitting : sorted.slice(0, 3);
+          })();
           const isRecipesOpen = openRecipes[target.meal_type] || false;
 
           return (
