@@ -1572,7 +1572,7 @@ const AddFoodFlow = ({
                                 product_id: prod.id,
                                 quantity: item.quantity,
                                 unit: item.unit === "pz" ? "pezzi" : item.unit,
-                                storage_type: receiptStorageType,
+                                storage_type: item.storage_type || "frigo",
                                 expiry_date: format(addDays(new Date(), 3), "yyyy-MM-dd"),
                               };
                               if (defaultRestaurantId) insertData.restaurant_id = defaultRestaurantId;
