@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, Navigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { getSavedReferralCode, saveReferralCode } from "@/pages/JoinReferralPage";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +24,21 @@ const ACCOUNT_TYPES: { value: AccountType; label: string; desc: string; icon: ty
 const SignupPage = () => {
   const { session, loading } = useAuth();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+
+  // Check for referral from URL param or localStorage
+  const [refCode, setRefCode] = useState<string | null>(null);
+
+  useEffect(() => {
+    const urlRef = searchParams.get("ref");
+    if (urlRef) {
+      saveReferralCode(urlRef);
+      setRefCode(urlRef.toUpperCase());
+    } else {
+      const saved = getSavedReferralCode();
+      if (saved) setRefCode(saved);
+    }
+  }, [searchParams]);
 
   const [step, setStep] = useState(1);
   const [accountType, setAccountType] = useState<AccountType | null>(null);
@@ -90,6 +106,10 @@ const SignupPage = () => {
       role: accountType!,
       phone: phone || "",
     };
+    // Include referral code in metadata if present
+    if (refCode) {
+      metadata.ref_coupon_code = refCode;
+    }
 
     if (accountType === "restaurant_owner") {
       metadata.restaurant_name = restaurantName;

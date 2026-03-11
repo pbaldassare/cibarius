@@ -1,10 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Ticket, Check, X } from "lucide-react";
-
+import { getSavedReferralCode } from "@/pages/JoinReferralPage";
 interface CouponResult {
   valid: boolean;
   coupon_id?: string;
@@ -22,6 +21,30 @@ const CouponInput = ({ onCouponApplied }: CouponInputProps) => {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<CouponResult | null>(null);
+  const [autoApplied, setAutoApplied] = useState(false);
+
+  // Auto-load saved referral coupon
+  useEffect(() => {
+    const saved = getSavedReferralCode();
+    if (saved && !autoApplied) {
+      setCode(saved);
+      setAutoApplied(true);
+      // Auto-validate
+      (async () => {
+        setLoading(true);
+        try {
+          const { data, error } = await supabase.functions.invoke("validate-coupon", {
+            body: { coupon_code: saved },
+          });
+          if (!error && data?.valid) {
+            setResult(data);
+            onCouponApplied(data);
+          }
+        } catch {}
+        setLoading(false);
+      })();
+    }
+  }, []);
 
   const validate = async () => {
     if (!code.trim()) return;
