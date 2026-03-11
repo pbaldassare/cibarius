@@ -75,6 +75,7 @@ const PastiPage = () => {
   const [editMealUnit, setEditMealUnit] = useState("g");
   const [savingMealEdit, setSavingMealEdit] = useState(false);
 
+  const prevTotalRef = { current: 0 };
   const fetchMeals = useCallback(async () => {
     if (!user) return;
     const today = new Date().toISOString().slice(0, 10);
@@ -84,9 +85,24 @@ const PastiPage = () => {
       .eq("user_id", user.id)
       .eq("day_date", today)
       .maybeSingle();
+    
+    // Check if we just exceeded the target
+    const newTotal = (data as MealDay | null)?.meals?.reduce(
+      (sum, m) => sum + m.meal_items.reduce((s, i) => s + (i.calories ?? 0), 0), 0
+    ) ?? 0;
+    const target = targetKcal || dietPlan?.kcal_day;
+    if (target && newTotal > target && prevTotalRef.current <= target && prevTotalRef.current > 0) {
+      toast({
+        variant: "destructive",
+        title: "⚠️ Obiettivo calorico superato!",
+        description: `Hai raggiunto ${Math.round(newTotal)} kcal su ${target} kcal previste (+${Math.round(newTotal - target)} kcal).`,
+      });
+    }
+    prevTotalRef.current = newTotal;
+    
     setMealDay(data as MealDay | null);
     setLoading(false);
-  }, [user]);
+  }, [user, targetKcal, dietPlan]);
 
   useEffect(() => { fetchMeals(); }, [fetchMeals]);
 
