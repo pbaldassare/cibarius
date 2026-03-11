@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
-import { Slider } from "@/components/ui/slider";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import MealRecipeCard from "@/components/MealRecipeCard";
 import { supabase } from "@/integrations/supabase/client";
@@ -109,7 +108,6 @@ const UserActivePlanPage = () => {
 
   // Save-day state
   const [mealsLogged, setMealsLogged] = useState<Record<string, boolean>>({});
-  const [manualCompliance, setManualCompliance] = useState(0);
   const [dayNotes, setDayNotes] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -165,21 +163,13 @@ const UserActivePlanPage = () => {
       const autoMeals: Record<string, boolean> = {};
       meals.forEach((m: any) => { autoMeals[m.meal_type] = true; });
       setMealsLogged(autoMeals);
-      // Auto-calc compliance
-      if (activePlan) {
-        const totalKcal = meals.reduce((s: number, m: any) => {
-          const items = m.meal_items || [];
-          return s + items.reduce((ss: number, i: any) => ss + (i.calories ?? 0), 0);
-        }, 0);
-        setManualCompliance(Math.min(100, Math.round((totalKcal / (activePlan.kcal_day || 2000)) * 100)));
-      }
+      // Auto-calc compliance will be handled reactively via useMemo
     } else {
       setTodayMeals([]);
       setMealsLogged({});
-      setManualCompliance(0);
     }
 
-    // Load existing daily_progress for today to pre-populate
+    // Load existing daily_progress for today to pre-populate notes only
     const { data: existingProgress } = await supabase
       .from("daily_progress")
       .select("*")
@@ -189,7 +179,6 @@ const UserActivePlanPage = () => {
     if (existingProgress) {
       const ml = existingProgress.meals_logged as Record<string, boolean> | null;
       if (ml && Object.keys(ml).length > 0) setMealsLogged(ml);
-      if (existingProgress.compliance_pct) setManualCompliance(existingProgress.compliance_pct);
       if (existingProgress.notes) setDayNotes(existingProgress.notes);
     }
 
@@ -237,6 +226,8 @@ const UserActivePlanPage = () => {
   }, [recipes]);
 
   const kcalPct = plan ? Math.min(100, Math.round((todayTotals.kcal / plan.kcal_day) * 100)) : 0;
+
+  const manualCompliance = kcalPct;
 
   const handleRegisterRecipe = async (ingredients: any[], title: string, mealType: string) => {
     if (!user) return;
@@ -575,7 +566,7 @@ const UserActivePlanPage = () => {
               })}
             </div>
 
-            {/* Compliance slider */}
+            {/* Compliance auto-calculated */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Rispetto del piano</p>
@@ -583,13 +574,7 @@ const UserActivePlanPage = () => {
                   {manualCompliance}%
                 </span>
               </div>
-              <Slider
-                value={[manualCompliance]}
-                onValueChange={(v) => setManualCompliance(v[0])}
-                max={100}
-                step={5}
-                className="w-full"
-              />
+              <Progress value={manualCompliance} className="h-2.5" />
             </div>
 
             {/* Notes */}
