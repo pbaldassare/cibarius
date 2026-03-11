@@ -364,7 +364,6 @@ const ExpiryPage = () => {
               const status = getStatus(item.expiry_date);
               const cfg = statusCfg[status];
               const itemKey = `product-${item.id}`;
-              const itemKey = `${item.type}-${item.id}`;
               const isSelected = selectedIds.has(itemKey);
 
               return (
