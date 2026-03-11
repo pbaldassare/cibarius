@@ -1404,7 +1404,7 @@ const AddFoodFlow = ({
                       </div>
                       {p.calories_100g != null && (
                         <span className="text-xs font-medium text-primary shrink-0">
-                          {p.calories_100g} kcal
+                          {Math.round(p.calories_100g)} kcal
                         </span>
                       )}
                     </button>

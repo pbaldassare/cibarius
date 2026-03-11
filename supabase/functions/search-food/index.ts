@@ -24,7 +24,7 @@ async function searchOFF_IT(query: string): Promise<NormalizedResult[]> {
     const res = await fetch(url);
     if (!res.ok) return [];
     const json = await res.json();
-    return mapOFFProducts(json.products ?? [], "off_it");
+    return mapOFFProducts(json.products ?? [], "off_it", query);
   } catch {
     return [];
   }
@@ -37,13 +37,18 @@ async function searchOFF_World(query: string): Promise<NormalizedResult[]> {
     const res = await fetch(url);
     if (!res.ok) return [];
     const json = await res.json();
-    return mapOFFProducts(json.products ?? [], "off_world");
+    return mapOFFProducts(json.products ?? [], "off_world", query);
   } catch {
     return [];
   }
 }
 
-function mapOFFProducts(products: any[], detail: "off_it" | "off_world"): NormalizedResult[] {
+function round2(v: number | null | undefined): number | null {
+  return v != null ? Math.round(v * 100) / 100 : null;
+}
+
+function mapOFFProducts(products: any[], detail: "off_it" | "off_world", query?: string): NormalizedResult[] {
+  const qLower = (query ?? "").toLowerCase().trim();
   return products
     .filter((p: any) => p.product_name || p.product_name_it)
     .map((p: any) => {
@@ -55,11 +60,17 @@ function mapOFFProducts(products: any[], detail: "off_it" | "off_world"): Normal
         brand: p.brands || null,
         barcode: p.code || null,
         image_url: p.image_front_url || p.image_url || null,
-        calories_100g: n["energy-kcal_100g"] ?? null,
-        protein_100g: n.proteins_100g ?? null,
-        carbs_100g: n.carbohydrates_100g ?? null,
-        fats_100g: n.fat_100g ?? null,
+        calories_100g: round2(n["energy-kcal_100g"]),
+        protein_100g: round2(n.proteins_100g),
+        carbs_100g: round2(n.carbohydrates_100g),
+        fats_100g: round2(n.fat_100g),
       };
+    })
+    .filter((r) => {
+      // Filter out irrelevant results: name or brand must contain query
+      if (!qLower || qLower.length < 2) return true;
+      const hay = (r.name + " " + (r.brand ?? "")).toLowerCase();
+      return qLower.split(/\s+/).some((word) => hay.includes(word));
     });
 }
 
