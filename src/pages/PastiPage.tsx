@@ -197,9 +197,17 @@ const PastiPage = () => {
     }
   };
 
-  const meals = (mealDay?.meals ?? []).sort(
-    (a, b) => mealOrder.indexOf(a.meal_type) - mealOrder.indexOf(b.meal_type)
-  );
+  // If plan has meal targets, only show meals that are in the plan (or have items already)
+  const allowedMealTypes = mealTargets.length > 0
+    ? mealTargets.map((t) => t.meal_type)
+    : null;
+
+  const meals = (mealDay?.meals ?? [])
+    .filter((m) => {
+      if (!allowedMealTypes) return true;
+      return allowedMealTypes.includes(m.meal_type) || m.meal_items.length > 0;
+    })
+    .sort((a, b) => mealOrder.indexOf(a.meal_type) - mealOrder.indexOf(b.meal_type));
 
   const totalKcal = meals.reduce(
     (sum, m) => sum + m.meal_items.reduce((s, i) => s + (i.calories ?? 0), 0), 0
