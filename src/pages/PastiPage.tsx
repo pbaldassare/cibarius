@@ -81,6 +81,7 @@ const PastiPage = () => {
   const [editMealUnit, setEditMealUnit] = useState("g");
   const [savingMealEdit, setSavingMealEdit] = useState(false);
   const [quickDayOpen, setQuickDayOpen] = useState(false);
+  const [quickDayRefresh, setQuickDayRefresh] = useState(0);
   const prevTotalRef = { current: 0 };
   const fetchMeals = useCallback(async () => {
     if (!user) return;
@@ -323,7 +324,7 @@ const PastiPage = () => {
         )}
 
         {/* Quick day badge */}
-        <QuickDayBadge />
+        <QuickDayBadge key={quickDayRefresh} />
 
         {targetKcal && meals.length > 0 && totalKcal > targetKcal && (
           <div className="rounded-xl border-2 border-destructive/40 bg-destructive/10 p-3 flex items-center gap-3">
@@ -503,7 +504,7 @@ const PastiPage = () => {
         open={quickDayOpen}
         onOpenChange={setQuickDayOpen}
         targetKcal={targetKcal}
-        onComplete={fetchMeals}
+        onComplete={() => { fetchMeals(); setQuickDayRefresh(k => k + 1); }}
       />
 
       <AddFoodFlow
