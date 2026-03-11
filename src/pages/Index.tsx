@@ -151,7 +151,7 @@ const Index = () => {
   const [unreadMessages, setUnreadMessages] = useState(0);
 
   // AI suggestion (lightweight)
-  const [aiSuggestion, setAiSuggestion] = useState<{ title: string; reason: string } | null>(null);
+  // AI suggestions now computed via useMemo (aiSuggestions)
 
   // Waste stats
   const [wasteStats, setWasteStats] = useState<{ count: number; weightKg: number; money: number } | null>(null);
