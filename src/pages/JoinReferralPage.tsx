@@ -54,21 +54,18 @@ const JoinReferralPage = () => {
 
     const validate = async () => {
       try {
-        const { data, error } = await supabase
-          .from("nutritionist_coupons" as any)
-          .select("coupon_code, nutritionist_user_id, is_active, client_discount_percent, profiles:nutritionist_user_id(full_name)")
-          .eq("coupon_code", code.toUpperCase().trim())
-          .eq("is_active", true)
-          .single();
+        const { data, error } = await supabase.functions.invoke("validate-coupon", {
+          body: { coupon_code: code.toUpperCase().trim() },
+        });
 
-        if (error || !data) {
+        if (error || !data?.valid) {
           setStatus("invalid");
           return;
         }
 
         saveReferralCode(code);
-        setNutritionistName((data as any).profiles?.full_name || "il tuo nutrizionista");
-        setDiscountPercent((data as any).client_discount_percent || 0);
+        setNutritionistName(data.nutritionist_name || "il tuo nutrizionista");
+        setDiscountPercent(data.client_discount_percent || 0);
         setStatus("valid");
       } catch {
         setStatus("invalid");

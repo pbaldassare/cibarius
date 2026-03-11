@@ -544,6 +544,7 @@ const ProfiloPage = () => {
         <div className="rounded-[18px] bg-card shadow-card overflow-hidden">
           {[
             { icon: Heart, label: "Preferiti", path: undefined },
+            { icon: Sparkles, label: "Abbonamento Premium", path: "/subscription" },
             { icon: Bell, label: "Promemoria scadenze", path: "/reminders" },
             { icon: Bell, label: "Promemoria pasti", path: "/meal-reminders" },
           ].map((item, i) => (
