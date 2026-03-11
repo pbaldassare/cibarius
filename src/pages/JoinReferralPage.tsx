@@ -54,38 +54,12 @@ const JoinReferralPage = () => {
 
     const validate = async () => {
       try {
-        // Use edge function for validation - works without auth (service role)
         const { data, error } = await supabase.functions.invoke("validate-coupon", {
           body: { coupon_code: code.toUpperCase().trim() },
         });
 
-        // For public page, we only need to verify the coupon exists and is active
-        // The edge function may return error for missing auth, so also try direct anon query
         if (error || !data?.valid) {
-          // Fallback: try anon-accessible query (for public validation only)
-          const { data: couponData, error: couponErr } = await supabase
-            .from("nutritionist_coupons")
-            .select("coupon_code, nutritionist_user_id, is_active, client_discount_percent")
-            .eq("coupon_code", code.toUpperCase().trim())
-            .eq("is_active", true)
-            .maybeSingle();
-
-          if (couponErr || !couponData) {
-            setStatus("invalid");
-            return;
-          }
-
-          // Get nutritionist name
-          const { data: profileData } = await supabase
-            .from("profiles")
-            .select("full_name")
-            .eq("id", couponData.nutritionist_user_id)
-            .maybeSingle();
-
-          saveReferralCode(code);
-          setNutritionistName(profileData?.full_name || "il tuo nutrizionista");
-          setDiscountPercent(couponData.client_discount_percent || 0);
-          setStatus("valid");
+          setStatus("invalid");
           return;
         }
 
