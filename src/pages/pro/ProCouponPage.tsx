@@ -5,21 +5,26 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader2, Ticket, Copy, Check, Users, Banknote } from "lucide-react";
+import { Loader2, Ticket, Copy, Check, Users, Banknote, Link2, QrCode, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import QRCode from "qrcode";
 
 const ProCouponPage = () => {
   const { user } = useAuth();
   const [coupon, setCoupon] = useState<any>(null);
   const [commissions, setCommissions] = useState<any[]>([]);
+  const [referralLinks, setReferralLinks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<string | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string>("");
+
+  const referralUrl = coupon ? `${window.location.origin}/join/${coupon.coupon_code}` : "";
 
   useEffect(() => {
     if (!user) return;
     const load = async () => {
-      const [couponRes, commissionsRes] = await Promise.all([
+      const [couponRes, commissionsRes, linksRes] = await Promise.all([
         supabase
           .from("nutritionist_coupons" as any)
           .select("*")
@@ -30,20 +35,46 @@ const ProCouponPage = () => {
           .select("*, profiles:client_user_id(full_name, email)")
           .eq("nutritionist_user_id", user.id)
           .order("created_at", { ascending: false }),
+        supabase
+          .from("user_nutritionist_links" as any)
+          .select("*, profiles:client_user_id(full_name, email)")
+          .eq("nutritionist_user_id", user.id)
+          .order("linked_at", { ascending: false }),
       ]);
       setCoupon(couponRes.data);
       setCommissions((commissionsRes.data as any[]) ?? []);
+      setReferralLinks((linksRes.data as any[]) ?? []);
       setLoading(false);
     };
     load();
   }, [user]);
 
-  const handleCopy = () => {
-    if (coupon?.coupon_code) {
-      navigator.clipboard.writeText(coupon.coupon_code);
-      setCopied(true);
-      toast.success("Codice copiato!");
-      setTimeout(() => setCopied(false), 2000);
+  useEffect(() => {
+    if (referralUrl) {
+      QRCode.toDataURL(referralUrl, { width: 200, margin: 2 })
+        .then(setQrDataUrl)
+        .catch(() => {});
+    }
+  }, [referralUrl]);
+
+  const handleCopy = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(label);
+    toast.success(`${label} copiato!`);
+    setTimeout(() => setCopied(null), 2000);
+  };
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "Unisciti a Cibarius",
+          text: `Il tuo nutrizionista ti invita su Cibarius! Usa il link per uno sconto:`,
+          url: referralUrl,
+        });
+      } catch {}
+    } else {
+      handleCopy(referralUrl, "Link");
     }
   };
 
@@ -66,7 +97,8 @@ const ProCouponPage = () => {
     .filter((c: any) => c.status === "paid")
     .reduce((sum: number, c: any) => sum + Number(c.commission_amount), 0);
 
-  const clientCount = new Set(commissions.map((c: any) => c.client_user_id)).size;
+  const clientCount = new Set(referralLinks.map((l: any) => l.client_user_id)).size;
+  const referralCount = referralLinks.filter((l: any) => l.link_source === "referral_link").length;
 
   const statusLabel: Record<string, string> = {
     pending: "In attesa",
@@ -85,7 +117,7 @@ const ProCouponPage = () => {
     <div>
       <MobileHeader title="Guadagni da Coupon" />
       <main className="px-4 py-5 space-y-4">
-        {/* Coupon card */}
+        {/* Coupon code card */}
         <Card className="border-2 border-primary/30">
           <CardHeader className="flex flex-row items-center gap-3 pb-2">
             <Ticket className="h-5 w-5 text-primary" />
@@ -97,8 +129,8 @@ const ProCouponPage = () => {
                 <span className="text-2xl font-bold font-mono tracking-wider text-primary">
                   {coupon.coupon_code}
                 </span>
-                <Button variant="outline" size="icon" onClick={handleCopy}>
-                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                <Button variant="outline" size="icon" onClick={() => handleCopy(coupon.coupon_code, "Codice")}>
+                  {copied === "Codice" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                 </Button>
               </div>
             ) : (
@@ -114,13 +146,55 @@ const ProCouponPage = () => {
           </CardContent>
         </Card>
 
+        {/* Referral link card */}
+        {coupon && (
+          <Card className="border-2 border-accent">
+            <CardHeader className="flex flex-row items-center gap-3 pb-2">
+              <Link2 className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base">Il tuo link referral</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center gap-2">
+                <code className="flex-1 text-xs bg-muted rounded-md px-3 py-2 break-all font-mono">
+                  {referralUrl}
+                </code>
+                <Button variant="outline" size="icon" onClick={() => handleCopy(referralUrl, "Link")}>
+                  {copied === "Link" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                </Button>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1 gap-2 text-sm" onClick={handleShare}>
+                  <Share2 className="h-4 w-4" /> Condividi
+                </Button>
+              </div>
+
+              {/* QR Code */}
+              {qrDataUrl && (
+                <div className="flex flex-col items-center pt-2">
+                  <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
+                    <QrCode className="h-3 w-3" /> QR Code
+                  </p>
+                  <img src={qrDataUrl} alt="QR Code referral" className="w-40 h-40 rounded-lg border" />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <Card>
             <CardContent className="flex flex-col items-center py-4">
               <Users className="h-5 w-5 text-primary mb-1" />
               <span className="text-xl font-bold">{clientCount}</span>
-              <span className="text-[10px] text-muted-foreground text-center">Clienti</span>
+              <span className="text-[10px] text-muted-foreground text-center">Clienti collegati</span>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex flex-col items-center py-4">
+              <Link2 className="h-5 w-5 text-primary mb-1" />
+              <span className="text-xl font-bold">{referralCount}</span>
+              <span className="text-[10px] text-muted-foreground text-center">Via link referral</span>
             </CardContent>
           </Card>
           <Card>
