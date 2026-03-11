@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { usePwaInstall } from "@/hooks/usePwaInstall";
 import MobileHeader from "@/components/MobileHeader";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
