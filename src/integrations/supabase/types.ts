@@ -940,6 +940,45 @@ export type Database = {
         }
         Relationships: []
       }
+      meal_reminder_settings: {
+        Row: {
+          cena_enabled: boolean
+          cena_time: string
+          colazione_enabled: boolean
+          colazione_time: string
+          enabled: boolean
+          pranzo_enabled: boolean
+          pranzo_time: string
+          push_subscription: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cena_enabled?: boolean
+          cena_time?: string
+          colazione_enabled?: boolean
+          colazione_time?: string
+          enabled?: boolean
+          pranzo_enabled?: boolean
+          pranzo_time?: string
+          push_subscription?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cena_enabled?: boolean
+          cena_time?: string
+          colazione_enabled?: boolean
+          colazione_time?: string
+          enabled?: boolean
+          pranzo_enabled?: boolean
+          pranzo_time?: string
+          push_subscription?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       meals: {
         Row: {
           created_at: string
