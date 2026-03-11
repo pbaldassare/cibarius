@@ -44,6 +44,11 @@ interface ProProfileData {
   is_visible: boolean;
 }
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+}
+
 const ProfiloPage = () => {
   const { user, signOut } = useAuth();
   const { role } = useRole();
