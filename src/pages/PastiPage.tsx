@@ -64,6 +64,7 @@ const PastiPage = () => {
   const [loading, setLoading] = useState(true);
   const [mealDay, setMealDay] = useState<MealDay | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheetMealType, setSheetMealType] = useState<string | undefined>(undefined);
   const [targetKcal, setTargetKcal] = useState<number | null>(null);
   const [dietPlan, setDietPlan] = useState<any>(null);
   const [mealTargets, setMealTargets] = useState<MealTarget[]>([]);
