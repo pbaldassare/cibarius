@@ -11,26 +11,16 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("Missing auth");
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-    // Get caller
-    const callerClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: { user } } = await callerClient.auth.getUser();
-    if (!user) throw new Error("Unauthorized");
 
     const { coupon_code } = await req.json();
     if (!coupon_code) throw new Error("coupon_code required");
 
     const adminClient = createClient(supabaseUrl, serviceKey);
 
-    // Fetch coupon
+    // Fetch coupon using service role (bypasses RLS)
     const { data: coupon, error: couponErr } = await adminClient
       .from("nutritionist_coupons")
       .select("*")
@@ -40,13 +30,6 @@ Deno.serve(async (req) => {
 
     if (couponErr || !coupon) {
       return new Response(JSON.stringify({ valid: false, error: "Codice coupon non valido" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Can't use own coupon
-    if (coupon.nutritionist_user_id === user.id) {
-      return new Response(JSON.stringify({ valid: false, error: "Non puoi usare il tuo coupon" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -67,6 +50,28 @@ Deno.serve(async (req) => {
     }
     if (coupon.valid_until && new Date(coupon.valid_until) < now) {
       return new Response(JSON.stringify({ valid: false, error: "Coupon scaduto" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Check auth - if authenticated, apply self-use check
+    const authHeader = req.headers.get("Authorization");
+    let userId: string | null = null;
+    if (authHeader?.startsWith("Bearer ")) {
+      try {
+        const callerClient = createClient(supabaseUrl, anonKey, {
+          global: { headers: { Authorization: authHeader } },
+        });
+        const { data: { user } } = await callerClient.auth.getUser();
+        userId = user?.id || null;
+      } catch {
+        // Auth failed - still allow public validation
+      }
+    }
+
+    // Can't use own coupon (only checked if authenticated)
+    if (userId && coupon.nutritionist_user_id === userId) {
+      return new Response(JSON.stringify({ valid: false, error: "Non puoi usare il tuo coupon" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
