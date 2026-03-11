@@ -9,6 +9,7 @@ import QuickDaySheet from "@/components/QuickDaySheet";
 import QuickDayBadge from "@/components/QuickDayBadge";
 import MealFAB from "@/components/MealFAB";
 import { supabase } from "@/integrations/supabase/client";
+import { deductPantryFromMeal } from "@/lib/pantry-deduction";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useFavorites } from "@/hooks/useFavorites";
