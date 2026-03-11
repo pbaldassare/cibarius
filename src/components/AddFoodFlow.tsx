@@ -966,6 +966,15 @@ const AddFoodFlow = ({
         });
         if (error) throw error;
 
+        // Auto-deduct from pantry
+        await deductPantryFromMeal(user.id, [{
+          custom_name: name.trim(),
+          dish_name: name.trim(),
+          product_id: pid || undefined,
+          quantity,
+          unit,
+        }]);
+
         if (saveToInventory) {
           const invData: any = {
             product_id: pid,
