@@ -145,6 +145,7 @@ const App = () => (
                 <Route path="/plan" element={<UserActivePlanPage />} />
                 <Route path="/my-recipes" element={<UserPantryRecipesPage />} />
                 <Route path="/reminders" element={<RemindersPage />} />
+                <Route path="/meal-reminders" element={<MealRemindersPage />} />
                 <Route path="/invite" element={<InvitePage />} />
                 <Route path="/recipes" element={<PublicRecipesPage />} />
                 <Route path="/recipes/:recipeId" element={<RecipeDetailPage />} />

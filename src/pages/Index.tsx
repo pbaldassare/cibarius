@@ -389,6 +389,9 @@ const Index = () => {
           <p className="text-[12px] text-muted-foreground mt-0.5">Ecco cosa serve oggi</p>
         </div>
 
+        {/* ═══ MEAL REMINDER BANNER ═══ */}
+        <MealReminderBanner />
+
         {/* ═══ COMPACT COUNTERS ═══ */}
         <div className="flex items-center gap-2.5 rounded-[18px] bg-card px-4 py-3 shadow-card">
           {[
