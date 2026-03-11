@@ -96,6 +96,7 @@ import SupplierReportsPage from "./pages/supplier/SupplierReportsPage";
 import SupplierInvitePage from "./pages/supplier/SupplierInvitePage";
 
 import JoinReferralPage from "./pages/JoinReferralPage";
+import NutritionistPublicPage from "./pages/NutritionistPublicPage";
 import NotFound from "./pages/NotFound";
 import PwaInstallBanner from "./components/PwaInstallBanner";
 import { PwaInstallProvider } from "./hooks/usePwaInstall";
@@ -122,6 +123,7 @@ const App = () => (
             <Route path="/auth/forgot" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/join/:code" element={<JoinReferralPage />} />
+            <Route path="/n/:slug" element={<NutritionistPublicPage />} />
 
             {/* Protected routes */}
             <Route element={<ProtectedRoute />}>
