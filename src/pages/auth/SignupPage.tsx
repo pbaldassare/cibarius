@@ -163,6 +163,11 @@ const SignupPage = () => {
         <AuthFeatureCarousel />
       </div>
 
+      {/* Referral badge */}
+      <div className="px-4">
+        <ReferralBadge className="max-w-md mx-auto" />
+      </div>
+
       <div className="flex flex-1 items-start justify-center px-4 pt-2 pb-8">
         <Card className="w-full max-w-md border-0 shadow-lg">
           <CardHeader className="items-center text-center">
