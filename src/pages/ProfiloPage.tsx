@@ -545,6 +545,7 @@ const ProfiloPage = () => {
           {[
             { icon: Heart, label: "Preferiti", path: undefined },
             { icon: Bell, label: "Promemoria scadenze", path: "/reminders" },
+            { icon: Bell, label: "Promemoria pasti", path: "/meal-reminders" },
           ].map((item, i) => (
             <button
               key={item.label}

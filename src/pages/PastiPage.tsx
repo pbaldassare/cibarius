@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import MobileHeader from "@/components/MobileHeader";
 import EmptyState from "@/components/EmptyState";
 import ListSkeleton from "@/components/ListSkeleton";
@@ -59,6 +59,7 @@ const mealOrder = ["colazione", "pranzo", "spuntino", "cena"];
 const PastiPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const { getFavoritesForMeal, loading: favsLoading } = useFavorites();
   const [loading, setLoading] = useState(true);
@@ -105,6 +106,17 @@ const PastiPage = () => {
   }, [user, targetKcal, dietPlan]);
 
   useEffect(() => { fetchMeals(); }, [fetchMeals]);
+
+  // Deep link: auto-open add meal sheet from ?add=colazione
+  useEffect(() => {
+    const addMeal = searchParams.get("add");
+    if (addMeal && ["colazione", "pranzo", "cena", "spuntino"].includes(addMeal)) {
+      setSheetMealType(addMeal);
+      setSheetOpen(true);
+      searchParams.delete("add");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (!user) return;

@@ -60,3 +60,40 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 });
+
+// Push notification handler
+self.addEventListener('push', (event) => {
+  let data = { title: 'Cibarius', body: 'Hai un promemoria', url: '/meals' };
+  try {
+    if (event.data) {
+      data = { ...data, ...event.data.json() };
+    }
+  } catch {}
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      tag: data.tag || 'meal-reminder',
+      data: { url: data.url },
+    })
+  );
+});
+
+// Notification click handler — deep link to the meal page
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || '/meals';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.navigate(url);
+          return client.focus();
+        }
+      }
+      return clients.openWindow(url);
+    })
+  );
+});

@@ -11,6 +11,7 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { useToast } from "@/hooks/use-toast";
 import { getFoodImage } from "@/lib/food-images";
 import AddFoodFlow from "@/components/AddFoodFlow";
+import MealReminderBanner from "@/components/MealReminderBanner";
 import ResolveExpiryFlow from "@/components/ResolveExpiryFlow";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
@@ -387,6 +388,9 @@ const Index = () => {
           </h2>
           <p className="text-[12px] text-muted-foreground mt-0.5">Ecco cosa serve oggi</p>
         </div>
+
+        {/* ═══ MEAL REMINDER BANNER ═══ */}
+        <MealReminderBanner />
 
         {/* ═══ COMPACT COUNTERS ═══ */}
         <div className="flex items-center gap-2.5 rounded-[18px] bg-card px-4 py-3 shadow-card">
