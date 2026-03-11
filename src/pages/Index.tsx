@@ -553,8 +553,10 @@ const Index = () => {
         {(aiSuggestion || counts.total > 0) && (
           <section>
             <div className="rounded-[18px] bg-card shadow-card overflow-hidden">
-              <div className="h-1 w-full" style={{ background: "linear-gradient(90deg, hsl(262,83%,58%), hsl(330,80%,60%))" }} />
-              <div className="px-4 py-3 flex items-center gap-3">
+              <div className="px-4 pt-2.5 pb-0">
+                <p className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">Consiglio del momento</p>
+              </div>
+              <div className="px-4 py-2.5 flex items-center gap-3">
                 {aiSuggestion ? (
                   <>
                     <div className="flex h-9 w-9 items-center justify-center rounded-xl shrink-0 bg-primary/10 text-base">
