@@ -17,7 +17,7 @@ const PwaInstallBanner = () => {
     if (window.matchMedia("(display-mode: standalone)").matches) return;
 
     const dismissed = localStorage.getItem("pwa-banner-dismissed");
-    if (dismissed && Date.now() - Number(dismissed) < 7 * 24 * 60 * 60 * 1000) return;
+    if (dismissed && Date.now() - Number(dismissed) < 2 * 60 * 60 * 1000) return; // 2 ore
 
     const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !(window as any).MSStream;
     setIsIos(ios);
