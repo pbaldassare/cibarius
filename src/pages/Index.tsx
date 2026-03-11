@@ -247,36 +247,59 @@ const Index = () => {
 
   useEffect(() => { fetchItems(); }, [user]);
 
-  // Smart suggestions using DB-driven ingredient compatibility
-  const aiSuggestions = useMemo(() => {
-    if (items.length === 0 || !compatLoaded) return [];
+  // Smart suggestion with reason_type
+  type ReasonType = "expiration_soon" | "ingredients_available" | "quick_recipe" | "common_combination" | "balanced_meal";
+
+  interface SmartSuggestion {
+    items: string[];
+    recipes: string[];
+    reason_type: ReasonType;
+  }
+
+  const aiSuggestion = useMemo((): SmartSuggestion | null => {
+    if (items.length === 0 || !compatLoaded) return null;
 
     const expiring = items.filter(i => {
       const s = getStatus(i.expiry_date);
       return s === "expired" || s === "today" || s === "tomorrow" || s === "soon";
     });
 
-    if (expiring.length === 0) return [];
-    if (expiring.length === 1) {
-      return [{
-        title: `${expiring[0].product.name} sta per scadere`,
-        reason: "Usalo oggi per evitare spreco!",
-        items: [expiring[0].product.name],
-        recipes: [],
-      }];
+    // Priority 1: expiring items with compatible pairs
+    if (expiring.length >= 2) {
+      const names = expiring.map(i => i.product.name);
+      const groups = buildGroups(names, 1);
+      if (groups.length > 0) {
+        return {
+          items: groups[0].items.slice(0, 2),
+          recipes: groups[0].recipes.slice(0, 2),
+          reason_type: "expiration_soon",
+        };
+      }
     }
 
-    const names = expiring.map(i => i.product.name);
-    const groups = buildGroups(names, 2);
+    // Priority 2: single expiring item
+    if (expiring.length === 1) {
+      return {
+        items: [expiring[0].product.name],
+        recipes: [],
+        reason_type: "expiration_soon",
+      };
+    }
 
-    return groups.map(g => ({
-      title: `Consuma prima: ${g.items.join(" e ")}`,
-      reason: g.recipes.length > 0
-        ? `Ricette possibili: ${g.recipes.join(", ")}`
-        : "Da consumare presto!",
-      items: g.items,
-      recipes: g.recipes,
-    }));
+    // Priority 3: available ingredients (no expiry urgency but have items)
+    if (items.length >= 2) {
+      const names = items.slice(0, 10).map(i => i.product.name);
+      const groups = buildGroups(names, 1);
+      if (groups.length > 0 && groups[0].recipes.length > 0) {
+        return {
+          items: groups[0].items.slice(0, 2),
+          recipes: groups[0].recipes.slice(0, 2),
+          reason_type: groups[0].recipes.length > 0 ? "quick_recipe" : "ingredients_available",
+        };
+      }
+    }
+
+    return null;
   }, [items, compatLoaded, buildGroups]);
 
   // Counts
