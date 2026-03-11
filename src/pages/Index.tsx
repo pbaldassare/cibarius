@@ -622,29 +622,47 @@ const Index = () => {
           </div>
         </section>
 
-        {/* ═══ 3 — SUGGERIMENTO CIBARIUS ═══ */}
-        {aiSuggestion && (
+        {/* ═══ 3 — SUGGERIMENTI CIBARIUS ═══ */}
+        {aiSuggestions.length > 0 && (
           <section className="space-y-2.5">
             <SectionHeader title="💡 Suggerimento Cibarius" />
-            <div className="rounded-[18px] bg-card shadow-card overflow-hidden">
-              <div className="h-1 w-full" style={{ background: "linear-gradient(90deg, hsl(262,83%,58%), hsl(330,80%,60%))" }} />
-              <div className="p-4 space-y-3">
-                <div className="flex items-start gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl shrink-0" style={{ background: "hsl(262,83%,58%,0.12)" }}>
-                    <Sparkles className="h-5 w-5" style={{ color: "hsl(262,83%,58%)" }} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-semibold text-foreground">{aiSuggestion.title}</p>
-                    <p className="text-[11px] text-muted-foreground mt-1">{aiSuggestion.reason}</p>
+            <div className="space-y-2">
+              {aiSuggestions.map((sug, idx) => (
+                <div key={idx} className="rounded-[18px] bg-card shadow-card overflow-hidden">
+                  <div className="h-1 w-full" style={{ background: idx === 0
+                    ? "linear-gradient(90deg, hsl(262,83%,58%), hsl(330,80%,60%))"
+                    : "linear-gradient(90deg, hsl(37,90%,51%), hsl(22,80%,55%))" }} />
+                  <div className="p-4 space-y-2.5">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl shrink-0" style={{
+                        background: idx === 0 ? "hsl(262,83%,58%,0.12)" : "hsl(37,90%,51%,0.12)"
+                      }}>
+                        <Sparkles className="h-5 w-5" style={{ color: idx === 0 ? "hsl(262,83%,58%)" : "hsl(37,90%,51%)" }} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-semibold text-foreground">{sug.title}</p>
+                        {sug.recipes.length > 0 && (
+                          <div className="mt-1.5 space-y-0.5">
+                            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Ricette possibili</p>
+                            {sug.recipes.map((r, ri) => (
+                              <p key={ri} className="text-[12px] text-foreground">• {r.charAt(0).toUpperCase() + r.slice(1)}</p>
+                            ))}
+                          </div>
+                        )}
+                        {sug.recipes.length === 0 && sug.reason && (
+                          <p className="text-[11px] text-muted-foreground mt-1">{sug.reason}</p>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => navigate("/anti-waste")}
+                      className="w-full h-9 rounded-[10px] text-[12px] font-semibold btn-brand active:scale-[0.97] transition-all px-4"
+                    >
+                      Trova ricette
+                    </button>
                   </div>
                 </div>
-                <button
-                    onClick={() => navigate("/anti-waste")}
-                    className="w-full h-10 rounded-[10px] text-[13px] font-semibold btn-brand active:scale-[0.97] transition-all px-4"
-                  >
-                    Trova ricette
-                  </button>
-              </div>
+              ))}
             </div>
           </section>
         )}
