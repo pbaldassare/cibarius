@@ -538,7 +538,11 @@ const AddFoodFlow = ({
           body: { qr_content: code },
         });
         if (fnError) throw fnError;
-        const products = (fnData?.products || []).map((p: any) => ({ ...p, selected: true, storage_type: guessStorage(p.category || "", p.name || "") }));
+        const products = (fnData?.products || []).map((p: any) => {
+          const st = guessStorage(p.category || "", p.name || "");
+          const days = st === "freezer" ? 90 : st === "ambiente" ? 30 : 5;
+          return { ...p, selected: true, storage_type: st, expiry_date: format(addDays(new Date(), days), "yyyy-MM-dd") };
+        });
         setReceiptProducts(products);
         if (products.length === 0) {
           toast({ variant: "destructive", title: "Nessun prodotto trovato nello scontrino" });
