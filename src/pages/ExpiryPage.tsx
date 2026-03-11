@@ -122,7 +122,7 @@ const ExpiryPage = () => {
     let list = items;
     if (activeTab !== "all") list = list.filter((i) => getStatus(i.expiry_date) === activeTab);
     if (storageFilter !== "all") list = list.filter((i) => i.storage_type === storageFilter);
-    if (typeFilter !== "all") list = list.filter((i) => i.type === typeFilter);
+    
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       list = list.filter((i) => i.name.toLowerCase().includes(q));
