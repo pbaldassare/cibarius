@@ -479,7 +479,29 @@ const PastiPage = () => {
             })}
           </div>
         )}
+
+        {/* Favorite meal combos */}
+        <div id="favorite-combos">
+          <FavoriteMealCombos
+            mealType={meals.length > 0 ? meals[0]?.meal_type : "pranzo"}
+            onAddToDay={handleAddComboToDay}
+          />
+        </div>
       </main>
+
+      {/* FAB */}
+      <MealFAB
+        onSearchOpen={() => { setSheetMealType(undefined); setSheetOpen(true); }}
+        onQuickDayOpen={() => setQuickDayOpen(true)}
+      />
+
+      {/* Quick Day Sheet */}
+      <QuickDaySheet
+        open={quickDayOpen}
+        onOpenChange={setQuickDayOpen}
+        targetKcal={targetKcal}
+        onComplete={fetchMeals}
+      />
 
       <AddFoodFlow
         open={sheetOpen}
