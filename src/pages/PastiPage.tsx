@@ -324,6 +324,9 @@ const PastiPage = () => {
           </div>
         )}
 
+        {/* Offline status */}
+        <OfflineStatusBanner />
+
         {/* Quick day badge */}
         <QuickDayBadge key={quickDayRefresh} />
 
