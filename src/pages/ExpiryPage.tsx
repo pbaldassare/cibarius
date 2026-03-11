@@ -85,17 +85,11 @@ const ExpiryPage = () => {
 
   const fetchItems = async () => {
     if (!user) return;
-    const [invRes, prepRes] = await Promise.all([
-      supabase
+    const invRes = await supabase
         .from("inventory_items")
         .select("id, expiry_date, storage_type, quantity, unit, calories_total, macros_total, product:products(name, image_url, brand, calories_100g, macros_100g)")
         .eq("owner_user_id", user.id)
-        .order("expiry_date", { ascending: true, nullsFirst: false }),
-      supabase
-        .from("preparations")
-        .select("id, name, use_by_date, storage_type, portions, image_url")
-        .eq("owner_user_id", user.id),
-    ]);
+        .order("expiry_date", { ascending: true, nullsFirst: false });
 
     const result: ExpiryItem[] = [];
     if (invRes.data) {
