@@ -1548,28 +1548,6 @@ const AddFoodFlow = ({
                     })}
                     </div>
 
-                    {/* Storage type selector */}
-                    {context === "inventory" && (
-                      <div className="space-y-2">
-                        <p className="text-xs font-semibold text-foreground">Conservazione</p>
-                        <div className="grid grid-cols-3 gap-2">
-                          {storageOptions.map(({ key, label, icon: Icon }) => (
-                            <button
-                              key={key}
-                              onClick={() => setReceiptStorageType(key)}
-                              className={`flex flex-col items-center gap-1 rounded-xl p-3 text-xs font-semibold transition-colors ${
-                                receiptStorageType === key
-                                  ? "bg-primary text-primary-foreground"
-                                  : "bg-card border border-border text-foreground"
-                              }`}
-                            >
-                              <Icon className="h-4 w-4" />
-                              {label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
 
                     {/* Add selected CTA */}
                     <Button
