@@ -1,5 +1,5 @@
 import "https://deno.land/std@0.224.0/dotenv/load.ts";
-import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
+import { assertEquals, assertExists } from "https://deno.land/std@0.224.0/assert/mod.ts";
 
 const SUPABASE_URL = Deno.env.get("VITE_SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("VITE_SUPABASE_PUBLISHABLE_KEY")!;
@@ -20,16 +20,16 @@ const invoke = async (fnName: string, body: any, token?: string) => {
   return { status: res.status, data };
 };
 
-Deno.test("validate-coupon: rejects missing auth", async () => {
-  const { status, data } = await invoke("validate-coupon", { coupon_code: "TEST123" });
-  // Should return 400 for missing auth
-  assertEquals(status, 400);
+Deno.test("validate-coupon: works without auth (public mode)", async () => {
+  const { status, data } = await invoke("validate-coupon", { coupon_code: "NONEXISTENT_CODE_XYZ" });
+  // Should return 200 with valid=false (not 400 auth error)
+  assertEquals(status, 200);
   assertEquals(data.valid, false);
+  assertEquals(data.error, "Codice coupon non valido");
 });
 
-Deno.test("validate-coupon: rejects invalid coupon code", async () => {
-  // Without a valid JWT we can't fully test, but we can verify the function handles missing auth
-  const { status, data } = await invoke("validate-coupon", { coupon_code: "INVALID_NONEXISTENT_CODE_XYZ" });
+Deno.test("validate-coupon: rejects empty coupon code", async () => {
+  const { status, data } = await invoke("validate-coupon", {});
   assertEquals(status, 400);
   assertEquals(data.valid, false);
 });
