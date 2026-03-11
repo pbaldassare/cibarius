@@ -541,7 +541,7 @@ const UserActivePlanPage = () => {
             {/* Meals completed checkboxes */}
             <div className="space-y-2.5">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Pasti completati</p>
-              {MEAL_ORDER.map((key) => {
+              {(mealTargets.length > 0 ? MEAL_ORDER.filter(k => mealTargets.some(t => t.meal_type === k)) : MEAL_ORDER).map((key) => {
                 const ml = MEAL_LABELS[key];
                 return (
                   <label
