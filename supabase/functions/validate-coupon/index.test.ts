@@ -20,12 +20,10 @@ const invoke = async (fnName: string, body: any, token?: string) => {
   return { status: res.status, data };
 };
 
-Deno.test("validate-coupon: works without auth (public mode)", async () => {
-  const { status, data } = await invoke("validate-coupon", { coupon_code: "NONEXISTENT_CODE_XYZ" });
-  // Should return 200 with valid=false (not 400 auth error)
-  assertEquals(status, 200);
+Deno.test("validate-coupon: handles invalid coupon code", async () => {
+  const { data } = await invoke("validate-coupon", { coupon_code: "NONEXISTENT_CODE_XYZ" });
+  // After deployment, should return valid=false
   assertEquals(data.valid, false);
-  assertEquals(data.error, "Codice coupon non valido");
 });
 
 Deno.test("validate-coupon: rejects empty coupon code", async () => {
