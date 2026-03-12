@@ -36,7 +36,14 @@ const LoginPage = () => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setSubmitting(false);
     if (error) {
-      toast({ variant: "destructive", title: "Errore di accesso", description: error.message });
+      const isInvalidCreds = error.message.toLowerCase().includes("invalid login credentials");
+      toast({
+        variant: "destructive",
+        title: "Errore di accesso",
+        description: isInvalidCreds
+          ? "Credenziali non valide. Se hai appena cliccato conferma email ma avevi già un account, usa la password originale o il recupero password."
+          : error.message,
+      });
     }
   };
 
