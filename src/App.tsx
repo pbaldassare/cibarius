@@ -137,6 +137,7 @@ const App = () => (
             <Route path="/auth/signup" element={<SignupPage />} />
             <Route path="/auth/forgot" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/auth/callback" element={<AuthCallbackPage />} />
             <Route path="/join/:code" element={<JoinReferralPage />} />
             <Route path="/n/:slug" element={<NutritionistPublicPage />} />
 
