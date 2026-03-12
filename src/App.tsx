@@ -46,6 +46,7 @@ import AdminCouponsPage from "./pages/admin/AdminCouponsPage";
 import AdminRestaurantsPage from "./pages/admin/AdminRestaurantsPage";
 import AdminStatsPage from "./pages/admin/AdminStatsPage";
 import AdminHaccpTemplatesPage from "./pages/admin/AdminHaccpTemplatesPage";
+import AdminSubscriptionsPage from "./pages/admin/AdminSubscriptionsPage";
 
 // Restaurant app pages
 import RestaurantOnboardingPage from "./pages/restaurant/RestaurantOnboardingPage";
