@@ -214,11 +214,13 @@ const RestaurantHaccpControlPage = () => {
 
   // Export functions
   const exportCSV = () => {
-    const headers = ["Data", "Attività", "Area", "Frequenza", "Stato", "Operatore", "Ora", "Note", "Motivo annullamento"];
+    const headers = ["Data", "Attività", "Area", "Stato", "Temperatura", "Foto", "Operatore", "Ora", "Note", "Motivo annullamento"];
     const rows = filtered.map(l => [
       format(new Date(l.log_date), "dd/MM/yyyy"),
-      l.task_name, l.area, l.frequency,
+      l.task_name, l.area,
       STATUS_MAP[l.status]?.label || l.status,
+      l.temperature !== null ? `${l.temperature}°C${l.temperature_anomaly ? " ANOMALA" : ""}` : "",
+      l.has_photos ? "Sì" : "",
       l.completed_by_name,
       format(new Date(l.completed_at), "HH:mm"),
       l.notes || "", l.cancelled_reason || "",
