@@ -64,6 +64,7 @@ import RestaurantAdminPage from "./pages/restaurant-admin/RestaurantAdminPage";
 import RestaurantAdminSettingsPage from "./pages/restaurant-admin/RestaurantAdminSettingsPage";
 import RestaurantAdminStaffPage from "./pages/restaurant-admin/RestaurantAdminStaffPage";
 import RestaurantAdminReportsPage from "./pages/restaurant-admin/RestaurantAdminReportsPage";
+import RestaurantHaccpControlPage from "./pages/restaurant-admin/RestaurantHaccpControlPage";
 
 // Pro pages
 import ProPage from "./pages/pro/ProPage";
