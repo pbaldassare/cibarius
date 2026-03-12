@@ -452,7 +452,7 @@ td{padding:6px 8px;border-bottom:1px solid #f0f0f0}
                 {filtered.map(l => {
                   const st = STATUS_MAP[l.status] || STATUS_MAP.completata;
                   return (
-                    <TableRow key={l.id} className={l.is_rectification ? "bg-yellow-50/50" : ""}>
+                    <TableRow key={l.id} className={l.temperature_anomaly ? "bg-destructive/5" : l.is_rectification ? "bg-yellow-50/50" : ""}>
                       <TableCell className="text-sm whitespace-nowrap font-medium">
                         {format(new Date(l.log_date), "dd/MM/yyyy")}
                       </TableCell>
@@ -463,13 +463,29 @@ td{padding:6px 8px;border-bottom:1px solid #f0f0f0}
                         )}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">{l.area}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{freqLabel[l.frequency] || l.frequency}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className={st.cls}>
                           {st.label}
                         </Badge>
                         {l.cancelled_reason && (
-                          <p className="text-[10px] text-red-500 mt-0.5">Motivo: {l.cancelled_reason}</p>
+                          <p className="text-[10px] text-destructive mt-0.5">Motivo: {l.cancelled_reason}</p>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {l.temperature !== null ? (
+                          <span className={`font-bold ${l.temperature_anomaly ? "text-destructive" : "text-emerald-600"}`}>
+                            {l.temperature}°C
+                            {l.temperature_anomaly && <AlertTriangle className="inline h-3 w-3 ml-1" />}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {l.has_photos ? (
+                          <Camera className="h-4 w-4 text-primary" />
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
                         )}
                       </TableCell>
                       <TableCell className="text-sm">{l.completed_by_name}</TableCell>
