@@ -1,84 +1,81 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import MobileHeader from "@/components/MobileHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useSubscription } from "@/hooks/useSubscription";
 import { useToast } from "@/hooks/use-toast";
-import CouponInput from "@/components/CouponInput";
-import { Check, Crown, Loader2, Shield, Sparkles, Zap } from "lucide-react";
+import { Check, Crown, Loader2, Shield, Sparkles, Store, Zap } from "lucide-react";
 
-interface CouponResult {
-  valid: boolean;
-  coupon_id?: string;
-  coupon_code?: string;
-  client_discount_percent?: number;
-  nutritionist_name?: string;
+interface Plan {
+  id: string;
+  plan_name: string;
+  name: string;
+  role_type: string;
+  billing_interval: string;
+  local_price: number;
+  stripe_product_id: string | null;
+  trial_days: number;
 }
-
-const PLANS = [
-  {
-    id: "monthly",
-    name: "Mensile",
-    price: 9.99,
-    period: "/ mese",
-    features: ["Dispensa illimitata", "Scansione scontrini", "Ricette AI", "Diario alimentare"],
-    popular: false,
-  },
-  {
-    id: "annual",
-    name: "Annuale",
-    price: 79.99,
-    period: "/ anno",
-    features: ["Tutto il mensile", "Risparmia il 33%", "Piani nutrizionali", "Supporto prioritario"],
-    popular: true,
-    savings: "Risparmi €39,89",
-  },
-];
 
 const SubscriptionPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState<string | null>(null);
+  const [couponCode, setCouponCode] = useState("");
+  const [activeTab, setActiveTab] = useState<"user_plus" | "restaurant">("user_plus");
 
-  const [selectedPlan, setSelectedPlan] = useState<string>("annual");
-  const [coupon, setCoupon] = useState<CouponResult | null>(null);
-  const [processing, setProcessing] = useState(false);
-  const [paymentDone, setPaymentDone] = useState(false);
-  const [paymentResult, setPaymentResult] = useState<any>(null);
+  const { subscription: userPlusSub } = useSubscription("user_plus");
+  const { subscription: restaurantSub } = useSubscription("restaurant");
 
-  const plan = PLANS.find(p => p.id === selectedPlan)!;
-  const originalPrice = plan.price;
-  const discountPercent = coupon?.client_discount_percent || 0;
-  const discountAmount = Math.round(originalPrice * discountPercent) / 100;
-  const finalPrice = Math.round((originalPrice - discountAmount) * 100) / 100;
+  const success = searchParams.get("success") === "true";
 
-  const handleCheckout = async () => {
+  useEffect(() => {
+    const fetchPlans = async () => {
+      const { data } = await supabase
+        .from("subscription_plans")
+        .select("*")
+        .eq("is_active", true)
+        .order("local_price", { ascending: true });
+      setPlans((data as Plan[]) || []);
+      setLoading(false);
+    };
+    fetchPlans();
+  }, []);
+
+  const handleCheckout = async (plan: Plan) => {
     if (!user) return;
-    setProcessing(true);
+    setProcessing(plan.id);
     try {
-      const { data, error } = await supabase.functions.invoke("process-coupon-payment", {
+      const { data, error } = await supabase.functions.invoke("create-checkout-session", {
         body: {
-          coupon_id: coupon?.coupon_id || null,
-          original_amount: originalPrice,
+          plan_id: plan.id,
+          coupon_code: couponCode || undefined,
+          success_url: `${window.location.origin}/subscription?success=true`,
+          cancel_url: `${window.location.origin}/subscription?cancelled=true`,
         },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-
-      setPaymentResult(data);
-      setPaymentDone(true);
-      toast({ title: "Pagamento completato! 🎉", description: `Abbonamento ${plan.name} attivato` });
+      if (data?.url) {
+        window.location.href = data.url;
+      }
     } catch (e: any) {
-      toast({ variant: "destructive", title: "Errore pagamento", description: e.message });
+      toast({ variant: "destructive", title: "Errore", description: e.message });
     } finally {
-      setProcessing(false);
+      setProcessing(null);
     }
   };
 
-  if (paymentDone && paymentResult) {
+  if (success) {
     return (
       <div>
         <MobileHeader title="Abbonamento" />
@@ -88,33 +85,8 @@ const SubscriptionPage = () => {
               <Check className="h-8 w-8 text-primary" />
             </div>
             <h1 className="text-2xl font-bold text-foreground">Pagamento completato!</h1>
-            <p className="text-muted-foreground">Il tuo abbonamento {plan.name} è ora attivo.</p>
+            <p className="text-muted-foreground">Il tuo abbonamento è ora attivo.</p>
           </div>
-
-          <Card>
-            <CardContent className="pt-4 space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Importo originale</span>
-                <span>€{originalPrice.toFixed(2)}</span>
-              </div>
-              {paymentResult.discount_amount > 0 && (
-                <div className="flex justify-between text-sm text-primary">
-                  <span>Sconto coupon</span>
-                  <span>-€{paymentResult.discount_amount.toFixed(2)}</span>
-                </div>
-              )}
-              <div className="flex justify-between text-base font-bold border-t border-border pt-2">
-                <span>Totale pagato</span>
-                <span>€{paymentResult.final_amount.toFixed(2)}</span>
-              </div>
-              {paymentResult.commission_amount > 0 && (
-                <p className="text-[11px] text-muted-foreground pt-1">
-                  Commissione nutrizionista: €{paymentResult.commission_amount.toFixed(2)}
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
           <Button className="w-full" onClick={() => navigate("/")}>
             Vai alla Home
           </Button>
@@ -123,52 +95,90 @@ const SubscriptionPage = () => {
     );
   }
 
+  const filteredPlans = plans.filter((p) => p.role_type === activeTab);
+  const activeSub = activeTab === "user_plus" ? userPlusSub : restaurantSub;
+
+  const userPlusFeatures = [
+    "Piano alimentare personalizzato",
+    "Impostazione macro nutrienti",
+    "Collegamento nutrizionista",
+    "Piano dal nutrizionista",
+    "Monitoraggio nutrizione avanzato",
+  ];
+
+  const restaurantFeatures = [
+    "Modulo HACCP completo",
+    "Gestione scadenze avanzata",
+    "Controlli e report HACCP",
+    "Gestione staff",
+    "Registro controlli e temperature",
+    "Export PDF/CSV",
+  ];
+
+  const features = activeTab === "user_plus" ? userPlusFeatures : restaurantFeatures;
+  const Icon = activeTab === "user_plus" ? Sparkles : Store;
+
   return (
     <div>
       <MobileHeader title="Abbonamento" />
       <main className="px-4 py-5 space-y-5 pb-28">
-
         {/* Header */}
         <div className="text-center space-y-1">
           <Crown className="h-8 w-8 text-primary mx-auto" />
-          <h1 className="text-xl font-bold text-foreground">Cibarius Premium</h1>
-          <p className="text-sm text-muted-foreground">Gestisci il cibo come un professionista</p>
+          <h1 className="text-xl font-bold text-foreground">Piani Cibarius</h1>
+          <p className="text-sm text-muted-foreground">Scegli il piano perfetto per te</p>
         </div>
 
-        {/* Plan selection */}
-        <div className="grid grid-cols-2 gap-3">
-          {PLANS.map(p => (
-            <button
-              key={p.id}
-              onClick={() => setSelectedPlan(p.id)}
-              className={`relative rounded-2xl border-2 p-4 text-left transition-all ${
-                selectedPlan === p.id
-                  ? "border-primary bg-primary/5 shadow-md"
-                  : "border-border bg-card"
-              }`}
-            >
-              {p.popular && (
-                <Badge className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[9px] px-2">
-                  Più scelto
-                </Badge>
-              )}
-              <p className="text-base font-bold text-foreground">{p.name}</p>
-              <div className="mt-1">
-                <span className="text-2xl font-extrabold text-foreground">€{p.price.toFixed(2)}</span>
-                <span className="text-xs text-muted-foreground">{p.period}</span>
-              </div>
-              {p.savings && (
-                <p className="text-[10px] text-primary font-semibold mt-1">{p.savings}</p>
-              )}
-            </button>
-          ))}
+        {/* Tab selector */}
+        <div className="flex bg-muted rounded-xl p-1 gap-1">
+          <button
+            onClick={() => setActiveTab("user_plus")}
+            className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === "user_plus"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground"
+            }`}
+          >
+            <Sparkles className="h-4 w-4 inline mr-1.5" />
+            Utente Plus
+          </button>
+          <button
+            onClick={() => setActiveTab("restaurant")}
+            className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === "restaurant"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground"
+            }`}
+          >
+            <Store className="h-4 w-4 inline mr-1.5" />
+            Ristorante
+          </button>
         </div>
+
+        {/* Active sub banner */}
+        {activeSub && ["active", "trial"].includes(activeSub.status) && (
+          <Card className="border-primary/30 bg-primary/5">
+            <CardContent className="pt-4 pb-3">
+              <div className="flex items-center gap-2">
+                <Check className="h-5 w-5 text-primary" />
+                <div>
+                  <p className="font-medium text-foreground text-sm">
+                    {activeSub.status === "trial" ? "Trial attivo" : "Abbonamento attivo"}
+                  </p>
+                  {activeSub.is_free_override && (
+                    <p className="text-xs text-primary">Accesso gratuito</p>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Features */}
         <Card>
           <CardContent className="pt-4">
             <div className="space-y-2">
-              {plan.features.map((f, i) => (
+              {features.map((f, i) => (
                 <div key={i} className="flex items-center gap-2 text-sm">
                   <Check className="h-4 w-4 text-primary shrink-0" />
                   <span className="text-foreground">{f}</span>
@@ -178,51 +188,111 @@ const SubscriptionPage = () => {
           </CardContent>
         </Card>
 
-        {/* Coupon input */}
-        <CouponInput onCouponApplied={setCoupon} />
-
-        {/* Price summary */}
-        <Card className="border-2 border-primary/20">
-          <CardContent className="pt-4 space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Piano {plan.name}</span>
-              <span className="text-foreground">€{originalPrice.toFixed(2)}</span>
-            </div>
-            {coupon && discountPercent > 0 && (
-              <div className="flex justify-between text-sm text-primary">
-                <span>Sconto {discountPercent}% ({coupon.coupon_code})</span>
-                <span>-€{discountAmount.toFixed(2)}</span>
+        {/* Free user features */}
+        {activeTab === "user_plus" && (
+          <Card className="bg-muted/50">
+            <CardContent className="pt-4">
+              <p className="text-xs font-semibold text-muted-foreground mb-2">GRATIS PER TUTTI</p>
+              <div className="space-y-1.5">
+                {["Gestione dispensa", "Scadenze e anti-spreco", "Scanner scontrini", "Piani standard (digiuno, low carb, mediterranea, vegetariana)", "Scelta calorie giornaliere"].map((f, i) => (
+                  <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Check className="h-3 w-3 shrink-0" />
+                    <span>{f}</span>
+                  </div>
+                ))}
               </div>
-            )}
-            <div className="flex justify-between text-lg font-bold border-t border-border pt-2">
-              <span>Totale</span>
-              <span className="text-foreground">€{finalPrice.toFixed(2)}</span>
-            </div>
-            {coupon?.nutritionist_name && (
-              <p className="text-[11px] text-muted-foreground">
-                Coupon di: {coupon.nutritionist_name}
-              </p>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
-        {/* Checkout button */}
-        <Button
-          className="w-full h-12 text-base font-bold rounded-xl"
-          onClick={handleCheckout}
-          disabled={processing}
-        >
-          {processing ? (
-            <Loader2 className="h-5 w-5 animate-spin mr-2" />
-          ) : (
-            <Zap className="h-5 w-5 mr-2" />
-          )}
-          {processing ? "Elaborazione..." : `Paga €${finalPrice.toFixed(2)}`}
-        </Button>
+        {/* Plan cards */}
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-3">
+            {filteredPlans.map((plan) => {
+              const isYearly = plan.billing_interval === "yearly";
+              const monthlyEquivalent = isYearly ? (plan.local_price / 12).toFixed(2) : null;
+              const isAlreadyActive = activeSub && ["active", "trial"].includes(activeSub.status);
+
+              return (
+                <Card
+                  key={plan.id}
+                  className={`relative border-2 transition-all ${
+                    isYearly ? "border-primary shadow-md" : "border-border"
+                  }`}
+                >
+                  {isYearly && (
+                    <Badge className="absolute -top-2.5 left-4 text-[9px] px-2">
+                      Più conveniente
+                    </Badge>
+                  )}
+                  {plan.trial_days > 0 && (
+                    <Badge variant="secondary" className="absolute -top-2.5 right-4 text-[9px] px-2">
+                      {plan.trial_days}gg gratis
+                    </Badge>
+                  )}
+                  <CardContent className="pt-5 pb-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <p className="font-bold text-foreground">
+                          {isYearly ? "Annuale" : "Mensile"}
+                        </p>
+                        {monthlyEquivalent && (
+                          <p className="text-xs text-primary font-medium">
+                            €{monthlyEquivalent}/mese
+                          </p>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <span className="text-2xl font-extrabold text-foreground">
+                          €{Number(plan.local_price).toFixed(2)}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          /{isYearly ? "anno" : "mese"}
+                        </span>
+                      </div>
+                    </div>
+                    <Button
+                      className="w-full"
+                      variant={isYearly ? "default" : "outline"}
+                      disabled={!!processing || !!isAlreadyActive}
+                      onClick={() => handleCheckout(plan)}
+                    >
+                      {processing === plan.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Icon className="h-4 w-4 mr-2" />
+                      )}
+                      {isAlreadyActive
+                        ? "Già attivo"
+                        : plan.trial_days > 0
+                        ? `Inizia ${plan.trial_days}gg gratis`
+                        : "Abbonati ora"}
+                    </Button>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Coupon */}
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-muted-foreground">Hai un codice sconto?</p>
+          <Input
+            placeholder="Inserisci codice coupon"
+            value={couponCode}
+            onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+            className="text-center font-mono"
+          />
+        </div>
 
         <div className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground">
           <Shield className="h-3.5 w-3.5" />
-          Pagamento sicuro · Cancella quando vuoi
+          Pagamento sicuro via Stripe · Cancella quando vuoi
         </div>
       </main>
     </div>

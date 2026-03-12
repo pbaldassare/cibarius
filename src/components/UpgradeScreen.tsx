@@ -20,7 +20,8 @@ const configs = {
       "Gestione staff",
       "Registro controlli",
     ],
-    price: "19€/mese",
+    price: "Da €19,90/mese",
+    trial: "30 giorni gratis",
     cta: "Attiva abbonamento",
   },
   user_plus: {
@@ -34,7 +35,8 @@ const configs = {
       "Piano dal nutrizionista",
       "Monitoraggio nutrizione avanzato",
     ],
-    price: "Prezzo in arrivo",
+    price: "Da €2,49/mese",
+    trial: null,
     cta: "Scopri Plus",
   },
 };
@@ -68,6 +70,9 @@ const UpgradeScreen = ({ planType }: UpgradeScreenProps) => {
 
           <div className="space-y-3">
             <p className="text-2xl font-extrabold text-foreground">{config.price}</p>
+            {config.trial && (
+              <p className="text-sm text-primary font-medium">{config.trial}</p>
+            )}
             <Button
               className="w-full h-12 text-base font-bold rounded-xl"
               onClick={() => navigate("/subscription")}
