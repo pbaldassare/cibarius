@@ -917,6 +917,77 @@ export type Database = {
           },
         ]
       }
+      haccp_template_tasks: {
+        Row: {
+          category: string
+          created_at: string
+          default_area_type: string | null
+          frequency_type: string
+          id: string
+          is_required: boolean
+          sort_order: number
+          task_name: string
+          template_id: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          default_area_type?: string | null
+          frequency_type?: string
+          id?: string
+          is_required?: boolean
+          sort_order?: number
+          task_name: string
+          template_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          default_area_type?: string | null
+          frequency_type?: string
+          id?: string
+          is_required?: boolean
+          sort_order?: number
+          task_name?: string
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "haccp_template_tasks_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "haccp_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      haccp_templates: {
+        Row: {
+          business_type: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+        }
+        Insert: {
+          business_type: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+        }
+        Update: {
+          business_type?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+        }
+        Relationships: []
+      }
       ingredient_categories: {
         Row: {
           category: string
@@ -2169,6 +2240,7 @@ export type Database = {
           created_at: string
           description: string | null
           facebook: string | null
+          haccp_template_id: string | null
           id: string
           image_url: string | null
           instagram: string | null
@@ -2184,6 +2256,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           facebook?: string | null
+          haccp_template_id?: string | null
           id?: string
           image_url?: string | null
           instagram?: string | null
@@ -2199,6 +2272,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           facebook?: string | null
+          haccp_template_id?: string | null
           id?: string
           image_url?: string | null
           instagram?: string | null
@@ -2209,7 +2283,15 @@ export type Database = {
           phone?: string
           website?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "restaurants_haccp_template_id_fkey"
+            columns: ["haccp_template_id"]
+            isOneToOne: false
+            referencedRelation: "haccp_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       subscription_payments: {
         Row: {

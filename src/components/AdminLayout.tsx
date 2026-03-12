@@ -3,7 +3,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import {
   LayoutDashboard, Users, Settings, LogOut, Sprout, ChevronLeft,
-  Store, Package, MessageSquareWarning, Ticket, TrendingUp,
+  Store, Package, MessageSquareWarning, Ticket, TrendingUp, ClipboardCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -13,6 +13,7 @@ const sidebarItems = [
   { to: "/admin", icon: LayoutDashboard, label: "Dashboard", end: true },
   { to: "/admin/users", icon: Users, label: "Utenti" },
   { to: "/admin/restaurants", icon: Store, label: "Ristoranti" },
+  { to: "/admin/haccp-templates", icon: ClipboardCheck, label: "Template HACCP" },
   { to: "/admin/product-review", icon: Package, label: "Revisione Prodotti" },
   { to: "/admin/support", icon: MessageSquareWarning, label: "Segnalazioni" },
   { to: "/admin/coupons", icon: Ticket, label: "Coupon" },
