@@ -206,6 +206,7 @@ const RestaurantPage = () => {
     <div className="min-h-screen bg-background">
       <MobileHeader title={restaurant?.name ?? "Dashboard"} />
       <main className="space-y-3 px-4 pt-1 pb-28">
+        <RestaurantSubscriptionBanner />
 
         {/* Top bar */}
         <div className="flex gap-2">
