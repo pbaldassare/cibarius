@@ -182,7 +182,7 @@ const App = () => (
 
               <Route element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><RestaurantLayout /></RestaurantGuard></RG>}>
                 <Route path="/restaurant" element={<RestaurantPage />} />
-                <Route path="/restaurant/products" element={<RestaurantProductsPage />} />
+                <Route path="/restaurant/products" element={<RestaurantExpiryPage />} />
                 <Route path="/restaurant/recipes" element={<RestaurantRecipesPage />} />
                 <Route path="/restaurant/settings" element={<RestaurantSettingsPage />} />
                 <Route path="/restaurant/invoices" element={<RestaurantInvoicesPage />} />
