@@ -39,7 +39,7 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
       <aside className="hidden w-64 flex-col bg-gradient-to-b from-primary to-primary-dark md:flex">
         <div className="flex h-16 items-center gap-2 border-b border-white/10 px-6">
           <img src={cibariusLogo} alt="Cibarius" className="h-6 brightness-0 invert" />
-          <span className="text-xs font-medium text-white/60 uppercase tracking-wider ml-auto">Admin</span>
+          <span className="text-xs font-medium uppercase tracking-wider ml-auto" style={{ color: "rgba(255,255,255,0.6)" }}>Admin</span>
         </div>
         <nav className="flex-1 space-y-1 p-3 overflow-y-auto">
           {sidebarItems.map(({ to, icon: Icon, label, end }) => {
@@ -48,11 +48,11 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
               <NavLink
                 key={to}
                 to={to}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                  isActive
-                    ? "bg-white/20 text-white"
-                    : "text-white/70 hover:bg-white/10 hover:text-white"
-                }`}
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
+                style={{
+                  color: isActive ? "#ffffff" : "rgba(255,255,255,0.75)",
+                  backgroundColor: isActive ? "rgba(255,255,255,0.2)" : "transparent",
+                }}
               >
                 <Icon size={18} />
                 {label}
