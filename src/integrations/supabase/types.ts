@@ -537,6 +537,57 @@ export type Database = {
         }
         Relationships: []
       }
+      email_notifications_log: {
+        Row: {
+          email_type: string
+          id: string
+          metadata: Json | null
+          sent_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          email_type: string
+          id?: string
+          metadata?: Json | null
+          sent_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          email_type?: string
+          id?: string
+          metadata?: Json | null
+          sent_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      email_preferences: {
+        Row: {
+          receive_expiry_alerts: boolean
+          receive_password_reset: boolean
+          receive_verification: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          receive_expiry_alerts?: boolean
+          receive_password_reset?: boolean
+          receive_verification?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          receive_expiry_alerts?: boolean
+          receive_password_reset?: boolean
+          receive_verification?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       favorite_meal_items: {
         Row: {
           carbs_g: number | null
