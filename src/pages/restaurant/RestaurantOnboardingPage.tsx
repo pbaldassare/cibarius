@@ -41,6 +41,16 @@ const RestaurantOnboardingPage = () => {
       .from("restaurant_members")
       .insert({ restaurant_id: restaurant.id, user_id: user.id, member_role: "owner" });
 
+    // Auto-create trial subscription (30 days)
+    const trialEnd = new Date();
+    trialEnd.setDate(trialEnd.getDate() + 30);
+    await supabase.from("subscriptions").insert({
+      user_id: user.id,
+      plan_type: "restaurant",
+      status: "trial",
+      trial_end_date: trialEnd.toISOString(),
+    });
+
     setSubmitting(false);
 
     if (memberError) {
@@ -48,7 +58,7 @@ const RestaurantOnboardingPage = () => {
       return;
     }
 
-    toast({ title: "Ristorante creato!" });
+    toast({ title: "Ristorante creato! 🎉", description: "Hai 30 giorni di prova gratuita." });
     navigate("/restaurant", { replace: true });
   };
 
