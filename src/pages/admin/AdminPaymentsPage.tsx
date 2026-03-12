@@ -122,7 +122,7 @@ const AdminPaymentsPage = () => {
       description: couponForm.description,
       discount_type: couponForm.discount_type,
       discount_value: Number(couponForm.discount_value),
-      applies_to_role_type: couponForm.applies_to_role_type || null,
+      applies_to_role_type: couponForm.applies_to_role_type && couponForm.applies_to_role_type !== "all" ? couponForm.applies_to_role_type : null,
       max_uses: couponForm.max_uses ? Number(couponForm.max_uses) : null,
       valid_until: couponForm.valid_until || null,
       created_by_admin_id: user?.id,
