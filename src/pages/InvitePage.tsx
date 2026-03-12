@@ -104,6 +104,15 @@ const InvitePage = () => {
     toast({ title: "Collegato con successo!" });
   };
 
+  if (!plusActive && !plusLoading) {
+    return (
+      <div>
+        <MobileHeader title="Collega Nutrizionista" showBack />
+        <UpgradeScreen planType="user_plus" />
+      </div>
+    );
+  }
+
   return (
     <div>
       <MobileHeader title="Collega Nutrizionista" />
