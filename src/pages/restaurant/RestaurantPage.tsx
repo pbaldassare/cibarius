@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import RestaurantSubscriptionBanner from "@/components/RestaurantSubscriptionBanner";
 import { useNavigate, Link } from "react-router-dom";
 import { useRestaurant } from "@/hooks/useRestaurant";
@@ -7,11 +7,13 @@ import MobileHeader from "@/components/MobileHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import RestaurantAddFlow from "@/components/RestaurantAddFlow";
+import ResolveExpiryFlow from "@/components/ResolveExpiryFlow";
+import { useToast } from "@/hooks/use-toast";
 import {
   Loader2, Clock, AlertCircle, Package, Plus, ChevronRight,
   ChefHat, FileText, Upload, User, Settings, Zap,
   ClipboardCheck, CheckCircle2, AlertTriangle, Circle,
-  Thermometer, Wind, Flame,
+  Thermometer, Wind, Flame, Trash2, UtensilsCrossed,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { getFoodEmoji } from "@/lib/food-images";
