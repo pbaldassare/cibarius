@@ -55,6 +55,9 @@ import RestaurantSettingsPage from "./pages/restaurant/RestaurantSettingsPage";
 import RestaurantInvoicesPage from "./pages/restaurant/RestaurantInvoicesPage";
 import RestaurantPreparationsPage from "./pages/restaurant/RestaurantPreparationsPage";
 import RestaurantItemPage from "./pages/restaurant/RestaurantItemPage";
+import RestaurantHaccpPage from "./pages/restaurant/RestaurantHaccpPage";
+import RestaurantHaccpSetupPage from "./pages/restaurant/RestaurantHaccpSetupPage";
+import RestaurantHaccpHistoryPage from "./pages/restaurant/RestaurantHaccpHistoryPage";
 
 // Restaurant admin pages
 import RestaurantAdminPage from "./pages/restaurant-admin/RestaurantAdminPage";
