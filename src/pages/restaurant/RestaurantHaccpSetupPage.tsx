@@ -189,7 +189,7 @@ const RestaurantHaccpSetupPage = () => {
   if (loading) {
     return (
       <div className="p-4">
-        <MobileHeader title="Configura HACCP" backTo="/restaurant/haccp" />
+        <MobileHeader title="Configura HACCP" />
         <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
       </div>
     );
