@@ -34,6 +34,9 @@ interface LogRow {
   completed_by_name: string;
   cancelled_reason: string | null;
   is_rectification: boolean;
+  has_photos: boolean;
+  temperature: number | null;
+  temperature_anomaly: boolean;
 }
 
 const STATUS_MAP: Record<string, { label: string; icon: typeof CheckCircle2; cls: string }> = {
