@@ -8,21 +8,42 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, FileSpreadsheet, FileText, Search, Camera, Thermometer, AlertTriangle } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Loader2, FileSpreadsheet, FileText, Search, Camera, Thermometer,
+  AlertTriangle, User, Clock, CalendarDays, FileWarning, ChevronRight,
+  ImageIcon, MessageSquare, RefreshCw,
+} from "lucide-react";
 import { format, subDays } from "date-fns";
 import { it } from "date-fns/locale";
 
 interface LogRow {
   id: string;
+  task_id: string;
   task_name: string;
   log_date: string;
   status: string;
   notes: string | null;
   completed_at: string;
   completed_by_name: string;
+  completed_by: string;
   temperature: number | null;
   temperature_anomaly: boolean;
+  temperature_equipment_name: string | null;
+  temperature_equipment_type: string | null;
+  temperature_note: string | null;
   has_photos: boolean;
+  is_rectification: boolean;
+  cancelled_reason: string | null;
+  frequency: string | null;
+  area: string | null;
+}
+
+interface PhotoRow {
+  id: string;
+  photo_url: string;
+  uploaded_by_name: string | null;
+  created_at: string;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -51,6 +72,11 @@ const RestaurantHaccpHistoryPage = () => {
   const [search, setSearch] = useState("");
   const [dateRange, setDateRange] = useState<"week" | "month" | "all">("week");
 
+  // Detail sheet
+  const [selectedLog, setSelectedLog] = useState<LogRow | null>(null);
+  const [detailPhotos, setDetailPhotos] = useState<PhotoRow[]>([]);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+
   useEffect(() => {
     if (!restaurant) return;
     const fetch = async () => {
@@ -67,7 +93,7 @@ const RestaurantHaccpHistoryPage = () => {
           return q;
         })(),
         supabase.from("haccp_task_photos").select("task_log_id").eq("restaurant_id", restaurant.id),
-        supabase.from("haccp_temperature_logs").select("task_log_id, temperature_value, equipment_type").eq("restaurant_id", restaurant.id),
+        supabase.from("haccp_temperature_logs").select("task_log_id, temperature_value, equipment_type, equipment_name, note").eq("restaurant_id", restaurant.id),
       ]);
 
       const taskMap: Record<string, string> = {};
@@ -75,9 +101,9 @@ const RestaurantHaccpHistoryPage = () => {
       setTasks((tasksRes.data ?? []) as any);
 
       const photoLogIds = new Set((photosRes.data ?? []).map((p: any) => p.task_log_id));
-      const tempMap = new Map<string, { value: number; type: string }>();
+      const tempMap = new Map<string, { value: number; type: string; name: string; note: string | null }>();
       (tempsRes.data ?? []).forEach((t: any) => {
-        tempMap.set(t.task_log_id, { value: t.temperature_value, type: t.equipment_type });
+        tempMap.set(t.task_log_id, { value: t.temperature_value, type: t.equipment_type, name: t.equipment_name, note: t.note });
       });
 
       const mapped: LogRow[] = (logsRes.data ?? []).map((l: any) => {
@@ -85,15 +111,24 @@ const RestaurantHaccpHistoryPage = () => {
         const threshold = temp ? THRESHOLDS[temp.type] : undefined;
         return {
           id: l.id,
+          task_id: l.task_id,
           task_name: l.task_name || taskMap[l.task_id] || "—",
           log_date: l.log_date,
           status: l.status,
           notes: l.notes,
           completed_at: l.completed_at,
           completed_by_name: l.completed_by_name || "—",
+          completed_by: l.completed_by,
           temperature: temp?.value ?? null,
           temperature_anomaly: temp && threshold !== undefined ? temp.value > threshold : false,
+          temperature_equipment_name: temp?.name ?? null,
+          temperature_equipment_type: temp?.type ?? null,
+          temperature_note: temp?.note ?? null,
           has_photos: photoLogIds.has(l.id),
+          is_rectification: l.is_rectification ?? false,
+          cancelled_reason: l.cancelled_reason ?? null,
+          frequency: l.frequency ?? null,
+          area: l.area ?? null,
         };
       });
 
@@ -102,6 +137,23 @@ const RestaurantHaccpHistoryPage = () => {
     };
     fetch();
   }, [restaurant, dateRange]);
+
+  // Open detail
+  const openDetail = async (log: LogRow) => {
+    setSelectedLog(log);
+    setDetailPhotos([]);
+    if (log.has_photos && restaurant) {
+      setLoadingDetail(true);
+      const { data } = await supabase
+        .from("haccp_task_photos")
+        .select("id, photo_url, uploaded_by_name, created_at")
+        .eq("task_log_id", log.id)
+        .eq("restaurant_id", restaurant.id)
+        .order("created_at", { ascending: true });
+      setDetailPhotos((data ?? []) as PhotoRow[]);
+      setLoadingDetail(false);
+    }
+  };
 
   const filtered = logs.filter(l => {
     if (filterTask !== "all" && l.task_name !== filterTask) return false;
@@ -228,16 +280,25 @@ const RestaurantHaccpHistoryPage = () => {
                 <TableHead>Foto</TableHead>
                 <TableHead>Operatore</TableHead>
                 <TableHead>Ora</TableHead>
-                <TableHead>Note</TableHead>
+                <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.map(l => (
-                <TableRow key={l.id} className={l.temperature_anomaly ? "bg-destructive/5" : ""}>
+                <TableRow
+                  key={l.id}
+                  className={`cursor-pointer hover:bg-accent/50 transition-colors ${l.temperature_anomaly ? "bg-destructive/5" : ""}`}
+                  onClick={() => openDetail(l)}
+                >
                   <TableCell className="text-sm whitespace-nowrap">
                     {format(new Date(l.log_date), "dd/MM/yyyy")}
                   </TableCell>
-                  <TableCell className="text-sm font-medium">{l.task_name}</TableCell>
+                  <TableCell className="text-sm font-medium">
+                    {l.task_name}
+                    {l.is_rectification && (
+                      <RefreshCw className="inline h-3 w-3 ml-1 text-primary" />
+                    )}
+                  </TableCell>
                   <TableCell>
                     <Badge variant="outline" className={STATUS_COLORS[l.status]}>
                       {STATUS_LABELS[l.status] || l.status}
@@ -264,8 +325,8 @@ const RestaurantHaccpHistoryPage = () => {
                   <TableCell className="text-sm whitespace-nowrap">
                     {format(new Date(l.completed_at), "HH:mm")}
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
-                    {l.notes || "—"}
+                  <TableCell>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
                   </TableCell>
                 </TableRow>
               ))}
@@ -274,6 +335,170 @@ const RestaurantHaccpHistoryPage = () => {
         </div>
       )}
       <p className="text-xs text-muted-foreground">{filtered.length} risultati</p>
+
+      {/* ═══ DETAIL SHEET ═══ */}
+      <Sheet open={!!selectedLog} onOpenChange={(o) => { if (!o) setSelectedLog(null); }}>
+        <SheetContent side="bottom" className="rounded-t-[28px] max-h-[85vh] overflow-y-auto">
+          {selectedLog && (
+            <>
+              <SheetHeader className="pb-2">
+                <SheetTitle className="text-foreground text-lg">{selectedLog.task_name}</SheetTitle>
+              </SheetHeader>
+
+              <div className="space-y-4 pb-6">
+                {/* Status badge */}
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className={`text-sm px-3 py-1 ${STATUS_COLORS[selectedLog.status]}`}>
+                    {STATUS_LABELS[selectedLog.status] || selectedLog.status}
+                  </Badge>
+                  {selectedLog.is_rectification && (
+                    <Badge variant="outline" className="text-sm px-3 py-1 bg-primary/10 text-primary border-primary/20">
+                      <RefreshCw className="h-3 w-3 mr-1" /> Rettifica
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Info grid */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-[14px] bg-secondary/50 p-3">
+                    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1">
+                      <CalendarDays className="h-3 w-3" /> Data controllo
+                    </div>
+                    <p className="text-[14px] font-semibold text-foreground">
+                      {format(new Date(selectedLog.log_date), "dd MMMM yyyy", { locale: it })}
+                    </p>
+                  </div>
+                  <div className="rounded-[14px] bg-secondary/50 p-3">
+                    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1">
+                      <Clock className="h-3 w-3" /> Ora completamento
+                    </div>
+                    <p className="text-[14px] font-semibold text-foreground">
+                      {format(new Date(selectedLog.completed_at), "HH:mm")}
+                    </p>
+                  </div>
+                  <div className="rounded-[14px] bg-secondary/50 p-3">
+                    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1">
+                      <User className="h-3 w-3" /> Operatore
+                    </div>
+                    <p className="text-[14px] font-semibold text-foreground">
+                      {selectedLog.completed_by_name}
+                    </p>
+                  </div>
+                  {selectedLog.frequency && (
+                    <div className="rounded-[14px] bg-secondary/50 p-3">
+                      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1">
+                        <RefreshCw className="h-3 w-3" /> Frequenza
+                      </div>
+                      <p className="text-[14px] font-semibold text-foreground capitalize">
+                        {selectedLog.frequency}
+                      </p>
+                    </div>
+                  )}
+                  {selectedLog.area && (
+                    <div className="rounded-[14px] bg-secondary/50 p-3 col-span-2">
+                      <div className="text-[11px] text-muted-foreground mb-1">Area</div>
+                      <p className="text-[14px] font-semibold text-foreground">{selectedLog.area}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Temperature */}
+                {selectedLog.temperature !== null && (
+                  <div className={`rounded-[14px] p-4 ${selectedLog.temperature_anomaly ? "bg-destructive/10 border border-destructive/20" : "bg-emerald-500/10 border border-emerald-200"}`}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Thermometer className={`h-5 w-5 ${selectedLog.temperature_anomaly ? "text-destructive" : "text-emerald-600"}`} />
+                      <span className="text-[13px] font-semibold text-foreground">Temperatura registrata</span>
+                    </div>
+                    <p className={`text-[28px] font-bold ${selectedLog.temperature_anomaly ? "text-destructive" : "text-emerald-600"}`}>
+                      {selectedLog.temperature}°C
+                      {selectedLog.temperature_anomaly && (
+                        <span className="text-[13px] font-medium ml-2">
+                          <AlertTriangle className="inline h-4 w-4 mr-1" />
+                          ANOMALA
+                        </span>
+                      )}
+                    </p>
+                    {selectedLog.temperature_equipment_name && (
+                      <p className="text-[12px] text-muted-foreground mt-1">
+                        {selectedLog.temperature_equipment_name}
+                        {selectedLog.temperature_equipment_type && ` (${selectedLog.temperature_equipment_type})`}
+                      </p>
+                    )}
+                    {selectedLog.temperature_note && (
+                      <p className="text-[12px] text-muted-foreground mt-1 italic">"{selectedLog.temperature_note}"</p>
+                    )}
+                  </div>
+                )}
+
+                {/* Notes */}
+                {selectedLog.notes && (
+                  <div className="rounded-[14px] bg-secondary/50 p-4">
+                    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-2">
+                      <MessageSquare className="h-3 w-3" /> Note
+                    </div>
+                    <p className="text-[13px] text-foreground whitespace-pre-wrap">{selectedLog.notes}</p>
+                  </div>
+                )}
+
+                {/* Cancelled reason */}
+                {selectedLog.status === "annullata" && selectedLog.cancelled_reason && (
+                  <div className="rounded-[14px] bg-destructive/10 border border-destructive/20 p-4">
+                    <div className="flex items-center gap-1.5 text-[11px] text-destructive mb-2">
+                      <FileWarning className="h-3 w-3" /> Motivo annullamento
+                    </div>
+                    <p className="text-[13px] text-foreground">{selectedLog.cancelled_reason}</p>
+                  </div>
+                )}
+
+                {/* Photos */}
+                {selectedLog.has_photos && (
+                  <div>
+                    <div className="flex items-center gap-1.5 text-[13px] font-semibold text-foreground mb-3">
+                      <ImageIcon className="h-4 w-4 text-primary" /> Foto prova
+                    </div>
+                    {loadingDetail ? (
+                      <div className="flex justify-center py-6">
+                        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                      </div>
+                    ) : detailPhotos.length === 0 ? (
+                      <p className="text-[12px] text-muted-foreground">Nessuna foto trovata</p>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-2">
+                        {detailPhotos.map((photo) => (
+                          <div key={photo.id} className="relative rounded-[12px] overflow-hidden bg-secondary aspect-square">
+                            <img
+                              src={photo.photo_url}
+                              alt="Foto prova HACCP"
+                              className="h-full w-full object-cover"
+                              onClick={() => window.open(photo.photo_url, "_blank")}
+                            />
+                            <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+                              <p className="text-[10px] text-white font-medium truncate">
+                                {photo.uploaded_by_name ?? "Operatore"}
+                              </p>
+                              <p className="text-[9px] text-white/70">
+                                {format(new Date(photo.created_at), "dd/MM HH:mm")}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* No photos indicator */}
+                {!selectedLog.has_photos && (
+                  <div className="rounded-[14px] bg-secondary/30 p-4 text-center">
+                    <Camera className="h-6 w-6 text-muted-foreground mx-auto mb-1" />
+                    <p className="text-[12px] text-muted-foreground">Nessuna foto allegata</p>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
