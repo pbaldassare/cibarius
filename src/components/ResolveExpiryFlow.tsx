@@ -57,11 +57,13 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onComplete?: () => void;
+  /** When set, queries restaurant inventory instead of user inventory */
+  restaurantId?: string;
 }
 
 type ActionType = "consumed" | "discarded" | "updated" | "moved" | "skipped";
 
-const ResolveExpiryFlow = ({ open, onOpenChange, onComplete }: Props) => {
+const ResolveExpiryFlow = ({ open, onOpenChange, onComplete, restaurantId }: Props) => {
   const { user } = useAuth();
   const [items, setItems] = useState<ResolveItem[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -83,19 +85,28 @@ const ResolveExpiryFlow = ({ open, onOpenChange, onComplete }: Props) => {
   const [showSwipeHint, setShowSwipeHint] = useState(() => !localStorage.getItem("cibarius_swipe_hint"));
 
   const fetchItems = async () => {
-    if (!user) return;
+    if (!user && !restaurantId) return;
     setLoading(true);
-    const [invRes, prepRes] = await Promise.all([
-      supabase
-        .from("inventory_items")
-        .select("id, expiry_date, storage_type, quantity, unit, product:products(name, image_url)")
-        .eq("owner_user_id", user.id)
-        .order("expiry_date", { ascending: true, nullsFirst: false }),
-      supabase
-        .from("preparations")
-        .select("id, name, use_by_date, storage_type, portions, image_url, prepared_at")
-        .eq("owner_user_id", user.id),
-    ]);
+
+    // Build queries based on mode
+    let invQuery = supabase
+      .from("inventory_items")
+      .select("id, expiry_date, storage_type, quantity, unit, product:products(name, image_url)")
+      .order("expiry_date", { ascending: true, nullsFirst: false });
+
+    let prepQuery = supabase
+      .from("preparations")
+      .select("id, name, use_by_date, storage_type, portions, image_url, prepared_at");
+
+    if (restaurantId) {
+      invQuery = invQuery.eq("restaurant_id", restaurantId);
+      prepQuery = prepQuery.eq("restaurant_id", restaurantId);
+    } else if (user) {
+      invQuery = invQuery.eq("owner_user_id", user.id);
+      prepQuery = prepQuery.eq("owner_user_id", user.id);
+    }
+
+    const [invRes, prepRes] = await Promise.all([invQuery, prepQuery]);
 
     const result: ResolveItem[] = [];
     if (invRes.data) {
@@ -147,7 +158,7 @@ const ResolveExpiryFlow = ({ open, onOpenChange, onComplete }: Props) => {
       setNewDate("");
       setCardAnim("in");
     }
-  }, [open, user]);
+  }, [open, user, restaurantId]);
 
   const current = items[currentIndex] ?? null;
   const total = items.length;

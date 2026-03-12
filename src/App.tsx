@@ -54,6 +54,7 @@ import AdminPaymentsPage from "./pages/admin/AdminPaymentsPage";
 import RestaurantOnboardingPage from "./pages/restaurant/RestaurantOnboardingPage";
 import RestaurantPage from "./pages/restaurant/RestaurantPage";
 import RestaurantProductsPage from "./pages/restaurant/RestaurantProductsPage";
+import RestaurantExpiryPage from "./pages/restaurant/RestaurantExpiryPage";
 import RestaurantRecipesPage from "./pages/restaurant/RestaurantRecipesPage";
 import RestaurantSettingsPage from "./pages/restaurant/RestaurantSettingsPage";
 import RestaurantInvoicesPage from "./pages/restaurant/RestaurantInvoicesPage";
@@ -181,7 +182,7 @@ const App = () => (
 
               <Route element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><RestaurantLayout /></RestaurantGuard></RG>}>
                 <Route path="/restaurant" element={<RestaurantPage />} />
-                <Route path="/restaurant/products" element={<RestaurantProductsPage />} />
+                <Route path="/restaurant/products" element={<RestaurantExpiryPage />} />
                 <Route path="/restaurant/recipes" element={<RestaurantRecipesPage />} />
                 <Route path="/restaurant/settings" element={<RestaurantSettingsPage />} />
                 <Route path="/restaurant/invoices" element={<RestaurantInvoicesPage />} />
