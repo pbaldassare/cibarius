@@ -3,7 +3,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import {
   LayoutDashboard, Users, Settings, LogOut, Sprout, ChevronLeft,
-  Store, Package, MessageSquareWarning, Ticket, TrendingUp,
+  Store, Package, MessageSquareWarning, Ticket, TrendingUp, ClipboardCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
