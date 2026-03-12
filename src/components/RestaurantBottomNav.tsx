@@ -1,14 +1,14 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, Clock, ChefHat, BookOpen, FileText } from "lucide-react";
+import { LayoutDashboard, Clock, ChefHat, BookOpen, FileText, ClipboardCheck } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
 interface TabItem { to: string; icon: LucideIcon; label: string }
 
 const tabs: TabItem[] = [
-  { to: "/restaurant", icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/restaurant", icon: LayoutDashboard, label: "Home" },
+  { to: "/restaurant/haccp", icon: ClipboardCheck, label: "HACCP" },
   { to: "/restaurant/products", icon: Clock, label: "Scadenze" },
   { to: "/restaurant/preparations", icon: ChefHat, label: "Preparaz." },
-  { to: "/restaurant/recipes", icon: BookOpen, label: "Ricette" },
   { to: "/restaurant/invoices", icon: FileText, label: "Bolle" },
 ];
 

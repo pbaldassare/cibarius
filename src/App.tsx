@@ -55,6 +55,9 @@ import RestaurantSettingsPage from "./pages/restaurant/RestaurantSettingsPage";
 import RestaurantInvoicesPage from "./pages/restaurant/RestaurantInvoicesPage";
 import RestaurantPreparationsPage from "./pages/restaurant/RestaurantPreparationsPage";
 import RestaurantItemPage from "./pages/restaurant/RestaurantItemPage";
+import RestaurantHaccpPage from "./pages/restaurant/RestaurantHaccpPage";
+import RestaurantHaccpSetupPage from "./pages/restaurant/RestaurantHaccpSetupPage";
+import RestaurantHaccpHistoryPage from "./pages/restaurant/RestaurantHaccpHistoryPage";
 
 // Restaurant admin pages
 import RestaurantAdminPage from "./pages/restaurant-admin/RestaurantAdminPage";
@@ -178,6 +181,9 @@ const App = () => (
                 <Route path="/restaurant/preparations" element={<RestaurantPreparationsPage />} />
                 <Route path="/restaurant/item/:id" element={<RestaurantItemPage />} />
                 <Route path="/restaurant/profile" element={<ProfiloPage />} />
+                <Route path="/restaurant/haccp" element={<RestaurantHaccpPage />} />
+                <Route path="/restaurant/haccp/setup" element={<RestaurantHaccpSetupPage />} />
+                <Route path="/restaurant/haccp/history" element={<RestaurantHaccpHistoryPage />} />
               </Route>
 
               {/* Supplier invite (restaurant context) */}
