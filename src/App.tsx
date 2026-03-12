@@ -181,6 +181,9 @@ const App = () => (
                 <Route path="/restaurant/preparations" element={<RestaurantPreparationsPage />} />
                 <Route path="/restaurant/item/:id" element={<RestaurantItemPage />} />
                 <Route path="/restaurant/profile" element={<ProfiloPage />} />
+                <Route path="/restaurant/haccp" element={<RestaurantHaccpPage />} />
+                <Route path="/restaurant/haccp/setup" element={<RestaurantHaccpSetupPage />} />
+                <Route path="/restaurant/haccp/history" element={<RestaurantHaccpHistoryPage />} />
               </Route>
 
               {/* Supplier invite (restaurant context) */}
