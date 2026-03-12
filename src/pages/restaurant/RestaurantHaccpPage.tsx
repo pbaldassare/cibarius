@@ -172,9 +172,7 @@ const RestaurantHaccpPage = () => {
 
       // Check threshold
       const tempVal = parseFloat(temperature);
-      if (taskCategory === "freezer" && tempVal > thresholdCfg.max) {
-        toast({ variant: "destructive", title: "⚠️ Temperatura anomala!", description: `${completeDialog.task.name}: ${tempVal}°C (soglia: ${thresholdCfg.max}°C)` });
-      } else if (taskCategory !== "freezer" && tempVal > thresholdCfg.max) {
+      if (tempVal > thresholdCfg.max) {
         toast({ variant: "destructive", title: "⚠️ Temperatura anomala!", description: `${completeDialog.task.name}: ${tempVal}°C (soglia: ${thresholdCfg.max}°C)` });
       }
     }

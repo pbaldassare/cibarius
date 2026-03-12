@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, Download, FileSpreadsheet, FileText, Search } from "lucide-react";
+import { Loader2, FileSpreadsheet, FileText, Search, Camera, Thermometer, AlertTriangle } from "lucide-react";
 import { format, subDays } from "date-fns";
 import { it } from "date-fns/locale";
 
@@ -20,19 +20,26 @@ interface LogRow {
   notes: string | null;
   completed_at: string;
   completed_by_name: string;
+  temperature: number | null;
+  temperature_anomaly: boolean;
+  has_photos: boolean;
 }
 
 const STATUS_LABELS: Record<string, string> = {
   completata: "Completata",
   non_controllata: "Non controllata",
   in_ritardo: "In ritardo",
+  annullata: "Annullata",
 };
 
 const STATUS_COLORS: Record<string, string> = {
   completata: "bg-emerald-500/10 text-emerald-700 border-emerald-200",
   non_controllata: "bg-muted text-muted-foreground",
   in_ritardo: "bg-amber-500/10 text-amber-700 border-amber-200",
+  annullata: "bg-red-500/10 text-red-700 border-red-200",
 };
+
+const THRESHOLDS: Record<string, number> = { fridge: 4, cold_room: 4, freezer: -18 };
 
 const RestaurantHaccpHistoryPage = () => {
   const { restaurant } = useRestaurant();
@@ -52,32 +59,43 @@ const RestaurantHaccpHistoryPage = () => {
       if (dateRange === "week") dateFrom = format(subDays(new Date(), 7), "yyyy-MM-dd");
       else if (dateRange === "month") dateFrom = format(subDays(new Date(), 30), "yyyy-MM-dd");
 
-      const [tasksRes, logsRes, profilesRes] = await Promise.all([
+      const [tasksRes, logsRes, photosRes, tempsRes] = await Promise.all([
         supabase.from("haccp_tasks").select("id, name").eq("restaurant_id", restaurant.id),
         (() => {
           let q = supabase.from("haccp_logs").select("*").eq("restaurant_id", restaurant.id).order("completed_at", { ascending: false });
           if (dateFrom) q = q.gte("log_date", dateFrom);
           return q;
         })(),
-        supabase.from("profiles").select("id, full_name, email"),
+        supabase.from("haccp_task_photos").select("task_log_id").eq("restaurant_id", restaurant.id),
+        supabase.from("haccp_temperature_logs").select("task_log_id, temperature_value, equipment_type").eq("restaurant_id", restaurant.id),
       ]);
 
       const taskMap: Record<string, string> = {};
       (tasksRes.data ?? []).forEach((t: any) => { taskMap[t.id] = t.name; });
       setTasks((tasksRes.data ?? []) as any);
 
-      const profileMap: Record<string, string> = {};
-      (profilesRes.data ?? []).forEach((p: any) => { profileMap[p.id] = p.full_name || p.email; });
+      const photoLogIds = new Set((photosRes.data ?? []).map((p: any) => p.task_log_id));
+      const tempMap = new Map<string, { value: number; type: string }>();
+      (tempsRes.data ?? []).forEach((t: any) => {
+        tempMap.set(t.task_log_id, { value: t.temperature_value, type: t.equipment_type });
+      });
 
-      const mapped: LogRow[] = (logsRes.data ?? []).map((l: any) => ({
-        id: l.id,
-        task_name: taskMap[l.task_id] || "—",
-        log_date: l.log_date,
-        status: l.status,
-        notes: l.notes,
-        completed_at: l.completed_at,
-        completed_by_name: profileMap[l.completed_by] || "—",
-      }));
+      const mapped: LogRow[] = (logsRes.data ?? []).map((l: any) => {
+        const temp = tempMap.get(l.id);
+        const threshold = temp ? THRESHOLDS[temp.type] : undefined;
+        return {
+          id: l.id,
+          task_name: l.task_name || taskMap[l.task_id] || "—",
+          log_date: l.log_date,
+          status: l.status,
+          notes: l.notes,
+          completed_at: l.completed_at,
+          completed_by_name: l.completed_by_name || "—",
+          temperature: temp?.value ?? null,
+          temperature_anomaly: temp && threshold !== undefined ? temp.value > threshold : false,
+          has_photos: photoLogIds.has(l.id),
+        };
+      });
 
       setLogs(mapped);
       setLoading(false);
@@ -94,11 +112,13 @@ const RestaurantHaccpHistoryPage = () => {
   });
 
   const exportCSV = () => {
-    const headers = ["Data", "Attività", "Stato", "Operatore", "Ora", "Note"];
+    const headers = ["Data", "Attività", "Stato", "Temperatura", "Foto", "Operatore", "Ora", "Note"];
     const rows = filtered.map(l => [
       format(new Date(l.log_date), "dd/MM/yyyy"),
       l.task_name,
       STATUS_LABELS[l.status] || l.status,
+      l.temperature !== null ? `${l.temperature}°C${l.temperature_anomaly ? " ANOMALA" : ""}` : "",
+      l.has_photos ? "Sì" : "",
       l.completed_by_name,
       format(new Date(l.completed_at), "HH:mm"),
       l.notes || "",
@@ -118,14 +138,17 @@ const RestaurantHaccpHistoryPage = () => {
       <html><head><title>Storico HACCP</title>
       <style>body{font-family:sans-serif;padding:20px}table{width:100%;border-collapse:collapse;margin-top:16px}
       th,td{border:1px solid #ddd;padding:8px;text-align:left;font-size:12px}th{background:#f5f5f5;font-weight:600}
-      h1{font-size:18px}h2{font-size:14px;color:#666}</style></head><body>
+      h1{font-size:18px}h2{font-size:14px;color:#666}
+      .anomaly{color:#dc2626;font-weight:700}.ok{color:#16a34a}</style></head><body>
       <h1>Storico Controlli HACCP</h1>
       <h2>${restaurant?.name ?? ""} — Generato il ${format(new Date(), "dd/MM/yyyy HH:mm")}</h2>
-      <table><thead><tr><th>Data</th><th>Attività</th><th>Stato</th><th>Operatore</th><th>Ora</th><th>Note</th></tr></thead>
+      <table><thead><tr><th>Data</th><th>Attività</th><th>Stato</th><th>Temp.</th><th>Foto</th><th>Operatore</th><th>Ora</th><th>Note</th></tr></thead>
       <tbody>${filtered.map(l => `<tr>
         <td>${format(new Date(l.log_date), "dd/MM/yyyy")}</td>
         <td>${l.task_name}</td>
         <td>${STATUS_LABELS[l.status] || l.status}</td>
+        <td class="${l.temperature_anomaly ? "anomaly" : "ok"}">${l.temperature !== null ? `${l.temperature}°C${l.temperature_anomaly ? " ⚠️" : ""}` : "—"}</td>
+        <td>${l.has_photos ? "📷 Sì" : "—"}</td>
         <td>${l.completed_by_name}</td>
         <td>${format(new Date(l.completed_at), "HH:mm")}</td>
         <td>${l.notes || ""}</td>
@@ -170,6 +193,7 @@ const RestaurantHaccpHistoryPage = () => {
             <SelectItem value="completata">Completata</SelectItem>
             <SelectItem value="non_controllata">Non controllata</SelectItem>
             <SelectItem value="in_ritardo">In ritardo</SelectItem>
+            <SelectItem value="annullata">Annullata</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -200,6 +224,8 @@ const RestaurantHaccpHistoryPage = () => {
                 <TableHead>Data</TableHead>
                 <TableHead>Attività</TableHead>
                 <TableHead>Stato</TableHead>
+                <TableHead>Temp.</TableHead>
+                <TableHead>Foto</TableHead>
                 <TableHead>Operatore</TableHead>
                 <TableHead>Ora</TableHead>
                 <TableHead>Note</TableHead>
@@ -207,7 +233,7 @@ const RestaurantHaccpHistoryPage = () => {
             </TableHeader>
             <TableBody>
               {filtered.map(l => (
-                <TableRow key={l.id}>
+                <TableRow key={l.id} className={l.temperature_anomaly ? "bg-destructive/5" : ""}>
                   <TableCell className="text-sm whitespace-nowrap">
                     {format(new Date(l.log_date), "dd/MM/yyyy")}
                   </TableCell>
@@ -216,6 +242,23 @@ const RestaurantHaccpHistoryPage = () => {
                     <Badge variant="outline" className={STATUS_COLORS[l.status]}>
                       {STATUS_LABELS[l.status] || l.status}
                     </Badge>
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {l.temperature !== null ? (
+                      <span className={`font-bold ${l.temperature_anomaly ? "text-destructive" : "text-emerald-600"}`}>
+                        {l.temperature}°C
+                        {l.temperature_anomaly && <AlertTriangle className="inline h-3 w-3 ml-1" />}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {l.has_photos ? (
+                      <Camera className="h-4 w-4 text-primary" />
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-sm">{l.completed_by_name}</TableCell>
                   <TableCell className="text-sm whitespace-nowrap">

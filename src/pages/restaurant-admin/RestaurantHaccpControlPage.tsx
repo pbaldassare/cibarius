@@ -245,6 +245,8 @@ h2{font-size:13px;color:#666;margin-bottom:16px;font-weight:normal}
 .non_controllata{background:#f3f4f6;color:#6b7280}
 .annullata{background:#fee2e2;color:#991b1b}
 .da_fare{background:#dbeafe;color:#1e40af}
+.anomaly{color:#dc2626;font-weight:700}
+.ok{color:#16a34a}
 table{width:100%;border-collapse:collapse;margin-top:8px;font-size:11px}
 th{background:#f8f9fa;font-weight:600;text-align:left;padding:8px;border-bottom:2px solid #e5e7eb}
 td{padding:6px 8px;border-bottom:1px solid #f0f0f0}
@@ -253,13 +255,15 @@ tr:nth-child(even){background:#fafafa}
 </style></head><body>
 <h1>📋 Registro Controlli HACCP</h1>
 <h2>${restaurant?.name ?? ""} — Generato il ${format(new Date(), "dd/MM/yyyy 'alle' HH:mm", { locale: it })}</h2>
-<table><thead><tr><th>Data</th><th>Attività</th><th>Area</th><th>Freq.</th><th>Stato</th><th>Operatore</th><th>Ora</th><th>Note</th></tr></thead>
+<table><thead><tr><th>Data</th><th>Attività</th><th>Area</th><th>Freq.</th><th>Stato</th><th>Temp.</th><th>Foto</th><th>Operatore</th><th>Ora</th><th>Note</th></tr></thead>
 <tbody>${filtered.map(l => `<tr>
 <td>${format(new Date(l.log_date), "dd/MM/yyyy")}</td>
 <td><strong>${l.task_name}</strong></td>
 <td>${l.area}</td>
 <td>${l.frequency}</td>
 <td><span class="badge ${l.status}">${STATUS_MAP[l.status]?.label || l.status}</span>${l.cancelled_reason ? `<br/><small>Motivo: ${l.cancelled_reason}</small>` : ""}</td>
+<td class="${l.temperature_anomaly ? "anomaly" : "ok"}">${l.temperature !== null ? `${l.temperature}°C${l.temperature_anomaly ? " ⚠️" : ""}` : "—"}</td>
+<td>${l.has_photos ? "📷" : "—"}</td>
 <td>${l.completed_by_name}</td>
 <td>${format(new Date(l.completed_at), "HH:mm")}</td>
 <td>${l.notes || "—"}</td>
