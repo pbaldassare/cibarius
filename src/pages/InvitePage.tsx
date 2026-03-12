@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useSubscription } from "@/hooks/useSubscription";
 import { useToast } from "@/hooks/use-toast";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Loader2, UserCheck, ShieldCheck, Link2 } from "lucide-react";
+import UpgradeScreen from "@/components/UpgradeScreen";
 
 const InvitePage = () => {
   const { user } = useAuth();
