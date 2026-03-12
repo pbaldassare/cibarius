@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Users, Store, Loader2, ClipboardCheck, Settings2, FileText,
-  Package, AlertTriangle, CheckCircle2, Clock,
+  Package, AlertTriangle, CheckCircle2, Clock, ShieldCheck,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";

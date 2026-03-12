@@ -280,8 +280,29 @@ const RestaurantPage = () => {
                     </p>
                   )}
                 </div>
-              )}
+        )}
 
+        {/* ═══ HACCP Alerts ═══ */}
+        {haccpToday.total > 0 && (
+          <div className="space-y-1.5">
+            {haccpToday.pending.length > 0 && (
+              <div className="flex items-center gap-2 rounded-[12px] bg-amber-500/10 border border-amber-200/50 px-3 py-2.5">
+                <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+                <span className="text-[13px] font-medium text-foreground">
+                  Hai {haccpToday.pending.length} controlli HACCP da completare oggi
+                </span>
+              </div>
+            )}
+            {haccpToday.pending.some(t => t.category === "temperatura") && (
+              <div className="flex items-center gap-2 rounded-[12px] bg-sky-500/10 border border-sky-200/50 px-3 py-2.5">
+                <Thermometer className="h-4 w-4 text-sky-600 shrink-0" />
+                <span className="text-[13px] font-medium text-foreground">
+                  {haccpToday.pending.filter(t => t.category === "temperatura").length} celle frigorifere non controllate
+                </span>
+              </div>
+            )}
+          </div>
+        )}
               {/* All done */}
               {haccpToday.pending.length === 0 && (
                 <div className="flex items-center gap-2 rounded-[10px] bg-primary/5 border border-primary/10 px-3 py-3">
