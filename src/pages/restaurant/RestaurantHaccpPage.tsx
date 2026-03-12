@@ -292,7 +292,7 @@ const RestaurantHaccpPage = () => {
                   </td>
                   {weekDays.map((d, i) => {
                     const dayIdx = (d.getDay() + 6) % 7;
-                    const show = shouldShowOnDay(task, dayIdx);
+                    const show = shouldShowOnDay(task, dayIdx, d);
                     const log = getLogForCell(task.id, d);
                     const canComplete = show && !log && (isSameDay(d, today) || d < today);
 
