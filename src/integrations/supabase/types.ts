@@ -2340,6 +2340,81 @@ export type Database = {
           },
         ]
       }
+      subscription_plans: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          monthly_price: number | null
+          plan_name: string
+          role_type: string
+          trial_days: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          monthly_price?: number | null
+          plan_name: string
+          role_type: string
+          trial_days?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          monthly_price?: number | null
+          plan_name?: string
+          role_type?: string
+          trial_days?: number
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean
+          created_at: string
+          id: string
+          next_billing_date: string | null
+          plan_type: string
+          start_date: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          trial_end_date: string | null
+          user_id: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          id?: string
+          next_billing_date?: string | null
+          plan_type: string
+          start_date?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          trial_end_date?: string | null
+          user_id: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          id?: string
+          next_billing_date?: string | null
+          plan_type?: string
+          start_date?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          trial_end_date?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       supplier_invites: {
         Row: {
           created_at: string
