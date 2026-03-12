@@ -197,7 +197,7 @@ const RestaurantHaccpSetupPage = () => {
 
   return (
     <div className="space-y-4 p-4">
-      <MobileHeader title="Configura HACCP" backTo="/restaurant/haccp" />
+      <MobileHeader title="Configura HACCP" />
 
       {/* Equipment config */}
       <Card>

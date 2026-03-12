@@ -140,7 +140,7 @@ const RestaurantHaccpHistoryPage = () => {
 
   return (
     <div className="space-y-4 p-4">
-      <MobileHeader title="Storico HACCP" backTo="/restaurant/haccp" />
+      <MobileHeader title="Storico HACCP" />
 
       {/* Filters */}
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">

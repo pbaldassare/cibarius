@@ -132,7 +132,7 @@ const RestaurantHaccpPage = () => {
 
   return (
     <div className="space-y-4 p-4">
-      <MobileHeader title="HACCP" backTo="/restaurant" />
+      <MobileHeader title="HACCP" />
 
       {/* Week navigation */}
       <div className="flex items-center justify-between">
