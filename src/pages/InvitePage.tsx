@@ -14,6 +14,7 @@ import UpgradeScreen from "@/components/UpgradeScreen";
 const InvitePage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { isActive: plusActive, isLoading: plusLoading } = useSubscription("user_plus");
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [code, setCode] = useState(searchParams.get("code") ?? "");
