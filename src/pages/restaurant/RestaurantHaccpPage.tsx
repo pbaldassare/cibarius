@@ -210,7 +210,7 @@ const RestaurantHaccpPage = () => {
   const isCurrentWeek = weekOffset === 0;
 
   const getCellIcon = (task: HaccpTask, date: Date) => {
-    if (!shouldShowOnDay(task, (date.getDay() + 6) % 7)) return null;
+    if (!shouldShowOnDay(task, (date.getDay() + 6) % 7, date)) return null;
     const log = getLogForCell(task.id, date);
     if (log) return <CheckCircle2 className="h-5 w-5 text-emerald-500" />;
     const isPast = date < today && !isSameDay(date, today);
