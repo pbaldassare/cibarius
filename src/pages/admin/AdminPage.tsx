@@ -3,7 +3,7 @@ import AdminLayout from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Users, ShieldCheck, Activity, Package, MessageSquareWarning, Ticket,
-  Store, Stethoscope, AlertTriangle, CheckCircle2, Clock, TrendingUp,
+  Store, Stethoscope, AlertTriangle, CheckCircle2, Clock, TrendingUp, Key,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -172,6 +172,17 @@ const AdminPage = () => {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">Statistiche e monitoraggio piattaforma</p>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link to="/admin/api">
+          <Card className="transition-shadow hover:shadow-md">
+            <CardHeader className="flex flex-row items-center gap-3 pb-2">
+              <Key className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base">API Cibarius</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">Chiavi API ed endpoint per integrazioni</p>
             </CardContent>
           </Card>
         </Link>

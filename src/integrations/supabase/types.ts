@@ -62,6 +62,42 @@ export type Database = {
         }
         Relationships: []
       }
+      api_keys: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          is_active: boolean
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          name: string
+          scopes: string[]
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          is_active?: boolean
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          name?: string
+          scopes?: string[]
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_active?: boolean
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          name?: string
+          scopes?: string[]
+        }
+        Relationships: []
+      }
       appointments: {
         Row: {
           client_user_id: string
