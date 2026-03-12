@@ -93,6 +93,7 @@ const AdminRestaurantsPage = () => {
                 <TableHead>Telefono</TableHead>
                 <TableHead className="text-center">Prodotti</TableHead>
                 <TableHead className="text-center">In scadenza</TableHead>
+                <TableHead className="text-center">HACCP oggi</TableHead>
                 <TableHead>Creato il</TableHead>
               </TableRow>
             </TableHeader>
@@ -114,6 +115,19 @@ const AdminRestaurantsPage = () => {
                       </Badge>
                     ) : (
                       <Badge variant="outline" className="text-muted-foreground">0</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {(r.haccpTasksTotal ?? 0) === 0 ? (
+                      <Badge variant="outline" className="text-muted-foreground">—</Badge>
+                    ) : (r.haccpPendingToday ?? 0) > 0 ? (
+                      <Badge variant="outline" className="gap-1 bg-amber-500/10 text-amber-700 border-amber-200">
+                        <Clock className="h-3 w-3" /> {r.haccpCompletedToday}/{r.haccpTasksTotal}
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="gap-1 bg-emerald-500/10 text-emerald-700 border-emerald-200">
+                        <CheckCircle2 className="h-3 w-3" /> {r.haccpCompletedToday}/{r.haccpTasksTotal}
+                      </Badge>
                     )}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
