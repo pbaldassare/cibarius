@@ -48,6 +48,7 @@ const TEMP_THRESHOLDS: Record<string, { max: number; label: string; eqType: stri
   frigoriferi: { max: 4, label: "Frigorifero", eqType: "fridge" },
   freezer: { max: -18, label: "Freezer", eqType: "freezer" },
   temperature: { max: 4, label: "Controllo temperatura", eqType: "fridge" },
+  controllo_temperatura: { max: 4, label: "Controllo temperatura", eqType: "fridge" },
 };
 
 const shouldShowOnDay = (task: HaccpTask, dayIndex: number, date?: Date): boolean => {
@@ -171,9 +172,7 @@ const RestaurantHaccpPage = () => {
 
       // Check threshold
       const tempVal = parseFloat(temperature);
-      if (taskCategory === "freezer" && tempVal > thresholdCfg.max) {
-        toast({ variant: "destructive", title: "⚠️ Temperatura anomala!", description: `${completeDialog.task.name}: ${tempVal}°C (soglia: ${thresholdCfg.max}°C)` });
-      } else if (taskCategory !== "freezer" && tempVal > thresholdCfg.max) {
+      if (tempVal > thresholdCfg.max) {
         toast({ variant: "destructive", title: "⚠️ Temperatura anomala!", description: `${completeDialog.task.name}: ${tempVal}°C (soglia: ${thresholdCfg.max}°C)` });
       }
     }
