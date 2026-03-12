@@ -38,3 +38,9 @@ verify_jwt = false
 
 [functions.suggest-meal]
 verify_jwt = false
+
+[functions.send-email]
+verify_jwt = false
+
+[functions.send-expiry-alerts]
+verify_jwt = false
