@@ -46,6 +46,7 @@ import AdminCouponsPage from "./pages/admin/AdminCouponsPage";
 import AdminRestaurantsPage from "./pages/admin/AdminRestaurantsPage";
 import AdminStatsPage from "./pages/admin/AdminStatsPage";
 import AdminHaccpTemplatesPage from "./pages/admin/AdminHaccpTemplatesPage";
+import AdminSubscriptionsPage from "./pages/admin/AdminSubscriptionsPage";
 
 // Restaurant app pages
 import RestaurantOnboardingPage from "./pages/restaurant/RestaurantOnboardingPage";
@@ -235,6 +236,7 @@ const App = () => (
               <Route path="/admin/support" element={<RG roles={["admin"]}><AdminPwaGuard><AdminSupportPage /></AdminPwaGuard></RG>} />
               <Route path="/admin/coupons" element={<RG roles={["admin"]}><AdminPwaGuard><AdminCouponsPage /></AdminPwaGuard></RG>} />
               <Route path="/admin/haccp-templates" element={<RG roles={["admin"]}><AdminPwaGuard><AdminHaccpTemplatesPage /></AdminPwaGuard></RG>} />
+              <Route path="/admin/subscriptions" element={<RG roles={["admin"]}><AdminPwaGuard><AdminSubscriptionsPage /></AdminPwaGuard></RG>} />
 
               {/* Restaurant admin routes (no mobile layout) */}
               <Route path="/restaurant-admin" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><RestaurantAdminPage /></RestaurantGuard></RG>} />
