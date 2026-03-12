@@ -63,7 +63,7 @@ interface Props {
 
 type ActionType = "consumed" | "discarded" | "updated" | "moved" | "skipped";
 
-const ResolveExpiryFlow = ({ open, onOpenChange, onComplete }: Props) => {
+const ResolveExpiryFlow = ({ open, onOpenChange, onComplete, restaurantId }: Props) => {
   const { user } = useAuth();
   const [items, setItems] = useState<ResolveItem[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
