@@ -8,9 +8,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import RestaurantAddFlow from "@/components/RestaurantAddFlow";
 import {
   Loader2, Clock, AlertCircle, Package, Plus, ChevronRight,
-  ChefHat, FileText, Upload, User, Settings, Zap, HelpCircle,
+  ChefHat, FileText, Upload, User, Settings, Zap,
+  ClipboardCheck, CheckCircle2, AlertTriangle, Circle,
+  Thermometer, Wind, Flame,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { getFoodEmoji } from "@/lib/food-images";
+import { format, isSameDay } from "date-fns";
+import { it } from "date-fns/locale";
 
 /* ─── types ─── */
 interface InventoryItem {
@@ -28,6 +33,20 @@ interface PrepItem {
   use_by_date: string;
   storage_type: string;
   portions: number | null;
+}
+
+interface HaccpTask {
+  id: string;
+  name: string;
+  category: string;
+  frequency: string;
+}
+
+interface HaccpLog {
+  id: string;
+  task_id: string;
+  log_date: string;
+  status: string;
 }
 
 type ExpiryStatus = "expired" | "expiring" | "ok" | "nodate";
@@ -52,6 +71,14 @@ const storageLabel: Record<string, string> = {
   frigo: "Frigo", freezer: "Congelatore", ambiente: "Dispensa",
 };
 
+const QUICK_ACTIONS = [
+  { label: "Controlli oggi", icon: ClipboardCheck, to: "/restaurant/haccp", color: "text-primary", bg: "bg-primary/10" },
+  { label: "Cappe", icon: Wind, to: "/restaurant/haccp", color: "text-violet-600", bg: "bg-violet-500/10" },
+  { label: "Forni", icon: Flame, to: "/restaurant/haccp", color: "text-orange-600", bg: "bg-orange-500/10" },
+  { label: "Celle frigo", icon: Thermometer, to: "/restaurant/haccp", color: "text-sky-600", bg: "bg-sky-500/10" },
+  { label: "Scadenze", icon: Clock, to: "/restaurant/products", color: "text-amber-600", bg: "bg-amber-500/10" },
+];
+
 const RestaurantPage = () => {
   const { restaurant, isLoading: restLoading } = useRestaurant();
   const { user } = useAuth();
@@ -59,13 +86,18 @@ const RestaurantPage = () => {
 
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [preps, setPreps] = useState<PrepItem[]>([]);
+  const [haccpTasks, setHaccpTasks] = useState<HaccpTask[]>([]);
+  const [haccpLogs, setHaccpLogs] = useState<HaccpLog[]>([]);
   const [docCount, setDocCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [addFoodOpen, setAddFoodOpen] = useState(false);
 
+  const today = new Date();
+  const todayStr = format(today, "yyyy-MM-dd");
+
   const fetchData = async () => {
     if (!restaurant) return;
-    const [invRes, prepRes, docRes] = await Promise.all([
+    const [invRes, prepRes, docRes, tasksRes, logsRes] = await Promise.all([
       supabase
         .from("inventory_items")
         .select("id, expiry_date, storage_type, quantity, unit, product:products(name, image_url)")
@@ -80,16 +112,43 @@ const RestaurantPage = () => {
         .from("restaurant_documents")
         .select("id", { count: "exact", head: true })
         .eq("restaurant_id", restaurant.id),
+      supabase
+        .from("haccp_tasks")
+        .select("id, name, category, frequency")
+        .eq("restaurant_id", restaurant.id)
+        .eq("is_active", true)
+        .order("sort_order"),
+      supabase
+        .from("haccp_logs")
+        .select("id, task_id, log_date, status")
+        .eq("restaurant_id", restaurant.id)
+        .eq("log_date", todayStr),
     ]);
     if (invRes.data) setItems(invRes.data as unknown as InventoryItem[]);
     if (prepRes.data) setPreps(prepRes.data as unknown as PrepItem[]);
+    if (tasksRes.data) setHaccpTasks(tasksRes.data as HaccpTask[]);
+    if (logsRes.data) setHaccpLogs(logsRes.data as HaccpLog[]);
     setDocCount(docRes.count ?? 0);
     setLoading(false);
   };
 
   useEffect(() => { if (restaurant) fetchData(); }, [restaurant]);
 
-  // Counts
+  // HACCP today stats
+  const haccpToday = useMemo(() => {
+    const todayTasks = haccpTasks.filter(t => {
+      if (t.frequency === "giornaliera") return true;
+      if (t.frequency === "settimanale") return today.getDay() === 1;
+      if (t.frequency === "mensile") return today.getDate() === 1;
+      return true;
+    });
+    const completedIds = new Set(haccpLogs.filter(l => l.status === "completata").map(l => l.task_id));
+    const completed = todayTasks.filter(t => completedIds.has(t.id));
+    const pending = todayTasks.filter(t => !completedIds.has(t.id));
+    return { total: todayTasks.length, completed, pending };
+  }, [haccpTasks, haccpLogs]);
+
+  // Inventory counts
   const counts = useMemo(() => {
     let expired = 0, expiring = 0, nodate = 0;
     items.forEach((i) => {
@@ -106,13 +165,7 @@ const RestaurantPage = () => {
     return { expired, expiring, nodate, total: expired + expiring + nodate };
   }, [items, preps]);
 
-  // Today's preps
-  const todayPreps = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
-    return preps.filter((p) => p.use_by_date >= today).slice(0, 4);
-  }, [preps]);
-
-  // Urgent list (10 items)
+  // Urgent list
   const urgentList = useMemo(() => {
     type U = { id: string; name: string; image_url: string | null; date: string | null; storage: string; status: ExpiryStatus; type: "inv" | "prep" };
     const list: U[] = [];
@@ -131,7 +184,7 @@ const RestaurantPage = () => {
       if (a.date && b.date) return a.date.localeCompare(b.date);
       return 0;
     });
-    return list.slice(0, 10);
+    return list.slice(0, 8);
   }, [items, preps]);
 
   if (restLoading || loading) {
@@ -153,7 +206,7 @@ const RestaurantPage = () => {
       <MobileHeader title={restaurant?.name ?? "Dashboard"} />
       <main className="space-y-3 px-4 pt-1 pb-28">
 
-        {/* Top bar: Profilo + Gestione */}
+        {/* Top bar */}
         <div className="flex gap-2">
           <button
             onClick={() => navigate("/restaurant/profile")}
@@ -167,11 +220,96 @@ const RestaurantPage = () => {
             className="flex items-center gap-2 rounded-[12px] bg-card shadow-card px-3 py-2 flex-1 active:scale-[0.98] transition-transform"
           >
             <Settings className="h-4 w-4 text-muted-foreground" />
-            <span className="text-[13px] font-medium text-foreground">Gestione</span>
+            <span className="text-[13px] font-medium text-foreground">Backoffice</span>
           </Link>
         </div>
 
-        {/* ═══ Counters card ═══ */}
+        {/* ═══ HACCP TODAY ═══ */}
+        <div className="rounded-[14px] bg-card shadow-card p-3.5">
+          <div className="flex items-center justify-between mb-2.5">
+            <h3 className="text-[15px] font-semibold text-foreground flex items-center gap-2">
+              <ClipboardCheck className="h-4 w-4 text-primary" />
+              Controlli HACCP oggi
+            </h3>
+            <button onClick={() => navigate("/restaurant/haccp")} className="text-[12px] font-medium text-primary flex items-center gap-0.5">
+              Apri <ChevronRight className="h-3 w-3" />
+            </button>
+          </div>
+
+          {haccpToday.total === 0 ? (
+            <div className="text-center py-4">
+              <p className="text-sm text-muted-foreground mb-2">Nessuna attività configurata</p>
+              <Link to="/restaurant/haccp/setup">
+                <button className="text-sm font-medium text-primary">Configura HACCP →</button>
+              </Link>
+            </div>
+          ) : (
+            <>
+              {/* Progress */}
+              <div className="flex items-center gap-3 mb-3">
+                <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-primary transition-all duration-500"
+                    style={{ width: `${(haccpToday.completed.length / haccpToday.total) * 100}%` }}
+                  />
+                </div>
+                <span className="text-sm font-bold text-foreground">
+                  {haccpToday.completed.length}/{haccpToday.total}
+                </span>
+              </div>
+
+              {/* Pending tasks */}
+              {haccpToday.pending.length > 0 && (
+                <div className="space-y-1.5 mb-2">
+                  {haccpToday.pending.slice(0, 5).map(task => (
+                    <button
+                      key={task.id}
+                      onClick={() => navigate("/restaurant/haccp")}
+                      className="flex items-center gap-2 w-full rounded-[10px] bg-destructive/5 border border-destructive/10 px-3 py-2 text-left active:scale-[0.98] transition-transform"
+                    >
+                      <Circle className="h-4 w-4 text-destructive/60 shrink-0" />
+                      <span className="text-[13px] font-medium text-foreground truncate">{task.name}</span>
+                      <Badge variant="outline" className="ml-auto text-[10px] text-destructive border-destructive/20 shrink-0">
+                        Da fare
+                      </Badge>
+                    </button>
+                  ))}
+                  {haccpToday.pending.length > 5 && (
+                    <p className="text-xs text-muted-foreground text-center">
+                      +{haccpToday.pending.length - 5} altri controlli
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* All done */}
+              {haccpToday.pending.length === 0 && (
+                <div className="flex items-center gap-2 rounded-[10px] bg-primary/5 border border-primary/10 px-3 py-3">
+                  <CheckCircle2 className="h-5 w-5 text-primary" />
+                  <span className="text-sm font-medium text-foreground">Tutti i controlli completati!</span>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* ═══ Quick Actions ═══ */}
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+          {QUICK_ACTIONS.map(({ label, icon: Icon, to, color, bg }) => (
+            <button
+              key={label}
+              onClick={() => navigate(to)}
+              className="flex flex-col items-center gap-1.5 rounded-[12px] bg-card shadow-card px-3 py-2.5 min-w-[72px] active:scale-[0.96] transition-transform"
+            >
+              <div className={`flex h-9 w-9 items-center justify-center rounded-[8px] ${bg}`}>
+                <Icon className={`h-4 w-4 ${color}`} />
+              </div>
+              <span className="text-[10px] font-medium text-foreground text-center leading-tight">{label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* ═══ Expiry counters ═══ */}
         <div className="rounded-[14px] bg-card shadow-card p-3.5">
           <div className="flex items-center justify-between mb-2.5">
             <h3 className="text-[15px] font-semibold text-foreground">Scadenze</h3>
@@ -202,9 +340,8 @@ const RestaurantPage = () => {
           )}
         </div>
 
-        {/* ═══ Quick actions row ═══ */}
+        {/* ═══ Quick rows: Produzione + Bolle ═══ */}
         <div className="grid grid-cols-2 gap-2">
-          {/* Produzione oggi */}
           <div className="rounded-[14px] bg-card shadow-card p-3.5">
             <div className="flex items-center gap-2 mb-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-[8px] bg-accent/10">
@@ -212,7 +349,6 @@ const RestaurantPage = () => {
               </div>
               <div>
                 <p className="text-[13px] font-semibold text-foreground leading-tight">Produzione</p>
-                <p className="text-[10px] text-muted-foreground">{todayPreps.length} attive</p>
               </div>
             </div>
             <button
@@ -222,8 +358,6 @@ const RestaurantPage = () => {
               <Plus className="h-3.5 w-3.5" /> Preparazione
             </button>
           </div>
-
-          {/* Bolle */}
           <div className="rounded-[14px] bg-card shadow-card p-3.5">
             <div className="flex items-center gap-2 mb-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-[8px] bg-success/10">
@@ -299,10 +433,10 @@ const RestaurantPage = () => {
           </div>
         )}
 
-        {urgentList.length === 0 && (
-          <div className="flex items-center gap-3 rounded-[14px] bg-success/5 border border-success/20 p-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-success/10">
-              <Package className="h-5 w-5 text-success" />
+        {urgentList.length === 0 && counts.total === 0 && (
+          <div className="flex items-center gap-3 rounded-[14px] bg-primary/5 border border-primary/10 p-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+              <Package className="h-5 w-5 text-primary" />
             </div>
             <div>
               <p className="text-[14px] font-medium text-foreground">Tutto in ordine</p>
