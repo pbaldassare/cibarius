@@ -16,6 +16,9 @@ interface RestaurantRow {
   created_at: string;
   inventoryCount?: number;
   expiringCount?: number;
+  haccpTasksTotal?: number;
+  haccpCompletedToday?: number;
+  haccpPendingToday?: number;
 }
 
 const AdminRestaurantsPage = () => {
