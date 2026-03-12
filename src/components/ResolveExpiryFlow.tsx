@@ -57,6 +57,8 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onComplete?: () => void;
+  /** When set, queries restaurant inventory instead of user inventory */
+  restaurantId?: string;
 }
 
 type ActionType = "consumed" | "discarded" | "updated" | "moved" | "skipped";
