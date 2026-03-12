@@ -125,7 +125,7 @@ const SignupPage = () => {
       metadata.bio = bio;
     }
 
-    const { error } = await supabase.auth.signUp({
+    const { data: signUpData, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -138,12 +138,27 @@ const SignupPage = () => {
 
     if (error) {
       toast({ variant: "destructive", title: "Errore", description: error.message });
-    } else {
-      toast({
-        title: "Registrazione completata",
-        description: "Controlla la tua email per confermare l'account.",
-      });
+      return;
     }
+
+    const isRepeatedSignup =
+      !!signUpData?.user &&
+      Array.isArray(signUpData.user.identities) &&
+      signUpData.user.identities.length === 0;
+
+    if (isRepeatedSignup) {
+      toast({
+        variant: "destructive",
+        title: "Email già registrata",
+        description: "Questo account esiste già: usa la password originale o il recupero password.",
+      });
+      return;
+    }
+
+    toast({
+      title: "Registrazione completata",
+      description: "Controlla la tua email per confermare l'account.",
+    });
   };
 
   return (
