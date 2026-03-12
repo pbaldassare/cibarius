@@ -74,7 +74,7 @@ const ResetPasswordPage = () => {
             <CardDescription>{error}</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => navigate("/forgot-password")} className="w-full">
+            <Button onClick={() => navigate("/auth/forgot")} className="w-full">
               Richiedi nuovo link
             </Button>
           </CardContent>

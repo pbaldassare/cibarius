@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useSubscription } from "@/hooks/useSubscription";
 import { useToast } from "@/hooks/use-toast";
 import { useDebounce } from "@/hooks/useDebounce";
 import { searchFoodProgressive, FoodSearchResult, SearchPhase } from "@/lib/search-food";
@@ -20,7 +21,7 @@ import {
   Loader2, Sparkles, ClipboardList, Trophy, Flame, Plus, Trash2,
   ChevronDown, Lightbulb, BookOpen, Bookmark, Send, Eye,
   UserCheck, ArrowRight, ShoppingCart, CalendarDays, Ruler,
-  Search, MapPin, UserPlus, X, Monitor, Building2, GraduationCap, Pencil, Info,
+  Search, MapPin, UserPlus, X, Monitor, Building2, GraduationCap, Pencil, Info, Crown,
 } from "lucide-react";
 
 const MEAL_LABELS: Record<string, string> = {
@@ -109,6 +110,7 @@ const UserDietPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isActive: plusActive } = useSubscription("user_plus");
   const [loading, setLoading] = useState(true);
   const [plan, setPlan] = useState<any>(null);
   const [mealTargets, setMealTargets] = useState<any[]>([]);
@@ -637,11 +639,20 @@ const UserDietPage = () => {
 
           {/* Secondary actions */}
           <div className="flex flex-col gap-2">
-            <Button onClick={() => setShowSelfPlan(true)} variant="outline" className="gap-2">
+            <Button onClick={() => {
+              if (!plusActive) { navigate("/subscription"); return; }
+              setShowSelfPlan(true);
+            }} variant="outline" className="gap-2">
+              {!plusActive && <Crown className="h-4 w-4 text-amber-500" />}
               <Plus className="h-4 w-4" /> Crea il tuo piano personalizzato
+              {!plusActive && <Badge variant="secondary" className="text-[9px] ml-1">Plus</Badge>}
             </Button>
-            <Button variant="ghost" onClick={() => navigate("/invite")} className="gap-2 text-muted-foreground">
+            <Button variant="ghost" onClick={() => {
+              if (!plusActive) { navigate("/subscription"); return; }
+              navigate("/invite");
+            }} className="gap-2 text-muted-foreground">
               <Sparkles className="h-4 w-4" /> Collega un professionista
+              {!plusActive && <Badge variant="secondary" className="text-[9px] ml-1">Plus</Badge>}
             </Button>
           </div>
 
