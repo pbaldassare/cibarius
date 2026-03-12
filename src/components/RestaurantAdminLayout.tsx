@@ -11,6 +11,7 @@ import cibariusLogo from "@/assets/cibarius-logo.png";
 
 const sidebarItems = [
   { to: "/restaurant-admin", icon: LayoutDashboard, label: "Panoramica", end: true },
+  { to: "/restaurant-admin/haccp-control", icon: ShieldCheck, label: "Modalità Controllo" },
   { to: "/restaurant-admin/settings", icon: Store, label: "Dati ristorante" },
   { to: "/restaurant/haccp/setup", icon: Settings2, label: "Configura HACCP" },
   { to: "/restaurant/haccp/history", icon: FileText, label: "Storico HACCP" },
