@@ -242,6 +242,7 @@ const App = () => (
               {/* Restaurant admin routes (no mobile layout) */}
               <Route path="/restaurant-admin" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><RestaurantAdminPage /></RestaurantGuard></RG>} />
               <Route path="/restaurant-admin/haccp-control" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><RestaurantHaccpControlPage /></RestaurantGuard></RG>} />
+              <Route path="/restaurant-admin/temperatures" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><RestaurantTemperaturesPage /></RestaurantGuard></RG>} />
               <Route path="/restaurant-admin/settings" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><RestaurantAdminSettingsPage /></RestaurantGuard></RG>} />
               <Route path="/restaurant-admin/staff" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><RestaurantAdminStaffPage /></RestaurantGuard></RG>} />
               <Route path="/restaurant-admin/reports" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><RestaurantAdminReportsPage /></RestaurantGuard></RG>} />
