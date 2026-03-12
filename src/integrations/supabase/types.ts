@@ -726,6 +726,133 @@ export type Database = {
         }
         Relationships: []
       }
+      haccp_equipment: {
+        Row: {
+          count: number
+          equipment_type: string
+          id: string
+          restaurant_id: string
+          updated_at: string
+        }
+        Insert: {
+          count?: number
+          equipment_type: string
+          id?: string
+          restaurant_id: string
+          updated_at?: string
+        }
+        Update: {
+          count?: number
+          equipment_type?: string
+          id?: string
+          restaurant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "haccp_equipment_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      haccp_logs: {
+        Row: {
+          completed_at: string
+          completed_by: string
+          created_at: string
+          id: string
+          log_date: string
+          notes: string | null
+          restaurant_id: string
+          status: string
+          task_id: string
+        }
+        Insert: {
+          completed_at?: string
+          completed_by: string
+          created_at?: string
+          id?: string
+          log_date?: string
+          notes?: string | null
+          restaurant_id: string
+          status?: string
+          task_id: string
+        }
+        Update: {
+          completed_at?: string
+          completed_by?: string
+          created_at?: string
+          id?: string
+          log_date?: string
+          notes?: string | null
+          restaurant_id?: string
+          status?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "haccp_logs_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "haccp_logs_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "haccp_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      haccp_tasks: {
+        Row: {
+          category: string
+          created_at: string
+          custom_interval_days: number | null
+          frequency: string
+          id: string
+          is_active: boolean
+          name: string
+          restaurant_id: string
+          sort_order: number
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          custom_interval_days?: number | null
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          restaurant_id: string
+          sort_order?: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          custom_interval_days?: number | null
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          restaurant_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "haccp_tasks_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ingredient_categories: {
         Row: {
           category: string
