@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import {
   Loader2, Search, FileText, FileSpreadsheet, ShieldCheck,
   ClipboardCheck, CheckCircle2, AlertTriangle, Clock, XCircle,
-  Calendar, Filter, Download, Eye, Ban,
+  Calendar, Filter, Download, Eye, Ban, Camera, Thermometer, Image,
 } from "lucide-react";
 import { format, subDays, startOfMonth, endOfMonth } from "date-fns";
 import { it } from "date-fns/locale";
