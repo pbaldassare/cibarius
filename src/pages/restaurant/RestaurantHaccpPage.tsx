@@ -50,10 +50,10 @@ const TEMP_THRESHOLDS: Record<string, { max: number; label: string; eqType: stri
   temperature: { max: 4, label: "Controllo temperatura", eqType: "fridge" },
 };
 
-const shouldShowOnDay = (task: HaccpTask, dayIndex: number): boolean => {
+const shouldShowOnDay = (task: HaccpTask, dayIndex: number, date?: Date): boolean => {
   if (task.frequency === "giornaliera") return true;
-  if (task.frequency === "settimanale") return dayIndex === 0;
-  if (task.frequency === "mensile") return dayIndex === 0;
+  if (task.frequency === "settimanale") return dayIndex === 0; // Monday
+  if (task.frequency === "mensile") return date ? date.getDate() === 1 : dayIndex === 0;
   return true;
 };
 
