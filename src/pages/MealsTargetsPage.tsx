@@ -14,6 +14,7 @@ const MealsTargetsPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { isActive: plusActive } = useSubscription("user_plus");
 
   const [kcal, setKcal] = useState("2000");
   const [protein, setProtein] = useState("120");
