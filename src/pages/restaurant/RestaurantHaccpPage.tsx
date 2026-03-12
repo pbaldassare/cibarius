@@ -41,7 +41,7 @@ interface HaccpLog {
 
 const DAY_NAMES = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
 
-const TEMP_CATEGORIES = ["celle_frigo", "frigoriferi", "freezer", "temperature"];
+const TEMP_CATEGORIES = ["celle_frigo", "frigoriferi", "freezer", "temperature", "controllo_temperatura"];
 
 const TEMP_THRESHOLDS: Record<string, { max: number; label: string; eqType: string }> = {
   celle_frigo: { max: 4, label: "Cella frigorifera", eqType: "cold_room" },

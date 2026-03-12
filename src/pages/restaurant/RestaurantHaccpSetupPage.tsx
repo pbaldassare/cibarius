@@ -232,20 +232,26 @@ const RestaurantHaccpSetupPage = () => {
     const coldTypes = ["cella_frigorifera", "frigorifero", "freezer"];
     for (const eq of equipment) {
       if (eq.count === 0 || !coldTypes.includes(eq.equipment_type)) continue;
-      const typeLabel = EQUIPMENT_TYPES.find(t => t.value === eq.equipment_type)?.label?.replace(/i$/, "o").replace(/e$/, "a") ?? eq.equipment_type;
-      for (let i = 1; i <= eq.count; i++) {
-        const taskName = `Controllo ${typeLabel} ${i}`;
-        const existing = tasks.find(t => t.name === taskName);
-        if (!existing) {
-          await supabase.from("haccp_tasks").insert({
-            name: taskName,
-            category: "controllo_temperatura",
-            frequency: "giornaliera",
-            restaurant_id: restaurant.id,
-            sort_order: tasks.length + i,
-          } as any);
+        const catMap: Record<string, string> = {
+          cella_frigorifera: "celle_frigo",
+          frigorifero: "frigoriferi",
+          freezer: "freezer",
+        };
+        const taskCat = catMap[eq.equipment_type] ?? "controllo_temperatura";
+        const typeLabel = EQUIPMENT_TYPES.find(t => t.value === eq.equipment_type)?.label?.replace(/i$/, "o").replace(/e$/, "a") ?? eq.equipment_type;
+        for (let i = 1; i <= eq.count; i++) {
+          const taskName = `Controllo ${typeLabel} ${i}`;
+          const existing = tasks.find(t => t.name === taskName);
+          if (!existing) {
+            await supabase.from("haccp_tasks").insert({
+              name: taskName,
+              category: taskCat,
+              frequency: "giornaliera",
+              restaurant_id: restaurant.id,
+              sort_order: tasks.length + i,
+            } as any);
+          }
         }
-      }
     }
 
     setSaving(false);
