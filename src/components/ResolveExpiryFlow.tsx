@@ -158,7 +158,7 @@ const ResolveExpiryFlow = ({ open, onOpenChange, onComplete, restaurantId }: Pro
       setNewDate("");
       setCardAnim("in");
     }
-  }, [open, user]);
+  }, [open, user, restaurantId]);
 
   const current = items[currentIndex] ?? null;
   const total = items.length;
