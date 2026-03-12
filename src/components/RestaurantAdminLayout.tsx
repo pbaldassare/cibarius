@@ -2,15 +2,20 @@ import { ReactNode } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useRestaurant } from "@/hooks/useRestaurant";
-import { LayoutDashboard, Store, Users, FileText, LogOut, ArrowLeft, ChevronLeft } from "lucide-react";
+import {
+  LayoutDashboard, Store, Users, FileText, LogOut, ArrowLeft, ChevronLeft,
+  ClipboardCheck, Settings2, Package,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import cibariusLogo from "@/assets/cibarius-logo.png";
 
 const sidebarItems = [
-  { to: "/restaurant-admin", icon: LayoutDashboard, label: "Panoramica" },
+  { to: "/restaurant-admin", icon: LayoutDashboard, label: "Panoramica", end: true },
   { to: "/restaurant-admin/settings", icon: Store, label: "Dati ristorante" },
+  { to: "/restaurant/haccp/setup", icon: Settings2, label: "Configura HACCP" },
+  { to: "/restaurant/haccp/history", icon: FileText, label: "Storico HACCP" },
   { to: "/restaurant-admin/staff", icon: Users, label: "Staff" },
-  { to: "/restaurant-admin/reports", icon: FileText, label: "Report" },
+  { to: "/restaurant-admin/reports", icon: Package, label: "Report" },
 ];
 
 const RestaurantAdminLayout = ({ children }: { children: ReactNode }) => {
@@ -30,14 +35,15 @@ const RestaurantAdminLayout = ({ children }: { children: ReactNode }) => {
       <aside className="hidden w-64 flex-col bg-gradient-to-b from-primary to-primary-dark md:flex">
         <div className="flex h-16 items-center gap-2 border-b border-white/10 px-6">
           <img src={cibariusLogo} alt="Cibarius" className="h-6 brightness-0 invert" />
+          <span className="text-xs font-medium text-white/60 uppercase tracking-wider ml-auto">Backoffice</span>
         </div>
         <div className="border-b border-white/10 px-6 py-3">
           <p className="text-xs text-white/60">Ristorante</p>
           <p className="truncate text-sm font-semibold text-white">{restaurant?.name ?? "—"}</p>
         </div>
-        <nav className="flex-1 space-y-1 p-3">
-          {sidebarItems.map(({ to, icon: Icon, label }) => {
-            const isActive = location.pathname === to;
+        <nav className="flex-1 space-y-1 p-3 overflow-y-auto">
+          {sidebarItems.map(({ to, icon: Icon, label, end }) => {
+            const isActive = end ? location.pathname === to : location.pathname.startsWith(to);
             return (
               <NavLink
                 key={to}
