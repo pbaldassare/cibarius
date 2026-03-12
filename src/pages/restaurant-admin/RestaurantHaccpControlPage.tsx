@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import {
   Loader2, Search, FileText, FileSpreadsheet, ShieldCheck,
   ClipboardCheck, CheckCircle2, AlertTriangle, Clock, XCircle,
-  Calendar, Filter, Download, Eye, Ban,
+  Calendar, Filter, Download, Eye, Ban, Camera, Thermometer, Image,
 } from "lucide-react";
 import { format, subDays, startOfMonth, endOfMonth } from "date-fns";
 import { it } from "date-fns/locale";
@@ -34,6 +34,9 @@ interface LogRow {
   completed_by_name: string;
   cancelled_reason: string | null;
   is_rectification: boolean;
+  has_photos: boolean;
+  temperature: number | null;
+  temperature_anomaly: boolean;
 }
 
 const STATUS_MAP: Record<string, { label: string; icon: typeof CheckCircle2; cls: string }> = {
@@ -88,7 +91,7 @@ const RestaurantHaccpControlPage = () => {
       to = dateTo || undefined;
     }
 
-    const [tasksRes, logsRes, profilesRes] = await Promise.all([
+    const [tasksRes, logsRes, profilesRes, photosRes, tempsRes] = await Promise.all([
       supabase.from("haccp_tasks").select("id, name, category, frequency").eq("restaurant_id", restaurant.id),
       (() => {
         let q = supabase.from("haccp_logs").select("*").eq("restaurant_id", restaurant.id).order("completed_at", { ascending: false }).limit(500);
@@ -97,6 +100,8 @@ const RestaurantHaccpControlPage = () => {
         return q;
       })(),
       supabase.from("profiles").select("id, full_name, email"),
+      supabase.from("haccp_task_photos").select("task_log_id").eq("restaurant_id", restaurant.id),
+      supabase.from("haccp_temperature_logs").select("task_log_id, temperature_value, equipment_type").eq("restaurant_id", restaurant.id),
     ]);
 
     const taskMap: Record<string, { name: string; category: string; frequency: string }> = {};
@@ -106,21 +111,37 @@ const RestaurantHaccpControlPage = () => {
     const profileMap: Record<string, string> = {};
     (profilesRes.data ?? []).forEach((p: any) => { profileMap[p.id] = p.full_name || p.email; });
 
-    const mapped: LogRow[] = (logsRes.data ?? []).map((l: any) => ({
-      id: l.id,
-      task_id: l.task_id,
-      task_name: l.task_name || taskMap[l.task_id]?.name || "—",
-      area: l.area || taskMap[l.task_id]?.category || "—",
-      frequency: l.frequency || taskMap[l.task_id]?.frequency || "—",
-      log_date: l.log_date,
-      status: l.status,
-      notes: l.notes,
-      completed_at: l.completed_at,
-      completed_by: l.completed_by,
-      completed_by_name: l.completed_by_name || profileMap[l.completed_by] || "—",
-      cancelled_reason: l.cancelled_reason,
-      is_rectification: l.is_rectification || false,
-    }));
+    // Photo and temp lookups
+    const photoLogIds = new Set((photosRes.data ?? []).map((p: any) => p.task_log_id));
+    const tempMap = new Map<string, { value: number; type: string }>();
+    (tempsRes.data ?? []).forEach((t: any) => {
+      tempMap.set(t.task_log_id, { value: t.temperature_value, type: t.equipment_type });
+    });
+
+    const THRESHOLDS: Record<string, number> = { fridge: 4, cold_room: 4, freezer: -18 };
+
+    const mapped: LogRow[] = (logsRes.data ?? []).map((l: any) => {
+      const temp = tempMap.get(l.id);
+      const threshold = temp ? THRESHOLDS[temp.type] : undefined;
+      return {
+        id: l.id,
+        task_id: l.task_id,
+        task_name: l.task_name || taskMap[l.task_id]?.name || "—",
+        area: l.area || taskMap[l.task_id]?.category || "—",
+        frequency: l.frequency || taskMap[l.task_id]?.frequency || "—",
+        log_date: l.log_date,
+        status: l.status,
+        notes: l.notes,
+        completed_at: l.completed_at,
+        completed_by: l.completed_by,
+        completed_by_name: l.completed_by_name || profileMap[l.completed_by] || "—",
+        cancelled_reason: l.cancelled_reason,
+        is_rectification: l.is_rectification || false,
+        has_photos: photoLogIds.has(l.id),
+        temperature: temp?.value ?? null,
+        temperature_anomaly: temp && threshold !== undefined ? temp.value > threshold : false,
+      };
+    });
 
     setLogs(mapped);
 
@@ -193,11 +214,13 @@ const RestaurantHaccpControlPage = () => {
 
   // Export functions
   const exportCSV = () => {
-    const headers = ["Data", "Attività", "Area", "Frequenza", "Stato", "Operatore", "Ora", "Note", "Motivo annullamento"];
+    const headers = ["Data", "Attività", "Area", "Stato", "Temperatura", "Foto", "Operatore", "Ora", "Note", "Motivo annullamento"];
     const rows = filtered.map(l => [
       format(new Date(l.log_date), "dd/MM/yyyy"),
-      l.task_name, l.area, l.frequency,
+      l.task_name, l.area,
       STATUS_MAP[l.status]?.label || l.status,
+      l.temperature !== null ? `${l.temperature}°C${l.temperature_anomaly ? " ANOMALA" : ""}` : "",
+      l.has_photos ? "Sì" : "",
       l.completed_by_name,
       format(new Date(l.completed_at), "HH:mm"),
       l.notes || "", l.cancelled_reason || "",
@@ -418,8 +441,9 @@ td{padding:6px 8px;border-bottom:1px solid #f0f0f0}
                   <TableHead className="font-semibold">Data</TableHead>
                   <TableHead className="font-semibold">Attività</TableHead>
                   <TableHead className="font-semibold">Area</TableHead>
-                  <TableHead className="font-semibold">Freq.</TableHead>
                   <TableHead className="font-semibold">Stato</TableHead>
+                  <TableHead className="font-semibold">Temp.</TableHead>
+                  <TableHead className="font-semibold">Foto</TableHead>
                   <TableHead className="font-semibold">Operatore</TableHead>
                   <TableHead className="font-semibold">Ora</TableHead>
                   <TableHead className="font-semibold">Note</TableHead>
@@ -430,7 +454,7 @@ td{padding:6px 8px;border-bottom:1px solid #f0f0f0}
                 {filtered.map(l => {
                   const st = STATUS_MAP[l.status] || STATUS_MAP.completata;
                   return (
-                    <TableRow key={l.id} className={l.is_rectification ? "bg-yellow-50/50" : ""}>
+                    <TableRow key={l.id} className={l.temperature_anomaly ? "bg-destructive/5" : l.is_rectification ? "bg-yellow-50/50" : ""}>
                       <TableCell className="text-sm whitespace-nowrap font-medium">
                         {format(new Date(l.log_date), "dd/MM/yyyy")}
                       </TableCell>
@@ -441,13 +465,29 @@ td{padding:6px 8px;border-bottom:1px solid #f0f0f0}
                         )}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">{l.area}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{freqLabel[l.frequency] || l.frequency}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className={st.cls}>
                           {st.label}
                         </Badge>
                         {l.cancelled_reason && (
-                          <p className="text-[10px] text-red-500 mt-0.5">Motivo: {l.cancelled_reason}</p>
+                          <p className="text-[10px] text-destructive mt-0.5">Motivo: {l.cancelled_reason}</p>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {l.temperature !== null ? (
+                          <span className={`font-bold ${l.temperature_anomaly ? "text-destructive" : "text-emerald-600"}`}>
+                            {l.temperature}°C
+                            {l.temperature_anomaly && <AlertTriangle className="inline h-3 w-3 ml-1" />}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {l.has_photos ? (
+                          <Camera className="h-4 w-4 text-primary" />
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
                         )}
                       </TableCell>
                       <TableCell className="text-sm">{l.completed_by_name}</TableCell>

@@ -6,10 +6,15 @@ import MobileHeader from "@/components/MobileHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle2, Circle, AlertTriangle, ChevronLeft, ChevronRight, Settings2 } from "lucide-react";
+import {
+  Loader2, CheckCircle2, Circle, AlertTriangle, ChevronLeft, ChevronRight,
+  Settings2, Camera, Thermometer, X, Image,
+} from "lucide-react";
 import { format, startOfWeek, addDays, isSameDay } from "date-fns";
 import { it } from "date-fns/locale";
 import { Link } from "react-router-dom";
@@ -36,12 +41,23 @@ interface HaccpLog {
 
 const DAY_NAMES = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
 
+const TEMP_CATEGORIES = ["celle_frigo", "frigoriferi", "freezer", "temperature"];
+
+const TEMP_THRESHOLDS: Record<string, { max: number; label: string; eqType: string }> = {
+  celle_frigo: { max: 4, label: "Cella frigorifera", eqType: "cold_room" },
+  frigoriferi: { max: 4, label: "Frigorifero", eqType: "fridge" },
+  freezer: { max: -18, label: "Freezer", eqType: "freezer" },
+  temperature: { max: 4, label: "Controllo temperatura", eqType: "fridge" },
+};
+
 const shouldShowOnDay = (task: HaccpTask, dayIndex: number): boolean => {
   if (task.frequency === "giornaliera") return true;
-  if (task.frequency === "settimanale") return dayIndex === 0; // Monday
-  if (task.frequency === "mensile") return dayIndex === 0; // First Monday shown
+  if (task.frequency === "settimanale") return dayIndex === 0;
+  if (task.frequency === "mensile") return dayIndex === 0;
   return true;
 };
+
+const isTemperatureTask = (category: string): boolean => TEMP_CATEGORIES.includes(category);
 
 const RestaurantHaccpPage = () => {
   const { restaurant } = useRestaurant();
@@ -53,6 +69,8 @@ const RestaurantHaccpPage = () => {
   const [weekOffset, setWeekOffset] = useState(0);
   const [completeDialog, setCompleteDialog] = useState<{ task: HaccpTask; date: Date } | null>(null);
   const [notes, setNotes] = useState("");
+  const [temperature, setTemperature] = useState("");
+  const [photos, setPhotos] = useState<File[]>([]);
   const [saving, setSaving] = useState(false);
 
   const weekStart = useMemo(() => {
@@ -68,7 +86,6 @@ const RestaurantHaccpPage = () => {
   const fetchData = async () => {
     if (!restaurant) return;
     setLoading(true);
-
     const dateFrom = format(weekDays[0], "yyyy-MM-dd");
     const dateTo = format(weekDays[6], "yyyy-MM-dd");
 
@@ -89,16 +106,35 @@ const RestaurantHaccpPage = () => {
     return logs.find(l => l.task_id === taskId && l.log_date === dateStr);
   };
 
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setPhotos(prev => [...prev, ...Array.from(e.target.files!)]);
+    }
+  };
+
+  const removePhoto = (idx: number) => {
+    setPhotos(prev => prev.filter((_, i) => i !== idx));
+  };
+
   const handleComplete = async () => {
     if (!completeDialog || !restaurant || !user) return;
+
+    const taskCategory = completeDialog.task.category;
+    const needsTemp = isTemperatureTask(taskCategory);
+
+    if (needsTemp && !temperature.trim()) {
+      toast({ variant: "destructive", title: "Temperatura obbligatoria", description: "Inserisci la temperatura rilevata." });
+      return;
+    }
+
     setSaving(true);
     const dateStr = format(completeDialog.date, "yyyy-MM-dd");
 
-    // Get user profile name for denormalization
     const { data: profile } = await supabase.from("profiles").select("full_name, email").eq("id", user.id).maybeSingle();
     const operatorName = profile?.full_name || profile?.email || "—";
 
-    const { error } = await supabase.from("haccp_logs").insert({
+    // Insert log
+    const { data: logData, error } = await supabase.from("haccp_logs").insert({
       task_id: completeDialog.task.id,
       restaurant_id: restaurant.id,
       completed_by: user.id,
@@ -109,17 +145,65 @@ const RestaurantHaccpPage = () => {
       area: completeDialog.task.category,
       frequency: completeDialog.task.frequency,
       completed_by_name: operatorName,
-    } as any);
+    } as any).select("id").single();
+
+    if (error || !logData) {
+      toast({ variant: "destructive", title: "Errore", description: error?.message || "Errore salvataggio" });
+      setSaving(false);
+      return;
+    }
+
+    const logId = logData.id;
+
+    // Save temperature if applicable
+    if (needsTemp && temperature.trim()) {
+      const thresholdCfg = TEMP_THRESHOLDS[taskCategory] || TEMP_THRESHOLDS.temperature;
+      await supabase.from("haccp_temperature_logs" as any).insert({
+        restaurant_id: restaurant.id,
+        task_log_id: logId,
+        equipment_type: thresholdCfg.eqType,
+        equipment_name: completeDialog.task.name,
+        temperature_value: parseFloat(temperature),
+        recorded_by_user_id: user.id,
+        recorded_by_name: operatorName,
+        note: notes || null,
+      });
+
+      // Check threshold
+      const tempVal = parseFloat(temperature);
+      if (taskCategory === "freezer" && tempVal > thresholdCfg.max) {
+        toast({ variant: "destructive", title: "⚠️ Temperatura anomala!", description: `${completeDialog.task.name}: ${tempVal}°C (soglia: ${thresholdCfg.max}°C)` });
+      } else if (taskCategory !== "freezer" && tempVal > thresholdCfg.max) {
+        toast({ variant: "destructive", title: "⚠️ Temperatura anomala!", description: `${completeDialog.task.name}: ${tempVal}°C (soglia: ${thresholdCfg.max}°C)` });
+      }
+    }
+
+    // Upload photos
+    if (photos.length > 0) {
+      for (const photo of photos) {
+        const ext = photo.name.split(".").pop() || "jpg";
+        const path = `haccp/${restaurant.id}/${logId}/${Date.now()}.${ext}`;
+        const { data: uploadData } = await supabase.storage.from("media").upload(path, photo);
+        if (uploadData) {
+          const { data: urlData } = supabase.storage.from("media").getPublicUrl(uploadData.path);
+          await supabase.from("haccp_task_photos" as any).insert({
+            restaurant_id: restaurant.id,
+            task_log_id: logId,
+            photo_url: urlData.publicUrl,
+            uploaded_by_user_id: user.id,
+            uploaded_by_name: operatorName,
+          });
+        }
+      }
+    }
 
     setSaving(false);
-    if (error) {
-      toast({ variant: "destructive", title: "Errore", description: error.message });
-    } else {
-      toast({ title: "Controllo registrato ✓" });
-      setCompleteDialog(null);
-      setNotes("");
-      fetchData();
-    }
+    toast({ title: "Controllo registrato ✓" });
+    setCompleteDialog(null);
+    setNotes("");
+    setTemperature("");
+    setPhotos([]);
+    fetchData();
   };
 
   const today = new Date();
@@ -128,15 +212,13 @@ const RestaurantHaccpPage = () => {
   const getCellIcon = (task: HaccpTask, date: Date) => {
     if (!shouldShowOnDay(task, (date.getDay() + 6) % 7)) return null;
     const log = getLogForCell(task.id, date);
-    if (log) {
-      return <CheckCircle2 className="h-5 w-5 text-emerald-500" />;
-    }
+    if (log) return <CheckCircle2 className="h-5 w-5 text-emerald-500" />;
     const isPast = date < today && !isSameDay(date, today);
-    if (isPast) {
-      return <AlertTriangle className="h-5 w-5 text-amber-500" />;
-    }
+    if (isPast) return <AlertTriangle className="h-5 w-5 text-amber-500" />;
     return <Circle className="h-5 w-5 text-muted-foreground/40" />;
   };
+
+  const needsTemp = completeDialog ? isTemperatureTask(completeDialog.task.category) : false;
 
   return (
     <div className="space-y-4 p-4">
@@ -202,7 +284,10 @@ const RestaurantHaccpPage = () => {
               {tasks.map(task => (
                 <tr key={task.id} className="border-t border-border/50">
                   <td className="p-2">
-                    <p className="text-sm font-medium text-foreground leading-tight">{task.name}</p>
+                    <div className="flex items-center gap-1">
+                      {isTemperatureTask(task.category) && <Thermometer className="h-3 w-3 text-sky-500 shrink-0" />}
+                      <p className="text-sm font-medium text-foreground leading-tight">{task.name}</p>
+                    </div>
                     <p className="text-[10px] text-muted-foreground capitalize">{task.frequency}</p>
                   </td>
                   {weekDays.map((d, i) => {
@@ -241,31 +326,108 @@ const RestaurantHaccpPage = () => {
         <span className="flex items-center gap-1"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> Completata</span>
         <span className="flex items-center gap-1"><Circle className="h-3.5 w-3.5 text-muted-foreground/40" /> Da fare</span>
         <span className="flex items-center gap-1"><AlertTriangle className="h-3.5 w-3.5 text-amber-500" /> In ritardo</span>
+        <span className="flex items-center gap-1"><Thermometer className="h-3.5 w-3.5 text-sky-500" /> Temperatura</span>
       </div>
 
       {/* Complete dialog */}
-      <Dialog open={!!completeDialog} onOpenChange={(o) => !o && setCompleteDialog(null)}>
-        <DialogContent>
+      <Dialog open={!!completeDialog} onOpenChange={(o) => { if (!o) { setCompleteDialog(null); setPhotos([]); setTemperature(""); setNotes(""); } }}>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Registra controllo</DialogTitle>
           </DialogHeader>
           {completeDialog && (
-            <div className="space-y-3 py-2">
+            <div className="space-y-4 py-2">
               <p className="text-sm">
                 <span className="font-medium">{completeDialog.task.name}</span>
                 <br />
                 <span className="text-muted-foreground">{format(completeDialog.date, "EEEE d MMMM yyyy", { locale: it })}</span>
               </p>
-              <Textarea
-                placeholder="Note opzionali..."
-                value={notes}
-                onChange={e => setNotes(e.target.value)}
-                rows={3}
-              />
+
+              {/* Temperature input for temp tasks */}
+              {needsTemp && (
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1.5">
+                    <Thermometer className="h-4 w-4 text-sky-500" />
+                    Temperatura rilevata (°C) *
+                  </Label>
+                  <Input
+                    type="number"
+                    step="0.1"
+                    placeholder="es. 3.5"
+                    value={temperature}
+                    onChange={e => setTemperature(e.target.value)}
+                    className="text-lg font-bold"
+                  />
+                  {temperature && (() => {
+                    const thresholdCfg = TEMP_THRESHOLDS[completeDialog.task.category];
+                    if (!thresholdCfg) return null;
+                    const val = parseFloat(temperature);
+                    const isAnomaly = completeDialog.task.category === "freezer"
+                      ? val > thresholdCfg.max
+                      : val > thresholdCfg.max;
+                    if (isAnomaly) {
+                      return (
+                        <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">
+                          <AlertTriangle className="h-4 w-4 shrink-0" />
+                          Temperatura sopra la soglia ({thresholdCfg.max}°C)
+                        </div>
+                      );
+                    }
+                    return (
+                      <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-500/10 rounded-lg px-3 py-2">
+                        <CheckCircle2 className="h-4 w-4 shrink-0" />
+                        Temperatura nella norma
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
+              {/* Notes */}
+              <div className="space-y-1.5">
+                <Label>Note</Label>
+                <Textarea
+                  placeholder="Note opzionali..."
+                  value={notes}
+                  onChange={e => setNotes(e.target.value)}
+                  rows={2}
+                />
+              </div>
+
+              {/* Photo upload */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1.5">
+                  <Camera className="h-4 w-4 text-muted-foreground" />
+                  Foto prova (facoltativa)
+                </Label>
+                <div className="flex flex-wrap gap-2">
+                  {photos.map((p, i) => (
+                    <div key={i} className="relative h-16 w-16 rounded-lg overflow-hidden border border-border">
+                      <img src={URL.createObjectURL(p)} alt="" className="h-full w-full object-cover" />
+                      <button
+                        onClick={() => removePhoto(i)}
+                        className="absolute top-0 right-0 bg-background/80 rounded-bl-lg p-0.5"
+                      >
+                        <X className="h-3 w-3 text-foreground" />
+                      </button>
+                    </div>
+                  ))}
+                  <label className="flex h-16 w-16 items-center justify-center rounded-lg border-2 border-dashed border-border cursor-pointer hover:border-primary/50 transition-colors">
+                    <Camera className="h-5 w-5 text-muted-foreground" />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={handlePhotoChange}
+                    />
+                  </label>
+                </div>
+              </div>
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCompleteDialog(null)}>Annulla</Button>
+            <Button variant="outline" onClick={() => { setCompleteDialog(null); setPhotos([]); setTemperature(""); setNotes(""); }}>Annulla</Button>
             <Button onClick={handleComplete} disabled={saving}>
               {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
               Completato
