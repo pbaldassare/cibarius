@@ -43,7 +43,6 @@ interface HaccpTemplate {
 
 const CATEGORIES = [
   { value: "pulizia", label: "Pulizia" },
-  { value: "pulizie", label: "Pulizie" },
   { value: "temperature", label: "Temperature" },
   { value: "celle_frigo", label: "Celle frigorifere" },
   { value: "frigoriferi", label: "Frigoriferi" },
