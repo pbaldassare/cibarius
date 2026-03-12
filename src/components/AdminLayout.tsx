@@ -17,7 +17,7 @@ const sidebarItems = [
   { to: "/admin/product-review", icon: Package, label: "Revisione Prodotti" },
   { to: "/admin/support", icon: MessageSquareWarning, label: "Segnalazioni" },
   { to: "/admin/coupons", icon: Ticket, label: "Coupon" },
-  { to: "/admin/subscriptions", icon: CreditCard, label: "Abbonamenti" },
+  { to: "/admin/payments", icon: CreditCard, label: "Pagamenti & Stripe" },
   { to: "/admin/stats", icon: TrendingUp, label: "Statistiche" },
   { to: "/admin/settings", icon: Settings, label: "Impostazioni" },
   { to: "/admin/seed", icon: Sprout, label: "Dati Demo" },
