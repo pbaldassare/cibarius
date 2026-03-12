@@ -357,7 +357,7 @@ const RestaurantPage = () => {
           </div>
           {counts.total > 0 && (
             <button
-              onClick={() => navigate("/restaurant/products")}
+              onClick={() => setResolveOpen(true)}
               className="flex w-full items-center justify-center gap-2 rounded-[10px] py-2.5 text-[14px] font-semibold text-primary-foreground bg-primary active:scale-[0.97] transition-all"
             >
               <Zap className="h-4 w-4" strokeWidth={2.2} />
