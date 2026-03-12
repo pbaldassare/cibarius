@@ -15,7 +15,7 @@ const BG = "#F3F5F8";
 const TEXT_DARK = "#1E2530";
 const TEXT_MUTED = "#6B7280";
 
-const FROM = "Cibarius <onboarding@resend.dev>"; // change to noreply@tuodominio.com when domain verified
+const FROM = "Cibarius <noreply@cibarius.online>";
 
 function baseHtml(title: string, body: string): string {
   return `<!DOCTYPE html>
