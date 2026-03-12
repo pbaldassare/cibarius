@@ -153,6 +153,17 @@ const AdminPage = () => {
             </CardContent>
           </Card>
         </Link>
+        <Link to="/admin/products-db">
+          <Card className="transition-shadow hover:shadow-md">
+            <CardHeader className="flex flex-row items-center gap-3 pb-2">
+              <Package className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base">Database Prodotti</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">Tutti i prodotti, fonti e dati nutrizionali</p>
+            </CardContent>
+          </Card>
+        </Link>
         <Link to="/admin/stats">
           <Card className="transition-shadow hover:shadow-md">
             <CardHeader className="flex flex-row items-center gap-3 pb-2">
