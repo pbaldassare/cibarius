@@ -41,7 +41,7 @@ interface HaccpLog {
 
 const DAY_NAMES = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
 
-const TEMP_CATEGORIES = ["celle_frigo", "frigoriferi", "freezer", "temperature"];
+const TEMP_CATEGORIES = ["celle_frigo", "frigoriferi", "freezer", "temperature", "controllo_temperatura"];
 
 const TEMP_THRESHOLDS: Record<string, { max: number; label: string; eqType: string }> = {
   celle_frigo: { max: 4, label: "Cella frigorifera", eqType: "cold_room" },
@@ -50,10 +50,10 @@ const TEMP_THRESHOLDS: Record<string, { max: number; label: string; eqType: stri
   temperature: { max: 4, label: "Controllo temperatura", eqType: "fridge" },
 };
 
-const shouldShowOnDay = (task: HaccpTask, dayIndex: number): boolean => {
+const shouldShowOnDay = (task: HaccpTask, dayIndex: number, date?: Date): boolean => {
   if (task.frequency === "giornaliera") return true;
-  if (task.frequency === "settimanale") return dayIndex === 0;
-  if (task.frequency === "mensile") return dayIndex === 0;
+  if (task.frequency === "settimanale") return dayIndex === 0; // Monday
+  if (task.frequency === "mensile") return date ? date.getDate() === 1 : dayIndex === 0;
   return true;
 };
 
@@ -210,7 +210,7 @@ const RestaurantHaccpPage = () => {
   const isCurrentWeek = weekOffset === 0;
 
   const getCellIcon = (task: HaccpTask, date: Date) => {
-    if (!shouldShowOnDay(task, (date.getDay() + 6) % 7)) return null;
+    if (!shouldShowOnDay(task, (date.getDay() + 6) % 7, date)) return null;
     const log = getLogForCell(task.id, date);
     if (log) return <CheckCircle2 className="h-5 w-5 text-emerald-500" />;
     const isPast = date < today && !isSameDay(date, today);
@@ -292,7 +292,7 @@ const RestaurantHaccpPage = () => {
                   </td>
                   {weekDays.map((d, i) => {
                     const dayIdx = (d.getDay() + 6) % 7;
-                    const show = shouldShowOnDay(task, dayIdx);
+                    const show = shouldShowOnDay(task, dayIdx, d);
                     const log = getLogForCell(task.id, d);
                     const canComplete = show && !log && (isSameDay(d, today) || d < today);
 
