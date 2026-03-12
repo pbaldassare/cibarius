@@ -83,20 +83,32 @@ const MealsTargetsPage = () => {
             <Input type="number" value={kcal} onChange={e => setKcal(e.target.value)} className="border-accent/30" />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-foreground">Proteine (g)</label>
-            <Input type="number" value={protein} onChange={e => setProtein(e.target.value)} className="border-accent/30" />
+            <label className="text-sm font-semibold text-foreground flex items-center gap-2">
+              Proteine (g)
+              {!plusActive && <Badge variant="secondary" className="text-[9px]"><Crown className="h-3 w-3 mr-0.5" />Plus</Badge>}
+            </label>
+            <Input type="number" value={protein} onChange={e => setProtein(e.target.value)} className="border-accent/30" disabled={!plusActive} />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-foreground">Carboidrati (g)</label>
-            <Input type="number" value={carbs} onChange={e => setCarbs(e.target.value)} className="border-accent/30" />
+            <label className="text-sm font-semibold text-foreground flex items-center gap-2">
+              Carboidrati (g)
+              {!plusActive && <Badge variant="secondary" className="text-[9px]"><Crown className="h-3 w-3 mr-0.5" />Plus</Badge>}
+            </label>
+            <Input type="number" value={carbs} onChange={e => setCarbs(e.target.value)} className="border-accent/30" disabled={!plusActive} />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-foreground">di cui Zuccheri (g)</label>
-            <Input type="number" value={sugars} onChange={e => setSugars(e.target.value)} className="border-accent/30" />
+            <label className="text-sm font-semibold text-foreground flex items-center gap-2">
+              di cui Zuccheri (g)
+              {!plusActive && <Badge variant="secondary" className="text-[9px]"><Crown className="h-3 w-3 mr-0.5" />Plus</Badge>}
+            </label>
+            <Input type="number" value={sugars} onChange={e => setSugars(e.target.value)} className="border-accent/30" disabled={!plusActive} />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-foreground">Grassi (g)</label>
-            <Input type="number" value={fats} onChange={e => setFats(e.target.value)} className="border-accent/30" />
+            <label className="text-sm font-semibold text-foreground flex items-center gap-2">
+              Grassi (g)
+              {!plusActive && <Badge variant="secondary" className="text-[9px]"><Crown className="h-3 w-3 mr-0.5" />Plus</Badge>}
+            </label>
+            <Input type="number" value={fats} onChange={e => setFats(e.target.value)} className="border-accent/30" disabled={!plusActive} />
           </div>
 
           <Button className="w-full h-12 text-base font-bold" onClick={handleSave} disabled={saving}>
