@@ -54,6 +54,7 @@ import AdminPaymentsPage from "./pages/admin/AdminPaymentsPage";
 import RestaurantOnboardingPage from "./pages/restaurant/RestaurantOnboardingPage";
 import RestaurantPage from "./pages/restaurant/RestaurantPage";
 import RestaurantProductsPage from "./pages/restaurant/RestaurantProductsPage";
+import RestaurantExpiryPage from "./pages/restaurant/RestaurantExpiryPage";
 import RestaurantRecipesPage from "./pages/restaurant/RestaurantRecipesPage";
 import RestaurantSettingsPage from "./pages/restaurant/RestaurantSettingsPage";
 import RestaurantInvoicesPage from "./pages/restaurant/RestaurantInvoicesPage";
