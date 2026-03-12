@@ -637,11 +637,20 @@ const UserDietPage = () => {
 
           {/* Secondary actions */}
           <div className="flex flex-col gap-2">
-            <Button onClick={() => setShowSelfPlan(true)} variant="outline" className="gap-2">
+            <Button onClick={() => {
+              if (!plusActive) { navigate("/subscription"); return; }
+              setShowSelfPlan(true);
+            }} variant="outline" className="gap-2">
+              {!plusActive && <Crown className="h-4 w-4 text-amber-500" />}
               <Plus className="h-4 w-4" /> Crea il tuo piano personalizzato
+              {!plusActive && <Badge variant="secondary" className="text-[9px] ml-1">Plus</Badge>}
             </Button>
-            <Button variant="ghost" onClick={() => navigate("/invite")} className="gap-2 text-muted-foreground">
+            <Button variant="ghost" onClick={() => {
+              if (!plusActive) { navigate("/subscription"); return; }
+              navigate("/invite");
+            }} className="gap-2 text-muted-foreground">
               <Sparkles className="h-4 w-4" /> Collega un professionista
+              {!plusActive && <Badge variant="secondary" className="text-[9px] ml-1">Plus</Badge>}
             </Button>
           </div>
 
