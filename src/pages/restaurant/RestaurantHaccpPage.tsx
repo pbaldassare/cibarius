@@ -94,6 +94,10 @@ const RestaurantHaccpPage = () => {
     setSaving(true);
     const dateStr = format(completeDialog.date, "yyyy-MM-dd");
 
+    // Get user profile name for denormalization
+    const { data: profile } = await supabase.from("profiles").select("full_name, email").eq("id", user.id).maybeSingle();
+    const operatorName = profile?.full_name || profile?.email || "—";
+
     const { error } = await supabase.from("haccp_logs").insert({
       task_id: completeDialog.task.id,
       restaurant_id: restaurant.id,
@@ -101,6 +105,10 @@ const RestaurantHaccpPage = () => {
       log_date: dateStr,
       status: "completata",
       notes: notes || null,
+      task_name: completeDialog.task.name,
+      area: completeDialog.task.category,
+      frequency: completeDialog.task.frequency,
+      completed_by_name: operatorName,
     } as any);
 
     setSaving(false);
