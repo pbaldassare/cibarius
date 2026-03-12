@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Search, Store, AlertTriangle, Package } from "lucide-react";
+import { Loader2, Search, Store, AlertTriangle, Package, ClipboardCheck, CheckCircle2, Clock } from "lucide-react";
 import { format } from "date-fns";
 
 interface RestaurantRow {
