@@ -34,28 +34,30 @@ const AdminRestaurantsPage = () => {
       const { data: rests } = await supabase.from("restaurants").select("*").order("created_at", { ascending: false });
       if (!rests) { setLoading(false); return; }
 
-      // Fetch inventory counts per restaurant
-      const { data: invCounts } = await supabase
-        .from("inventory_items")
-        .select("restaurant_id")
-        .not("restaurant_id", "is", null);
-
-      const { data: expCounts } = await supabase
-        .from("inventory_items")
-        .select("restaurant_id")
-        .not("restaurant_id", "is", null)
-        .lte("expiry_date", in3days)
-        .gte("expiry_date", today);
+      const [invRes, expRes, haccpTasksRes, haccpLogsRes] = await Promise.all([
+        supabase.from("inventory_items").select("restaurant_id").not("restaurant_id", "is", null),
+        supabase.from("inventory_items").select("restaurant_id").not("restaurant_id", "is", null).lte("expiry_date", in3days).gte("expiry_date", today),
+        supabase.from("haccp_tasks").select("id, restaurant_id").eq("is_active", true),
+        supabase.from("haccp_logs").select("id, restaurant_id, task_id, status").eq("log_date", today),
+      ]);
 
       const invMap: Record<string, number> = {};
       const expMap: Record<string, number> = {};
-      invCounts?.forEach(i => { if (i.restaurant_id) invMap[i.restaurant_id] = (invMap[i.restaurant_id] || 0) + 1; });
-      expCounts?.forEach(i => { if (i.restaurant_id) expMap[i.restaurant_id] = (expMap[i.restaurant_id] || 0) + 1; });
+      const taskMap: Record<string, number> = {};
+      const logMap: Record<string, number> = {};
+
+      invRes.data?.forEach(i => { if (i.restaurant_id) invMap[i.restaurant_id] = (invMap[i.restaurant_id] || 0) + 1; });
+      expRes.data?.forEach(i => { if (i.restaurant_id) expMap[i.restaurant_id] = (expMap[i.restaurant_id] || 0) + 1; });
+      haccpTasksRes.data?.forEach((t: any) => { taskMap[t.restaurant_id] = (taskMap[t.restaurant_id] || 0) + 1; });
+      haccpLogsRes.data?.forEach((l: any) => { if (l.status === "completata") logMap[l.restaurant_id] = (logMap[l.restaurant_id] || 0) + 1; });
 
       setRestaurants(rests.map(r => ({
         ...r,
         inventoryCount: invMap[r.id] || 0,
         expiringCount: expMap[r.id] || 0,
+        haccpTasksTotal: taskMap[r.id] || 0,
+        haccpCompletedToday: logMap[r.id] || 0,
+        haccpPendingToday: Math.max(0, (taskMap[r.id] || 0) - (logMap[r.id] || 0)),
       })));
       setLoading(false);
     };
