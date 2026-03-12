@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          action: string
+          admin_id: string
+          created_at: string
+          details: Json | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          created_at?: string
+          details?: Json | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          created_at?: string
+          details?: Json | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+        }
+        Relationships: []
+      }
       allergens: {
         Row: {
           code: string
@@ -183,6 +213,65 @@ export type Database = {
           status?: string
         }
         Relationships: []
+      }
+      custom_coupons: {
+        Row: {
+          applies_to_plan_id: string | null
+          applies_to_role_type: string | null
+          code: string
+          created_at: string
+          created_by_admin_id: string | null
+          current_uses: number
+          description: string | null
+          discount_type: string
+          discount_value: number
+          id: string
+          is_active: boolean
+          max_uses: number | null
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          applies_to_plan_id?: string | null
+          applies_to_role_type?: string | null
+          code: string
+          created_at?: string
+          created_by_admin_id?: string | null
+          current_uses?: number
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          applies_to_plan_id?: string | null
+          applies_to_role_type?: string | null
+          code?: string
+          created_at?: string
+          created_by_admin_id?: string | null
+          current_uses?: number
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_coupons_applies_to_plan_id_fkey"
+            columns: ["applies_to_plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       daily_progress: {
         Row: {
@@ -1257,6 +1346,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      manual_subscription_overrides: {
+        Row: {
+          created_at: string
+          end_date: string | null
+          granted_by_admin_id: string | null
+          id: string
+          override_type: string
+          reason: string | null
+          role_type: string
+          start_date: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          end_date?: string | null
+          granted_by_admin_id?: string | null
+          id?: string
+          override_type?: string
+          reason?: string | null
+          role_type: string
+          start_date?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          end_date?: string | null
+          granted_by_admin_id?: string | null
+          id?: string
+          override_type?: string
+          reason?: string | null
+          role_type?: string
+          start_date?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       meal_days: {
         Row: {
@@ -2392,6 +2517,86 @@ export type Database = {
           },
         ]
       }
+      stripe_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          id: string
+          paid_at: string | null
+          status: string
+          stripe_invoice_id: string | null
+          stripe_payment_intent_id: string | null
+          subscription_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          paid_at?: string | null
+          status?: string
+          stripe_invoice_id?: string | null
+          stripe_payment_intent_id?: string | null
+          subscription_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          paid_at?: string | null
+          status?: string
+          stripe_invoice_id?: string | null
+          stripe_payment_intent_id?: string | null
+          subscription_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stripe_payments_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stripe_settings: {
+        Row: {
+          environment: string
+          id: string
+          is_active: boolean
+          publishable_key_masked: string | null
+          secret_key_masked: string | null
+          updated_at: string
+          updated_by_admin_id: string | null
+          webhook_secret_masked: string | null
+        }
+        Insert: {
+          environment?: string
+          id?: string
+          is_active?: boolean
+          publishable_key_masked?: string | null
+          secret_key_masked?: string | null
+          updated_at?: string
+          updated_by_admin_id?: string | null
+          webhook_secret_masked?: string | null
+        }
+        Update: {
+          environment?: string
+          id?: string
+          is_active?: boolean
+          publishable_key_masked?: string | null
+          secret_key_masked?: string | null
+          updated_at?: string
+          updated_by_admin_id?: string | null
+          webhook_secret_masked?: string | null
+        }
+        Relationships: []
+      }
       subscription_payments: {
         Row: {
           coupon_code: string | null
@@ -2441,33 +2646,48 @@ export type Database = {
       }
       subscription_plans: {
         Row: {
+          billing_interval: string
           created_at: string
           description: string | null
           id: string
           is_active: boolean
+          local_price: number
           monthly_price: number | null
+          name: string | null
           plan_name: string
           role_type: string
+          stripe_price_id: string | null
+          stripe_product_id: string | null
           trial_days: number
         }
         Insert: {
+          billing_interval?: string
           created_at?: string
           description?: string | null
           id?: string
           is_active?: boolean
+          local_price?: number
           monthly_price?: number | null
+          name?: string | null
           plan_name: string
           role_type: string
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
           trial_days?: number
         }
         Update: {
+          billing_interval?: string
           created_at?: string
           description?: string | null
           id?: string
           is_active?: boolean
+          local_price?: number
           monthly_price?: number | null
+          name?: string | null
           plan_name?: string
           role_type?: string
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
           trial_days?: number
         }
         Relationships: []
@@ -2476,43 +2696,75 @@ export type Database = {
         Row: {
           cancel_at_period_end: boolean
           created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          free_override_reason: string | null
+          granted_by_admin_id: string | null
           id: string
+          is_free_override: boolean
           next_billing_date: string | null
+          plan_id: string | null
           plan_type: string
           start_date: string
           status: string
+          stripe_checkout_session_id: string | null
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           trial_end_date: string | null
+          updated_at: string
           user_id: string
         }
         Insert: {
           cancel_at_period_end?: boolean
           created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          free_override_reason?: string | null
+          granted_by_admin_id?: string | null
           id?: string
+          is_free_override?: boolean
           next_billing_date?: string | null
+          plan_id?: string | null
           plan_type: string
           start_date?: string
           status?: string
+          stripe_checkout_session_id?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           trial_end_date?: string | null
+          updated_at?: string
           user_id: string
         }
         Update: {
           cancel_at_period_end?: boolean
           created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          free_override_reason?: string | null
+          granted_by_admin_id?: string | null
           id?: string
+          is_free_override?: boolean
           next_billing_date?: string | null
+          plan_id?: string | null
           plan_type?: string
           start_date?: string
           status?: string
+          stripe_checkout_session_id?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           trial_end_date?: string | null
+          updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       supplier_invites: {
         Row: {
