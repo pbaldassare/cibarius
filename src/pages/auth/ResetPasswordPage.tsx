@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,43 @@ const ResetPasswordPage = () => {
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Listen for the PASSWORD_RECOVERY event that Supabase fires
+    // when it processes the recovery token from the URL hash
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setReady(true);
+      } else if (event === "SIGNED_IN") {
+        // Sometimes Supabase fires SIGNED_IN instead of PASSWORD_RECOVERY
+        setReady(true);
+      }
+    });
+
+    // Also check if there's already a session (user may have arrived with a valid token)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setReady(true);
+      }
+    });
+
+    // Timeout fallback — if no event fires after 5s, show error
+    const timeout = setTimeout(() => {
+      setReady((prev) => {
+        if (!prev) {
+          setError("Il link di reset è scaduto o non valido. Richiedi un nuovo link.");
+        }
+        return prev;
+      });
+    }, 5000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,6 +63,33 @@ const ResetPasswordPage = () => {
       navigate("/auth/login");
     }
   };
+
+  if (error) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="items-center text-center">
+            <div className="mb-2 text-4xl">⚠️</div>
+            <CardTitle className="text-2xl">Link non valido</CardTitle>
+            <CardDescription>{error}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button onClick={() => navigate("/forgot-password")} className="w-full">
+              Richiedi nuovo link
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!ready) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
