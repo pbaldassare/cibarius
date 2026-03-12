@@ -50,8 +50,11 @@ const AuthCallbackPage = () => {
           return;
         }
 
+        // Check if there's a ?next= param (e.g. /reset-password)
+        const nextPath = url.searchParams.get("next");
+
         if (session) {
-          navigate("/", { replace: true });
+          navigate(nextPath || "/", { replace: true });
           return;
         }
 

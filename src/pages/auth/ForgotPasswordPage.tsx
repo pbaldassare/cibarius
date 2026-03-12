@@ -17,9 +17,8 @@ const ForgotPasswordPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    const resetLink = `${window.location.origin}/reset-password`;
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: resetLink,
+      redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
     });
     setSubmitting(false);
     if (error) {
