@@ -873,6 +873,51 @@ export type Database = {
           },
         ]
       }
+      haccp_task_photos: {
+        Row: {
+          created_at: string
+          id: string
+          photo_url: string
+          restaurant_id: string
+          task_log_id: string
+          uploaded_by_name: string | null
+          uploaded_by_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          photo_url: string
+          restaurant_id: string
+          task_log_id: string
+          uploaded_by_name?: string | null
+          uploaded_by_user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          photo_url?: string
+          restaurant_id?: string
+          task_log_id?: string
+          uploaded_by_name?: string | null
+          uploaded_by_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "haccp_task_photos_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "haccp_task_photos_task_log_id_fkey"
+            columns: ["task_log_id"]
+            isOneToOne: false
+            referencedRelation: "haccp_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       haccp_tasks: {
         Row: {
           category: string
@@ -913,6 +958,60 @@ export type Database = {
             columns: ["restaurant_id"]
             isOneToOne: false
             referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      haccp_temperature_logs: {
+        Row: {
+          equipment_name: string
+          equipment_type: string
+          id: string
+          note: string | null
+          recorded_at: string
+          recorded_by_name: string | null
+          recorded_by_user_id: string
+          restaurant_id: string
+          task_log_id: string
+          temperature_value: number
+        }
+        Insert: {
+          equipment_name: string
+          equipment_type: string
+          id?: string
+          note?: string | null
+          recorded_at?: string
+          recorded_by_name?: string | null
+          recorded_by_user_id: string
+          restaurant_id: string
+          task_log_id: string
+          temperature_value: number
+        }
+        Update: {
+          equipment_name?: string
+          equipment_type?: string
+          id?: string
+          note?: string | null
+          recorded_at?: string
+          recorded_by_name?: string | null
+          recorded_by_user_id?: string
+          restaurant_id?: string
+          task_log_id?: string
+          temperature_value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "haccp_temperature_logs_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "haccp_temperature_logs_task_log_id_fkey"
+            columns: ["task_log_id"]
+            isOneToOne: false
+            referencedRelation: "haccp_logs"
             referencedColumns: ["id"]
           },
         ]
