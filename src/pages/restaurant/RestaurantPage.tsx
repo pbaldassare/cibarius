@@ -94,6 +94,8 @@ const RestaurantPage = () => {
   const [docCount, setDocCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [addFoodOpen, setAddFoodOpen] = useState(false);
+  const [resolveOpen, setResolveOpen] = useState(false);
+  const { toast } = useToast();
 
   const today = new Date();
   const todayStr = format(today, "yyyy-MM-dd");
