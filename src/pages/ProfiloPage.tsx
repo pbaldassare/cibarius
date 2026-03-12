@@ -96,6 +96,10 @@ const ProfiloPage = () => {
   // Deleting
   const [deleting, setDeleting] = useState(false);
 
+  // Email preferences
+  const [emailPrefs, setEmailPrefs] = useState({ receive_verification: true, receive_password_reset: true, receive_expiry_alerts: true });
+  const [savingEmailPrefs, setSavingEmailPrefs] = useState(false);
+
   // PWA install
   const { canInstall, isInstalled: isPwaInstalled, isIos, install: handlePwaInstall } = usePwaInstall();
 
@@ -104,6 +108,11 @@ const ProfiloPage = () => {
     // Load profile
     supabase.from("profiles").select("full_name, phone, avatar_url").eq("id", user.id).single().then(({ data }) => {
       if (data) setProfile(data as any);
+    });
+
+    // Load email preferences
+    supabase.from("email_preferences").select("*").eq("user_id", user.id).single().then(({ data }) => {
+      if (data) setEmailPrefs({ receive_verification: data.receive_verification, receive_password_reset: data.receive_password_reset, receive_expiry_alerts: data.receive_expiry_alerts });
     });
 
     // Load professional's own profile
@@ -599,7 +608,43 @@ const ProfiloPage = () => {
           )}
         </div>
 
-        {/* Delete account */}
+        {/* ═══ Email Preferences ═══ */}
+        <div className="overflow-hidden rounded-[18px] border border-border bg-card">
+          <div className="px-4 py-3 border-b border-border">
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <Bell size={16} className="text-primary" />
+              Notifiche email
+            </h3>
+          </div>
+          {[
+            { key: "receive_expiry_alerts" as const, label: "Avvisi scadenze prodotti" },
+            { key: "receive_verification" as const, label: "Email conferma account" },
+            { key: "receive_password_reset" as const, label: "Email recupero password" },
+          ].map((item) => (
+            <div key={item.key} className="flex items-center justify-between px-4 py-3 border-b border-border last:border-b-0">
+              <span className="text-[14px] text-foreground">{item.label}</span>
+              <Switch
+                checked={emailPrefs[item.key]}
+                onCheckedChange={async (checked) => {
+                  const newPrefs = { ...emailPrefs, [item.key]: checked };
+                  setEmailPrefs(newPrefs);
+                  setSavingEmailPrefs(true);
+                  const { error } = await supabase
+                    .from("email_preferences")
+                    .upsert({ user_id: user!.id, ...newPrefs, updated_at: new Date().toISOString() });
+                  setSavingEmailPrefs(false);
+                  if (error) {
+                    toast({ variant: "destructive", title: "Errore", description: "Impossibile salvare le preferenze." });
+                    setEmailPrefs({ ...emailPrefs }); // revert
+                  } else {
+                    toast({ title: "Preferenze aggiornate" });
+                  }
+                }}
+              />
+            </div>
+          ))}
+        </div>
+
         <button
           onClick={() => setDeleteOpen(true)}
           className="flex w-full items-center justify-center gap-2 rounded-[18px] border border-destructive/20 py-3.5 text-sm font-medium text-destructive/70 transition-colors active:bg-destructive/5"
