@@ -3,7 +3,7 @@ import AdminLayout from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Users, ShieldCheck, Activity, Package, MessageSquareWarning, Ticket,
-  Store, Stethoscope, AlertTriangle, CheckCircle2, Clock, TrendingUp,
+  Store, Stethoscope, AlertTriangle, CheckCircle2, Clock, TrendingUp, Key,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
