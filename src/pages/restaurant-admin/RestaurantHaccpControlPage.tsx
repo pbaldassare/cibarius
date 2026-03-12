@@ -91,7 +91,7 @@ const RestaurantHaccpControlPage = () => {
       to = dateTo || undefined;
     }
 
-    const [tasksRes, logsRes, profilesRes] = await Promise.all([
+    const [tasksRes, logsRes, profilesRes, photosRes, tempsRes] = await Promise.all([
       supabase.from("haccp_tasks").select("id, name, category, frequency").eq("restaurant_id", restaurant.id),
       (() => {
         let q = supabase.from("haccp_logs").select("*").eq("restaurant_id", restaurant.id).order("completed_at", { ascending: false }).limit(500);
@@ -100,6 +100,8 @@ const RestaurantHaccpControlPage = () => {
         return q;
       })(),
       supabase.from("profiles").select("id, full_name, email"),
+      supabase.from("haccp_task_photos").select("task_log_id").eq("restaurant_id", restaurant.id),
+      supabase.from("haccp_temperature_logs").select("task_log_id, temperature_value, equipment_type").eq("restaurant_id", restaurant.id),
     ]);
 
     const taskMap: Record<string, { name: string; category: string; frequency: string }> = {};
@@ -109,21 +111,37 @@ const RestaurantHaccpControlPage = () => {
     const profileMap: Record<string, string> = {};
     (profilesRes.data ?? []).forEach((p: any) => { profileMap[p.id] = p.full_name || p.email; });
 
-    const mapped: LogRow[] = (logsRes.data ?? []).map((l: any) => ({
-      id: l.id,
-      task_id: l.task_id,
-      task_name: l.task_name || taskMap[l.task_id]?.name || "—",
-      area: l.area || taskMap[l.task_id]?.category || "—",
-      frequency: l.frequency || taskMap[l.task_id]?.frequency || "—",
-      log_date: l.log_date,
-      status: l.status,
-      notes: l.notes,
-      completed_at: l.completed_at,
-      completed_by: l.completed_by,
-      completed_by_name: l.completed_by_name || profileMap[l.completed_by] || "—",
-      cancelled_reason: l.cancelled_reason,
-      is_rectification: l.is_rectification || false,
-    }));
+    // Photo and temp lookups
+    const photoLogIds = new Set((photosRes.data ?? []).map((p: any) => p.task_log_id));
+    const tempMap = new Map<string, { value: number; type: string }>();
+    (tempsRes.data ?? []).forEach((t: any) => {
+      tempMap.set(t.task_log_id, { value: t.temperature_value, type: t.equipment_type });
+    });
+
+    const THRESHOLDS: Record<string, number> = { fridge: 4, cold_room: 4, freezer: -18 };
+
+    const mapped: LogRow[] = (logsRes.data ?? []).map((l: any) => {
+      const temp = tempMap.get(l.id);
+      const threshold = temp ? THRESHOLDS[temp.type] : undefined;
+      return {
+        id: l.id,
+        task_id: l.task_id,
+        task_name: l.task_name || taskMap[l.task_id]?.name || "—",
+        area: l.area || taskMap[l.task_id]?.category || "—",
+        frequency: l.frequency || taskMap[l.task_id]?.frequency || "—",
+        log_date: l.log_date,
+        status: l.status,
+        notes: l.notes,
+        completed_at: l.completed_at,
+        completed_by: l.completed_by,
+        completed_by_name: l.completed_by_name || profileMap[l.completed_by] || "—",
+        cancelled_reason: l.cancelled_reason,
+        is_rectification: l.is_rectification || false,
+        has_photos: photoLogIds.has(l.id),
+        temperature: temp?.value ?? null,
+        temperature_anomaly: temp && threshold !== undefined ? temp.value > threshold : false,
+      };
+    });
 
     setLogs(mapped);
 
