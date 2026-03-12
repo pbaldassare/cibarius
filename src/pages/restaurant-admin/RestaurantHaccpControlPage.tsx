@@ -439,8 +439,9 @@ td{padding:6px 8px;border-bottom:1px solid #f0f0f0}
                   <TableHead className="font-semibold">Data</TableHead>
                   <TableHead className="font-semibold">Attività</TableHead>
                   <TableHead className="font-semibold">Area</TableHead>
-                  <TableHead className="font-semibold">Freq.</TableHead>
                   <TableHead className="font-semibold">Stato</TableHead>
+                  <TableHead className="font-semibold">Temp.</TableHead>
+                  <TableHead className="font-semibold">Foto</TableHead>
                   <TableHead className="font-semibold">Operatore</TableHead>
                   <TableHead className="font-semibold">Ora</TableHead>
                   <TableHead className="font-semibold">Note</TableHead>
