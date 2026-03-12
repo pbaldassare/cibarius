@@ -110,6 +110,7 @@ const UserDietPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isActive: plusActive } = useSubscription("user_plus");
   const [loading, setLoading] = useState(true);
   const [plan, setPlan] = useState<any>(null);
   const [mealTargets, setMealTargets] = useState<any[]>([]);
