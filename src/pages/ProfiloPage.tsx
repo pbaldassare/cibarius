@@ -96,6 +96,10 @@ const ProfiloPage = () => {
   // Deleting
   const [deleting, setDeleting] = useState(false);
 
+  // Email preferences
+  const [emailPrefs, setEmailPrefs] = useState({ receive_verification: true, receive_password_reset: true, receive_expiry_alerts: true });
+  const [savingEmailPrefs, setSavingEmailPrefs] = useState(false);
+
   // PWA install
   const { canInstall, isInstalled: isPwaInstalled, isIos, install: handlePwaInstall } = usePwaInstall();
 
