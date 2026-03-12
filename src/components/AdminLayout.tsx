@@ -3,7 +3,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import {
   LayoutDashboard, Users, Settings, LogOut, Sprout, ChevronLeft,
-  Store, Package, MessageSquareWarning, Ticket, TrendingUp, ClipboardCheck, CreditCard,
+  Store, Package, MessageSquareWarning, Ticket, TrendingUp, ClipboardCheck, CreditCard, Database, Key,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -18,6 +18,8 @@ const sidebarItems = [
   { to: "/admin/support", icon: MessageSquareWarning, label: "Segnalazioni" },
   { to: "/admin/coupons", icon: Ticket, label: "Coupon" },
   { to: "/admin/payments", icon: CreditCard, label: "Pagamenti & Stripe" },
+  { to: "/admin/products-db", icon: Database, label: "Database Prodotti" },
+  { to: "/admin/api", icon: Key, label: "API Cibarius" },
   { to: "/admin/stats", icon: TrendingUp, label: "Statistiche" },
   { to: "/admin/settings", icon: Settings, label: "Impostazioni" },
   { to: "/admin/seed", icon: Sprout, label: "Dati Demo" },
