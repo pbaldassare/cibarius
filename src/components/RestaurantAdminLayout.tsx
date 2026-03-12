@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRestaurant } from "@/hooks/useRestaurant";
 import {
   LayoutDashboard, Store, Users, FileText, LogOut, ArrowLeft, ChevronLeft,
-  ClipboardCheck, Settings2, Package, ShieldCheck,
+  ClipboardCheck, Settings2, Package, ShieldCheck, Thermometer,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import cibariusLogo from "@/assets/cibarius-logo.png";
