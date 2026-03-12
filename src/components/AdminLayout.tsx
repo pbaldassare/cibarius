@@ -1,14 +1,22 @@
 import { ReactNode } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { LayoutDashboard, Users, Settings, LogOut, Sprout, ChevronLeft } from "lucide-react";
+import {
+  LayoutDashboard, Users, Settings, LogOut, Sprout, ChevronLeft,
+  Store, Package, MessageSquareWarning, Ticket, TrendingUp,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import cibariusLogo from "@/assets/cibarius-logo.png";
 
 const sidebarItems = [
-  { to: "/admin", icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/admin", icon: LayoutDashboard, label: "Dashboard", end: true },
   { to: "/admin/users", icon: Users, label: "Utenti" },
+  { to: "/admin/restaurants", icon: Store, label: "Ristoranti" },
+  { to: "/admin/product-review", icon: Package, label: "Revisione Prodotti" },
+  { to: "/admin/support", icon: MessageSquareWarning, label: "Segnalazioni" },
+  { to: "/admin/coupons", icon: Ticket, label: "Coupon" },
+  { to: "/admin/stats", icon: TrendingUp, label: "Statistiche" },
   { to: "/admin/settings", icon: Settings, label: "Impostazioni" },
   { to: "/admin/seed", icon: Sprout, label: "Dati Demo" },
 ];
@@ -29,10 +37,11 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
       <aside className="hidden w-64 flex-col bg-gradient-to-b from-primary to-primary-dark md:flex">
         <div className="flex h-16 items-center gap-2 border-b border-white/10 px-6">
           <img src={cibariusLogo} alt="Cibarius" className="h-6 brightness-0 invert" />
+          <span className="text-xs font-medium text-white/60 uppercase tracking-wider ml-auto">Admin</span>
         </div>
-        <nav className="flex-1 space-y-1 p-3">
-          {sidebarItems.map(({ to, icon: Icon, label }) => {
-            const isActive = location.pathname === to;
+        <nav className="flex-1 space-y-1 p-3 overflow-y-auto">
+          {sidebarItems.map(({ to, icon: Icon, label, end }) => {
+            const isActive = end ? location.pathname === to : location.pathname.startsWith(to);
             return (
               <NavLink
                 key={to}
@@ -68,6 +77,7 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
             <ChevronLeft size={22} strokeWidth={2} />
           </button>
           <img src={cibariusLogo} alt="Cibarius" className="h-6 brightness-0 invert" />
+          <span className="text-xs font-medium text-white/60 uppercase tracking-wider ml-auto">Admin</span>
         </header>
         <main className="flex-1 p-4 md:p-6">{children}</main>
       </div>

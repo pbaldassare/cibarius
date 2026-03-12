@@ -10,6 +10,7 @@ import RestaurantGuard from "./components/RestaurantGuard";
 import UserLayout from "./components/UserLayout";
 import RestaurantLayout from "./components/RestaurantLayout";
 import MobileLayout from "./components/MobileLayout";
+import AdminPwaGuard from "./components/AdminPwaGuard";
 
 // Auth pages
 import LoginPage from "./pages/auth/LoginPage";
@@ -42,6 +43,8 @@ import AdminSeedPage from "./pages/admin/AdminSeedPage";
 import AdminProductReviewPage from "./pages/admin/AdminProductReviewPage";
 import AdminSupportPage from "./pages/admin/AdminSupportPage";
 import AdminCouponsPage from "./pages/admin/AdminCouponsPage";
+import AdminRestaurantsPage from "./pages/admin/AdminRestaurantsPage";
+import AdminStatsPage from "./pages/admin/AdminStatsPage";
 
 // Restaurant app pages
 import RestaurantOnboardingPage from "./pages/restaurant/RestaurantOnboardingPage";
@@ -213,14 +216,16 @@ const App = () => (
                 <Route path="/supplier/reports" element={<RG roles={["supplier", "admin"]}><SupplierReportsPage /></RG>} />
               </Route>
 
-              {/* Admin routes (no mobile layout) */}
-              <Route path="/admin" element={<RG roles={["admin"]}><AdminPage /></RG>} />
-              <Route path="/admin/users" element={<RG roles={["admin"]}><AdminUsersPage /></RG>} />
-              <Route path="/admin/settings" element={<RG roles={["admin"]}><AdminSettingsPage /></RG>} />
-              <Route path="/admin/seed" element={<RG roles={["admin"]}><AdminSeedPage /></RG>} />
-              <Route path="/admin/product-review" element={<RG roles={["admin"]}><AdminProductReviewPage /></RG>} />
-              <Route path="/admin/support" element={<RG roles={["admin"]}><AdminSupportPage /></RG>} />
-              <Route path="/admin/coupons" element={<RG roles={["admin"]}><AdminCouponsPage /></RG>} />
+              {/* ═══ ADMIN (browser only, with PWA guard) ═══ */}
+              <Route path="/admin" element={<RG roles={["admin"]}><AdminPwaGuard><AdminPage /></AdminPwaGuard></RG>} />
+              <Route path="/admin/users" element={<RG roles={["admin"]}><AdminPwaGuard><AdminUsersPage /></AdminPwaGuard></RG>} />
+              <Route path="/admin/restaurants" element={<RG roles={["admin"]}><AdminPwaGuard><AdminRestaurantsPage /></AdminPwaGuard></RG>} />
+              <Route path="/admin/stats" element={<RG roles={["admin"]}><AdminPwaGuard><AdminStatsPage /></AdminPwaGuard></RG>} />
+              <Route path="/admin/settings" element={<RG roles={["admin"]}><AdminPwaGuard><AdminSettingsPage /></AdminPwaGuard></RG>} />
+              <Route path="/admin/seed" element={<RG roles={["admin"]}><AdminPwaGuard><AdminSeedPage /></AdminPwaGuard></RG>} />
+              <Route path="/admin/product-review" element={<RG roles={["admin"]}><AdminPwaGuard><AdminProductReviewPage /></AdminPwaGuard></RG>} />
+              <Route path="/admin/support" element={<RG roles={["admin"]}><AdminPwaGuard><AdminSupportPage /></AdminPwaGuard></RG>} />
+              <Route path="/admin/coupons" element={<RG roles={["admin"]}><AdminPwaGuard><AdminCouponsPage /></AdminPwaGuard></RG>} />
 
               {/* Restaurant admin routes (no mobile layout) */}
               <Route path="/restaurant-admin" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><RestaurantAdminPage /></RestaurantGuard></RG>} />
