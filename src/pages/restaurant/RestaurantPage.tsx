@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import RestaurantSubscriptionBanner from "@/components/RestaurantSubscriptionBanner";
 import { useNavigate, Link } from "react-router-dom";
 import { useRestaurant } from "@/hooks/useRestaurant";
 import { useAuth } from "@/hooks/useAuth";
