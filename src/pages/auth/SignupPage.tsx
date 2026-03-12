@@ -125,11 +125,11 @@ const SignupPage = () => {
       metadata.bio = bio;
     }
 
-    const { data: signUpData, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
         data: metadata,
       },
     });
@@ -139,21 +139,6 @@ const SignupPage = () => {
     if (error) {
       toast({ variant: "destructive", title: "Errore", description: error.message });
     } else {
-      // Send branded verification email via Resend
-      try {
-        const verifyLink = `${window.location.origin}/auth/login`;
-        await supabase.functions.invoke("send-email", {
-          body: {
-            type: "verification",
-            email,
-            name: fullName || "utente",
-            link: verifyLink,
-            user_id: signUpData?.user?.id,
-          },
-        });
-      } catch (e) {
-        console.error("Verification email error:", e);
-      }
       toast({
         title: "Registrazione completata",
         description: "Controlla la tua email per confermare l'account.",
