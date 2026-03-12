@@ -21,21 +21,6 @@ const ForgotPasswordPage = () => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: resetLink,
     });
-    if (!error) {
-      // Send branded reset email via Resend
-      try {
-        await supabase.functions.invoke("send-email", {
-          body: {
-            type: "password_reset",
-            email,
-            name: "utente",
-            link: resetLink,
-          },
-        });
-      } catch (e) {
-        console.error("Reset email error:", e);
-      }
-    }
     setSubmitting(false);
     if (error) {
       toast({ variant: "destructive", title: "Errore", description: error.message });
