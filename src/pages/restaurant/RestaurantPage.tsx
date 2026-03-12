@@ -403,7 +403,7 @@ const RestaurantPage = () => {
           </div>
         </div>
 
-        {/* ═══ Urgenti cucina ═══ */}
+        {/* ═══ Urgenti cucina — swipeable ═══ */}
         {urgentList.length > 0 && (
           <div>
             <div className="flex items-center justify-between mb-2 px-0.5">
@@ -414,47 +414,24 @@ const RestaurantPage = () => {
               <span className="text-[11px] text-muted-foreground">{urgentList.length} elementi</span>
             </div>
             <div className="space-y-1">
-              {urgentList.map((item) => {
-                const cfg = statusCfg[item.status];
-                return (
-                  <div
-                    key={`${item.type}-${item.id}`}
-                    className="flex items-center gap-2 rounded-[12px] bg-card px-3 py-2 shadow-card"
-                  >
-                    <div className={`w-[3px] self-stretch rounded-full ${cfg.barColor}`} />
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] bg-secondary overflow-hidden">
-                      {item.image_url ? (
-                        <img src={item.image_url} alt="" className="h-full w-full object-cover" />
-                      ) : item.type === "prep" ? (
-                        <ChefHat className="h-4 w-4 text-muted-foreground" />
-                      ) : (
-                        <span className="text-lg">{getFoodEmoji(null, item.name)}</span>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-medium truncate text-foreground">{item.name}</p>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        {item.date && (
-                          <span className="text-[11px] flex items-center gap-0.5 text-muted-foreground">
-                            <Clock className="h-2.5 w-2.5" />
-                            {new Date(item.date).toLocaleDateString("it-IT")}
-                          </span>
-                        )}
-                        <span className="text-[10px] text-muted-foreground">{storageLabel[item.storage] ?? item.storage}</span>
-                        {item.type === "prep" && (
-                          <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-accent/10 text-accent">PREP</span>
-                        )}
-                      </div>
-                    </div>
-                    <span
-                      className="shrink-0 rounded-[6px] px-1.5 py-0.5 text-[9px] font-bold text-white"
-                      style={{ backgroundColor: cfg.color }}
-                    >
-                      {cfg.label}
-                    </span>
-                  </div>
-                );
-              })}
+              {urgentList.map((item) => (
+                <SwipeableUrgentItem
+                  key={`${item.type}-${item.id}`}
+                  item={item}
+                  onConsumed={async () => {
+                    if (item.type === "inv") await supabase.from("inventory_items").delete().eq("id", item.id);
+                    else await supabase.from("preparations").delete().eq("id", item.id);
+                    toast({ title: "Segnato come utilizzato ✓" });
+                    fetchData();
+                  }}
+                  onDiscarded={async () => {
+                    if (item.type === "inv") await supabase.from("inventory_items").delete().eq("id", item.id);
+                    else await supabase.from("preparations").delete().eq("id", item.id);
+                    toast({ title: "Segnato come buttato 🗑" });
+                    fetchData();
+                  }}
+                />
+              ))}
             </div>
           </div>
         )}
@@ -489,6 +466,134 @@ const RestaurantPage = () => {
         restaurantId={restaurant?.id ?? ""}
         onComplete={fetchData}
       />
+
+      {restaurant && (
+        <ResolveExpiryFlow
+          open={resolveOpen}
+          onOpenChange={setResolveOpen}
+          restaurantId={restaurant.id}
+          onComplete={fetchData}
+        />
+      )}
+    </div>
+  );
+};
+
+/* ═══ Swipeable urgent item ═══ */
+interface SwipeableProps {
+  item: { id: string; name: string; image_url: string | null; date: string | null; storage: string; status: "expired" | "expiring" | "ok" | "nodate"; type: "inv" | "prep" };
+  onConsumed: () => void;
+  onDiscarded: () => void;
+}
+
+const SwipeableUrgentItem = ({ item, onConsumed, onDiscarded }: SwipeableProps) => {
+  const cfg = statusCfg[item.status];
+  const touchStartRef = useRef<{ x: number; t: number } | null>(null);
+  const [offsetX, setOffsetX] = useState(0);
+  const [swiped, setSwiped] = useState<"left" | "right" | null>(null);
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    touchStartRef.current = { x: e.touches[0].clientX, t: Date.now() };
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+    setOffsetX(e.touches[0].clientX - touchStartRef.current.x);
+  };
+  const onTouchEnd = () => {
+    if (!touchStartRef.current) return;
+    const threshold = 80;
+    if (offsetX > threshold) {
+      setSwiped("right");
+      setTimeout(onConsumed, 250);
+    } else if (offsetX < -threshold) {
+      setSwiped("left");
+      setTimeout(onDiscarded, 250);
+    } else {
+      setOffsetX(0);
+    }
+    touchStartRef.current = null;
+  };
+
+  const bgReveal = offsetX > 40 ? "bg-success/20" : offsetX < -40 ? "bg-destructive/20" : "bg-transparent";
+
+  return (
+    <div className={`relative rounded-[12px] overflow-hidden ${bgReveal} transition-colors`}>
+      {/* Reveal labels behind */}
+      {offsetX > 20 && (
+        <div className="absolute inset-y-0 left-0 flex items-center pl-4 z-0">
+          <span className="flex items-center gap-1 text-success font-semibold text-[12px]">
+            <UtensilsCrossed className="h-4 w-4" /> Utilizzato
+          </span>
+        </div>
+      )}
+      {offsetX < -20 && (
+        <div className="absolute inset-y-0 right-0 flex items-center pr-4 z-0">
+          <span className="flex items-center gap-1 text-destructive font-semibold text-[12px]">
+            Buttato <Trash2 className="h-4 w-4" />
+          </span>
+        </div>
+      )}
+
+      <div
+        className="relative z-10 flex items-center gap-2 rounded-[12px] bg-card px-3 py-2 shadow-card touch-pan-y"
+        style={{
+          transform: swiped === "right" ? "translateX(120%)" : swiped === "left" ? "translateX(-120%)" : `translateX(${offsetX}px)`,
+          opacity: swiped ? 0 : 1,
+          transition: offsetX === 0 || swiped ? "transform 0.25s ease, opacity 0.25s" : "none",
+        }}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
+        <div className={`w-[3px] self-stretch rounded-full ${cfg.barColor}`} />
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] bg-secondary overflow-hidden">
+          {item.image_url ? (
+            <img src={item.image_url} alt="" className="h-full w-full object-cover" />
+          ) : item.type === "prep" ? (
+            <ChefHat className="h-4 w-4 text-muted-foreground" />
+          ) : (
+            <span className="text-lg">{getFoodEmoji(null, item.name)}</span>
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[13px] font-medium truncate text-foreground">{item.name}</p>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            {item.date && (
+              <span className="text-[11px] flex items-center gap-0.5 text-muted-foreground">
+                <Clock className="h-2.5 w-2.5" />
+                {new Date(item.date).toLocaleDateString("it-IT")}
+              </span>
+            )}
+            <span className="text-[10px] text-muted-foreground">{storageLabel[item.storage] ?? item.storage}</span>
+            {item.type === "prep" && (
+              <span className="text-[9px] font-semibold px-1 py-0.5 rounded bg-accent/10 text-accent">PREP</span>
+            )}
+          </div>
+        </div>
+        {/* Quick action buttons (desktop / no-swipe fallback) */}
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            onClick={(e) => { e.stopPropagation(); onConsumed(); }}
+            className="flex h-7 w-7 items-center justify-center rounded-full bg-success/10 active:bg-success/20 transition-colors"
+            title="Utilizzato"
+          >
+            <UtensilsCrossed className="h-3.5 w-3.5 text-success" />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onDiscarded(); }}
+            className="flex h-7 w-7 items-center justify-center rounded-full bg-destructive/10 active:bg-destructive/20 transition-colors"
+            title="Buttato"
+          >
+            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+          </button>
+        </div>
+        <span
+          className="shrink-0 rounded-[6px] px-1.5 py-0.5 text-[9px] font-bold text-white"
+          style={{ backgroundColor: cfg.color }}
+        >
+          {cfg.label}
+        </span>
+      </div>
     </div>
   );
 };
