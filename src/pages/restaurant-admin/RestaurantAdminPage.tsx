@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Users, Store, Loader2, ClipboardCheck, Settings2, FileText,
-  Package, AlertTriangle, CheckCircle2, Clock,
+  Package, AlertTriangle, CheckCircle2, Clock, ShieldCheck,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
@@ -89,6 +89,18 @@ const RestaurantAdminPage = () => {
       {/* Management links */}
       <h2 className="mb-4 text-lg font-semibold text-foreground">Gestione</h2>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Link to="/restaurant-admin/haccp-control">
+          <Card className="transition-shadow hover:shadow-md border-primary/20">
+            <CardHeader className="flex flex-row items-center gap-3 pb-2">
+              <ShieldCheck className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base">Modalità Controllo HACCP</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">Registro verificabile pronto per ispezioni</p>
+            </CardContent>
+          </Card>
+        </Link>
+
         <Link to="/restaurant-admin/settings">
           <Card className="transition-shadow hover:shadow-md">
             <CardHeader className="flex flex-row items-center gap-3 pb-2">

@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Search, Store, AlertTriangle, Package } from "lucide-react";
+import { Loader2, Search, Store, AlertTriangle, Package, ClipboardCheck, CheckCircle2, Clock } from "lucide-react";
 import { format } from "date-fns";
 
 interface RestaurantRow {
@@ -16,6 +16,9 @@ interface RestaurantRow {
   created_at: string;
   inventoryCount?: number;
   expiringCount?: number;
+  haccpTasksTotal?: number;
+  haccpCompletedToday?: number;
+  haccpPendingToday?: number;
 }
 
 const AdminRestaurantsPage = () => {
@@ -31,28 +34,30 @@ const AdminRestaurantsPage = () => {
       const { data: rests } = await supabase.from("restaurants").select("*").order("created_at", { ascending: false });
       if (!rests) { setLoading(false); return; }
 
-      // Fetch inventory counts per restaurant
-      const { data: invCounts } = await supabase
-        .from("inventory_items")
-        .select("restaurant_id")
-        .not("restaurant_id", "is", null);
-
-      const { data: expCounts } = await supabase
-        .from("inventory_items")
-        .select("restaurant_id")
-        .not("restaurant_id", "is", null)
-        .lte("expiry_date", in3days)
-        .gte("expiry_date", today);
+      const [invRes, expRes, haccpTasksRes, haccpLogsRes] = await Promise.all([
+        supabase.from("inventory_items").select("restaurant_id").not("restaurant_id", "is", null),
+        supabase.from("inventory_items").select("restaurant_id").not("restaurant_id", "is", null).lte("expiry_date", in3days).gte("expiry_date", today),
+        supabase.from("haccp_tasks").select("id, restaurant_id").eq("is_active", true),
+        supabase.from("haccp_logs").select("id, restaurant_id, task_id, status").eq("log_date", today),
+      ]);
 
       const invMap: Record<string, number> = {};
       const expMap: Record<string, number> = {};
-      invCounts?.forEach(i => { if (i.restaurant_id) invMap[i.restaurant_id] = (invMap[i.restaurant_id] || 0) + 1; });
-      expCounts?.forEach(i => { if (i.restaurant_id) expMap[i.restaurant_id] = (expMap[i.restaurant_id] || 0) + 1; });
+      const taskMap: Record<string, number> = {};
+      const logMap: Record<string, number> = {};
+
+      invRes.data?.forEach(i => { if (i.restaurant_id) invMap[i.restaurant_id] = (invMap[i.restaurant_id] || 0) + 1; });
+      expRes.data?.forEach(i => { if (i.restaurant_id) expMap[i.restaurant_id] = (expMap[i.restaurant_id] || 0) + 1; });
+      haccpTasksRes.data?.forEach((t: any) => { taskMap[t.restaurant_id] = (taskMap[t.restaurant_id] || 0) + 1; });
+      haccpLogsRes.data?.forEach((l: any) => { if (l.status === "completata") logMap[l.restaurant_id] = (logMap[l.restaurant_id] || 0) + 1; });
 
       setRestaurants(rests.map(r => ({
         ...r,
         inventoryCount: invMap[r.id] || 0,
         expiringCount: expMap[r.id] || 0,
+        haccpTasksTotal: taskMap[r.id] || 0,
+        haccpCompletedToday: logMap[r.id] || 0,
+        haccpPendingToday: Math.max(0, (taskMap[r.id] || 0) - (logMap[r.id] || 0)),
       })));
       setLoading(false);
     };
@@ -88,6 +93,7 @@ const AdminRestaurantsPage = () => {
                 <TableHead>Telefono</TableHead>
                 <TableHead className="text-center">Prodotti</TableHead>
                 <TableHead className="text-center">In scadenza</TableHead>
+                <TableHead className="text-center">HACCP oggi</TableHead>
                 <TableHead>Creato il</TableHead>
               </TableRow>
             </TableHeader>
@@ -111,6 +117,19 @@ const AdminRestaurantsPage = () => {
                       <Badge variant="outline" className="text-muted-foreground">0</Badge>
                     )}
                   </TableCell>
+                  <TableCell className="text-center">
+                    {(r.haccpTasksTotal ?? 0) === 0 ? (
+                      <Badge variant="outline" className="text-muted-foreground">—</Badge>
+                    ) : (r.haccpPendingToday ?? 0) > 0 ? (
+                      <Badge variant="outline" className="gap-1 bg-amber-500/10 text-amber-700 border-amber-200">
+                        <Clock className="h-3 w-3" /> {r.haccpCompletedToday}/{r.haccpTasksTotal}
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="gap-1 bg-emerald-500/10 text-emerald-700 border-emerald-200">
+                        <CheckCircle2 className="h-3 w-3" /> {r.haccpCompletedToday}/{r.haccpTasksTotal}
+                      </Badge>
+                    )}
+                  </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {format(new Date(r.created_at), "dd/MM/yyyy")}
                   </TableCell>
@@ -118,7 +137,7 @@ const AdminRestaurantsPage = () => {
               ))}
               {filtered.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                     Nessun ristorante trovato
                   </TableCell>
                 </TableRow>

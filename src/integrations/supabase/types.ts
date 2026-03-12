@@ -726,6 +726,42 @@ export type Database = {
         }
         Relationships: []
       }
+      haccp_audit_log: {
+        Row: {
+          action: string
+          changed_at: string
+          changed_by: string
+          id: string
+          new_value: Json | null
+          previous_value: Json | null
+          reason: string | null
+          record_id: string
+          table_name: string
+        }
+        Insert: {
+          action: string
+          changed_at?: string
+          changed_by: string
+          id?: string
+          new_value?: Json | null
+          previous_value?: Json | null
+          reason?: string | null
+          record_id: string
+          table_name?: string
+        }
+        Update: {
+          action?: string
+          changed_at?: string
+          changed_by?: string
+          id?: string
+          new_value?: Json | null
+          previous_value?: Json | null
+          reason?: string | null
+          record_id?: string
+          table_name?: string
+        }
+        Relationships: []
+      }
       haccp_equipment: {
         Row: {
           count: number
@@ -760,39 +796,67 @@ export type Database = {
       }
       haccp_logs: {
         Row: {
+          area: string | null
+          cancelled_reason: string | null
           completed_at: string
           completed_by: string
+          completed_by_name: string | null
           created_at: string
+          frequency: string | null
           id: string
+          is_rectification: boolean
           log_date: string
           notes: string | null
+          original_log_id: string | null
           restaurant_id: string
           status: string
           task_id: string
+          task_name: string | null
         }
         Insert: {
+          area?: string | null
+          cancelled_reason?: string | null
           completed_at?: string
           completed_by: string
+          completed_by_name?: string | null
           created_at?: string
+          frequency?: string | null
           id?: string
+          is_rectification?: boolean
           log_date?: string
           notes?: string | null
+          original_log_id?: string | null
           restaurant_id: string
           status?: string
           task_id: string
+          task_name?: string | null
         }
         Update: {
+          area?: string | null
+          cancelled_reason?: string | null
           completed_at?: string
           completed_by?: string
+          completed_by_name?: string | null
           created_at?: string
+          frequency?: string | null
           id?: string
+          is_rectification?: boolean
           log_date?: string
           notes?: string | null
+          original_log_id?: string | null
           restaurant_id?: string
           status?: string
           task_id?: string
+          task_name?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "haccp_logs_original_log_id_fkey"
+            columns: ["original_log_id"]
+            isOneToOne: false
+            referencedRelation: "haccp_logs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "haccp_logs_restaurant_id_fkey"
             columns: ["restaurant_id"]
