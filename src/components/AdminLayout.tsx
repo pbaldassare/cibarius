@@ -36,7 +36,7 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
   return (
     <div className="flex min-h-screen bg-background">
       {/* Sidebar */}
-      <aside className="hidden w-64 flex-col bg-gradient-to-b from-primary to-primary-dark md:flex">
+      <aside className="hidden w-64 flex-col md:flex" style={{ backgroundColor: "hsl(var(--primary))" }}>
         <div className="flex h-16 items-center gap-2 border-b border-white/10 px-6">
           <img src={cibariusLogo} alt="Cibarius" className="h-6 brightness-0 invert" />
           <span className="text-xs font-medium uppercase tracking-wider ml-auto" style={{ color: "rgba(255,255,255,0.6)" }}>Admin</span>
