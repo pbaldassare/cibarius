@@ -64,15 +64,23 @@ const ProAppointmentsPage = () => {
           .order("starts_at", { ascending: true }),
         supabase
           .from("client_links")
-          .select("client_user_id, profiles:client_user_id(full_name, email)")
+          .select("id, client_user_id, status")
           .eq("professional_id", user.id)
           .eq("status", "active"),
       ]);
 
-      const clientsList = (linksRes.data ?? []).map((l: any) => ({
-        id: l.client_user_id,
-        name: l.profiles?.full_name || l.profiles?.email || "Cliente",
-      }));
+      const clientUserIds = (linksRes.data ?? []).map((l: any) => l.client_user_id);
+      let clientsList: { id: string; name: string }[] = [];
+      if (clientUserIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from("profiles")
+          .select("id, full_name, email")
+          .in("id", clientUserIds);
+        clientsList = (profilesData ?? []).map((p: any) => ({
+          id: p.id,
+          name: p.full_name || p.email || "Cliente",
+        }));
+      }
       setClients(clientsList);
 
       const clientMap = Object.fromEntries(clientsList.map((c) => [c.id, c.name]));
