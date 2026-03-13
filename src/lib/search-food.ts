@@ -146,25 +146,38 @@ export function searchFoodProgressive(
     return () => {};
   }
 
-  // Phase 1: Local DB
+  // Phase 1: Local DB (instant)
   searchLocal(q).then(localResults => {
     if (cancelled) return;
     accumulated = localResults;
     onProgress(accumulated, "local", false);
 
-    // Phase 2: OFF (Italian priority)
+    // Phase 2+3: OFF and USDA in parallel
+    let offDone = false;
+    let usdaDone = false;
+
+    const checkAllDone = () => {
+      if (offDone && usdaDone && !cancelled) {
+        accumulated = accumulated.slice(0, 30);
+        setCachedSearch(q, accumulated);
+        onProgress(accumulated, "done", true);
+      }
+    };
+
     searchEdgeOFF(q).then(offResults => {
       if (cancelled) return;
       accumulated = dedup(accumulated, offResults);
+      offDone = true;
       onProgress(accumulated, "off", false);
+      checkAllDone();
+    });
 
-      // Phase 3: USDA
-      searchEdgeUSDA(q).then(usdaResults => {
-        if (cancelled) return;
-        accumulated = dedup(accumulated, usdaResults).slice(0, 30);
-        setCachedSearch(q, accumulated);
-        onProgress(accumulated, "done", true);
-      });
+    searchEdgeUSDA(q).then(usdaResults => {
+      if (cancelled) return;
+      accumulated = dedup(accumulated, usdaResults);
+      usdaDone = true;
+      if (!offDone) onProgress(accumulated, "usda" as SearchPhase, false);
+      checkAllDone();
     });
   });
 
