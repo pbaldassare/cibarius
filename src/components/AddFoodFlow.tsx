@@ -992,7 +992,7 @@ const AddFoodFlow = ({
           if (invErr) throw invErr;
         }
 
-        toast({ title: `Aggiunto a ${selectedMealType}! ✓` });
+        toast({ title: `Aggiunto a ${selectedMealType || preselectedMealType}! ✓` });
 
       } else if (context === "recipe") {
         if (!contextId) throw new Error("recipe_id mancante");
