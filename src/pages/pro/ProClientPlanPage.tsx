@@ -509,8 +509,39 @@ const ProClientPlanPage = () => {
                 <div>
                   <label className="text-xs text-muted-foreground">Grassi (g)</label>
                   <Input type="number" value={fatsDay} onChange={(e) => setFatsDay(e.target.value)} />
-                </div>
+               </div>
               </div>
+
+              {/* Advanced macros toggle */}
+              <button
+                type="button"
+                onClick={() => setShowAdvancedMacros(!showAdvancedMacros)}
+                className="flex items-center gap-1.5 text-xs font-medium text-primary pt-1"
+              >
+                <ChevronRight className={`h-3.5 w-3.5 transition-transform ${showAdvancedMacros ? "rotate-90" : ""}`} />
+                Macro avanzati (opzionali)
+              </button>
+
+              {showAdvancedMacros && (
+                <div className="grid grid-cols-2 gap-2 rounded-lg bg-secondary/30 p-3">
+                  <div>
+                    <label className="text-xs text-muted-foreground">Zuccheri (g)</label>
+                    <Input type="number" value={sugarsDay} onChange={(e) => setSugarsDay(e.target.value)} placeholder="—" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Fibre (g)</label>
+                    <Input type="number" value={fiberDay} onChange={(e) => setFiberDay(e.target.value)} placeholder="—" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Grassi saturi (g)</label>
+                    <Input type="number" value={satFatsDay} onChange={(e) => setSatFatsDay(e.target.value)} placeholder="—" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Grassi insaturi (g)</label>
+                    <Input type="number" value={unsatFatsDay} onChange={(e) => setUnsatFatsDay(e.target.value)} placeholder="—" />
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
