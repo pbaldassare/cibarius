@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useRole } from "@/hooks/useRole";
 import { useToast } from "@/hooks/use-toast";
 import { Check, Crown, Loader2, Shield, Sparkles, Store, Zap } from "lucide-react";
 
@@ -24,6 +25,7 @@ interface Plan {
 
 const SubscriptionPage = () => {
   const { user } = useAuth();
+  const { role } = useRole();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
@@ -31,7 +33,16 @@ const SubscriptionPage = () => {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);
   const [couponCode, setCouponCode] = useState("");
-  const [activeTab, setActiveTab] = useState<"user_plus" | "restaurant">("user_plus");
+
+  // Determine which tab to show based on role
+  const isRestaurant = role === "restaurant_owner";
+  const defaultTab = isRestaurant ? "restaurant" : "user_plus";
+  const [activeTab, setActiveTab] = useState<"user_plus" | "restaurant">(defaultTab);
+
+  // Sync tab when role loads
+  useEffect(() => {
+    if (role) setActiveTab(isRestaurant ? "restaurant" : "user_plus");
+  }, [role, isRestaurant]);
 
   const { subscription: userPlusSub } = useSubscription("user_plus");
   const { subscription: restaurantSub } = useSubscription("restaurant");
@@ -129,31 +140,33 @@ const SubscriptionPage = () => {
           <p className="text-sm text-muted-foreground">Scegli il piano perfetto per te</p>
         </div>
 
-        {/* Tab selector */}
-        <div className="flex bg-muted rounded-xl p-1 gap-1">
-          <button
-            onClick={() => setActiveTab("user_plus")}
-            className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-              activeTab === "user_plus"
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground"
-            }`}
-          >
-            <Sparkles className="h-4 w-4 inline mr-1.5" />
-            Utente Plus
-          </button>
-          <button
-            onClick={() => setActiveTab("restaurant")}
-            className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-              activeTab === "restaurant"
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground"
-            }`}
-          >
-            <Store className="h-4 w-4 inline mr-1.5" />
-            Ristorante
-          </button>
-        </div>
+        {/* Tab selector — only show if admin (can see both) */}
+        {role === "admin" && (
+          <div className="flex bg-muted rounded-xl p-1 gap-1">
+            <button
+              onClick={() => setActiveTab("user_plus")}
+              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                activeTab === "user_plus"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground"
+              }`}
+            >
+              <Sparkles className="h-4 w-4 inline mr-1.5" />
+              Utente Plus
+            </button>
+            <button
+              onClick={() => setActiveTab("restaurant")}
+              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                activeTab === "restaurant"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground"
+              }`}
+            >
+              <Store className="h-4 w-4 inline mr-1.5" />
+              Ristorante
+            </button>
+          </div>
+        )}
 
         {/* Active sub banner */}
         {activeSub && ["active", "trial"].includes(activeSub.status) && (
