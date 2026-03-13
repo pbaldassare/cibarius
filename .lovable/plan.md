@@ -1,38 +1,37 @@
 
 
-## Problema Identificato
+# Piano: Popolare 300 traduzioni + Prompt IA preciso + Logica DB-first
 
-Dai log della edge function, il hook riceve payload come `{"type": "signup"}` invece di `{"user": {...}, "email_data": {...}}`. Questo perché:
+## Stato attuale
+- `ingredient_translation` ha solo 23 righe (il seed iniziale)
+- L'edge function `analyze-meal-photo` usa un prompt generico e non ha logica "dishes cache first"
 
-1. **Manca la verifica del webhook** — Supabase invia i payload con firma crittografica che va verificata usando `standardwebhooks`. Il codice attuale usa `req.json()` direttamente, ma il payload va letto come testo e verificato con la libreria webhook.
-2. **Manca il secret `SEND_EMAIL_HOOK_SECRET`** — Quando hai salvato l'hook nella dashboard, Supabase ha generato un secret (webhook secret). Questo va configurato come secret della edge function.
+## Cosa fare
 
-## Piano di Fix
+### 1. Inserire ~260 nuove traduzioni in `ingredient_translation`
 
-### 1. Ottenere il webhook secret
-- Nella dashboard Supabase → Authentication → Hooks → Send Email, c'è un secret generato (formato `v1,whsec_...`). Serve salvarlo come secret `SEND_EMAIL_HOOK_SECRET`.
+Useremo una migrazione SQL con `INSERT ... ON CONFLICT DO NOTHING` per aggiungere tutte le righe del CSV fornito senza duplicare quelle gia' presenti. La tabella ha `name_it` UNIQUE, quindi i conflitti vengono gestiti automaticamente.
 
-### 2. Aggiornare la edge function `auth-email-hook/index.ts`
-- Importare `Webhook` da `standardwebhooks`
-- Leggere il payload come testo (`req.text()`) invece di JSON
-- Verificare la firma con `wh.verify(payload, headers)`
-- Estrarre `user` e `email_data` dal payload verificato
+### 2. Aggiornare il prompt IA nell'edge function
 
-```text
-Flusso attuale (broken):
-  req.json() → payload.user (undefined) → errore
+Sostituire il `systemPrompt` attuale (generico) con il prompt dettagliato fornito dall'utente, che include:
+- Regole per pizza (base, salsa, mozzarella, olio, extra visibili)
+- Regole per pasta (tipo pasta, condimento, formaggio)
+- Regole per risotto (riso, soffritto, brodo, burro/parmigiano, ingrediente principale)
+- Output JSON obbligatorio con `name_it` e `notes`
 
-Flusso corretto:
-  req.text() → wh.verify(text, headers) → { user, email_data } → send email
-```
+### 3. Aggiungere logica DB-first (dishes cache)
 
-### 3. Re-deploy della edge function
+Prima di chiamare l'IA, la funzione controllera' se un piatto simile esiste gia' in `dishes` + `dish_ingredients`:
+1. Se trovato → carica ingredienti dalla cache, calcola macro, restituisci subito (NO IA, NO USDA)
+2. Se non trovato → chiama IA vision → arricchisci con USDA → salva in `dishes`/`dish_ingredients` per le prossime volte
 
-### Dettagli Tecnici
+Questo richiede una modifica strutturale all'handler principale dell'edge function, aggiungendo un blocco di cache lookup prima della chiamata AI e un blocco di cache write dopo l'analisi.
 
-Modifiche al file `supabase/functions/auth-email-hook/index.ts`:
-- Aggiungere import: `import { Webhook } from "https://esm.sh/standardwebhooks@1.0.0"`
-- Sostituire la lettura del payload con verifica webhook
-- Il secret `SEND_EMAIL_HOOK_SECRET` va letto con `Deno.env.get("SEND_EMAIL_HOOK_SECRET")`
-- Rimuovere il prefisso `v1,whsec_` dal secret prima di passarlo a `new Webhook()`
+## File coinvolti
+
+| File | Azione |
+|------|--------|
+| Migrazione SQL | INSERT ~260 righe in `ingredient_translation` |
+| `supabase/functions/analyze-meal-photo/index.ts` | Nuovo prompt + logica dishes cache |
 

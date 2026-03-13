@@ -1,3 +1,5 @@
+import { Webhook } from "https://esm.sh/standardwebhooks@1.0.0";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -15,6 +17,10 @@ const TEXT_MUTED = "#6B7280";
 const FROM = "Cibarius <noreply@cibarius.online>";
 
 const SITE_URL = "https://simple-blue-frame.lovable.app";
+
+// Function to construct base HTML email template
+// Function to construct base HTML email template
+// Function to construct base HTML email template
 
 function baseHtml(title: string, body: string): string {
   return `<!DOCTYPE html>
@@ -162,15 +168,37 @@ Deno.serve(async (req) => {
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     if (!RESEND_API_KEY) throw new Error("RESEND_API_KEY not configured");
 
-    const payload = await req.json();
-    console.log("Auth email hook received:", JSON.stringify(payload, null, 2));
+    const HOOK_SECRET = Deno.env.get("SEND_EMAIL_HOOK_SECRET");
+    if (!HOOK_SECRET) throw new Error("SEND_EMAIL_HOOK_SECRET not configured");
 
-    // Supabase Auth Hook payload
+    // Read raw payload for signature verification
+    const payloadText = await req.text();
+    console.log("Raw payload received, length:", payloadText.length);
+
+    // Verify webhook signature
+    // The secret from Supabase dashboard has prefix "v1,whsec_" - we need just the base64 part
+    const secretPart = HOOK_SECRET.startsWith("v1,whsec_")
+      ? HOOK_SECRET.replace("v1,whsec_", "")
+      : HOOK_SECRET;
+
+    const wh = new Webhook(`whsec_${secretPart}`);
+
+    const headers = {
+      "webhook-id": req.headers.get("webhook-id") || "",
+      "webhook-timestamp": req.headers.get("webhook-timestamp") || "",
+      "webhook-signature": req.headers.get("webhook-signature") || "",
+    };
+
+    // deno-lint-ignore no-explicit-any
+    const payload = wh.verify(payloadText, headers) as any;
+    console.log("Webhook verified successfully, type:", payload.type);
+
+    // Extract user and email_data from verified payload
     const user = payload.user;
     const emailData = payload.email_data;
 
     if (!user || !emailData) {
-      throw new Error("Invalid auth hook payload");
+      throw new Error("Invalid auth hook payload - missing user or email_data");
     }
 
     const email = user.email;
@@ -178,6 +206,8 @@ Deno.serve(async (req) => {
     const tokenHash = emailData.token_hash;
     const emailActionType = emailData.email_action_type;
     const redirectTo = emailData.redirect_to;
+
+    console.log(`Processing email: type=${emailActionType}, to=${email}`);
 
     let emailContent: EmailResult;
 
@@ -203,7 +233,6 @@ Deno.serve(async (req) => {
         break;
       }
       default: {
-        // For unknown types, send a generic confirmation
         const confirmUrl = buildConfirmUrl(tokenHash, emailActionType, redirectTo);
         emailContent = signupEmail(name, confirmUrl);
         break;
@@ -220,7 +249,6 @@ Deno.serve(async (req) => {
     });
   } catch (error) {
     console.error("auth-email-hook error:", error);
-    // Return error - Supabase will fall back to default email
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
