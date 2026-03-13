@@ -155,22 +155,33 @@ const ProTemplateEditorPage = () => {
 
         // Load weekly data from JSON
         const wd = (tmpl as any).weekly_data;
-        if (wd && Array.isArray(wd) && wd.length > 0) {
-          setWeeks(wd.map((w: any, idx: number) => ({
+        const weeksArr = wd?.weeks ?? (Array.isArray(wd) ? wd : null);
+        if (weeksArr && Array.isArray(weeksArr) && weeksArr.length > 0) {
+          setWeeks(weeksArr.map((w: any, idx: number) => ({
             week_number: w.week_number ?? idx + 1,
             week_title: w.week_title ?? `Settimana ${idx + 1}`,
             notes: w.notes ?? "",
             days: DAYS_OF_WEEK.map((d) => {
-              const existingDay = w.days?.find((dd: any) => dd.day_of_week === d.num);
+              // Support both 0-based (from AI import) and 1-based day_of_week
+              const existingDay = w.days?.find((dd: any) => dd.day_of_week === d.num || dd.day_of_week === d.num - 1);
               if (!existingDay) return createEmptyDay(d.num);
               return {
                 day_of_week: d.num,
                 notes: existingDay.notes ?? "",
                 meals: WEEKLY_MEAL_TYPES.map((mt, mIdx) => {
-                  const existingMeal = existingDay.meals?.find((m: any) => m.meal_type === mt.key);
-                  return existingMeal
-                    ? { meal_type: mt.key, meal_text: existingMeal.meal_text ?? "", sort_order: mIdx }
-                    : { meal_type: mt.key, meal_text: "", sort_order: mIdx };
+                  // Match by meal_type; also map "spuntino" to spuntino_mattina/pomeriggio
+                  let existingMeal = existingDay.meals?.find((m: any) => m.meal_type === mt.key);
+                  if (!existingMeal && mt.key === "spuntino_mattina") {
+                    // Take the first unmatched "spuntino"
+                    const spuntinos = existingDay.meals?.filter((m: any) => m.meal_type === "spuntino") || [];
+                    existingMeal = spuntinos[0];
+                  }
+                  if (!existingMeal && mt.key === "spuntino_pomeriggio") {
+                    const spuntinos = existingDay.meals?.filter((m: any) => m.meal_type === "spuntino") || [];
+                    existingMeal = spuntinos[1];
+                  }
+                  const mealText = existingMeal?.meal_text ?? existingMeal?.text ?? "";
+                  return { meal_type: mt.key, meal_text: mealText, sort_order: mIdx };
                 }),
               };
             }),
