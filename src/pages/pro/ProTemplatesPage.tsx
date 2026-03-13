@@ -348,7 +348,7 @@ const ProTemplatesPage = () => {
       <main className="px-4 py-5 pb-28 space-y-4">
         {/* Action buttons */}
         <div className="flex gap-2">
-          <Button onClick={() => setCreateOpen(true)} className="flex-1 gap-2" size="sm">
+          <Button onClick={() => navigate("/pro/template/new")} className="flex-1 gap-2" size="sm">
             <Plus className="h-4 w-4" /> Crea template
           </Button>
           <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="flex-1 gap-2" size="sm">
