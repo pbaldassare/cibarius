@@ -254,6 +254,7 @@ export type Database = {
         Row: {
           applies_to_plan_id: string | null
           applies_to_role_type: string | null
+          assigned_to_user_id: string | null
           code: string
           created_at: string
           created_by_admin_id: string | null
@@ -270,6 +271,7 @@ export type Database = {
         Insert: {
           applies_to_plan_id?: string | null
           applies_to_role_type?: string | null
+          assigned_to_user_id?: string | null
           code: string
           created_at?: string
           created_by_admin_id?: string | null
@@ -286,6 +288,7 @@ export type Database = {
         Update: {
           applies_to_plan_id?: string | null
           applies_to_role_type?: string | null
+          assigned_to_user_id?: string | null
           code?: string
           created_at?: string
           created_by_admin_id?: string | null
