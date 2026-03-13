@@ -1773,25 +1773,76 @@ const AddFoodFlow = ({
 
                 {/* ── Product hero card ── */}
                 <div className="rounded-2xl bg-card shadow-card p-4">
-                  <div className="flex gap-3 items-center">
-                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-secondary overflow-hidden">
-                      {imageUrl ? (
-                        <img src={imageUrl} alt="" className="h-full w-full object-cover" />
-                      ) : (
-                        <Package className="h-7 w-7 text-muted-foreground" />
+                  {method === "manual" ? (
+                    <div className="space-y-2">
+                      <div className="relative">
+                        <Input
+                          autoFocus
+                          placeholder="Nome prodotto *"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          className="text-base font-semibold"
+                        />
+                      </div>
+                      {/* Autocomplete suggestions */}
+                      {manualSuggestions.length > 0 && (
+                        <div className="rounded-xl border border-border bg-background max-h-48 overflow-y-auto">
+                          {manualSuggestions.map((s) => (
+                            <button
+                              key={s.id}
+                              type="button"
+                              onClick={() => {
+                                setName(s.name);
+                                setBrand(s.brand ?? "");
+                                setImageUrl(s.image_url);
+                                setCalories100g(s.calories_100g);
+                                setMacros100g(s.macros_100g as any);
+                                setServingSizeG(s.serving_size_g);
+                                setProductId(s.id);
+                                setManualSuggestions([]);
+                              }}
+                              className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-secondary/50 transition-colors border-b border-border last:border-b-0"
+                            >
+                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-secondary overflow-hidden">
+                                {s.image_url ? (
+                                  <img src={s.image_url} alt="" className="h-full w-full object-cover" />
+                                ) : (
+                                  <span className="text-sm">{getFoodEmoji(null, s.name)}</span>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-foreground truncate">{s.name}</p>
+                                {s.brand && <p className="text-[10px] text-muted-foreground">{s.brand}</p>}
+                              </div>
+                              {s.calories_100g != null && (
+                                <span className="text-[10px] font-medium text-primary shrink-0">{s.calories_100g} kcal</span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
                       )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-base font-semibold text-foreground truncate">{name || "Prodotto"}</p>
-                      {brand && <p className="text-xs text-muted-foreground truncate">{brand}</p>}
-                    </div>
-                    {computed.calories != null && (
-                      <div className="text-right shrink-0">
-                        <p className="text-xl font-bold text-primary leading-tight">{computed.calories}</p>
-                        <p className="text-[10px] text-muted-foreground">kcal</p>
+                  ) : (
+                    <div className="flex gap-3 items-center">
+                      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-secondary overflow-hidden">
+                        {imageUrl ? (
+                          <img src={imageUrl} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          <Package className="h-7 w-7 text-muted-foreground" />
+                        )}
                       </div>
-                    )}
-                  </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-base font-semibold text-foreground truncate">{name || "Prodotto"}</p>
+                        {brand && <p className="text-xs text-muted-foreground truncate">{brand}</p>}
+                      </div>
+                      {computed.calories != null && (
+                        <div className="text-right shrink-0">
+                          <p className="text-xl font-bold text-primary leading-tight">{computed.calories}</p>
+                          <p className="text-[10px] text-muted-foreground">kcal</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* ── Info: no nutrition data ── */}
