@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { deductPantryFromMeal } from "@/lib/pantry-deduction";
 import { autoMatchProduct } from "@/lib/nutrition";
+import { findSimilarProducts, type SimilarProduct } from "@/lib/product-dedup";
+import DuplicateProductDialog from "@/components/DuplicateProductDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useDebounce } from "@/hooks/useDebounce";
