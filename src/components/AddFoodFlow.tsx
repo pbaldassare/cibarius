@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { deductPantryFromMeal } from "@/lib/pantry-deduction";
 import { autoMatchProduct } from "@/lib/nutrition";
+import { findSimilarProducts, type SimilarProduct } from "@/lib/product-dedup";
+import DuplicateProductDialog from "@/components/DuplicateProductDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -158,6 +160,11 @@ const AddFoodFlow = ({
   const [manualSuggestions, setManualSuggestions] = useState<SearchProduct[]>([]);
   const debouncedName = useDebounce(name, 300);
   const [activePlanTitle, setActivePlanTitle] = useState<string>("");
+
+  // Dedup state
+  const [dedupOpen, setDedupOpen] = useState(false);
+  const [dedupResults, setDedupResults] = useState<SimilarProduct[]>([]);
+  const [skipDedup, setSkipDedup] = useState(false);
 
   // Receipt QR state
   interface ReceiptProduct { name: string; quantity: number; unit: string; price: number | null; category: string; selected: boolean; storage_type: string; expiry_date: string; }
@@ -396,6 +403,9 @@ const AddFoodFlow = ({
         setEditingChip(null);
         setReceiptProducts([]);
         setReceiptPhotoPreview(null);
+        setDedupOpen(false);
+        setDedupResults([]);
+        setSkipDedup(false);
       }, 300);
     }
   }, [open, preselectedMealType]);
@@ -874,6 +884,16 @@ const AddFoodFlow = ({
     if (context === "meal" && !selectedMealType && !preselectedMealType) {
       toast({ variant: "destructive", title: "Seleziona il tipo di pasto" });
       return;
+    }
+
+    // Dedup check: if no productId and not skipping dedup, search for similar products
+    if (!productId && !skipDedup && name.trim().length >= 3) {
+      const similar = await findSimilarProducts(name.trim(), { threshold: 0.5, limit: 5 });
+      if (similar.length > 0) {
+        setDedupResults(similar);
+        setDedupOpen(true);
+        return; // Wait for user decision
+      }
     }
 
     setSaving(true);
@@ -2288,6 +2308,34 @@ const AddFoodFlow = ({
           </div>
         </DialogContent>
       </Dialog>
+      {/* ── Duplicate Product Dialog ── */}
+      <DuplicateProductDialog
+        open={dedupOpen}
+        onOpenChange={setDedupOpen}
+        newName={name}
+        similarProducts={dedupResults}
+        onSelectExisting={(p) => {
+          setProductId(p.id);
+          setName(p.name);
+          setBrand(p.brand ?? "");
+          setImageUrl(p.image_url);
+          setCalories100g(p.calories_100g);
+          setMacros100g(p.macros_100g as any);
+          setServingSizeG(p.serving_size_g);
+          setDedupOpen(false);
+          setDedupResults([]);
+          setSkipDedup(true);
+          // Re-trigger save with the selected product
+          setTimeout(() => handleSave(), 100);
+        }}
+        onCreateNew={() => {
+          setDedupOpen(false);
+          setDedupResults([]);
+          setSkipDedup(true);
+          // Re-trigger save bypassing dedup
+          setTimeout(() => handleSave(), 100);
+        }}
+      />
     </>
   );
 };

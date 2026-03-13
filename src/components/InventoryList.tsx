@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, memo } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef, memo } from "react";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useAuth } from "@/hooks/useAuth";
 import { useRestaurant } from "@/hooks/useRestaurant";
@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Search, Package, Loader2, Flame, ScanLine, Trash2, AlertCircle, Clock, Home, Refrigerator, Snowflake } from "lucide-react";
 import { getFoodEmoji } from "@/lib/food-images";
+import { findSimilarProducts, type SimilarProduct } from "@/lib/product-dedup";
+import DuplicateProductDialog from "@/components/DuplicateProductDialog";
 import EmptyState from "@/components/EmptyState";
 import ListSkeleton from "@/components/ListSkeleton";
 
@@ -133,6 +135,12 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
   const [newCalories, setNewCalories] = useState("");
   const [adding, setAdding] = useState(false);
 
+  // Dedup state
+  const [dedupOpen, setDedupOpen] = useState(false);
+  const [dedupResults, setDedupResults] = useState<SimilarProduct[]>([]);
+  const [skipDedup, setSkipDedup] = useState(false);
+  const [dedupSelectedProduct, setDedupSelectedProduct] = useState<SimilarProduct | null>(null);
+
   useEffect(() => {
     if (externalStorageFilter) setStorageFilter(externalStorageFilter);
   }, [externalStorageFilter]);
@@ -163,6 +171,14 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
     fetchItems();
   }, [user, restaurant]);
 
+  // Auto-retry save after dedup decision
+  const formRef = useRef<HTMLFormElement>(null);
+  useEffect(() => {
+    if (skipDedup && !dedupOpen) {
+      formRef.current?.requestSubmit();
+    }
+  }, [skipDedup, dedupOpen]);
+
   const getUploadPath = () => {
     if (mode === "user" && user) return `users/${user.id}/products`;
     if (mode === "restaurant" && restaurant) return `restaurants/${restaurant.id}/products`;
@@ -179,39 +195,59 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
     if (!user) return;
     setAdding(true);
 
-    const { data: product, error: productError } = await supabase
-      .from("products")
-      .insert({
-        name: newName,
-        category: newCategory || null,
-        unit: newUnit,
-        image_url: newImageUrl,
-        data_source: "manual",
-      } as any)
-      .select()
-      .single();
-
-    if (productError || !product) {
-      toast({ variant: "destructive", title: "Errore", description: productError?.message ?? "Errore creazione prodotto" });
-      setAdding(false);
-      return;
+    // Dedup check before creating product
+    if (!skipDedup && !dedupSelectedProduct && newName.trim().length >= 3) {
+      const similar = await findSimilarProducts(newName.trim(), { threshold: 0.5, limit: 5 });
+      if (similar.length > 0) {
+        setDedupResults(similar);
+        setDedupOpen(true);
+        setAdding(false);
+        return;
+      }
     }
 
-    if (newImagePath && newImageUrl) {
-      const attachData: any = {
-        entity_type: "product",
-        entity_id: product.id,
-        file_path: newImagePath,
-        public_url: newImageUrl,
-      };
-      if (mode === "user") attachData.owner_user_id = user.id;
-      else if (restaurant) attachData.restaurant_id = restaurant.id;
+    let productId: string;
 
-      await supabase.from("attachments").insert(attachData);
+    if (dedupSelectedProduct) {
+      // Use existing product selected from dedup dialog
+      productId = dedupSelectedProduct.id;
+    } else {
+      // Create new product
+      const { data: product, error: productError } = await supabase
+        .from("products")
+        .insert({
+          name: newName,
+          category: newCategory || null,
+          unit: newUnit,
+          image_url: newImageUrl,
+          data_source: "manual",
+        } as any)
+        .select()
+        .single();
+
+      if (productError || !product) {
+        toast({ variant: "destructive", title: "Errore", description: productError?.message ?? "Errore creazione prodotto" });
+        setAdding(false);
+        return;
+      }
+      productId = product.id;
+
+      if (newImagePath && newImageUrl) {
+        const attachData: any = {
+          entity_type: "product",
+          entity_id: product.id,
+          file_path: newImagePath,
+          public_url: newImageUrl,
+        };
+        if (mode === "user") attachData.owner_user_id = user.id;
+        else if (restaurant) attachData.restaurant_id = restaurant.id;
+
+        await supabase.from("attachments").insert(attachData);
+      }
     }
 
     const insertData: any = {
-      product_id: product.id,
+      product_id: productId,
       quantity: parseFloat(newQuantity) || 1,
       unit: newUnit,
       storage_type: newStorage,
@@ -255,6 +291,8 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
     setNewNotes("");
     setNewImageUrl(null);
     setNewImagePath(null);
+    setSkipDedup(false);
+    setDedupSelectedProduct(null);
   };
 
   // ═══ Edit item handlers ═══
@@ -339,7 +377,7 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
               <DialogHeader>
                 <DialogTitle>Aggiungi prodotto</DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleAdd} className="space-y-3">
+              <form ref={formRef} onSubmit={handleAdd} className="space-y-3">
                 <div className="flex justify-center">
                   <ImageUpload
                     imageUrl={newImageUrl}
@@ -586,6 +624,24 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* ── Duplicate Product Dialog ── */}
+      <DuplicateProductDialog
+        open={dedupOpen}
+        onOpenChange={setDedupOpen}
+        newName={newName}
+        similarProducts={dedupResults}
+        onSelectExisting={(p) => {
+          setDedupSelectedProduct(p);
+          setDedupOpen(false);
+          setDedupResults([]);
+          setSkipDedup(true);
+        }}
+        onCreateNew={() => {
+          setDedupOpen(false);
+          setDedupResults([]);
+          setSkipDedup(true);
+        }}
+      />
     </div>
   );
 };
