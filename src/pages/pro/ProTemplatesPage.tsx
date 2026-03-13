@@ -471,16 +471,16 @@ const ProTemplatesPage = () => {
                   <p className="text-sm font-bold text-primary">{importPreview.kcal_day}</p>
                   <p className="text-[9px] text-muted-foreground">kcal</p>
                 </div>
-                <div className="rounded-lg bg-blue-500/10 p-2">
-                  <p className="text-sm font-bold text-blue-600">{importPreview.protein_g_day}g</p>
+                <div className="rounded-lg bg-primary/5 p-2">
+                  <p className="text-sm font-bold text-foreground">{importPreview.protein_g_day}g</p>
                   <p className="text-[9px] text-muted-foreground">prot</p>
                 </div>
-                <div className="rounded-lg bg-amber-500/10 p-2">
-                  <p className="text-sm font-bold text-amber-600">{importPreview.carbs_g_day}g</p>
+                <div className="rounded-lg bg-primary/5 p-2">
+                  <p className="text-sm font-bold text-foreground">{importPreview.carbs_g_day}g</p>
                   <p className="text-[9px] text-muted-foreground">carbo</p>
                 </div>
-                <div className="rounded-lg bg-red-500/10 p-2">
-                  <p className="text-sm font-bold text-red-600">{importPreview.fats_g_day}g</p>
+                <div className="rounded-lg bg-primary/5 p-2">
+                  <p className="text-sm font-bold text-foreground">{importPreview.fats_g_day}g</p>
                   <p className="text-[9px] text-muted-foreground">grassi</p>
                 </div>
               </div>
@@ -493,6 +493,21 @@ const ProTemplatesPage = () => {
                       <span className="text-muted-foreground">{m.kcal_target} kcal · P{m.protein_g} C{m.carbs_g} G{m.fats_g}</span>
                     </div>
                   ))}
+                </div>
+              )}
+              {importPreview.weekly_data?.weeks?.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-foreground">
+                    📅 Piano settimanale estratto: {importPreview.weekly_data.weeks.length} settimana/e,{" "}
+                    {importPreview.weekly_data.weeks.reduce((sum: number, w: any) => sum + (w.days?.length || 0), 0)} giorni
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">Potrai modificare i dettagli nell'editor dopo l'importazione.</p>
+                </div>
+              )}
+              {importPreview.notes && (
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-foreground">Note:</p>
+                  <p className="text-[10px] text-muted-foreground bg-secondary/50 rounded-lg px-3 py-2 whitespace-pre-wrap">{importPreview.notes}</p>
                 </div>
               )}
             </div>
