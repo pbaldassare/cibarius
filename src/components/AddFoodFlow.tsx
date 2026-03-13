@@ -1030,7 +1030,8 @@ const AddFoodFlow = ({
   const goBack = () => {
     if (step === "summary") setStep(method === "manual" ? "method" : method === "photo_ai" ? "photo_ai" : method === "scan" ? "scan" : "search");
     else if (step === "recipes") setStep("method");
-    else if (step === "receipt") setStep("scan");
+    else if (step === "receipt") setStep("receipt_qr");
+    else if (step === "receipt_qr") setStep("method");
     else if (step === "search" || step === "scan" || step === "photo_ai") setStep("method");
     else onOpenChange(false);
   };
