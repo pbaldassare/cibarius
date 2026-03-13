@@ -13,8 +13,9 @@ import { useToast } from "@/hooks/use-toast";
 import { loadTemplates, getNutritionPer100g } from "@/lib/nutrition";
 import {
   Loader2, Wand2, Send, Package, Flame, AlertTriangle,
-  RefreshCw, ShoppingCart, ChefHat, Trophy, Target
+  RefreshCw, ShoppingCart, ChefHat, Trophy, Target, PenLine, Sparkles
 } from "lucide-react";
+import ProRecipeEditor, { type RecipeData } from "@/components/ProRecipeEditor";
 
 const MEAL_LABELS: Record<string, string> = {
   colazione: "☀️ Colazione",
