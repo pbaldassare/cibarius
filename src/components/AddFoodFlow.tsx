@@ -883,6 +883,16 @@ const AddFoodFlow = ({
       return;
     }
 
+    // Dedup check: if no productId and not skipping dedup, search for similar products
+    if (!productId && !skipDedup && name.trim().length >= 3) {
+      const similar = await findSimilarProducts(name.trim(), { threshold: 0.5, limit: 5 });
+      if (similar.length > 0) {
+        setDedupResults(similar);
+        setDedupOpen(true);
+        return; // Wait for user decision
+      }
+    }
+
     setSaving(true);
 
     try {
