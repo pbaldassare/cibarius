@@ -1752,6 +1752,165 @@ export type Database = {
         }
         Relationships: []
       }
+      nutrition_plan_days: {
+        Row: {
+          created_at: string
+          day_of_week: number
+          id: string
+          notes: string | null
+          week_id: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week: number
+          id?: string
+          notes?: string | null
+          week_id: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number
+          id?: string
+          notes?: string | null
+          week_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nutrition_plan_days_week_id_fkey"
+            columns: ["week_id"]
+            isOneToOne: false
+            referencedRelation: "nutrition_plan_weeks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nutrition_plan_meals: {
+        Row: {
+          created_at: string
+          day_id: string
+          id: string
+          meal_text: string
+          meal_type: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          day_id: string
+          id?: string
+          meal_text?: string
+          meal_type: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          day_id?: string
+          id?: string
+          meal_text?: string
+          meal_type?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nutrition_plan_meals_day_id_fkey"
+            columns: ["day_id"]
+            isOneToOne: false
+            referencedRelation: "nutrition_plan_days"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nutrition_plan_weeks: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          plan_id: string
+          week_number: number
+          week_title: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          plan_id: string
+          week_number: number
+          week_title?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          plan_id?: string
+          week_number?: number
+          week_title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nutrition_plan_weeks_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "nutrition_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      nutrition_plans: {
+        Row: {
+          calories_target: number | null
+          carbs_target: number | null
+          client_user_id: string
+          created_at: string
+          end_date: string | null
+          fat_target: number | null
+          id: string
+          is_active: boolean
+          notes_general: string | null
+          nutritionist_user_id: string
+          plan_mode: string
+          protein_target: number | null
+          start_date: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          calories_target?: number | null
+          carbs_target?: number | null
+          client_user_id: string
+          created_at?: string
+          end_date?: string | null
+          fat_target?: number | null
+          id?: string
+          is_active?: boolean
+          notes_general?: string | null
+          nutritionist_user_id: string
+          plan_mode?: string
+          protein_target?: number | null
+          start_date?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          calories_target?: number | null
+          carbs_target?: number | null
+          client_user_id?: string
+          created_at?: string
+          end_date?: string | null
+          fat_target?: number | null
+          id?: string
+          is_active?: boolean
+          notes_general?: string | null
+          nutritionist_user_id?: string
+          plan_mode?: string
+          protein_target?: number | null
+          start_date?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       nutrition_targets: {
         Row: {
           carbs_g: number | null
@@ -3326,6 +3485,9 @@ export type Database = {
       }
       owns_meal: { Args: { _meal_id: string }; Returns: boolean }
       owns_meal_day: { Args: { _meal_day_id: string }; Returns: boolean }
+      owns_np_day: { Args: { _day_id: string }; Returns: boolean }
+      owns_np_week: { Args: { _week_id: string }; Returns: boolean }
+      owns_nutrition_plan: { Args: { _plan_id: string }; Returns: boolean }
       owns_recipe_restaurant: { Args: { _recipe_id: string }; Returns: boolean }
       owns_supplier: { Args: { _supplier_id: string }; Returns: boolean }
     }
