@@ -2127,7 +2127,7 @@ const AddFoodFlow = ({
                       {isLowConfidence("nutrition") && (
                         <Badge className="bg-amber-100 text-amber-700 border-0 text-[10px]">⚠️ Valori incerti</Badge>
                       )}
-                      <p className="text-xs font-semibold text-foreground">Calorie / 100g</p>
+                      <p className="text-xs font-semibold text-foreground">Calorie / 100g <span className="text-muted-foreground font-normal">(opzionale)</span></p>
                       <Input type="number" placeholder="kcal / 100g" value={calories100g ?? ""}
                         onChange={(e) => setCalories100g(e.target.value ? parseFloat(e.target.value) : null)}
                         className="h-8 text-sm" />
@@ -2148,6 +2148,15 @@ const AddFoodFlow = ({
                             onChange={(e) => setMacros100g((prev) => ({ protein: prev?.protein ?? 0, carbs: prev?.carbs ?? 0, fats: parseFloat(e.target.value) || 0 }))} />
                         </div>
                       </div>
+                      {/* Warning when no macro in meal context */}
+                      {context === "meal" && calories100g == null && (
+                        <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 p-2 mt-2">
+                          <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                          <p className="text-[11px] text-amber-700">
+                            Questo prodotto non ha valori nutrizionali. Non verrà conteggiato nei macro del pasto.
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -2163,7 +2172,7 @@ const AddFoodFlow = ({
                   saved ? "bg-emerald-500 hover:bg-emerald-500 scale-95" : ""
                 }`}
                 onClick={handleSave}
-                disabled={saving || !name.trim() || saved || (calories100g == null && !defaultRestaurantId)}
+                disabled={saving || !name.trim() || saved}
               >
                 {saved ? (
                   <>
