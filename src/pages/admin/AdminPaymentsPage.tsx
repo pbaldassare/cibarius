@@ -16,7 +16,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import {
   Loader2, Store, Sparkles, Users, Clock, CheckCircle, XCircle,
-  CreditCard, Gift, Settings, TrendingUp, Plus, Shield, Ticket, Copy, Search,
+  CreditCard, Gift, Settings, TrendingUp, Plus, Shield, Ticket, Copy, Search, Trash2,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -247,6 +247,21 @@ const AdminPaymentsPage = () => {
   const handleToggleCoupon = async (couponId: string, currentActive: boolean) => {
     await supabase.from("custom_coupons").update({ is_active: !currentActive }).eq("id", couponId);
     fetchAll();
+  };
+
+  const handleDeleteCoupon = async (couponId: string, code: string) => {
+    if (!confirm(`Eliminare il coupon ${code}?`)) return;
+    const { error } = await supabase.from("custom_coupons").delete().eq("id", couponId);
+    if (error) {
+      toast({ title: "Errore", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Coupon eliminato 🗑️" });
+      await supabase.from("admin_audit_log").insert({
+        admin_id: user!.id, action: "delete_coupon", entity_type: "custom_coupons",
+        entity_id: couponId, details: { code },
+      });
+      fetchAll();
+    }
   };
 
   const handleToggleNutriCoupon = async (id: string, currentActive: boolean) => {
@@ -534,9 +549,14 @@ const AdminPaymentsPage = () => {
                           <Switch checked={c.is_active} onCheckedChange={() => handleToggleCoupon(c.id, c.is_active)} />
                         </TableCell>
                         <TableCell>
-                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => copyToClipboard(c.code)}>
-                            <Copy className="h-3.5 w-3.5" />
-                          </Button>
+                          <div className="flex gap-1">
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => copyToClipboard(c.code)}>
+                              <Copy className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:text-destructive" onClick={() => handleDeleteCoupon(c.id, c.code)}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
