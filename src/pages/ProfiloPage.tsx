@@ -7,7 +7,7 @@ import { useRole } from "@/hooks/useRole";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ChevronRight, Settings, Heart, Bell, LogOut, UserX, Stethoscope, Sparkles,
-  ClipboardList, MessageSquareWarning, Trash2, Camera, MapPin, GraduationCap,
+  ClipboardList, MessageSquareWarning, MessageCircle, Trash2, Camera, MapPin, GraduationCap,
   Globe, Instagram, Facebook, Linkedin, Briefcase, Monitor, Building2, Eye, EyeOff, Pencil, X,
   Download,
 } from "lucide-react";
@@ -99,6 +99,7 @@ const ProfiloPage = () => {
   // Email preferences
   const [emailPrefs, setEmailPrefs] = useState({ receive_verification: true, receive_password_reset: true, receive_expiry_alerts: true });
   const [savingEmailPrefs, setSavingEmailPrefs] = useState(false);
+  const [unreadMsgCount, setUnreadMsgCount] = useState(0);
 
   // PWA install
   const { canInstall, isInstalled: isPwaInstalled, isIos, install: handlePwaInstall } = usePwaInstall();
@@ -113,6 +114,11 @@ const ProfiloPage = () => {
     // Load email preferences
     supabase.from("email_preferences").select("*").eq("user_id", user.id).single().then(({ data }) => {
       if (data) setEmailPrefs({ receive_verification: data.receive_verification, receive_password_reset: data.receive_password_reset, receive_expiry_alerts: data.receive_expiry_alerts });
+    });
+
+    // Load unread message count
+    supabase.from("messages").select("id", { count: "exact", head: true }).eq("receiver_id", user.id).is("read_at", null).then(({ count }) => {
+      setUnreadMsgCount(count ?? 0);
     });
 
     // Load professional's own profile
@@ -552,12 +558,13 @@ const ProfiloPage = () => {
         {/* ═══ Menu items ═══ */}
         <div className="rounded-[18px] bg-card shadow-card overflow-hidden">
           {(role === "professional" ? [
-            { icon: Sparkles, label: "Abbonamenti clienti", path: "/pro/clients" },
+            { icon: Sparkles, label: "Abbonamenti clienti", path: "/pro/clients", badge: 0 },
           ] : [
-            { icon: Heart, label: "Preferiti", path: undefined },
-            { icon: Sparkles, label: "Abbonamento Premium", path: "/subscription" },
-            { icon: Bell, label: "Promemoria scadenze", path: "/reminders" },
-            { icon: Bell, label: "Promemoria pasti", path: "/meal-reminders" },
+            ...(proLink ? [{ icon: MessageCircle, label: "Messaggi", path: "/messages", badge: unreadMsgCount }] : []),
+            { icon: Heart, label: "Preferiti", path: undefined, badge: 0 },
+            { icon: Sparkles, label: "Abbonamento Premium", path: "/subscription", badge: 0 },
+            { icon: Bell, label: "Promemoria scadenze", path: "/reminders", badge: 0 },
+            { icon: Bell, label: "Promemoria pasti", path: "/meal-reminders", badge: 0 },
           ]).map((item, i) => (
             <button
               key={item.label}
@@ -568,6 +575,11 @@ const ProfiloPage = () => {
             >
               <item.icon size={20} className="text-primary shrink-0" />
               <span className="flex-1 text-[15px] font-medium text-foreground">{item.label}</span>
+              {item.badge > 0 && (
+                <Badge variant="destructive" className="text-[10px] px-1.5 py-0 min-w-[20px] h-5 flex items-center justify-center">
+                  {item.badge > 9 ? "9+" : item.badge}
+                </Badge>
+              )}
               <ChevronRight size={16} className="text-muted-foreground" />
             </button>
           ))}
