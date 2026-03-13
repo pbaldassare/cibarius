@@ -324,6 +324,19 @@ const ProTemplateEditorPage = () => {
         );
       }
 
+      // Save meal text suggestions for autocomplete
+      const allMealTexts = weeks.flatMap((w) =>
+        w.days.flatMap((d) =>
+          d.meals.filter((m) => m.meal_text.trim()).map((m) => ({
+            meal_type: m.meal_type,
+            meal_text: m.meal_text.trim(),
+          }))
+        )
+      );
+      if (allMealTexts.length > 0) {
+        await saveMealTextSuggestions(user.id, allMealTexts);
+      }
+
       toast({ title: isEdit ? "Template aggiornato! ✅" : "Template creato! 📋" });
       navigate("/pro/templates");
     } catch (err: any) {
