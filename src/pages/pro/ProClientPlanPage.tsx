@@ -28,6 +28,9 @@ interface MealTarget {
   carbs_g: number;
   fats_g: number;
   sugars_g: number;
+  fiber_g: number;
+  saturated_fats_g: number;
+  unsaturated_fats_g: number;
 }
 
 interface PlanItem {
