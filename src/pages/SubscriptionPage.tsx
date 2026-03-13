@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useRole } from "@/hooks/useRole";
 import { useToast } from "@/hooks/use-toast";
 import { Check, Crown, Loader2, Shield, Sparkles, Store, Zap } from "lucide-react";
 
@@ -24,6 +25,7 @@ interface Plan {
 
 const SubscriptionPage = () => {
   const { user } = useAuth();
+  const { role } = useRole();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
@@ -31,7 +33,16 @@ const SubscriptionPage = () => {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);
   const [couponCode, setCouponCode] = useState("");
-  const [activeTab, setActiveTab] = useState<"user_plus" | "restaurant">("user_plus");
+
+  // Determine which tab to show based on role
+  const isRestaurant = role === "restaurant_owner";
+  const defaultTab = isRestaurant ? "restaurant" : "user_plus";
+  const [activeTab, setActiveTab] = useState<"user_plus" | "restaurant">(defaultTab);
+
+  // Sync tab when role loads
+  useEffect(() => {
+    if (role) setActiveTab(isRestaurant ? "restaurant" : "user_plus");
+  }, [role, isRestaurant]);
 
   const { subscription: userPlusSub } = useSubscription("user_plus");
   const { subscription: restaurantSub } = useSubscription("restaurant");
