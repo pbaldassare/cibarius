@@ -178,14 +178,16 @@ const ProfiloPage = () => {
 
       if (link) {
         setProLink(link);
-        const [profileRes, planRes, proProfRes] = await Promise.all([
+        const [profileRes, planRes, proProfRes, couponRes] = await Promise.all([
           supabase.from("profiles").select("full_name, email").eq("id", link.professional_id).single(),
           supabase.from("diet_plans").select("id").eq("client_user_id", user.id).eq("is_active", true).maybeSingle(),
           supabase.from("professional_profiles").select("*").eq("user_id", link.professional_id).maybeSingle(),
+          supabase.from("nutritionist_coupons").select("coupon_code, client_discount_percent").eq("nutritionist_user_id", link.professional_id).eq("is_active", true).limit(1).maybeSingle(),
         ]);
         setProProfile(profileRes.data);
         setHasPlan(!!planRes.data);
         setProProfessionalProfile(proProfRes.data as any);
+        setProCoupon(couponRes.data as any);
       }
       setLoadingPro(false);
     };
