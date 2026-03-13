@@ -450,6 +450,9 @@ const Index = () => {
 
         <MealReminderBanner />
 
+        {/* Weight goal progress for Plus users */}
+        <WeightGoalHomeBar />
+
         {/* ═══ 1 — ATTENZIONE OGGI (Scadenze) ═══ */}
         <section className="space-y-2.5">
           <SectionHeader title="⚠️ Attenzione oggi" action={counts.total > 0 ? `Vedi tutti (${counts.total})` : undefined} onAction={() => navigate("/expiry")} />

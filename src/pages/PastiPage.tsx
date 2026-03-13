@@ -290,6 +290,7 @@ const PastiPage = () => {
       <MobileHeader title="Pasti" />
       <main className="space-y-4 px-4 py-5 pb-28">
         <div className="flex items-center justify-between">
+          <WeightGoalBadge />
           <div>
             <h2 className="text-lg font-semibold text-foreground">Oggi</h2>
             {meals.length > 0 && (
