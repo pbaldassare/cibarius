@@ -5,7 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Check, X, Loader2, UserPlus, Bell } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Check, X, Loader2, UserPlus, Bell, MessageCircle } from "lucide-react";
 
 interface LinkRequest {
   id: string;
@@ -19,6 +20,7 @@ interface LinkRequest {
 export default function ProLinkRequests({ onApproved }: { onApproved?: () => void }) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [requests, setRequests] = useState<LinkRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState<string | null>(null);
@@ -180,6 +182,14 @@ export default function ProLinkRequests({ onApproved }: { onApproved?: () => voi
                   disabled={acting === req.id}
                 >
                   {acting === req.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs"
+                  onClick={() => navigate(`/pro/clients/${req.user_id}/messages`)}
+                >
+                  <MessageCircle className="h-3 w-3" />
                 </Button>
                 <Button
                   size="sm"
