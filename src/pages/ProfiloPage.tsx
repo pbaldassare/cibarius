@@ -58,6 +58,8 @@ const ProfiloPage = () => {
   const [proProfessionalProfile, setProProfessionalProfile] = useState<ProProfileData | null>(null);
   const [loadingPro, setLoadingPro] = useState(true);
   const [hasPlan, setHasPlan] = useState(false);
+  const [proCoupon, setProCoupon] = useState<{ coupon_code: string; client_discount_percent: number } | null>(null);
+  const { isActive: hasPlus } = useSubscription("user_plus");
 
   // Professional's own profile (when role=professional)
   const [myProProfile, setMyProProfile] = useState<ProProfileData | null>(null);
