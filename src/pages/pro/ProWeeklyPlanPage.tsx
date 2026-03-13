@@ -492,10 +492,11 @@ const ProWeeklyPlanPage = () => {
                                     <label className="text-[11px] font-medium text-muted-foreground mb-1 flex items-center gap-1">
                                       <span>{mealInfo?.emoji}</span> {mealInfo?.label?.replace(/^[^\s]+\s/, "") || meal.meal_type}
                                     </label>
-                                    <Textarea
+                                    <MealTextAutocomplete
                                       placeholder={meal.meal_type === "extra" ? "Note aggiuntive per il giorno..." : "es: latte 100g + biscotti senza zucchero 50g"}
                                       value={meal.meal_text}
-                                      onChange={(e) => updateMealText(weekIdx, dayIdx, mealIdx, e.target.value)}
+                                      onChange={(val) => updateMealText(weekIdx, dayIdx, mealIdx, val)}
+                                      mealType={meal.meal_type}
                                       className="min-h-[36px] text-xs resize-none"
                                     />
                                   </div>
