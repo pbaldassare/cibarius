@@ -5,11 +5,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useRole } from "@/hooks/useRole";
 import { supabase } from "@/integrations/supabase/client";
+import { useSubscription } from "@/hooks/useSubscription";
 import {
   ChevronRight, Settings, Heart, Bell, LogOut, UserX, Stethoscope, Sparkles,
   ClipboardList, MessageSquareWarning, MessageCircle, Trash2, Camera, MapPin, GraduationCap,
   Globe, Instagram, Facebook, Linkedin, Briefcase, Monitor, Building2, Eye, EyeOff, Pencil, X,
-  Download,
+  Download, Crown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -57,6 +58,8 @@ const ProfiloPage = () => {
   const [proProfessionalProfile, setProProfessionalProfile] = useState<ProProfileData | null>(null);
   const [loadingPro, setLoadingPro] = useState(true);
   const [hasPlan, setHasPlan] = useState(false);
+  const [proCoupon, setProCoupon] = useState<{ coupon_code: string; client_discount_percent: number } | null>(null);
+  const { isActive: hasPlus } = useSubscription("user_plus");
 
   // Professional's own profile (when role=professional)
   const [myProProfile, setMyProProfile] = useState<ProProfileData | null>(null);
@@ -175,14 +178,16 @@ const ProfiloPage = () => {
 
       if (link) {
         setProLink(link);
-        const [profileRes, planRes, proProfRes] = await Promise.all([
+        const [profileRes, planRes, proProfRes, couponRes] = await Promise.all([
           supabase.from("profiles").select("full_name, email").eq("id", link.professional_id).single(),
           supabase.from("diet_plans").select("id").eq("client_user_id", user.id).eq("is_active", true).maybeSingle(),
           supabase.from("professional_profiles").select("*").eq("user_id", link.professional_id).maybeSingle(),
+          supabase.from("nutritionist_coupons").select("coupon_code, client_discount_percent").eq("nutritionist_user_id", link.professional_id).eq("is_active", true).limit(1).maybeSingle(),
         ]);
         setProProfile(profileRes.data);
         setHasPlan(!!planRes.data);
         setProProfessionalProfile(proProfRes.data as any);
+        setProCoupon(couponRes.data as any);
       }
       setLoadingPro(false);
     };
@@ -528,6 +533,26 @@ const ProfiloPage = () => {
                   </div>
                   <Badge className="bg-success/10 text-success border-0 text-[10px]">Attivo</Badge>
                 </button>
+
+                {/* Upsell Plus banner for free users */}
+                {!hasPlus && (
+                  <button
+                    onClick={() => navigate("/subscription", { state: { couponCode: proCoupon?.coupon_code } })}
+                    className="flex w-full items-center gap-3 rounded-[14px] bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20 p-3 text-left active:scale-[0.98] transition-transform"
+                  >
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 shrink-0">
+                      <Crown className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground">Passa a Plus</p>
+                      <p className="text-xs text-muted-foreground">
+                        {proCoupon ? `Sconto ${proCoupon.client_discount_percent}% con il codice ${proCoupon.coupon_code}` : "Sblocca piani alimentari e monitoraggio"}
+                      </p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-primary shrink-0" />
+                  </button>
+                )}
+
                 <Button variant="outline" size="sm" className="w-full text-destructive border-destructive/30 gap-2 rounded-xl" onClick={revokeAccess}>
                   <UserX className="h-4 w-4" /> Revoca accesso
                 </Button>

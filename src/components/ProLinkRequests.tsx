@@ -74,10 +74,13 @@ export default function ProLinkRequests({ onApproved }: { onApproved?: () => voi
     if (action === "approved") {
       const code = Math.random().toString(36).substring(2, 10).toUpperCase();
 
-      await supabase.from("professional_invites").insert({
+      const { error: invErr } = await supabase.from("professional_invites").insert({
         professional_id: user.id,
         invite_code: code,
       });
+      if (invErr) {
+        console.warn("professional_invites insert (non-blocking):", invErr.message);
+      }
 
       const { error: linkErr } = await supabase.from("client_links").insert({
         professional_id: user.id,
