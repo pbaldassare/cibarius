@@ -91,7 +91,7 @@ const ProClientMessagesPage = () => {
       content,
     } as any).select().single();
     if (!error && data) {
-      setMessages((prev) => [...prev, data as Message]);
+      setMessages((prev) => [...prev, data as unknown as Message]);
     }
     setNewMsg("");
     setSending(false);
