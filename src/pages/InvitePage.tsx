@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
 import MobileHeader from "@/components/MobileHeader";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Search, MapPin, Briefcase, UserPlus, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { Loader2, Search, MapPin, Briefcase, UserPlus, CheckCircle2, Clock, XCircle, Link2, ShieldCheck, UserCheck } from "lucide-react";
 import UpgradeScreen from "@/components/UpgradeScreen";
 import ListSkeleton from "@/components/ListSkeleton";
 import EmptyState from "@/components/EmptyState";
@@ -37,6 +39,16 @@ const InvitePage = () => {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Direct code flow state
+  const [code, setCode] = useState(searchParams.get("code") ?? "");
+  const [codeLoading, setCodeLoading] = useState(false);
+  const [proProfile, setProProfile] = useState<any>(null);
+  const [codeStep, setCodeStep] = useState<"input" | "confirm" | "done">("input");
+  const [linked, setLinked] = useState(false);
+  const defaultTab = searchParams.get("code") ? "code" : "search";
 
   const loadData = async () => {
     if (!user) return;
@@ -142,44 +154,206 @@ const InvitePage = () => {
     );
   }
 
+  const validateCode = async () => {
+    if (!code.trim() || !user) return;
+    setCodeLoading(true);
+
+    const { data: invite, error } = await supabase
+      .from("professional_invites")
+      .select("*")
+      .eq("invite_code", code.trim().toUpperCase())
+      .eq("status", "active")
+      .single();
+
+    if (error || !invite) {
+      toast({ variant: "destructive", title: "Codice non valido", description: "Il codice invito non esiste o è già stato usato." });
+      setCodeLoading(false);
+      return;
+    }
+
+    const { data: existing } = await supabase
+      .from("client_links")
+      .select("id, status")
+      .eq("professional_id", invite.professional_id)
+      .eq("client_user_id", user.id)
+      .single();
+
+    if (existing && existing.status === "active") {
+      toast({ title: "Già collegato", description: "Sei già collegato a questo professionista." });
+      setCodeLoading(false);
+      return;
+    }
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("full_name, email")
+      .eq("id", invite.professional_id)
+      .single();
+
+    setProProfile({ ...profile, professional_id: invite.professional_id, invite_id: invite.id, invite_code: invite.invite_code });
+    setCodeStep("confirm");
+    setCodeLoading(false);
+  };
+
+  const confirmLink = async () => {
+    if (!user || !proProfile) return;
+    setCodeLoading(true);
+
+    const { error: linkErr } = await supabase.from("client_links").insert({
+      professional_id: proProfile.professional_id,
+      client_user_id: user.id,
+      status: "active",
+      invite_code: proProfile.invite_code,
+      activated_at: new Date().toISOString(),
+    });
+
+    if (linkErr) {
+      if (linkErr.code === "23505") {
+        await supabase
+          .from("client_links")
+          .update({ status: "active", activated_at: new Date().toISOString() })
+          .eq("professional_id", proProfile.professional_id)
+          .eq("client_user_id", user.id);
+      } else {
+        toast({ variant: "destructive", title: "Errore", description: linkErr.message });
+        setCodeLoading(false);
+        return;
+      }
+    }
+
+    await supabase.from("professional_invites").update({ status: "used" }).eq("id", proProfile.invite_id);
+
+    setLinked(true);
+    setCodeStep("done");
+    setCodeLoading(false);
+    toast({ title: "Collegato con successo!" });
+  };
+
   return (
     <div>
       <MobileHeader title="Collega Nutrizionista" />
       <main className="px-4 py-5 space-y-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Cerca per nome, specializzazione, città..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-          />
-        </div>
+        <Tabs defaultValue={defaultTab}>
+          <TabsList className="w-full grid grid-cols-2">
+            <TabsTrigger value="search" className="gap-1.5"><Search className="h-3.5 w-3.5" /> Cerca</TabsTrigger>
+            <TabsTrigger value="code" className="gap-1.5"><Link2 className="h-3.5 w-3.5" /> Hai un codice?</TabsTrigger>
+          </TabsList>
 
-        {loading ? (
-          <ListSkeleton />
-        ) : filtered.length === 0 ? (
-          <EmptyState
-            icon={UserPlus}
-            title="Nessun nutrizionista trovato"
-            description={search ? "Prova a modificare la ricerca." : "Non ci sono ancora nutrizionisti registrati."}
-          />
-        ) : (
-          <div className="space-y-3">
-            {filtered.map((pro) => {
-              const status = getStatus(pro.user_id);
-              return (
-                <ProfessionalCard
-                  key={pro.user_id}
-                  pro={pro}
-                  status={status}
-                  isSending={sending === pro.user_id}
-                  onRequest={() => sendRequest(pro.user_id)}
-                />
-              );
-            })}
-          </div>
-        )}
+          {/* TAB: Search professionals */}
+          <TabsContent value="search" className="space-y-4 mt-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Cerca per nome, specializzazione, città..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+
+            {loading ? (
+              <ListSkeleton />
+            ) : filtered.length === 0 ? (
+              <EmptyState
+                icon={UserPlus}
+                title="Nessun nutrizionista trovato"
+                description={search ? "Prova a modificare la ricerca." : "Non ci sono ancora nutrizionisti registrati."}
+              />
+            ) : (
+              <div className="space-y-3">
+                {filtered.map((pro) => {
+                  const status = getStatus(pro.user_id);
+                  return (
+                    <ProfessionalCard
+                      key={pro.user_id}
+                      pro={pro}
+                      status={status}
+                      isSending={sending === pro.user_id}
+                      onRequest={() => sendRequest(pro.user_id)}
+                    />
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* TAB: Direct code entry */}
+          <TabsContent value="code" className="mt-4">
+            {codeStep === "input" && (
+              <Card className="border-2 border-accent">
+                <CardHeader className="items-center pb-2">
+                  <Link2 className="h-10 w-10 text-primary mb-2" />
+                  <CardTitle className="text-lg">Inserisci codice invito</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground text-center">
+                    Il tuo nutrizionista ti ha dato un codice? Inseriscilo qui per collegare il tuo account direttamente.
+                  </p>
+                  <Input
+                    placeholder="Es. A1B2C3D4"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.toUpperCase())}
+                    className="text-center text-lg font-mono tracking-widest"
+                    maxLength={10}
+                  />
+                  <Button className="w-full" onClick={validateCode} disabled={codeLoading || !code.trim()}>
+                    {codeLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                    Verifica codice
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {codeStep === "confirm" && proProfile && (
+              <Card className="border-2 border-accent">
+                <CardHeader className="items-center pb-2">
+                  <ShieldCheck className="h-10 w-10 text-primary mb-2" />
+                  <CardTitle className="text-lg">Conferma collegamento</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="rounded-xl bg-secondary p-4 text-center">
+                    <p className="text-sm font-medium text-foreground">{proProfile.full_name || "Professionista"}</p>
+                    <p className="text-xs text-muted-foreground">{proProfile.email}</p>
+                  </div>
+                  <div className="rounded-xl border border-accent/30 bg-accent/5 p-3">
+                    <p className="text-sm text-foreground font-medium mb-1">Cosa condividerai:</p>
+                    <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
+                      <li>I tuoi pasti e il diario alimentare</li>
+                      <li>I tuoi obiettivi nutrizionali</li>
+                      <li>Il professionista potrà lasciarti note e feedback</li>
+                    </ul>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" className="flex-1" onClick={() => setCodeStep("input")} disabled={codeLoading}>
+                      Annulla
+                    </Button>
+                    <Button className="flex-1" onClick={confirmLink} disabled={codeLoading}>
+                      {codeLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                      Conferma
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {codeStep === "done" && (
+              <Card className="border-2 border-accent">
+                <CardHeader className="items-center pb-2">
+                  <UserCheck className="h-10 w-10 text-primary mb-2" />
+                  <CardTitle className="text-lg">Collegato!</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    Il tuo nutrizionista può ora vedere i tuoi pasti e obiettivi. Puoi revocare l'accesso in qualsiasi momento.
+                  </p>
+                  <Button className="w-full" onClick={() => navigate("/profile")}>
+                    Vai al profilo
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );
