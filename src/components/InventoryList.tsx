@@ -480,11 +480,16 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <p className="truncate text-sm font-bold text-foreground">{item.product.name}</p>
                       {(item.product as any).data_source === "manual" && (
                         <Badge variant="outline" className="text-[8px] px-1 py-0 border-amber-400 text-amber-600 shrink-0">
                           ✏️ Manuale
+                        </Badge>
+                      )}
+                      {!(item.product as any).nutrition_available && (
+                        <Badge variant="outline" className="text-[8px] px-1 py-0 border-muted-foreground text-muted-foreground shrink-0">
+                          ⚠️ No macro
                         </Badge>
                       )}
                     </div>
