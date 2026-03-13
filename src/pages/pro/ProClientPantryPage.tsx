@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Wand2, Send, Package, Flame, AlertTriangle } from "lucide-react";
+import { Loader2, Wand2, Send, Package, Flame, AlertTriangle, Sparkles, PenLine } from "lucide-react";
+import ProRecipeEditor, { type RecipeData } from "@/components/ProRecipeEditor";
 
 const MEAL_LABELS: Record<string, string> = {
   colazione: "☀️ Colazione",
@@ -55,6 +56,13 @@ const ProClientPantryPage = () => {
   const [generating, setGenerating] = useState(false);
   const [generatedRecipes, setGeneratedRecipes] = useState<GeneratedRecipe[]>([]);
   const [sendingIdx, setSendingIdx] = useState<number | null>(null);
+
+  // AI + manual
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiRecipe, setAiRecipe] = useState<RecipeData | null>(null);
+  const [aiSending, setAiSending] = useState(false);
+  const [showManual, setShowManual] = useState(false);
+  const [manualSending, setManualSending] = useState(false);
 
   useEffect(() => {
     if (!clientId || !user) return;
@@ -242,6 +250,45 @@ const ProClientPantryPage = () => {
     toast({ title: "Ricetta inviata al cliente! ✅" });
   };
 
+
+  // AI recipe
+  const generateAiRecipe = async () => {
+    if (!user || !clientId || !mealTarget) return;
+    setAiGenerating(true); setAiRecipe(null);
+    const { data, error } = await supabase.functions.invoke("generate-meal-recipe", {
+      body: { meal_type: mealType, kcal_target: mealTarget.kcal_target, protein_g: mealTarget.protein_g, carbs_g: mealTarget.carbs_g, fats_g: mealTarget.fats_g, diet_category: "mediterranea" },
+    });
+    setAiGenerating(false);
+    if (error || data?.error) { toast({ variant: "destructive", title: "Errore IA", description: data?.error || error?.message }); return; }
+    const r = data.recipe;
+    if (r) {
+      setAiRecipe({
+        title: r.title, instructions: r.instructions,
+        ingredients: (r.ingredients ?? []).map((i: any) => ({ name: i.name, grams: i.grams, kcal: i.kcal, protein_g: i.protein_g, carbs_g: i.carbs_g, fats_g: i.fats_g })),
+        kcal_total: r.kcal_total, protein_total: r.protein_total, carbs_total: r.carbs_total, fats_total: r.fats_total,
+      });
+    }
+  };
+
+  const sendEditorRecipe = async (recipe: RecipeData, setLoading: (v: boolean) => void) => {
+    if (!user || !clientId) return;
+    setLoading(true);
+    const { data: saved, error: saveErr } = await supabase.from("generated_recipes").insert({
+      professional_id: user.id, client_user_id: clientId, meal_type: mealType, title: recipe.title,
+      ingredients: recipe.ingredients.map(i => ({ name: i.name, qty: i.grams, unit: "g" })) as any,
+      instructions: recipe.instructions, kcal_total: recipe.kcal_total,
+      macros: { protein: recipe.protein_total, carbs: recipe.carbs_total, fats: recipe.fats_total } as any,
+    }).select().single();
+    if (saveErr) { toast({ variant: "destructive", title: "Errore", description: saveErr.message }); setLoading(false); return; }
+    await supabase.from("pro_suggestions").insert({
+      professional_id: user.id, client_user_id: clientId, type: "recipe",
+      payload: { generated_recipe_id: saved.id, title: recipe.title, kcal_total: recipe.kcal_total, macros: { protein: recipe.protein_total, carbs: recipe.carbs_total, fats: recipe.fats_total }, ingredients: recipe.ingredients, instructions: recipe.instructions } as any,
+    });
+    setLoading(false);
+    toast({ title: "Ricetta inviata al cliente! ✅" });
+    setAiRecipe(null); setShowManual(false);
+  };
+
   if (loading) {
     return (
       <div>
@@ -319,6 +366,32 @@ const ProClientPantryPage = () => {
           {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
           Genera ricette dalla dispensa
         </Button>
+
+        {/* AI + Manual */}
+        <div className="flex gap-2">
+          <Button variant="outline" className="flex-1 gap-2" onClick={generateAiRecipe} disabled={aiGenerating || !mealTarget}>
+            {aiGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            Genera con IA
+          </Button>
+          <Button variant="outline" className="flex-1 gap-2" onClick={() => setShowManual(!showManual)}>
+            <PenLine className="h-4 w-4" />
+            {showManual ? "Nascondi" : "Scrivi ricetta"}
+          </Button>
+        </div>
+
+        {aiRecipe && (
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold text-foreground">🤖 Ricetta IA</h3>
+            <ProRecipeEditor initialRecipe={aiRecipe} onSend={(r) => sendEditorRecipe(r, setAiSending)} sending={aiSending} />
+          </div>
+        )}
+
+        {showManual && (
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold text-foreground">✏️ Ricetta personalizzata</h3>
+            <ProRecipeEditor onSend={(r) => sendEditorRecipe(r, setManualSending)} sending={manualSending} sendLabel="Invia ricetta al cliente" />
+          </div>
+        )}
 
         {/* Generated recipes */}
         {generatedRecipes.length > 0 && (
