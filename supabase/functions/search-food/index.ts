@@ -4,6 +4,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const API_TIMEOUT_MS = 8000; // 8s max per external API call
+
 interface NormalizedResult {
   source: "off" | "usda";
   source_detail: "off_it" | "off_world" | "usda";
@@ -17,11 +19,23 @@ interface NormalizedResult {
   fats_100g: number | null;
 }
 
+/** Fetch with timeout via AbortController */
+async function fetchWithTimeout(url: string, timeoutMs = API_TIMEOUT_MS): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    return res;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // ─── OFF Italian search (it.openfoodfacts.org) ───────
 async function searchOFF_IT(query: string): Promise<NormalizedResult[]> {
   try {
     const url = `https://it.openfoodfacts.org/api/v2/search?search_terms=${encodeURIComponent(query)}&fields=product_name,product_name_it,brands,code,image_front_url,image_url,nutriments&page_size=10&json=1`;
-    const res = await fetch(url);
+    const res = await fetchWithTimeout(url);
     if (!res.ok) return [];
     const json = await res.json();
     return mapOFFProducts(json.products ?? [], "off_it", query);
@@ -34,7 +48,7 @@ async function searchOFF_IT(query: string): Promise<NormalizedResult[]> {
 async function searchOFF_World(query: string): Promise<NormalizedResult[]> {
   try {
     const url = `https://world.openfoodfacts.org/api/v2/search?search_terms=${encodeURIComponent(query)}&fields=product_name,product_name_it,brands,code,image_front_url,image_url,nutriments&page_size=10&json=1`;
-    const res = await fetch(url);
+    const res = await fetchWithTimeout(url);
     if (!res.ok) return [];
     const json = await res.json();
     return mapOFFProducts(json.products ?? [], "off_world", query);
@@ -67,7 +81,6 @@ function mapOFFProducts(products: any[], detail: "off_it" | "off_world", query?:
       };
     })
     .filter((r) => {
-      // Filter out irrelevant results: name or brand must contain query
       if (!qLower || qLower.length < 2) return true;
       const hay = (r.name + " " + (r.brand ?? "")).toLowerCase();
       return qLower.split(/\s+/).some((word) => hay.includes(word));
@@ -78,7 +91,7 @@ function mapOFFProducts(products: any[], detail: "off_it" | "off_world", query?:
 async function searchUSDA(query: string, apiKey: string): Promise<NormalizedResult[]> {
   try {
     const url = `https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${apiKey}&query=${encodeURIComponent(query)}&pageSize=10&dataType=Foundation,SR%20Legacy`;
-    const res = await fetch(url);
+    const res = await fetchWithTimeout(url);
     if (!res.ok) return [];
     const json = await res.json();
     const foods = json.foods ?? [];
@@ -123,38 +136,37 @@ Deno.serve(async (req) => {
     const usdaKey = Deno.env.get("USDA_API_KEY") || "";
     const requestedSources: string[] = sources ?? ["off", "usda"];
 
-    let results: NormalizedResult[] = [];
+    // Run ALL requested sources in parallel
+    const promises: Promise<NormalizedResult[]>[] = [];
 
     if (requestedSources.includes("off")) {
-      // Italian first, then world, deduped
-      const [itResults, worldResults] = await Promise.all([
-        searchOFF_IT(q),
-        searchOFF_World(q),
-      ]);
-      // Italian results first
-      const seen = new Set<string>();
-      for (const r of itResults) {
-        seen.add(r.name.toLowerCase().trim());
-        results.push(r);
-      }
-      for (const r of worldResults) {
-        const key = r.name.toLowerCase().trim();
-        if (!seen.has(key)) {
-          seen.add(key);
-          results.push(r);
-        }
-      }
+      promises.push(
+        Promise.all([searchOFF_IT(q), searchOFF_World(q)]).then(([it, world]) => {
+          const seen = new Set<string>();
+          const merged: NormalizedResult[] = [];
+          for (const r of it) { seen.add(r.name.toLowerCase().trim()); merged.push(r); }
+          for (const r of world) {
+            const key = r.name.toLowerCase().trim();
+            if (!seen.has(key)) { seen.add(key); merged.push(r); }
+          }
+          return merged;
+        })
+      );
     }
 
     if (requestedSources.includes("usda") && usdaKey) {
-      const usdaResults = await searchUSDA(q, usdaKey);
-      const seen = new Set(results.map(r => r.name.toLowerCase().trim()));
-      for (const r of usdaResults) {
+      promises.push(searchUSDA(q, usdaKey));
+    }
+
+    const allResults = await Promise.all(promises);
+
+    // Dedup across all sources
+    const seen = new Set<string>();
+    const results: NormalizedResult[] = [];
+    for (const batch of allResults) {
+      for (const r of batch) {
         const key = r.name.toLowerCase().trim();
-        if (!seen.has(key)) {
-          seen.add(key);
-          results.push(r);
-        }
+        if (!seen.has(key)) { seen.add(key); results.push(r); }
       }
     }
 
