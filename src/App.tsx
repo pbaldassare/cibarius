@@ -92,10 +92,12 @@ import ProWeeklyReportPage from "./pages/pro/ProWeeklyReportPage";
 import ProClientMessagesPage from "./pages/pro/ProClientMessagesPage";
 import ProAppointmentsPage from "./pages/pro/ProAppointmentsPage";
 import ProClientPlanPdfPage from "./pages/pro/ProClientPlanPdfPage";
+import ProWeeklyPlanPage from "./pages/pro/ProWeeklyPlanPage";
 
 // User diet page
 import UserDietPage from "./pages/UserDietPage";
 import UserActivePlanPage from "./pages/UserActivePlanPage";
+import UserWeeklyPlanPage from "./pages/UserWeeklyPlanPage";
 import UserProgressPage from "./pages/UserProgressPage";
 import UserPantryRecipesPage from "./pages/UserPantryRecipesPage";
 import UserMessagesPage from "./pages/UserMessagesPage";
@@ -162,6 +164,7 @@ const App = () => (
                 <Route path="/profile" element={<ProfiloPage />} />
                 <Route path="/diet" element={<UserDietPage />} />
                 <Route path="/plan" element={<UserActivePlanPage />} />
+                <Route path="/weekly-plan" element={<UserWeeklyPlanPage />} />
                 <Route path="/my-recipes" element={<UserPantryRecipesPage />} />
                 <Route path="/reminders" element={<RemindersPage />} />
                 <Route path="/meal-reminders" element={<MealRemindersPage />} />
@@ -219,6 +222,7 @@ const App = () => (
                 <Route path="/pro/weekly-report" element={<RG roles={["professional", "admin"]}><ProWeeklyReportPage /></RG>} />
                 <Route path="/pro/client/:clientId/messages" element={<RG roles={["professional", "admin"]}><ProClientMessagesPage /></RG>} />
                 <Route path="/pro/client/:clientId/plan-pdf" element={<RG roles={["professional", "admin"]}><ProClientPlanPdfPage /></RG>} />
+                <Route path="/pro/client/:clientId/weekly-plan" element={<RG roles={["professional", "admin"]}><ProWeeklyPlanPage /></RG>} />
                 <Route path="/pro/appointments" element={<RG roles={["professional", "admin"]}><ProAppointmentsPage /></RG>} />
                 <Route path="/pro/client/:clientId/measurements" element={<RG roles={["professional", "admin"]}><ProClientMeasurementsPage /></RG>} />
                 <Route path="/pro/coupon" element={<RG roles={["professional", "admin"]}><ProCouponPage /></RG>} />
