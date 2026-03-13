@@ -283,6 +283,8 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
     setNewNotes("");
     setNewImageUrl(null);
     setNewImagePath(null);
+    setSkipDedup(false);
+    setDedupSelectedProduct(null);
   };
 
   // ═══ Edit item handlers ═══
