@@ -508,7 +508,8 @@ const AddFoodFlow = ({
           image_url: p.image_url,
           calories_100g: p.calories_100g,
           macros_100g: p.macros_100g as any,
-        }).select("id").single();
+          data_source: "ai_search",
+        } as any).select("id").single();
         if (insErr) console.error("Search product insert (no barcode) error:", insErr);
         if (created) {
           pid = created.id;
