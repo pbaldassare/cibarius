@@ -66,6 +66,12 @@ const ProClientPlanPage = () => {
   const [proteinDay, setProteinDay] = useState("120");
   const [carbsDay, setCarbsDay] = useState("220");
   const [fatsDay, setFatsDay] = useState("70");
+  const [sugarsDay, setSugarsDay] = useState("");
+  const [fiberDay, setFiberDay] = useState("");
+  const [satFatsDay, setSatFatsDay] = useState("");
+  const [unsatFatsDay, setUnsatFatsDay] = useState("");
+  const [showAdvancedMacros, setShowAdvancedMacros] = useState(false);
+  const [fatsDay, setFatsDay] = useState("70");
 
   // Step 2
   const [mealTargets, setMealTargets] = useState<MealTarget[]>(
