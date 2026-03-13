@@ -595,7 +595,8 @@ const AddFoodFlow = ({
           calories_100g: data.calories_100g,
           macros_100g: data.macros_100g as any,
           serving_size_g: data.serving_size_g ?? null,
-        }).select("id").single();
+          data_source: "barcode",
+        } as any).select("id").single();
         if (insErr) {
           console.error("Product insert error:", insErr);
           const { data: fallback } = await supabase
