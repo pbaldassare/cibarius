@@ -1760,59 +1760,13 @@ const AddFoodFlow = ({
                   </div>
                 </div>
 
-                {/* ── Missing nutrition banner (regular users only) ── */}
+                {/* ── Info: no nutrition data ── */}
                 {calories100g == null && !defaultRestaurantId && (
-                  <div className="rounded-2xl border-2 border-amber-300 bg-amber-50 p-4 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle className="h-5 w-5 text-amber-600" />
-                      <p className="text-sm font-semibold text-amber-800">
-                        Dati nutrizionali mancanti
-                      </p>
-                    </div>
-                    <p className="text-xs text-amber-700">
-                      Per salvare questo prodotto servono almeno le calorie. Scegli come procedere:
+                  <div className="flex items-start gap-2 rounded-xl border border-muted bg-muted/30 p-3">
+                    <AlertTriangle className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-muted-foreground">
+                      Prodotto salvato per scadenze e anti-spreco. Non sarà usato nei calcoli nutrizionali finché non avrà valori nutrizionali compilati.
                     </p>
-                    <div className="space-y-2">
-                      {(method === "photo_ai" || method === "scan") && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full gap-2 border-amber-300 text-amber-800 hover:bg-amber-100"
-                          onClick={() => {
-                            setAiPhotos([]);
-                            setFusedData(null);
-                            setScannedCode(null);
-                            setNotFound(false);
-                            setStep(method === "photo_ai" ? "photo_ai" : "scan");
-                          }}
-                        >
-                          <Camera className="h-4 w-4" />
-                          {method === "photo_ai" ? "Rifai la foto" : "Scansiona di nuovo"}
-                        </Button>
-                      )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full gap-2 border-amber-300 text-amber-800 hover:bg-amber-100"
-                        onClick={() => {
-                          setQuery(name || "");
-                          setStep("search");
-                          setMethod("search");
-                        }}
-                      >
-                        <Search className="h-4 w-4" />
-                        Cerca prodotti simili
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full gap-2 border-amber-300 text-amber-800 hover:bg-amber-100"
-                        onClick={() => setShowDetails(true)}
-                      >
-                        <Keyboard className="h-4 w-4" />
-                        Inserisci a mano
-                      </Button>
-                    </div>
                   </div>
                 )}
 
