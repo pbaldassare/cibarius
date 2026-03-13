@@ -283,6 +283,7 @@ const ProClientSuggestPage = () => {
         macros: { protein: recipe.protein_total, carbs: recipe.carbs_total, fats: recipe.fats_total },
         ingredients: recipe.ingredients,
         instructions: recipe.instructions,
+      } as any,
       },
     });
 
