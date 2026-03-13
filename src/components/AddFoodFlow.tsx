@@ -234,6 +234,35 @@ const AddFoodFlow = ({
   };
   const detectIsFemale = (title: string) => title.toLowerCase().includes("donna");
 
+  // Manual name autocomplete: suggest similar products while typing
+  useEffect(() => {
+    if (method !== "manual" || !debouncedName || debouncedName.length < 2 || step !== "summary") {
+      setManualSuggestions([]);
+      return;
+    }
+    const term = `%${debouncedName}%`;
+    Promise.all([
+      supabase.from("products").select("id, name, brand, calories_100g, macros_100g, image_url, serving_size_g").ilike("name", term).limit(5),
+      supabase.from("ingredients").select("id, name, kcal_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g").ilike("name", term).limit(5),
+    ]).then(([prodRes, ingrRes]) => {
+      const results: SearchProduct[] = [];
+      const seen = new Set<string>();
+      for (const p of (prodRes.data ?? [])) {
+        const key = p.name.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        results.push({ id: p.id, name: p.name, brand: p.brand, calories_100g: p.calories_100g, macros_100g: p.macros_100g as any, image_url: p.image_url, serving_size_g: p.serving_size_g });
+      }
+      for (const i of (ingrRes.data ?? [])) {
+        const key = i.name.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        results.push({ id: i.id, name: i.name, brand: null, calories_100g: i.kcal_per_100g, macros_100g: { protein: i.protein_per_100g, carbs: i.carbs_per_100g, fats: i.fat_per_100g }, image_url: null, serving_size_g: null });
+      }
+      setManualSuggestions(results.slice(0, 8));
+    });
+  }, [debouncedName, method, step]);
+
   // Fetch plan recipes when opening in meal context
   useEffect(() => {
     if (!open || context !== "meal" || !user) return;
