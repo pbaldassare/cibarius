@@ -53,34 +53,9 @@ const UserBottomNav = () => {
       }}
     >
       <div className="mx-auto flex h-[64px] max-w-lg items-center justify-around px-1">
-        {tabs.map(({ to, icon: Icon, label, requiresPlan }) => {
+      {tabs.map(({ to, icon: Icon, label }) => {
           const isActive = location.pathname === to;
           const showBadge = to === "/profile" && unreadCount > 0;
-          const disabled = requiresPlan && !hasActivePlan;
-
-          const motivationalMessages = [
-            "🎯 Crea il tuo piano alimentare per sbloccare questa sezione!",
-            "💪 Un piano ti aiuta a raggiungere i tuoi obiettivi — creane uno!",
-            "🥗 Inizia il tuo percorso: vai su Piano e attiva la tua dieta!",
-            "✨ Sblocca Pasti e Progressi con un piano personalizzato!",
-          ];
-
-          if (disabled) {
-            return (
-              <div
-                key={to}
-                className="flex flex-col items-center gap-0.5 px-1 py-1 opacity-40 cursor-pointer"
-                onClick={() => {
-                  const msg = motivationalMessages[Math.floor(Math.random() * motivationalMessages.length)];
-                  toast(msg, { duration: 3000 });
-                  navigate("/plan");
-                }}
-              >
-                <Icon size={18} strokeWidth={1.6} className="text-white/50" />
-                <span className="text-[9px] text-white/50 font-medium">{label}</span>
-              </div>
-            );
-          }
 
           return (
             <NavLink
