@@ -1339,29 +1339,58 @@ const UserDietPage = () => {
       </main>
 
       {/* Confirmation dialog for template switch */}
-      <AlertDialog open={!!confirmTemplate} onOpenChange={(open) => !open && setConfirmTemplate(null)}>
+      <AlertDialog open={!!confirmTemplate} onOpenChange={(open) => { if (!open) setConfirmTemplate(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Cambiare piano nutrizionale?</AlertDialogTitle>
-            <AlertDialogDescription className="space-y-2">
-              <span className="block">
-                Stai per attivare il piano <strong className="text-foreground">{confirmTemplate?.title}</strong>.
-              </span>
-              <span className="flex gap-3 text-xs">
-                <span className="text-primary font-medium">🔥 {confirmTemplate?.kcal_day} kcal</span>
-                <span className="text-blue-600 font-medium">P {confirmTemplate?.protein_g_day}g</span>
-                <span className="text-amber-600 font-medium">C {confirmTemplate?.carbs_g_day}g</span>
-                <span className="text-rose-600 font-medium">G {confirmTemplate?.fats_g_day}g</span>
-              </span>
-              {confirmTemplate?.notes && (
-                <span className="block text-xs text-muted-foreground italic">{confirmTemplate.notes}</span>
-              )}
-              <span className="block text-xs">Il piano precedente verrà disattivato. I tuoi obiettivi giornalieri saranno aggiornati.</span>
+            <AlertDialogDescription className="space-y-3" asChild>
+              <div>
+                <span className="block">
+                  Stai per attivare il piano <strong className="text-foreground">{confirmTemplate?.title}</strong>.
+                </span>
+                <span className="flex gap-3 text-xs">
+                  <span className="text-primary font-medium">🔥 {confirmTemplate?.kcal_day} kcal</span>
+                  <span className="font-medium" style={{ color: "hsl(217, 91%, 60%)" }}>P {confirmTemplate?.protein_g_day}g</span>
+                  <span className="font-medium" style={{ color: "hsl(38, 92%, 50%)" }}>C {confirmTemplate?.carbs_g_day}g</span>
+                  <span className="font-medium" style={{ color: "hsl(350, 89%, 60%)" }}>G {confirmTemplate?.fats_g_day}g</span>
+                </span>
+                <div className="pt-2 border-t border-border space-y-1.5">
+                  <label className="text-xs font-medium text-foreground">Modifica calorie (opzionale)</label>
+                  <Input
+                    type="number"
+                    placeholder={String(confirmTemplate?.kcal_day || 2000)}
+                    value={confirmKcalOverride}
+                    onChange={(e) => setConfirmKcalOverride(e.target.value)}
+                    className="h-9"
+                  />
+                  <p className="text-[10px] text-muted-foreground">I macro verranno ricalcolati in proporzione.</p>
+                </div>
+                {confirmTemplate?.notes && (
+                  <span className="block text-xs text-muted-foreground italic">{confirmTemplate.notes}</span>
+                )}
+                <span className="block text-xs">Il piano precedente verrà disattivato.</span>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Annulla</AlertDialogCancel>
-            <AlertDialogAction onClick={() => confirmTemplate && saveTemplateAsPlan(confirmTemplate)} disabled={savingTemplate}>
+            <AlertDialogAction onClick={() => {
+              if (!confirmTemplate) return;
+              const overrideKcal = parseFloat(confirmKcalOverride);
+              if (overrideKcal && overrideKcal !== confirmTemplate.kcal_day) {
+                const ratio = overrideKcal / confirmTemplate.kcal_day;
+                saveTemplateAsPlan({
+                  ...confirmTemplate,
+                  kcal_day: Math.round(overrideKcal),
+                  protein_g_day: Math.round(confirmTemplate.protein_g_day * ratio),
+                  carbs_g_day: Math.round(confirmTemplate.carbs_g_day * ratio),
+                  fats_g_day: Math.round(confirmTemplate.fats_g_day * ratio),
+                });
+              } else {
+                saveTemplateAsPlan(confirmTemplate);
+              }
+              setConfirmKcalOverride("");
+            }} disabled={savingTemplate}>
               {savingTemplate ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
               Conferma
             </AlertDialogAction>
