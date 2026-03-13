@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { Users, Plus, Copy, Loader2, UserX, Eye, Link2, ClipboardList, Activity, Lightbulb, ChefHat, Salad } from "lucide-react";
 import ListSkeleton from "@/components/ListSkeleton";
 import EmptyState from "@/components/EmptyState";
+import ProLinkRequests from "@/components/ProLinkRequests";
 
 interface ClientLink {
   id: string;
