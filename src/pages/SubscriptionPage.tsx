@@ -140,31 +140,33 @@ const SubscriptionPage = () => {
           <p className="text-sm text-muted-foreground">Scegli il piano perfetto per te</p>
         </div>
 
-        {/* Tab selector */}
-        <div className="flex bg-muted rounded-xl p-1 gap-1">
-          <button
-            onClick={() => setActiveTab("user_plus")}
-            className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-              activeTab === "user_plus"
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground"
-            }`}
-          >
-            <Sparkles className="h-4 w-4 inline mr-1.5" />
-            Utente Plus
-          </button>
-          <button
-            onClick={() => setActiveTab("restaurant")}
-            className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-              activeTab === "restaurant"
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground"
-            }`}
-          >
-            <Store className="h-4 w-4 inline mr-1.5" />
-            Ristorante
-          </button>
-        </div>
+        {/* Tab selector — only show if admin (can see both) */}
+        {role === "admin" && (
+          <div className="flex bg-muted rounded-xl p-1 gap-1">
+            <button
+              onClick={() => setActiveTab("user_plus")}
+              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                activeTab === "user_plus"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground"
+              }`}
+            >
+              <Sparkles className="h-4 w-4 inline mr-1.5" />
+              Utente Plus
+            </button>
+            <button
+              onClick={() => setActiveTab("restaurant")}
+              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                activeTab === "restaurant"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground"
+              }`}
+            >
+              <Store className="h-4 w-4 inline mr-1.5" />
+              Ristorante
+            </button>
+          </div>
+        )}
 
         {/* Active sub banner */}
         {activeSub && ["active", "trial"].includes(activeSub.status) && (
