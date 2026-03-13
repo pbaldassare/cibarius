@@ -214,7 +214,7 @@ export default function ProLinkRequests({ onApproved }: { onApproved?: () => voi
                       size="sm"
                       variant="outline"
                       className="h-9 text-xs gap-1.5"
-                      onClick={() => navigate(`/pro/clients/${req.user_id}/messages`)}
+                      onClick={() => navigate(`/pro/client/${req.user_id}/messages`)}
                     >
                       <MessageCircle className="h-3.5 w-3.5" />
                       Contatta
