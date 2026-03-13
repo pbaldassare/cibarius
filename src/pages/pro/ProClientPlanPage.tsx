@@ -304,15 +304,19 @@ const ProClientPlanPage = () => {
         .from("diet_plan_templates")
         .insert({
           professional_id: user.id, title: templateName.trim(),
-          kcal_day: targetKcal, protein_g_day: targetProtein, carbs_g_day: targetCarbs, fats_g_day: targetFats, notes: notes || null,
-        })
+          kcal_day: targetKcal, protein_g_day: targetProtein, carbs_g_day: targetCarbs, fats_g_day: targetFats,
+          sugars_g_day: sugarsDay ? parseFloat(sugarsDay) : null, fiber_g_day: fiberDay ? parseFloat(fiberDay) : null,
+          saturated_fats_g_day: satFatsDay ? parseFloat(satFatsDay) : null, unsaturated_fats_g_day: unsatFatsDay ? parseFloat(unsatFatsDay) : null,
+          notes: notes || null,
+        } as any)
         .select().single();
       if (tmplErr || !tmpl) throw tmplErr;
       const { error: mtErr } = await supabase.from("diet_plan_template_meals").insert(
         mealTargets.map((mt) => ({
           template_id: tmpl.id, meal_type: mt.meal_type, kcal_target: mt.kcal_target,
           protein_g: mt.protein_g, carbs_g: mt.carbs_g, fats_g: mt.fats_g, sugars_g: mt.sugars_g,
-        }))
+          fiber_g: mt.fiber_g || null, saturated_fats_g: mt.saturated_fats_g || null, unsaturated_fats_g: mt.unsaturated_fats_g || null,
+        } as any))
       );
       if (mtErr) throw mtErr;
       toast({ title: "Template salvato! 📋" });
