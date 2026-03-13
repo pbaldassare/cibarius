@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { Check, X, Loader2, UserPlus, Bell, MessageCircle } from "lucide-react";
+import { Check, X, Loader2, Bell, MessageCircle, ChevronDown, ChevronUp, Mail, User } from "lucide-react";
 
 interface LinkRequest {
   id: string;
@@ -24,6 +24,7 @@ export default function ProLinkRequests({ onApproved }: { onApproved?: () => voi
   const [requests, setRequests] = useState<LinkRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const loadRequests = async () => {
     if (!user) return;
@@ -65,23 +66,19 @@ export default function ProLinkRequests({ onApproved }: { onApproved?: () => voi
     if (!user) return;
     setActing(req.id);
 
-    // Update request status
     await supabase
       .from("professional_link_requests")
       .update({ status: action, responded_at: new Date().toISOString() })
       .eq("id", req.id);
 
     if (action === "approved") {
-      // Generate invite code
       const code = Math.random().toString(36).substring(2, 10).toUpperCase();
 
-      // Create invite
       await supabase.from("professional_invites").insert({
         professional_id: user.id,
         invite_code: code,
       });
 
-      // Create client_link
       const { error: linkErr } = await supabase.from("client_links").insert({
         professional_id: user.id,
         client_user_id: req.user_id,
@@ -98,7 +95,6 @@ export default function ProLinkRequests({ onApproved }: { onApproved?: () => voi
           .eq("client_user_id", req.user_id);
       }
 
-      // Get nutritionist coupon
       const { data: coupon } = await supabase
         .from("nutritionist_coupons")
         .select("coupon_code, client_discount_percent")
@@ -113,7 +109,6 @@ export default function ProLinkRequests({ onApproved }: { onApproved?: () => voi
         .eq("id", user.id)
         .single();
 
-      // Send notification to user
       await supabase.from("in_app_notifications").insert({
         user_id: req.user_id,
         type: "link_approved",
@@ -132,7 +127,6 @@ export default function ProLinkRequests({ onApproved }: { onApproved?: () => voi
       toast({ title: "Richiesta approvata!", description: `${req.user_name || "Utente"} è stato collegato.` });
       onApproved?.();
     } else {
-      // Send rejection notification
       const { data: proProfile } = await supabase
         .from("profiles")
         .select("full_name")
@@ -151,58 +145,103 @@ export default function ProLinkRequests({ onApproved }: { onApproved?: () => voi
     }
 
     setActing(null);
+    setExpandedId(null);
     loadRequests();
+  };
+
+  const timeAgo = (date: string) => {
+    const diff = Date.now() - new Date(date).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "adesso";
+    if (mins < 60) return `${mins}m fa`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h fa`;
+    return `${Math.floor(hrs / 24)}g fa`;
   };
 
   if (loading || requests.length === 0) return null;
 
   return (
-    <Card className="border-2 border-primary/20 bg-primary/5">
-      <CardContent className="p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <Bell className="h-4 w-4 text-primary" />
-          <h3 className="font-semibold text-sm text-foreground">
-            Richieste di collegamento
-          </h3>
-          <Badge className="bg-primary text-primary-foreground text-[10px]">{requests.length}</Badge>
-        </div>
-        <div className="space-y-2">
-          {requests.map((req) => (
-            <div key={req.id} className="flex items-center justify-between bg-background rounded-lg p-3">
-              <div>
-                <p className="text-sm font-medium text-foreground">{req.user_name && req.user_name.trim() ? req.user_name : req.user_email || "Utente sconosciuto"}</p>
-                <p className="text-xs text-muted-foreground">{req.user_email}</p>
-              </div>
-              <div className="flex gap-1.5">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 text-xs text-destructive border-destructive/30 hover:bg-destructive/10"
-                  onClick={() => handleAction(req, "rejected")}
-                  disabled={acting === req.id}
-                >
-                  {acting === req.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 text-xs"
-                  onClick={() => navigate(`/pro/clients/${req.user_id}/messages`)}
-                >
-                  <MessageCircle className="h-3 w-3" />
-                </Button>
-                <Button
-                  size="sm"
-                  className="h-8 text-xs"
-                  onClick={() => handleAction(req, "approved")}
-                  disabled={acting === req.id}
-                >
-                  {acting === req.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <><Check className="h-3 w-3 mr-1" /> Approva</>}
-                </Button>
-              </div>
+    <Card className="border border-primary/20 overflow-hidden">
+      <div className="bg-primary/5 px-4 py-2.5 flex items-center gap-2">
+        <Bell className="h-4 w-4 text-primary" />
+        <span className="font-semibold text-sm text-foreground">Richieste di collegamento</span>
+        <Badge className="bg-primary text-primary-foreground text-[10px] ml-auto">{requests.length}</Badge>
+      </div>
+      <CardContent className="p-0 divide-y divide-border">
+        {requests.map((req) => {
+          const isExpanded = expandedId === req.id;
+          const displayName = req.user_name && req.user_name.trim() ? req.user_name : req.user_email || "Utente";
+          const initials = displayName.split(" ").map((w) => w[0]).join("").substring(0, 2).toUpperCase();
+
+          return (
+            <div key={req.id}>
+              <button
+                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors text-left"
+                onClick={() => setExpandedId(isExpanded ? null : req.id)}
+              >
+                <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <span className="text-primary font-semibold text-xs">{initials}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{displayName}</p>
+                  <p className="text-[11px] text-muted-foreground">{timeAgo(req.created_at)}</p>
+                </div>
+                {isExpanded ? (
+                  <ChevronUp className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                )}
+              </button>
+
+              {isExpanded && (
+                <div className="px-4 pb-4 pt-1 space-y-3 animate-in slide-in-from-top-2 duration-200">
+                  <div className="rounded-lg bg-muted/40 p-3 space-y-1.5">
+                    {req.user_name && req.user_name.trim() && (
+                      <div className="flex items-center gap-2 text-xs text-foreground">
+                        <User className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span>{req.user_name}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Mail className="h-3.5 w-3.5" />
+                      <span>{req.user_email || "—"}</span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-9 text-xs gap-1.5"
+                      onClick={() => navigate(`/pro/clients/${req.user_id}/messages`)}
+                    >
+                      <MessageCircle className="h-3.5 w-3.5" />
+                      Contatta
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-9 text-xs gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/10"
+                      onClick={() => handleAction(req, "rejected")}
+                      disabled={acting === req.id}
+                    >
+                      {acting === req.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><X className="h-3.5 w-3.5" /> Rifiuta</>}
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="h-9 text-xs gap-1.5"
+                      onClick={() => handleAction(req, "approved")}
+                      disabled={acting === req.id}
+                    >
+                      {acting === req.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Check className="h-3.5 w-3.5" /> Approva</>}
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
-          ))}
-        </div>
+          );
+        })}
       </CardContent>
     </Card>
   );
