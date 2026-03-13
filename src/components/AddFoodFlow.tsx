@@ -264,7 +264,7 @@ const AddFoodFlow = ({
 
   // Register recipe as meal
   const handleRegisterRecipeFromFlow = async (ingredients: any[], title: string) => {
-    if (!user || !selectedMealType) return;
+    if (!user || !(selectedMealType || preselectedMealType)) return;
     setSaving(true);
     try {
       const today = new Date().toISOString().slice(0, 10);
@@ -278,12 +278,13 @@ const AddFoodFlow = ({
         if (de) throw de;
         dayData = nd;
       }
+      const mealTypeToUse = selectedMealType || preselectedMealType!;
       let { data: mealData } = await supabase
         .from("meals").select("id")
-        .eq("meal_day_id", dayData!.id).eq("meal_type", selectedMealType).maybeSingle();
+        .eq("meal_day_id", dayData!.id).eq("meal_type", mealTypeToUse).maybeSingle();
       if (!mealData) {
         const { data: nm, error: me } = await supabase
-          .from("meals").insert({ meal_day_id: dayData!.id, meal_type: selectedMealType })
+          .from("meals").insert({ meal_day_id: dayData!.id, meal_type: mealTypeToUse })
           .select("id").single();
         if (me) throw me;
         mealData = nm;
@@ -941,12 +942,13 @@ const AddFoodFlow = ({
             mealDay = nd;
           }
 
+          const mealTypeToUse = selectedMealType || preselectedMealType!;
           let { data: meal } = await supabase
             .from("meals").select("id")
-            .eq("meal_day_id", mealDay!.id).eq("meal_type", selectedMealType!).maybeSingle();
+            .eq("meal_day_id", mealDay!.id).eq("meal_type", mealTypeToUse).maybeSingle();
           if (!meal) {
             const { data: nm, error: me } = await supabase
-              .from("meals").insert({ meal_day_id: mealDay!.id, meal_type: selectedMealType! })
+              .from("meals").insert({ meal_day_id: mealDay!.id, meal_type: mealTypeToUse })
               .select("id").single();
             if (me) throw me;
             meal = nm;
@@ -990,7 +992,7 @@ const AddFoodFlow = ({
           if (invErr) throw invErr;
         }
 
-        toast({ title: `Aggiunto a ${selectedMealType}! ✓` });
+        toast({ title: `Aggiunto a ${selectedMealType || preselectedMealType}! ✓` });
 
       } else if (context === "recipe") {
         if (!contextId) throw new Error("recipe_id mancante");
