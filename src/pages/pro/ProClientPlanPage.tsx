@@ -643,7 +643,7 @@ const ProClientPlanPage = () => {
                           <Input type="number" value={mt.unsaturated_fats_g || ""} onChange={(e) => updateMealTarget(idx, "unsaturated_fats_g", e.target.value)} className="h-8 text-xs" placeholder="—" />
                         </div>
                       </div>
-                    )
+                    )}
 
                     {/* Food items list */}
                     {mealItems.length > 0 && (
