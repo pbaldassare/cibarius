@@ -77,26 +77,19 @@ serve(async (req) => {
     let messages: any[];
 
     if (file.name.endsWith(".csv")) {
-      // CSV: send as text
       const textContent = await file.text();
       messages = [
         { role: "system", content: systemPrompt },
         { role: "user", content: `Estrai il piano alimentare dal seguente file CSV:\n\n${textContent}` },
       ];
     } else {
-      // PDF: convert to base64 and use vision model
+      // PDF: convert to proper base64 using standard encoding
       const arrayBuf = await file.arrayBuffer();
       const bytes = new Uint8Array(arrayBuf);
       
-      // Convert to base64 in chunks to avoid stack overflow on large files
-      let base64 = "";
-      const chunkSize = 8192;
-      for (let i = 0; i < bytes.length; i += chunkSize) {
-        const chunk = bytes.subarray(i, i + chunkSize);
-        base64 += btoa(String.fromCharCode(...chunk));
-      }
-
-      const mimeType = file.type || "application/pdf";
+      // Proper base64 encoding for Deno
+      const { encode } = await import("https://deno.land/std@0.168.0/encoding/base64.ts");
+      const base64 = encode(bytes);
 
       messages = [
         { role: "system", content: systemPrompt },
@@ -104,10 +97,9 @@ serve(async (req) => {
           role: "user",
           content: [
             {
-              type: "file",
-              file: {
-                filename: file.name,
-                file_data: `data:${mimeType};base64,${base64}`,
+              type: "image_url",
+              image_url: {
+                url: `data:application/pdf;base64,${base64}`,
               },
             },
             {
