@@ -1,37 +1,32 @@
 
 
-# Piano: Popolare 300 traduzioni + Prompt IA preciso + Logica DB-first
+## Problema
 
-## Stato attuale
-- `ingredient_translation` ha solo 23 righe (il seed iniziale)
-- L'edge function `analyze-meal-photo` usa un prompt generico e non ha logica "dishes cache first"
+L'hook `auth-email-hook` sta crashando con errore **"Base64Coder: incorrect characters for decoding"** perche il secret `SEND_EMAIL_HOOK_SECRET` ha un formato non compatibile con la libreria `standardwebhooks`. Ogni tentativo di signup causa un errore 500, e dopo i vari retry Supabase ha raggiunto il rate limit delle email (429).
 
-## Cosa fare
+**L'approccio attuale e sbagliato.** Il progetto usa la gestione manuale con `standardwebhooks` + `RESEND_API_KEY`, ma dovrebbe usare il **sistema managed di Lovable** che gestisce automaticamente credenziali e invio email.
 
-### 1. Inserire ~260 nuove traduzioni in `ingredient_translation`
+## Piano
 
-Useremo una migrazione SQL con `INSERT ... ON CONFLICT DO NOTHING` per aggiungere tutte le righe del CSV fornito senza duplicare quelle gia' presenti. La tabella ha `name_it` UNIQUE, quindi i conflitti vengono gestiti automaticamente.
+### 1. Ricreare l'hook con il sistema Lovable managed
+- Usare `scaffold_auth_email_templates` per ricreare correttamente la edge function con `@lovable.dev/webhooks-js` (verifica firma) e `@lovable.dev/email-js` (invio email)
+- Questo elimina la necessita di `SEND_EMAIL_HOOK_SECRET` e `RESEND_API_KEY` manuali
 
-### 2. Aggiornare il prompt IA nell'edge function
+### 2. Applicare il branding Cibarius ai template
+- Leggere `src/index.css` per i colori del brand
+- Aggiornare i 6 template email (signup, recovery, magic-link, invite, email-change, reauthentication) con colori, logo e testi in italiano gia presenti nel codice attuale
 
-Sostituire il `systemPrompt` attuale (generico) con il prompt dettagliato fornito dall'utente, che include:
-- Regole per pizza (base, salsa, mozzarella, olio, extra visibili)
-- Regole per pasta (tipo pasta, condimento, formaggio)
-- Regole per risotto (riso, soffritto, brodo, burro/parmigiano, ingrediente principale)
-- Output JSON obbligatorio con `name_it` e `notes`
+### 3. Deploy
+- Deployare la edge function `auth-email-hook` aggiornata
 
-### 3. Aggiungere logica DB-first (dishes cache)
+### 4. Rate limit
+- Il rate limit si risolve da solo aspettando qualche minuto. Una volta che l'hook funziona, le email partiranno normalmente.
 
-Prima di chiamare l'IA, la funzione controllera' se un piatto simile esiste gia' in `dishes` + `dish_ingredients`:
-1. Se trovato → carica ingredienti dalla cache, calcola macro, restituisci subito (NO IA, NO USDA)
-2. Se non trovato → chiama IA vision → arricchisci con USDA → salva in `dishes`/`dish_ingredients` per le prossime volte
+### Dettagli tecnici
 
-Questo richiede una modifica strutturale all'handler principale dell'edge function, aggiungendo un blocco di cache lookup prima della chiamata AI e un blocco di cache write dopo l'analisi.
-
-## File coinvolti
-
-| File | Azione |
-|------|--------|
-| Migrazione SQL | INSERT ~260 righe in `ingredient_translation` |
-| `supabase/functions/analyze-meal-photo/index.ts` | Nuovo prompt + logica dishes cache |
+Il sistema Lovable managed:
+- Usa `LOVABLE_API_KEY` (provisionato automaticamente) invece di `RESEND_API_KEY`
+- Usa `@lovable.dev/webhooks-js` per verificare i webhook invece di `standardwebhooks`
+- Usa `@lovable.dev/email-js` per inviare le email tramite callback URL
+- Non richiede la configurazione manuale di segreti nel dashboard Supabase
 
