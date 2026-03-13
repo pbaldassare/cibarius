@@ -44,7 +44,7 @@ import AdminSettingsPage from "./pages/admin/AdminSettingsPage";
 import AdminSeedPage from "./pages/admin/AdminSeedPage";
 import AdminProductReviewPage from "./pages/admin/AdminProductReviewPage";
 import AdminSupportPage from "./pages/admin/AdminSupportPage";
-import AdminCouponsPage from "./pages/admin/AdminCouponsPage";
+// AdminCouponsPage merged into AdminPaymentsPage
 import AdminRestaurantsPage from "./pages/admin/AdminRestaurantsPage";
 import AdminStatsPage from "./pages/admin/AdminStatsPage";
 import AdminHaccpTemplatesPage from "./pages/admin/AdminHaccpTemplatesPage";
@@ -246,7 +246,7 @@ const App = () => (
               <Route path="/admin/seed" element={<RG roles={["admin"]}><AdminPwaGuard><AdminSeedPage /></AdminPwaGuard></RG>} />
               <Route path="/admin/product-review" element={<RG roles={["admin"]}><AdminPwaGuard><AdminProductReviewPage /></AdminPwaGuard></RG>} />
               <Route path="/admin/support" element={<RG roles={["admin"]}><AdminPwaGuard><AdminSupportPage /></AdminPwaGuard></RG>} />
-              <Route path="/admin/coupons" element={<RG roles={["admin"]}><AdminPwaGuard><AdminCouponsPage /></AdminPwaGuard></RG>} />
+              {/* /admin/coupons removed — merged into /admin/payments */}
               <Route path="/admin/haccp-templates" element={<RG roles={["admin"]}><AdminPwaGuard><AdminHaccpTemplatesPage /></AdminPwaGuard></RG>} />
               <Route path="/admin/subscriptions" element={<RG roles={["admin"]}><AdminPwaGuard><AdminSubscriptionsPage /></AdminPwaGuard></RG>} />
               <Route path="/admin/payments" element={<RG roles={["admin"]}><AdminPwaGuard><AdminPaymentsPage /></AdminPwaGuard></RG>} />
