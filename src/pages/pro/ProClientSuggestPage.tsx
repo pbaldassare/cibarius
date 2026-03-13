@@ -139,11 +139,11 @@ const ProClientSuggestPage = () => {
     if (!debouncedRecipeSearch || debouncedRecipeSearch.length < 2) { setRecipeResults([]); return; }
     const term = `%${debouncedRecipeSearch}%`;
     const promises: Promise<any>[] = [
-      supabase.from("recipes" as any).select("id, title, category, image_url, servings").eq("is_public", true).ilike("title", term).limit(10),
+      (supabase.from("recipes" as any).select("id, title, category, image_url, servings").eq("is_public", true).ilike("title", term).limit(10) as any).then((r: any) => r),
     ];
     if (user && clientId) {
       promises.push(
-        supabase.from("generated_recipes").select("*").eq("professional_id", user.id).eq("client_user_id", clientId).ilike("title", term).limit(5)
+        supabase.from("generated_recipes").select("*").eq("professional_id", user.id).eq("client_user_id", clientId).ilike("title", term).limit(5).then((r: any) => r)
       );
     }
     Promise.all(promises).then(([pubRes, genRes]) => {
