@@ -11,6 +11,7 @@ import UserLayout from "./components/UserLayout";
 import RestaurantLayout from "./components/RestaurantLayout";
 import MobileLayout from "./components/MobileLayout";
 import AdminPwaGuard from "./components/AdminPwaGuard";
+import PlusGuard from "./components/PlusGuard";
 
 // Auth pages
 import LoginPage from "./pages/auth/LoginPage";
