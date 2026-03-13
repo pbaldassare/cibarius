@@ -97,6 +97,7 @@ import ProWeeklyPlanPage from "./pages/pro/ProWeeklyPlanPage";
 // User diet page
 import UserDietPage from "./pages/UserDietPage";
 import UserActivePlanPage from "./pages/UserActivePlanPage";
+import UserWeeklyPlanPage from "./pages/UserWeeklyPlanPage";
 import UserProgressPage from "./pages/UserProgressPage";
 import UserPantryRecipesPage from "./pages/UserPantryRecipesPage";
 import UserMessagesPage from "./pages/UserMessagesPage";
