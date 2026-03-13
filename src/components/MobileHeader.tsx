@@ -1,6 +1,7 @@
 import { ChevronLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import cibariusLogo from "@/assets/cibarius-logo.png";
+import UserNotificationsBell from "@/components/UserNotificationsBell";
 
 interface MobileHeaderProps {
   title: string;
