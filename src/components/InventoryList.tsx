@@ -135,6 +135,12 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
   const [newCalories, setNewCalories] = useState("");
   const [adding, setAdding] = useState(false);
 
+  // Dedup state
+  const [dedupOpen, setDedupOpen] = useState(false);
+  const [dedupResults, setDedupResults] = useState<SimilarProduct[]>([]);
+  const [skipDedup, setSkipDedup] = useState(false);
+  const [dedupSelectedProduct, setDedupSelectedProduct] = useState<SimilarProduct | null>(null);
+
   useEffect(() => {
     if (externalStorageFilter) setStorageFilter(externalStorageFilter);
   }, [externalStorageFilter]);
