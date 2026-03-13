@@ -1,62 +1,37 @@
 
 
-# Piano: Distinzione prodotti con/senza macronutrienti
+# Piano: Popolare 300 traduzioni + Prompt IA preciso + Logica DB-first
 
-## Panoramica
+## Stato attuale
+- `ingredient_translation` ha solo 23 righe (il seed iniziale)
+- L'edge function `analyze-meal-photo` usa un prompt generico e non ha logica "dishes cache first"
 
-Aggiungere un campo calcolato `nutrition_available` ai prodotti per distinguere quelli utilizzabili nelle funzioni nutrizionali (con macro) da quelli utilizzabili solo per scadenze/dispensa/anti-spreco (senza macro).
+## Cosa fare
 
-## Modifiche al Database
+### 1. Inserire ~260 nuove traduzioni in `ingredient_translation`
 
-**Migration SQL:**
-- Aggiungere colonna `nutrition_available boolean NOT NULL DEFAULT false` alla tabella `products`
-- Creare un trigger che imposta automaticamente `nutrition_available = true` quando `calories_100g IS NOT NULL AND calories_100g > 0`
-- Aggiornare i prodotti esistenti: `UPDATE products SET nutrition_available = true WHERE calories_100g IS NOT NULL AND calories_100g > 0`
+Useremo una migrazione SQL con `INSERT ... ON CONFLICT DO NOTHING` per aggiungere tutte le righe del CSV fornito senza duplicare quelle gia' presenti. La tabella ha `name_it` UNIQUE, quindi i conflitti vengono gestiti automaticamente.
 
-## Modifiche Frontend
+### 2. Aggiornare il prompt IA nell'edge function
 
-### 1. Form inserimento manuale (`src/components/InventoryList.tsx`)
-- I campi macro restano **facoltativi** (già lo sono)
-- Dopo il salvataggio di un prodotto senza macro, mostrare un toast informativo: *"Prodotto salvato per scadenze e anti-spreco. Non sarà usato nei calcoli nutrizionali finché non avrà valori nutrizionali."*
+Sostituire il `systemPrompt` attuale (generico) con il prompt dettagliato fornito dall'utente, che include:
+- Regole per pizza (base, salsa, mozzarella, olio, extra visibili)
+- Regole per pasta (tipo pasta, condimento, formaggio)
+- Regole per risotto (riso, soffritto, brodo, burro/parmigiano, ingrediente principale)
+- Output JSON obbligatorio con `name_it` e `notes`
 
-### 2. Form AddFoodFlow (`src/components/AddFoodFlow.tsx`)
-- Nel salvataggio prodotto (sia `products` che `product_submissions`), impostare `nutrition_available` in base alla presenza di `calories100g`
-- Nel contesto **meal**: se il prodotto non ha macro, mostrare un avviso giallo prima del salvataggio: *"Questo prodotto non ha valori nutrizionali. Non verrà conteggiato nei macro del pasto."*
-- Permettere comunque il salvataggio (non bloccante)
+### 3. Aggiungere logica DB-first (dishes cache)
 
-### 3. Visualizzazione nell'inventario (`src/components/InventoryList.tsx`)
-- Aggiungere un badge "⚠️ No macro" (grigio/muted) accanto ai prodotti con `nutrition_available = false`, complementare al badge "✏️ Manuale" esistente
+Prima di chiamare l'IA, la funzione controllera' se un piatto simile esiste gia' in `dishes` + `dish_ingredients`:
+1. Se trovato → carica ingredienti dalla cache, calcola macro, restituisci subito (NO IA, NO USDA)
+2. Se non trovato → chiama IA vision → arricchisci con USDA → salva in `dishes`/`dish_ingredients` per le prossime volte
 
-### 4. Filtri nelle logiche nutrizionali
+Questo richiede una modifica strutturale all'handler principale dell'edge function, aggiungendo un blocco di cache lookup prima della chiamata AI e un blocco di cache write dopo l'analisi.
 
-**File da aggiornare per escludere prodotti senza macro:**
+## File coinvolti
 
-| File | Logica |
+| File | Azione |
 |------|--------|
-| `src/hooks/useDietCompatibility.ts` | Già filtra su `meal_items` con calorie — nessun cambio necessario |
-| `src/components/AddMealSheet.tsx` | Aggiungere filtro `.eq("nutrition_available", true)` nella ricerca prodotti per pasti |
-| `src/lib/search-food.ts` | Aggiungere parametro opzionale `requireNutrition` per filtrare nella ricerca progressiva |
-| `src/pages/pro/ProClientSuggestPage.tsx` | Filtrare prodotti con `nutrition_available = true` nei suggerimenti nutrizionali |
-
-**File che NON devono filtrare** (anti-spreco / dispensa):
-
-| File | Motivo |
-|------|--------|
-| `src/pages/AntiWastePage.tsx` | Anti-spreco: tutti i prodotti inclusi |
-| `src/pages/UserPantryRecipesPage.tsx` | Ricette da dispensa: tutti i prodotti |
-| `src/pages/ExpiryPage.tsx` | Gestione scadenze: tutti i prodotti |
-| `supabase/functions/suggest-meal/index.ts` | Suggerimenti "svuota frigo": tutti i prodotti |
-| `src/components/InventoryList.tsx` | Lista inventario: tutti i prodotti |
-
-### 5. Aggiornamento tipi TypeScript
-- Il file `src/integrations/supabase/types.ts` si aggiornerà automaticamente dopo la migration
-
-## Riepilogo modifiche file
-
-1. **Migration SQL** — aggiunta colonna + trigger + update dati esistenti
-2. **`src/components/InventoryList.tsx`** — badge "No macro" + toast informativo al salvataggio manuale
-3. **`src/components/AddFoodFlow.tsx`** — impostare `nutrition_available`, avviso nel contesto meal
-4. **`src/components/AddMealSheet.tsx`** — filtro `.eq("nutrition_available", true)`
-5. **`src/lib/search-food.ts`** — parametro opzionale per filtrare prodotti con macro
-6. **`src/pages/pro/ProClientSuggestPage.tsx`** — filtro nella ricerca prodotti
+| Migrazione SQL | INSERT ~260 righe in `ingredient_translation` |
+| `supabase/functions/analyze-meal-photo/index.ts` | Nuovo prompt + logica dishes cache |
 

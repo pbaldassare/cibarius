@@ -130,6 +130,7 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
   const [newNotes, setNewNotes] = useState("");
   const [newImageUrl, setNewImageUrl] = useState<string | null>(null);
   const [newImagePath, setNewImagePath] = useState<string | null>(null);
+  const [newCalories, setNewCalories] = useState("");
   const [adding, setAdding] = useState(false);
 
   useEffect(() => {
@@ -142,7 +143,7 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
 
     let query = supabase
       .from("inventory_items")
-      .select("id, quantity, unit, storage_type, expiry_date, notes, calories_total, macros_total, product:products(id, name, brand, image_url, category, calories_100g, serving_size_g, macros_100g, data_source)")
+      .select("id, quantity, unit, storage_type, expiry_date, notes, calories_total, macros_total, product:products(id, name, brand, image_url, category, calories_100g, serving_size_g, macros_100g, data_source, nutrition_available)")
       .order("expiry_date", { ascending: true, nullsFirst: false });
 
     if (mode === "user") {
@@ -231,6 +232,13 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
       toast({ variant: "destructive", title: "Errore", description: error.message });
     } else {
       toast({ title: "Prodotto aggiunto" });
+      // Show informative toast if product was saved without nutrition data
+      setTimeout(() => {
+        toast({
+          title: "ℹ️ Prodotto senza dati nutrizionali",
+          description: "Questo prodotto verrà usato per scadenze e anti-spreco. Non sarà incluso nei calcoli nutrizionali finché non avrà valori nutrizionali compilati.",
+        });
+      }, 500);
       setAddOpen(false);
       resetForm();
       fetchItems();
@@ -480,11 +488,16 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <p className="truncate text-sm font-bold text-foreground">{item.product.name}</p>
                       {(item.product as any).data_source === "manual" && (
                         <Badge variant="outline" className="text-[8px] px-1 py-0 border-amber-400 text-amber-600 shrink-0">
                           ✏️ Manuale
+                        </Badge>
+                      )}
+                      {!(item.product as any).nutrition_available && (
+                        <Badge variant="outline" className="text-[8px] px-1 py-0 border-muted-foreground text-muted-foreground shrink-0">
+                          ⚠️ No macro
                         </Badge>
                       )}
                     </div>
