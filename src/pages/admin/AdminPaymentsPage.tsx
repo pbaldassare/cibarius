@@ -549,9 +549,14 @@ const AdminPaymentsPage = () => {
                           <Switch checked={c.is_active} onCheckedChange={() => handleToggleCoupon(c.id, c.is_active)} />
                         </TableCell>
                         <TableCell>
-                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => copyToClipboard(c.code)}>
-                            <Copy className="h-3.5 w-3.5" />
-                          </Button>
+                          <div className="flex gap-1">
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => copyToClipboard(c.code)}>
+                              <Copy className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:text-destructive" onClick={() => handleDeleteCoupon(c.id, c.code)}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
