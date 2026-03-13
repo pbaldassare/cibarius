@@ -1,27 +1,24 @@
 import { useEffect, useState } from "react";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { Home, AlertTriangle, ClipboardList, UtensilsCrossed, TrendingUp, User, LucideIcon } from "lucide-react";
-import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
-interface TabItem { to: string; icon: LucideIcon; label: string; requiresPlan?: boolean }
+interface TabItem { to: string; icon: LucideIcon; label: string }
 
 const tabs: TabItem[] = [
   { to: "/", icon: Home, label: "Home" },
   { to: "/expiry", icon: AlertTriangle, label: "Scadenze" },
   { to: "/plan", icon: ClipboardList, label: "Piano" },
-  { to: "/meals", icon: UtensilsCrossed, label: "Pasti", requiresPlan: true },
-  { to: "/progress", icon: TrendingUp, label: "Progressi", requiresPlan: true },
+  { to: "/meals", icon: UtensilsCrossed, label: "Pasti" },
+  { to: "/progress", icon: TrendingUp, label: "Progressi" },
   { to: "/profile", icon: User, label: "Profilo" },
 ];
 
 const UserBottomNav = () => {
   const location = useLocation();
-  const navigate = useNavigate();
   const { user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
-  const [hasActivePlan, setHasActivePlan] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -46,20 +43,6 @@ const UserBottomNav = () => {
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
-  useEffect(() => {
-    if (!user) return;
-    const checkPlan = async () => {
-      const { data } = await supabase
-        .from("diet_plans")
-        .select("id")
-        .eq("client_user_id", user.id)
-        .eq("is_active", true)
-        .limit(1);
-      setHasActivePlan(!!(data && data.length > 0));
-    };
-    checkPlan();
-  }, [user]);
-
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-50"
@@ -68,34 +51,9 @@ const UserBottomNav = () => {
       }}
     >
       <div className="mx-auto flex h-[64px] max-w-lg items-center justify-around px-1">
-        {tabs.map(({ to, icon: Icon, label, requiresPlan }) => {
+      {tabs.map(({ to, icon: Icon, label }) => {
           const isActive = location.pathname === to;
           const showBadge = to === "/profile" && unreadCount > 0;
-          const disabled = requiresPlan && !hasActivePlan;
-
-          const motivationalMessages = [
-            "🎯 Crea il tuo piano alimentare per sbloccare questa sezione!",
-            "💪 Un piano ti aiuta a raggiungere i tuoi obiettivi — creane uno!",
-            "🥗 Inizia il tuo percorso: vai su Piano e attiva la tua dieta!",
-            "✨ Sblocca Pasti e Progressi con un piano personalizzato!",
-          ];
-
-          if (disabled) {
-            return (
-              <div
-                key={to}
-                className="flex flex-col items-center gap-0.5 px-1 py-1 opacity-40 cursor-pointer"
-                onClick={() => {
-                  const msg = motivationalMessages[Math.floor(Math.random() * motivationalMessages.length)];
-                  toast(msg, { duration: 3000 });
-                  navigate("/plan");
-                }}
-              >
-                <Icon size={18} strokeWidth={1.6} className="text-white/50" />
-                <span className="text-[9px] text-white/50 font-medium">{label}</span>
-              </div>
-            );
-          }
 
           return (
             <NavLink
