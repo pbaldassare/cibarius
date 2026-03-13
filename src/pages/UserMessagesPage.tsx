@@ -82,7 +82,7 @@ const UserMessagesPage = () => {
             (msg.sender_id === user.id && msg.receiver_id === proId) ||
             (msg.sender_id === proId && msg.receiver_id === user.id)
           ) {
-            setMessages((prev) => [...prev, msg]);
+            setMessages((prev) => prev.some(m => m.id === msg.id) ? prev : [...prev, msg]);
             if (msg.receiver_id === user.id) {
               supabase.from("messages" as any).update({ read_at: new Date().toISOString() } as any).eq("id", msg.id);
             }

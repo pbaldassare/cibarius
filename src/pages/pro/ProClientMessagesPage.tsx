@@ -64,7 +64,7 @@ const ProClientMessagesPage = () => {
             (msg.sender_id === user.id && msg.receiver_id === clientId) ||
             (msg.sender_id === clientId && msg.receiver_id === user.id)
           ) {
-            setMessages((prev) => [...prev, msg]);
+            setMessages((prev) => prev.some(m => m.id === msg.id) ? prev : [...prev, msg]);
             // Auto-mark as read
             if (msg.receiver_id === user.id) {
               supabase.from("messages" as any).update({ read_at: new Date().toISOString() } as any).eq("id", msg.id);
