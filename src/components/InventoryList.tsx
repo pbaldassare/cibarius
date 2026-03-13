@@ -616,6 +616,37 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* ── Duplicate Product Dialog ── */}
+      <DuplicateProductDialog
+        open={dedupOpen}
+        onOpenChange={setDedupOpen}
+        newName={newName}
+        similarProducts={dedupResults}
+        onSelectExisting={(p) => {
+          setDedupSelectedProduct(p);
+          setDedupOpen(false);
+          setDedupResults([]);
+          setSkipDedup(true);
+          // Re-submit the form programmatically
+          setAdding(true);
+          setTimeout(() => {
+            const form = document.querySelector("[data-inventory-form]") as HTMLFormElement;
+            if (form) form.requestSubmit();
+            else setAdding(false);
+          }, 100);
+        }}
+        onCreateNew={() => {
+          setDedupOpen(false);
+          setDedupResults([]);
+          setSkipDedup(true);
+          setAdding(true);
+          setTimeout(() => {
+            const form = document.querySelector("[data-inventory-form]") as HTMLFormElement;
+            if (form) form.requestSubmit();
+            else setAdding(false);
+          }, 100);
+        }}
+      />
     </div>
   );
 };
