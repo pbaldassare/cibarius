@@ -250,6 +250,45 @@ const ProClientPantryPage = () => {
     toast({ title: "Ricetta inviata al cliente! ✅" });
   };
 
+
+  // AI recipe
+  const generateAiRecipe = async () => {
+    if (!user || !clientId || !mealTarget) return;
+    setAiGenerating(true); setAiRecipe(null);
+    const { data, error } = await supabase.functions.invoke("generate-meal-recipe", {
+      body: { meal_type: mealType, kcal_target: mealTarget.kcal_target, protein_g: mealTarget.protein_g, carbs_g: mealTarget.carbs_g, fats_g: mealTarget.fats_g, diet_category: "mediterranea" },
+    });
+    setAiGenerating(false);
+    if (error || data?.error) { toast({ variant: "destructive", title: "Errore IA", description: data?.error || error?.message }); return; }
+    const r = data.recipe;
+    if (r) {
+      setAiRecipe({
+        title: r.title, instructions: r.instructions,
+        ingredients: (r.ingredients ?? []).map((i: any) => ({ name: i.name, grams: i.grams, kcal: i.kcal, protein_g: i.protein_g, carbs_g: i.carbs_g, fats_g: i.fats_g })),
+        kcal_total: r.kcal_total, protein_total: r.protein_total, carbs_total: r.carbs_total, fats_total: r.fats_total,
+      });
+    }
+  };
+
+  const sendEditorRecipe = async (recipe: RecipeData, setLoading: (v: boolean) => void) => {
+    if (!user || !clientId) return;
+    setLoading(true);
+    const { data: saved, error: saveErr } = await supabase.from("generated_recipes").insert({
+      professional_id: user.id, client_user_id: clientId, meal_type: mealType, title: recipe.title,
+      ingredients: recipe.ingredients.map(i => ({ name: i.name, qty: i.grams, unit: "g" })) as any,
+      instructions: recipe.instructions, kcal_total: recipe.kcal_total,
+      macros: { protein: recipe.protein_total, carbs: recipe.carbs_total, fats: recipe.fats_total } as any,
+    }).select().single();
+    if (saveErr) { toast({ variant: "destructive", title: "Errore", description: saveErr.message }); setLoading(false); return; }
+    await supabase.from("pro_suggestions").insert({
+      professional_id: user.id, client_user_id: clientId, type: "recipe",
+      payload: { generated_recipe_id: saved.id, title: recipe.title, kcal_total: recipe.kcal_total, macros: { protein: recipe.protein_total, carbs: recipe.carbs_total, fats: recipe.fats_total }, ingredients: recipe.ingredients, instructions: recipe.instructions } as any,
+    });
+    setLoading(false);
+    toast({ title: "Ricetta inviata al cliente! ✅" });
+    setAiRecipe(null); setShowManual(false);
+  };
+
   if (loading) {
     return (
       <div>
