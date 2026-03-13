@@ -28,6 +28,9 @@ interface MealTarget {
   carbs_g: number;
   fats_g: number;
   sugars_g: number;
+  fiber_g: number;
+  saturated_fats_g: number;
+  unsaturated_fats_g: number;
 }
 
 interface PlanItem {
@@ -63,11 +66,16 @@ const ProClientPlanPage = () => {
   const [proteinDay, setProteinDay] = useState("120");
   const [carbsDay, setCarbsDay] = useState("220");
   const [fatsDay, setFatsDay] = useState("70");
+  const [sugarsDay, setSugarsDay] = useState("");
+  const [fiberDay, setFiberDay] = useState("");
+  const [satFatsDay, setSatFatsDay] = useState("");
+  const [unsatFatsDay, setUnsatFatsDay] = useState("");
+  const [showAdvancedMacros, setShowAdvancedMacros] = useState(false);
 
   // Step 2
   const [mealTargets, setMealTargets] = useState<MealTarget[]>(
     MEAL_TYPES.map((mt) => ({
-      meal_type: mt, kcal_target: 0, protein_g: 0, carbs_g: 0, fats_g: 0, sugars_g: 0,
+      meal_type: mt, kcal_target: 0, protein_g: 0, carbs_g: 0, fats_g: 0, sugars_g: 0, fiber_g: 0, saturated_fats_g: 0, unsaturated_fats_g: 0,
     }))
   );
 
@@ -118,6 +126,11 @@ const ProClientPlanPage = () => {
         setProteinDay(String(p.protein_g_day));
         setCarbsDay(String(p.carbs_g_day));
         setFatsDay(String(p.fats_g_day));
+        setSugarsDay(p.sugars_g_day != null ? String(p.sugars_g_day) : "");
+        setFiberDay(p.fiber_g_day != null ? String(p.fiber_g_day) : "");
+        setSatFatsDay(p.saturated_fats_g_day != null ? String(p.saturated_fats_g_day) : "");
+        setUnsatFatsDay(p.unsaturated_fats_g_day != null ? String(p.unsaturated_fats_g_day) : "");
+        if (p.sugars_g_day || p.fiber_g_day || p.saturated_fats_g_day || p.unsaturated_fats_g_day) setShowAdvancedMacros(true);
         setTitle(p.title || "Piano nutrizionale");
         setNotes(p.notes || "");
         if (p.diet_plan_meal_targets?.length > 0) {
@@ -125,8 +138,8 @@ const ProClientPlanPage = () => {
             MEAL_TYPES.map((mt) => {
               const existing = p.diet_plan_meal_targets.find((t: any) => t.meal_type === mt);
               return existing
-                ? { meal_type: mt, kcal_target: existing.kcal_target, protein_g: existing.protein_g, carbs_g: existing.carbs_g, fats_g: existing.fats_g, sugars_g: existing.sugars_g ?? 0 }
-                : { meal_type: mt, kcal_target: 0, protein_g: 0, carbs_g: 0, fats_g: 0, sugars_g: 0 };
+                ? { meal_type: mt, kcal_target: existing.kcal_target, protein_g: existing.protein_g, carbs_g: existing.carbs_g, fats_g: existing.fats_g, sugars_g: existing.sugars_g ?? 0, fiber_g: existing.fiber_g ?? 0, saturated_fats_g: existing.saturated_fats_g ?? 0, unsaturated_fats_g: existing.unsaturated_fats_g ?? 0 }
+                : { meal_type: mt, kcal_target: 0, protein_g: 0, carbs_g: 0, fats_g: 0, sugars_g: 0, fiber_g: 0, saturated_fats_g: 0, unsaturated_fats_g: 0 };
             })
           );
         }
@@ -291,15 +304,19 @@ const ProClientPlanPage = () => {
         .from("diet_plan_templates")
         .insert({
           professional_id: user.id, title: templateName.trim(),
-          kcal_day: targetKcal, protein_g_day: targetProtein, carbs_g_day: targetCarbs, fats_g_day: targetFats, notes: notes || null,
-        })
+          kcal_day: targetKcal, protein_g_day: targetProtein, carbs_g_day: targetCarbs, fats_g_day: targetFats,
+          sugars_g_day: sugarsDay ? parseFloat(sugarsDay) : null, fiber_g_day: fiberDay ? parseFloat(fiberDay) : null,
+          saturated_fats_g_day: satFatsDay ? parseFloat(satFatsDay) : null, unsaturated_fats_g_day: unsatFatsDay ? parseFloat(unsatFatsDay) : null,
+          notes: notes || null,
+        } as any)
         .select().single();
       if (tmplErr || !tmpl) throw tmplErr;
       const { error: mtErr } = await supabase.from("diet_plan_template_meals").insert(
         mealTargets.map((mt) => ({
           template_id: tmpl.id, meal_type: mt.meal_type, kcal_target: mt.kcal_target,
           protein_g: mt.protein_g, carbs_g: mt.carbs_g, fats_g: mt.fats_g, sugars_g: mt.sugars_g,
-        }))
+          fiber_g: mt.fiber_g || null, saturated_fats_g: mt.saturated_fats_g || null, unsaturated_fats_g: mt.unsaturated_fats_g || null,
+        } as any))
       );
       if (mtErr) throw mtErr;
       toast({ title: "Template salvato! 📋" });
@@ -324,6 +341,11 @@ const ProClientPlanPage = () => {
     setProteinDay(String(tmpl.protein_g_day));
     setCarbsDay(String(tmpl.carbs_g_day));
     setFatsDay(String(tmpl.fats_g_day));
+    setSugarsDay(tmpl.sugars_g_day != null ? String(tmpl.sugars_g_day) : "");
+    setFiberDay(tmpl.fiber_g_day != null ? String(tmpl.fiber_g_day) : "");
+    setSatFatsDay(tmpl.saturated_fats_g_day != null ? String(tmpl.saturated_fats_g_day) : "");
+    setUnsatFatsDay(tmpl.unsaturated_fats_g_day != null ? String(tmpl.unsaturated_fats_g_day) : "");
+    if (tmpl.sugars_g_day || tmpl.fiber_g_day || tmpl.saturated_fats_g_day || tmpl.unsaturated_fats_g_day) setShowAdvancedMacros(true);
     setTitle(tmpl.title || "Piano nutrizionale");
     setNotes(tmpl.notes || "");
     if (tmpl.diet_plan_template_meals?.length > 0) {
@@ -331,8 +353,8 @@ const ProClientPlanPage = () => {
         MEAL_TYPES.map((mt) => {
           const existing = tmpl.diet_plan_template_meals.find((t: any) => t.meal_type === mt);
           return existing
-            ? { meal_type: mt, kcal_target: existing.kcal_target, protein_g: existing.protein_g, carbs_g: existing.carbs_g, fats_g: existing.fats_g, sugars_g: existing.sugars_g ?? 0 }
-            : { meal_type: mt, kcal_target: 0, protein_g: 0, carbs_g: 0, fats_g: 0, sugars_g: 0 };
+            ? { meal_type: mt, kcal_target: existing.kcal_target, protein_g: existing.protein_g, carbs_g: existing.carbs_g, fats_g: existing.fats_g, sugars_g: existing.sugars_g ?? 0, fiber_g: existing.fiber_g ?? 0, saturated_fats_g: existing.saturated_fats_g ?? 0, unsaturated_fats_g: existing.unsaturated_fats_g ?? 0 }
+            : { meal_type: mt, kcal_target: 0, protein_g: 0, carbs_g: 0, fats_g: 0, sugars_g: 0, fiber_g: 0, saturated_fats_g: 0, unsaturated_fats_g: 0 };
         })
       );
     }
@@ -370,8 +392,11 @@ const ProClientPlanPage = () => {
     setSaving(true);
     try {
       const { error: updateErr } = await supabase.from("diet_plans").update({
-        title, kcal_day: targetKcal, protein_g_day: targetProtein, carbs_g_day: targetCarbs, fats_g_day: targetFats, notes: notes || null,
-      }).eq("id", existingPlanId);
+        title, kcal_day: targetKcal, protein_g_day: targetProtein, carbs_g_day: targetCarbs, fats_g_day: targetFats,
+        sugars_g_day: sugarsDay ? parseFloat(sugarsDay) : null, fiber_g_day: fiberDay ? parseFloat(fiberDay) : null,
+        saturated_fats_g_day: satFatsDay ? parseFloat(satFatsDay) : null, unsaturated_fats_g_day: unsatFatsDay ? parseFloat(unsatFatsDay) : null,
+        notes: notes || null,
+      } as any).eq("id", existingPlanId);
       if (updateErr) throw updateErr;
 
       await supabase.from("diet_plan_meal_targets").delete().eq("diet_plan_id", existingPlanId);
@@ -379,7 +404,8 @@ const ProClientPlanPage = () => {
         mealTargets.map((mt) => ({
           diet_plan_id: existingPlanId, meal_type: mt.meal_type, kcal_target: mt.kcal_target,
           protein_g: mt.protein_g, carbs_g: mt.carbs_g, fats_g: mt.fats_g, sugars_g: mt.sugars_g,
-        }))
+          fiber_g: mt.fiber_g || null, saturated_fats_g: mt.saturated_fats_g || null, unsaturated_fats_g: mt.unsaturated_fats_g || null,
+        } as any))
       );
       if (mtErr) throw mtErr;
 
@@ -387,7 +413,8 @@ const ProClientPlanPage = () => {
 
       await supabase.from("nutrition_targets").upsert({
         user_id: clientId, kcal_day: targetKcal, protein_g: targetProtein, carbs_g: targetCarbs, fats_g: targetFats,
-      }, { onConflict: "user_id" });
+        fiber_g: fiberDay ? parseFloat(fiberDay) : null, saturated_fats_g: satFatsDay ? parseFloat(satFatsDay) : null, unsaturated_fats_g: unsatFatsDay ? parseFloat(unsatFatsDay) : null,
+      } as any, { onConflict: "user_id" });
 
       toast({ title: "Piano aggiornato! ✅" });
       navigate(`/pro/client/${clientId}`);
@@ -407,15 +434,18 @@ const ProClientPlanPage = () => {
       const { data: plan, error: planErr } = await supabase.from("diet_plans").insert({
         professional_id: user.id, client_user_id: clientId, title,
         kcal_day: targetKcal, protein_g_day: targetProtein, carbs_g_day: targetCarbs, fats_g_day: targetFats,
+        sugars_g_day: sugarsDay ? parseFloat(sugarsDay) : null, fiber_g_day: fiberDay ? parseFloat(fiberDay) : null,
+        saturated_fats_g_day: satFatsDay ? parseFloat(satFatsDay) : null, unsaturated_fats_g_day: unsatFatsDay ? parseFloat(unsatFatsDay) : null,
         notes: notes || null, is_active: true,
-      }).select().single();
+      } as any).select().single();
       if (planErr || !plan) throw planErr;
 
       const { error: mtErr } = await supabase.from("diet_plan_meal_targets").insert(
         mealTargets.map((mt) => ({
           diet_plan_id: plan.id, meal_type: mt.meal_type, kcal_target: mt.kcal_target,
           protein_g: mt.protein_g, carbs_g: mt.carbs_g, fats_g: mt.fats_g, sugars_g: mt.sugars_g,
-        }))
+          fiber_g: mt.fiber_g || null, saturated_fats_g: mt.saturated_fats_g || null, unsaturated_fats_g: mt.unsaturated_fats_g || null,
+        } as any))
       );
       if (mtErr) throw mtErr;
 
@@ -423,7 +453,8 @@ const ProClientPlanPage = () => {
 
       await supabase.from("nutrition_targets").upsert({
         user_id: clientId, kcal_day: targetKcal, protein_g: targetProtein, carbs_g: targetCarbs, fats_g: targetFats,
-      }, { onConflict: "user_id" });
+        fiber_g: fiberDay ? parseFloat(fiberDay) : null, saturated_fats_g: satFatsDay ? parseFloat(satFatsDay) : null, unsaturated_fats_g: unsatFatsDay ? parseFloat(unsatFatsDay) : null,
+      } as any, { onConflict: "user_id" });
 
       toast({ title: "Piano pubblicato! ✅" });
       navigate(`/pro/client/${clientId}`);
@@ -491,8 +522,39 @@ const ProClientPlanPage = () => {
                 <div>
                   <label className="text-xs text-muted-foreground">Grassi (g)</label>
                   <Input type="number" value={fatsDay} onChange={(e) => setFatsDay(e.target.value)} />
-                </div>
+               </div>
               </div>
+
+              {/* Advanced macros toggle */}
+              <button
+                type="button"
+                onClick={() => setShowAdvancedMacros(!showAdvancedMacros)}
+                className="flex items-center gap-1.5 text-xs font-medium text-primary pt-1"
+              >
+                <ChevronRight className={`h-3.5 w-3.5 transition-transform ${showAdvancedMacros ? "rotate-90" : ""}`} />
+                Macro avanzati (opzionali)
+              </button>
+
+              {showAdvancedMacros && (
+                <div className="grid grid-cols-2 gap-2 rounded-lg bg-secondary/30 p-3">
+                  <div>
+                    <label className="text-xs text-muted-foreground">Zuccheri (g)</label>
+                    <Input type="number" value={sugarsDay} onChange={(e) => setSugarsDay(e.target.value)} placeholder="—" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Fibre (g)</label>
+                    <Input type="number" value={fiberDay} onChange={(e) => setFiberDay(e.target.value)} placeholder="—" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Grassi saturi (g)</label>
+                    <Input type="number" value={satFatsDay} onChange={(e) => setSatFatsDay(e.target.value)} placeholder="—" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Grassi insaturi (g)</label>
+                    <Input type="number" value={unsatFatsDay} onChange={(e) => setUnsatFatsDay(e.target.value)} placeholder="—" />
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
@@ -562,6 +624,26 @@ const ProClientPlanPage = () => {
                         <Input type="number" value={mt.fats_g || ""} onChange={(e) => updateMealTarget(idx, "fats_g", e.target.value)} className="h-8 text-xs" placeholder="0" />
                       </div>
                     </div>
+                    {showAdvancedMacros && (
+                      <div className="grid grid-cols-4 gap-2">
+                        <div>
+                          <label className="text-[10px] text-muted-foreground">Zucch.</label>
+                          <Input type="number" value={mt.sugars_g || ""} onChange={(e) => updateMealTarget(idx, "sugars_g", e.target.value)} className="h-8 text-xs" placeholder="—" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-muted-foreground">Fibre</label>
+                          <Input type="number" value={mt.fiber_g || ""} onChange={(e) => updateMealTarget(idx, "fiber_g", e.target.value)} className="h-8 text-xs" placeholder="—" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-muted-foreground">G. saturi</label>
+                          <Input type="number" value={mt.saturated_fats_g || ""} onChange={(e) => updateMealTarget(idx, "saturated_fats_g", e.target.value)} className="h-8 text-xs" placeholder="—" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-muted-foreground">G. insat.</label>
+                          <Input type="number" value={mt.unsaturated_fats_g || ""} onChange={(e) => updateMealTarget(idx, "unsaturated_fats_g", e.target.value)} className="h-8 text-xs" placeholder="—" />
+                        </div>
+                      </div>
+                    )}
 
                     {/* Food items list */}
                     {mealItems.length > 0 && (
