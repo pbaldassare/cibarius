@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { Home, AlertTriangle, ClipboardList, UtensilsCrossed, TrendingUp, User, LucideIcon } from "lucide-react";
-import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
-interface TabItem { to: string; icon: LucideIcon; label: string; requiresPlan?: boolean }
+interface TabItem { to: string; icon: LucideIcon; label: string }
 
 const tabs: TabItem[] = [
   { to: "/", icon: Home, label: "Home" },
