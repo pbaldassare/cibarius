@@ -7,7 +7,7 @@ import { useRole } from "@/hooks/useRole";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ChevronRight, Settings, Heart, Bell, LogOut, UserX, Stethoscope, Sparkles,
-  ClipboardList, MessageSquareWarning, Trash2, Camera, MapPin, GraduationCap,
+  ClipboardList, MessageSquareWarning, MessageCircle, Trash2, Camera, MapPin, GraduationCap,
   Globe, Instagram, Facebook, Linkedin, Briefcase, Monitor, Building2, Eye, EyeOff, Pencil, X,
   Download,
 } from "lucide-react";
