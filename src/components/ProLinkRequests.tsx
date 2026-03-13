@@ -168,7 +168,7 @@ export default function ProLinkRequests({ onApproved }: { onApproved?: () => voi
           {requests.map((req) => (
             <div key={req.id} className="flex items-center justify-between bg-background rounded-lg p-3">
               <div>
-                <p className="text-sm font-medium text-foreground">{req.user_name || "Utente"}</p>
+                <p className="text-sm font-medium text-foreground">{req.user_name && req.user_name.trim() ? req.user_name : req.user_email || "Utente sconosciuto"}</p>
                 <p className="text-xs text-muted-foreground">{req.user_email}</p>
               </div>
               <div className="flex gap-1.5">

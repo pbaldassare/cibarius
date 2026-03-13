@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import { Bell, Gift, CheckCircle2, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ interface Notification {
 
 export default function UserNotificationsBell() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
 
@@ -118,7 +120,17 @@ export default function UserNotificationsBell() {
                 <button
                   key={n.id}
                   className={`w-full text-left p-4 hover:bg-muted/50 transition-colors ${!n.read_at ? "bg-primary/5" : ""}`}
-                  onClick={() => !n.read_at && markRead(n.id)}
+                  onClick={() => {
+                    if (!n.read_at) markRead(n.id);
+                    // Navigate based on notification type
+                    if (n.type === "link_request") {
+                      setOpen(false);
+                      navigate("/pro/clients");
+                    } else if (n.type === "link_approved") {
+                      setOpen(false);
+                      navigate("/invite");
+                    }
+                  }}
                 >
                   <div className="flex gap-3">
                     <div className="mt-0.5">{getIcon(n.type)}</div>
