@@ -1605,53 +1605,6 @@ const AddFoodFlow = ({
                     })}
                     </div>
 
-            {/* ─── STEP: Receipt QR ─── */}
-            {step === "receipt_qr" && (
-              <div className="space-y-3">
-                <BarcodeScanner
-                  onDetected={async (code) => {
-                    const isQr = code.startsWith("http://") || code.startsWith("https://") || !/^\d+$/.test(code.trim());
-                    if (!isQr) {
-                      toast({ variant: "destructive", title: "Questo è un barcode prodotto", description: "Usa 'Scansiona barcode' per i prodotti singoli" });
-                      return;
-                    }
-                    setReceiptLoading(true);
-                    setStep("receipt");
-                    try {
-                      const { data: fnData, error: fnError } = await supabase.functions.invoke("parse-receipt-qr", {
-                        body: { qr_content: code },
-                      });
-                      if (fnError) throw fnError;
-                      const products = (fnData?.products || []).map((p: any) => {
-                        const st = guessStorage(p.category || "", p.name || "");
-                        const days = st === "freezer" ? 90 : st === "ambiente" ? 30 : 5;
-                        return { ...p, selected: true, storage_type: st, expiry_date: format(addDays(new Date(), days), "yyyy-MM-dd") };
-                      });
-                      setReceiptProducts(products);
-                      if (products.length === 0) {
-                        toast({ variant: "destructive", title: "Nessun prodotto trovato nello scontrino" });
-                      }
-                    } catch (e: any) {
-                      toast({ variant: "destructive", title: "Errore analisi scontrino", description: e.message });
-                      setStep("receipt_qr");
-                    } finally {
-                      setReceiptLoading(false);
-                    }
-                  }}
-                  active={step === "receipt_qr" && open}
-                />
-                {receiptLoading && (
-                  <div className="flex flex-col items-center gap-2 py-4">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                    <p className="text-sm text-muted-foreground">Analisi scontrino in corso…</p>
-                  </div>
-                )}
-                <p className="text-center text-xs text-muted-foreground">
-                  Inquadra il QR code sullo scontrino
-                </p>
-              </div>
-            )}
-
                     {/* Add selected CTA */}
                     <Button
                       className="w-full h-12 text-base font-bold gap-2"
