@@ -558,12 +558,13 @@ const ProfiloPage = () => {
         {/* ═══ Menu items ═══ */}
         <div className="rounded-[18px] bg-card shadow-card overflow-hidden">
           {(role === "professional" ? [
-            { icon: Sparkles, label: "Abbonamenti clienti", path: "/pro/clients" },
+            { icon: Sparkles, label: "Abbonamenti clienti", path: "/pro/clients", badge: 0 },
           ] : [
-            { icon: Heart, label: "Preferiti", path: undefined },
-            { icon: Sparkles, label: "Abbonamento Premium", path: "/subscription" },
-            { icon: Bell, label: "Promemoria scadenze", path: "/reminders" },
-            { icon: Bell, label: "Promemoria pasti", path: "/meal-reminders" },
+            ...(proLink ? [{ icon: MessageCircle, label: "Messaggi", path: "/messages", badge: unreadMsgCount }] : []),
+            { icon: Heart, label: "Preferiti", path: undefined, badge: 0 },
+            { icon: Sparkles, label: "Abbonamento Premium", path: "/subscription", badge: 0 },
+            { icon: Bell, label: "Promemoria scadenze", path: "/reminders", badge: 0 },
+            { icon: Bell, label: "Promemoria pasti", path: "/meal-reminders", badge: 0 },
           ]).map((item, i) => (
             <button
               key={item.label}
@@ -574,6 +575,11 @@ const ProfiloPage = () => {
             >
               <item.icon size={20} className="text-primary shrink-0" />
               <span className="flex-1 text-[15px] font-medium text-foreground">{item.label}</span>
+              {item.badge > 0 && (
+                <Badge variant="destructive" className="text-[10px] px-1.5 py-0 min-w-[20px] h-5 flex items-center justify-center">
+                  {item.badge > 9 ? "9+" : item.badge}
+                </Badge>
+              )}
               <ChevronRight size={16} className="text-muted-foreground" />
             </button>
           ))}
