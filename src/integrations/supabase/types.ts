@@ -3579,6 +3579,10 @@ export type Database = {
         Args: { _client_id: string; _pro_id: string }
         Returns: boolean
       }
+      has_pending_link_request: {
+        Args: { _pro_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_restaurant_accessible: {
         Args: { _restaurant_id: string }
