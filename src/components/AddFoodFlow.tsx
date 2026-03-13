@@ -1117,13 +1117,10 @@ const AddFoodFlow = ({
                     </div>
                   </button>
 
-                  {/* Foto scontrino */}
+                  {/* Foto scontrino – only for inventory context, not meals */}
+                  {context !== "meal" && (
                   <button
                     onClick={() => {
-                      if (context === "meal" && !preselectedMealType && !selectedMealType) {
-                        toast({ variant: "destructive", title: "Seleziona prima il tipo di pasto" });
-                        return;
-                      }
                       setStep("receipt_photo");
                     }}
                     className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 text-left active:scale-[0.98] transition-transform"
@@ -1136,6 +1133,7 @@ const AddFoodFlow = ({
                       <p className="text-xs" style={{ color: "#4B5563" }}>Fotografa lo scontrino e carica tutto</p>
                     </div>
                   </button>
+                  )}
 
                   {[
                     { m: "scan" as Method, icon: ScanLine, label: "Scansiona barcode", desc: "Usa la fotocamera" },
