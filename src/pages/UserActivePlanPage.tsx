@@ -385,6 +385,9 @@ const UserActivePlanPage = () => {
           <Button onClick={() => navigate("/diet")}>
             Scegli un piano <ArrowRight className="ml-1 h-4 w-4" />
           </Button>
+          <Button variant="outline" onClick={() => navigate("/weekly-plan")}>
+            📅 Piano settimanale
+          </Button>
         </main>
       </div>
     );
