@@ -400,7 +400,8 @@ const ProClientPlanPage = () => {
         mealTargets.map((mt) => ({
           diet_plan_id: existingPlanId, meal_type: mt.meal_type, kcal_target: mt.kcal_target,
           protein_g: mt.protein_g, carbs_g: mt.carbs_g, fats_g: mt.fats_g, sugars_g: mt.sugars_g,
-        }))
+          fiber_g: mt.fiber_g || null, saturated_fats_g: mt.saturated_fats_g || null, unsaturated_fats_g: mt.unsaturated_fats_g || null,
+        } as any))
       );
       if (mtErr) throw mtErr;
 
