@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
 import MobileHeader from "@/components/MobileHeader";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Search, MapPin, Briefcase, UserPlus, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { Loader2, Search, MapPin, Briefcase, UserPlus, CheckCircle2, Clock, XCircle, Link2, ShieldCheck, UserCheck } from "lucide-react";
 import UpgradeScreen from "@/components/UpgradeScreen";
 import ListSkeleton from "@/components/ListSkeleton";
 import EmptyState from "@/components/EmptyState";
