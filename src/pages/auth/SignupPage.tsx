@@ -81,7 +81,7 @@ const SignupPage = () => {
   const canGoNext = () => {
     if (step === 1) return !!accountType;
     if (step === 2) {
-      const baseOk = email && password && password.length >= 6 && fullName;
+      const baseOk = email && password && password.length >= 6 && fullName && confirmPassword === password;
       if (accountType !== "user") return baseOk && phone;
       return baseOk;
     }
