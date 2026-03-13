@@ -66,15 +66,22 @@ function dedup(existing: FoodSearchResult[], incoming: FoodSearchResult[]): Food
   return merged;
 }
 
-// ─── Local DB search ─────────────────────────────────
+// ─── Local DB search (products + ingredients in parallel) ─
 async function searchLocal(query: string): Promise<FoodSearchResult[]> {
-  const { data } = await supabase
-    .from("products")
-    .select("id, name, brand, barcode, image_url, calories_100g, macros_100g")
-    .ilike("name", `%${query}%`)
-    .limit(10);
+  const [productsRes, ingredientsRes] = await Promise.all([
+    supabase
+      .from("products")
+      .select("id, name, brand, barcode, image_url, calories_100g, macros_100g")
+      .ilike("name", `%${query}%`)
+      .limit(10),
+    supabase
+      .from("ingredients")
+      .select("id, name, kcal_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g")
+      .ilike("name", `%${query}%`)
+      .limit(10),
+  ]);
 
-  return (data ?? []).map((p: any) => ({
+  const productResults: FoodSearchResult[] = (productsRes.data ?? []).map((p: any) => ({
     source: "local" as const,
     source_detail: "local" as const,
     name: p.name,
@@ -82,11 +89,26 @@ async function searchLocal(query: string): Promise<FoodSearchResult[]> {
     barcode: p.barcode,
     image_url: p.image_url,
     calories_100g: p.calories_100g,
-    protein_100g: p.macros_100g?.protein ?? null,
-    carbs_100g: p.macros_100g?.carbs ?? null,
-    fats_100g: p.macros_100g?.fats ?? null,
+    protein_100g: p.macros_100g?.protein ?? p.macros_100g?.p ?? null,
+    carbs_100g: p.macros_100g?.carbs ?? p.macros_100g?.c ?? null,
+    fats_100g: p.macros_100g?.fats ?? p.macros_100g?.f ?? null,
     local_product_id: p.id,
   }));
+
+  const ingredientResults: FoodSearchResult[] = (ingredientsRes.data ?? []).map((i: any) => ({
+    source: "local" as const,
+    source_detail: "local" as const,
+    name: i.name,
+    brand: null,
+    barcode: null,
+    image_url: null,
+    calories_100g: i.kcal_per_100g,
+    protein_100g: i.protein_per_100g,
+    carbs_100g: i.carbs_per_100g,
+    fats_100g: i.fat_per_100g,
+  }));
+
+  return dedup(productResults, ingredientResults);
 }
 
 // ─── Edge function: OFF only ─────────────────────────
