@@ -455,6 +455,7 @@ const AddFoodFlow = ({
       setCalories100g(null);
       setMacros100g(null);
       setProductId(null);
+      setShowDetails(true);
       setStep("summary");
     }
   };
