@@ -1269,6 +1269,39 @@ export type Database = {
         }
         Relationships: []
       }
+      in_app_notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          metadata: Json | null
+          read_at: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          read_at?: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          read_at?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ingredient_categories: {
         Row: {
           category: string
@@ -2389,6 +2422,36 @@ export type Database = {
           invite_code?: string
           professional_id?: string
           status?: string
+        }
+        Relationships: []
+      }
+      professional_link_requests: {
+        Row: {
+          created_at: string
+          id: string
+          message: string | null
+          professional_id: string
+          responded_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          professional_id: string
+          responded_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          professional_id?: string
+          responded_at?: string | null
+          status?: string
+          user_id?: string
         }
         Relationships: []
       }
