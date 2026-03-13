@@ -264,7 +264,7 @@ const AddFoodFlow = ({
 
   // Register recipe as meal
   const handleRegisterRecipeFromFlow = async (ingredients: any[], title: string) => {
-    if (!user || !selectedMealType) return;
+    if (!user || !(selectedMealType || preselectedMealType)) return;
     setSaving(true);
     try {
       const today = new Date().toISOString().slice(0, 10);
