@@ -57,6 +57,13 @@ const ProClientPantryPage = () => {
   const [generatedRecipes, setGeneratedRecipes] = useState<GeneratedRecipe[]>([]);
   const [sendingIdx, setSendingIdx] = useState<number | null>(null);
 
+  // AI + manual
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiRecipe, setAiRecipe] = useState<RecipeData | null>(null);
+  const [aiSending, setAiSending] = useState(false);
+  const [showManual, setShowManual] = useState(false);
+  const [manualSending, setManualSending] = useState(false);
+
   useEffect(() => {
     if (!clientId || !user) return;
     const load = async () => {
