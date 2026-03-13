@@ -627,24 +627,11 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
           setDedupOpen(false);
           setDedupResults([]);
           setSkipDedup(true);
-          // Re-submit the form programmatically
-          setAdding(true);
-          setTimeout(() => {
-            const form = document.querySelector("[data-inventory-form]") as HTMLFormElement;
-            if (form) form.requestSubmit();
-            else setAdding(false);
-          }, 100);
         }}
         onCreateNew={() => {
           setDedupOpen(false);
           setDedupResults([]);
           setSkipDedup(true);
-          setAdding(true);
-          setTimeout(() => {
-            const form = document.querySelector("[data-inventory-form]") as HTMLFormElement;
-            if (form) form.requestSubmit();
-            else setAdding(false);
-          }, 100);
         }}
       />
     </div>
