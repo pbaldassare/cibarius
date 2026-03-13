@@ -765,21 +765,48 @@ const UserDietPage = () => {
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="text-xs text-muted-foreground">Kcal/giorno</label>
-                    <Input type="number" value={selfKcal} onChange={(e) => setSelfKcal(e.target.value)} />
+                    <Input type="number" value={selfKcal} onChange={(e) => {
+                      const newKcal = parseFloat(e.target.value) || 2000;
+                      setSelfKcal(e.target.value);
+                      // Auto-calculate macros for free users
+                      if (!plusActive) {
+                        const p = Math.round(newKcal * 0.25 / 4);
+                        const c = Math.round(newKcal * 0.50 / 4);
+                        const f = Math.round(newKcal * 0.25 / 9);
+                        setSelfProtein(String(p));
+                        setSelfCarbs(String(c));
+                        setSelfFats(String(f));
+                      }
+                    }} />
                   </div>
                   <div>
-                    <label className="text-xs text-muted-foreground">Proteine (g)</label>
-                    <Input type="number" value={selfProtein} onChange={(e) => setSelfProtein(e.target.value)} />
+                    <label className="text-xs text-muted-foreground flex items-center gap-1">
+                      Proteine (g)
+                      {!plusActive && <Crown className="h-3 w-3 text-amber-500" />}
+                    </label>
+                    <Input type="number" value={selfProtein} onChange={(e) => setSelfProtein(e.target.value)} disabled={!plusActive} className={!plusActive ? "opacity-60" : ""} />
                   </div>
                   <div>
-                    <label className="text-xs text-muted-foreground">Carboidrati (g)</label>
-                    <Input type="number" value={selfCarbs} onChange={(e) => setSelfCarbs(e.target.value)} />
+                    <label className="text-xs text-muted-foreground flex items-center gap-1">
+                      Carboidrati (g)
+                      {!plusActive && <Crown className="h-3 w-3 text-amber-500" />}
+                    </label>
+                    <Input type="number" value={selfCarbs} onChange={(e) => setSelfCarbs(e.target.value)} disabled={!plusActive} className={!plusActive ? "opacity-60" : ""} />
                   </div>
                   <div>
-                    <label className="text-xs text-muted-foreground">Grassi (g)</label>
-                    <Input type="number" value={selfFats} onChange={(e) => setSelfFats(e.target.value)} />
+                    <label className="text-xs text-muted-foreground flex items-center gap-1">
+                      Grassi (g)
+                      {!plusActive && <Crown className="h-3 w-3 text-amber-500" />}
+                    </label>
+                    <Input type="number" value={selfFats} onChange={(e) => setSelfFats(e.target.value)} disabled={!plusActive} className={!plusActive ? "opacity-60" : ""} />
                   </div>
                 </div>
+                {!plusActive && (
+                  <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                    <Crown className="h-3 w-3 text-amber-500" />
+                    I macro vengono calcolati automaticamente. Passa a <button onClick={() => navigate("/subscription")} className="text-primary font-semibold underline">Plus</button> per personalizzarli.
+                  </p>
+                )}
                 <div>
                   <label className="text-xs text-muted-foreground">Note (opzionale)</label>
                   <Textarea value={selfNotes} onChange={(e) => setSelfNotes(e.target.value)} rows={3} />
