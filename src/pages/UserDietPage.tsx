@@ -158,7 +158,7 @@ const UserDietPage = () => {
   const [expandedMeals, setExpandedMeals] = useState<Set<string>>(new Set());
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [confirmTemplate, setConfirmTemplate] = useState<any>(null);
-  
+  const [confirmKcalOverride, setConfirmKcalOverride] = useState<string>("");
 
   const getTemplateInfo = (title: string) => {
     const lower = title.toLowerCase();
