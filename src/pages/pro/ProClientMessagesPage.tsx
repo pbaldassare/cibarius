@@ -84,11 +84,15 @@ const ProClientMessagesPage = () => {
   const handleSend = async () => {
     if (!newMsg.trim() || !user || !clientId) return;
     setSending(true);
-    await supabase.from("messages" as any).insert({
+    const content = newMsg.trim();
+    const { data, error } = await supabase.from("messages" as any).insert({
       sender_id: user.id,
       receiver_id: clientId,
-      content: newMsg.trim(),
-    } as any);
+      content,
+    } as any).select().single();
+    if (!error && data) {
+      setMessages((prev) => [...prev, data as Message]);
+    }
     setNewMsg("");
     setSending(false);
   };
