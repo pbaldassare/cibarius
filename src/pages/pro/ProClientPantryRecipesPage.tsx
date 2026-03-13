@@ -175,6 +175,14 @@ const ProClientPantryRecipesPage = () => {
   const [sendingIdx, setSendingIdx] = useState<number | null>(null);
   const [templates, setTemplates] = useState<Map<string, any>>(new Map());
 
+  // AI recipe generation
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiRecipe, setAiRecipe] = useState<RecipeData | null>(null);
+  const [aiSending, setAiSending] = useState(false);
+  // Manual recipe
+  const [showManual, setShowManual] = useState(false);
+  const [manualSending, setManualSending] = useState(false);
+
   // Load data
   useEffect(() => {
     if (!clientId || !user) return;
