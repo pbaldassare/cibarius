@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Trash2, Plus, Upload, Copy, FileText } from "lucide-react";
+import { Loader2, Trash2, Plus, Upload, Copy, FileText, Pencil } from "lucide-react";
 
 const MEAL_LABELS: Record<string, string> = {
   colazione: "☀️ Colazione",
