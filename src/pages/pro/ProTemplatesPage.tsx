@@ -289,9 +289,14 @@ const ProTemplatesPage = () => {
                 Duplica
               </Button>
             ) : (
-              <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => setDeleteId(tmpl.id)}>
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              <>
+                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => navigate(`/pro/template/${tmpl.id}`)}>
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => setDeleteId(tmpl.id)}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </>
             )}
           </div>
         </div>
