@@ -1042,6 +1042,7 @@ const AddFoodFlow = ({
     if (step === "scan") return "Scansiona barcode";
     if (step === "search") return "Cerca prodotto";
     if (step === "receipt") return "Scontrino QR";
+    if (step === "receipt_qr") return "Scansiona QR scontrino";
     if (step === "recipes") return "Ricette dal piano";
     return "Riepilogo";
   };
