@@ -351,6 +351,19 @@ const ProWeeklyPlanPage = () => {
         } as any, { onConflict: "user_id" });
       }
 
+      // Save meal text suggestions
+      const allMealTexts = weeks.flatMap((w) =>
+        w.days.flatMap((d) =>
+          d.meals.filter((m) => m.meal_text.trim()).map((m) => ({
+            meal_type: m.meal_type,
+            meal_text: m.meal_text.trim(),
+          }))
+        )
+      );
+      if (user && allMealTexts.length > 0) {
+        await saveMealTextSuggestions(user.id, allMealTexts);
+      }
+
       toast.success("Piano settimanale salvato! ✅");
       navigate(`/pro/client/${clientId}`);
     } catch (err: any) {
