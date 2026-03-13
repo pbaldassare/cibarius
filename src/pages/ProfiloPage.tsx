@@ -533,6 +533,26 @@ const ProfiloPage = () => {
                   </div>
                   <Badge className="bg-success/10 text-success border-0 text-[10px]">Attivo</Badge>
                 </button>
+
+                {/* Upsell Plus banner for free users */}
+                {!hasPlus && (
+                  <button
+                    onClick={() => navigate("/subscription", { state: { couponCode: proCoupon?.coupon_code } })}
+                    className="flex w-full items-center gap-3 rounded-[14px] bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20 p-3 text-left active:scale-[0.98] transition-transform"
+                  >
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 shrink-0">
+                      <Crown className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground">Passa a Plus</p>
+                      <p className="text-xs text-muted-foreground">
+                        {proCoupon ? `Sconto ${proCoupon.client_discount_percent}% con il codice ${proCoupon.coupon_code}` : "Sblocca piani alimentari e monitoraggio"}
+                      </p>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-primary shrink-0" />
+                  </button>
+                )}
+
                 <Button variant="outline" size="sm" className="w-full text-destructive border-destructive/30 gap-2 rounded-xl" onClick={revokeAccess}>
                   <UserX className="h-4 w-4" /> Revoca accesso
                 </Button>
