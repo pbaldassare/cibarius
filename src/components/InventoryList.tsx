@@ -232,15 +232,13 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
       toast({ variant: "destructive", title: "Errore", description: error.message });
     } else {
       toast({ title: "Prodotto aggiunto" });
-      // Show informative toast if no nutrition data
-      if (!calories100g || calories100g <= 0) {
-        setTimeout(() => {
-          toast({
-            title: "ℹ️ Prodotto senza dati nutrizionali",
-            description: "Questo prodotto verrà usato per scadenze e anti-spreco. Non sarà incluso nei calcoli nutrizionali finché non avrà valori nutrizionali compilati.",
-          });
-        }, 500);
-      }
+      // Show informative toast if product was saved without nutrition data
+      setTimeout(() => {
+        toast({
+          title: "ℹ️ Prodotto senza dati nutrizionali",
+          description: "Questo prodotto verrà usato per scadenze e anti-spreco. Non sarà incluso nei calcoli nutrizionali finché non avrà valori nutrizionali compilati.",
+        });
+      }, 500);
       setAddOpen(false);
       resetForm();
       fetchItems();
