@@ -388,8 +388,11 @@ const ProClientPlanPage = () => {
     setSaving(true);
     try {
       const { error: updateErr } = await supabase.from("diet_plans").update({
-        title, kcal_day: targetKcal, protein_g_day: targetProtein, carbs_g_day: targetCarbs, fats_g_day: targetFats, notes: notes || null,
-      }).eq("id", existingPlanId);
+        title, kcal_day: targetKcal, protein_g_day: targetProtein, carbs_g_day: targetCarbs, fats_g_day: targetFats,
+        sugars_g_day: sugarsDay ? parseFloat(sugarsDay) : null, fiber_g_day: fiberDay ? parseFloat(fiberDay) : null,
+        saturated_fats_g_day: satFatsDay ? parseFloat(satFatsDay) : null, unsaturated_fats_g_day: unsatFatsDay ? parseFloat(unsatFatsDay) : null,
+        notes: notes || null,
+      } as any).eq("id", existingPlanId);
       if (updateErr) throw updateErr;
 
       await supabase.from("diet_plan_meal_targets").delete().eq("diet_plan_id", existingPlanId);
