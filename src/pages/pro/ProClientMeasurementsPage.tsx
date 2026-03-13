@@ -3,9 +3,13 @@ import { useParams } from "react-router-dom";
 import MobileHeader from "@/components/MobileHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, TrendingUp, Weight, Target, ArrowDown, ArrowUp } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, TrendingUp, Weight, Target, ArrowDown, ArrowUp, Plus, Ruler, Save } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
@@ -43,36 +47,116 @@ const METRICS = [
 
 const ProClientMeasurementsPage = () => {
   const { clientId } = useParams<{ clientId: string }>();
+  const { toast } = useToast();
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
   const [loading, setLoading] = useState(true);
   const [clientName, setClientName] = useState("");
   const [activeMetrics, setActiveMetrics] = useState<string[]>(["weight_kg", "waist_cm"]);
   const [goal, setGoal] = useState<WeightGoal | null>(null);
 
-  useEffect(() => {
+  // Goal form
+  const [showGoalForm, setShowGoalForm] = useState(false);
+  const [savingGoal, setSavingGoal] = useState(false);
+  const [goalForm, setGoalForm] = useState({ height_cm: "", starting_weight_kg: "", target_weight_kg: "" });
+
+  // Measurement form
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    measured_at: new Date().toISOString().slice(0, 10),
+    weight_kg: "", waist_cm: "", hips_cm: "", chest_cm: "", arm_cm: "", thigh_cm: "", body_fat_pct: "", notes: "",
+  });
+
+  const loadData = async () => {
     if (!clientId) return;
-    const load = async () => {
-      const [{ data: mData }, { data: profile }, { data: gData }] = await Promise.all([
-        supabase
-          .from("body_measurements")
-          .select("*")
-          .eq("user_id", clientId)
-          .order("measured_at", { ascending: false })
-          .limit(50),
-        supabase.from("profiles").select("full_name").eq("id", clientId).single(),
-        supabase
-          .from("weight_goals" as any)
-          .select("*")
-          .eq("user_id", clientId)
-          .maybeSingle(),
-      ]);
-      setMeasurements((mData as any[]) ?? []);
-      setClientName(profile?.full_name || "Cliente");
-      if (gData) setGoal(gData as any);
-      setLoading(false);
+    const [{ data: mData }, { data: profile }, { data: gData }] = await Promise.all([
+      supabase
+        .from("body_measurements")
+        .select("*")
+        .eq("user_id", clientId)
+        .order("measured_at", { ascending: false })
+        .limit(50),
+      supabase.from("profiles").select("full_name").eq("id", clientId).single(),
+      supabase
+        .from("weight_goals" as any)
+        .select("*")
+        .eq("user_id", clientId)
+        .maybeSingle(),
+    ]);
+    setMeasurements((mData as any[]) ?? []);
+    setClientName(profile?.full_name || "Cliente");
+    if (gData) {
+      setGoal(gData as any);
+      setGoalForm({
+        height_cm: String((gData as any).height_cm ?? ""),
+        starting_weight_kg: String((gData as any).starting_weight_kg ?? ""),
+        target_weight_kg: String((gData as any).target_weight_kg ?? ""),
+      });
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { loadData(); }, [clientId]);
+
+  const handleSaveGoal = async () => {
+    if (!clientId) return;
+    setSavingGoal(true);
+    const height = parseFloat(goalForm.height_cm) || null;
+    const startW = parseFloat(goalForm.starting_weight_kg) || null;
+    const targetW = parseFloat(goalForm.target_weight_kg) || null;
+
+    const { error } = await supabase
+      .from("weight_goals" as any)
+      .upsert({
+        user_id: clientId,
+        height_cm: height,
+        starting_weight_kg: startW,
+        current_weight_kg: startW,
+        target_weight_kg: targetW,
+        updated_at: new Date().toISOString(),
+      } as any, { onConflict: "user_id" });
+
+    setSavingGoal(false);
+    if (error) {
+      toast({ variant: "destructive", title: "Errore", description: (error as any).message });
+    } else {
+      toast({ title: "Obiettivi salvati ✅" });
+      setShowGoalForm(false);
+      loadData();
+    }
+  };
+
+  const handleSaveMeasurement = async () => {
+    if (!clientId) return;
+    setSaving(true);
+    const row: any = {
+      user_id: clientId,
+      measured_at: form.measured_at,
+      notes: form.notes || null,
     };
-    load();
-  }, [clientId]);
+    for (const m of METRICS) {
+      const v = (form as any)[m.key];
+      row[m.key] = v ? parseFloat(v) : null;
+    }
+    const { error } = await supabase.from("body_measurements").insert(row);
+
+    if (!error && row.weight_kg && goal) {
+      await supabase
+        .from("weight_goals" as any)
+        .update({ current_weight_kg: row.weight_kg, updated_at: new Date().toISOString() } as any)
+        .eq("user_id", clientId);
+    }
+
+    setSaving(false);
+    if (error) {
+      toast({ variant: "destructive", title: "Errore", description: error.message });
+    } else {
+      toast({ title: "Misurazione salvata ✅" });
+      setShowForm(false);
+      setForm({ measured_at: new Date().toISOString().slice(0, 10), weight_kg: "", waist_cm: "", hips_cm: "", chest_cm: "", arm_cm: "", thigh_cm: "", body_fat_pct: "", notes: "" });
+      loadData();
+    }
+  };
 
   const toggleMetric = (key: string) => {
     setActiveMetrics((prev) =>
@@ -90,7 +174,6 @@ const ProClientMeasurementsPage = () => {
       }, {} as any),
     }));
 
-  // Weight progress
   const latestWeight = measurements.find(m => m.weight_kg != null)?.weight_kg ?? goal?.current_weight_kg ?? null;
   const startWeight = goal?.starting_weight_kg ?? null;
   const targetWeight = goal?.target_weight_kg ?? null;
@@ -119,57 +202,137 @@ const ProClientMeasurementsPage = () => {
       <main className="px-4 py-5 pb-28 space-y-4">
 
         {/* Weight goals card */}
-        {goal && (
-          <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
-            <CardContent className="py-4 space-y-3">
+        <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+          <CardContent className="py-4 space-y-3">
+            <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
                 <Target className="h-4 w-4 text-primary" /> Obiettivo peso
               </h3>
+              <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={() => setShowGoalForm(!showGoalForm)}>
+                {goal ? "Modifica" : <><Plus className="h-3 w-3" /> Imposta</>}
+              </Button>
+            </div>
 
-              {/* Stats row */}
-              <div className="flex items-center gap-3 text-xs">
-                {heightCm && <span className="text-muted-foreground">📏 {heightCm} cm</span>}
-                {startWeight && <span className="text-muted-foreground">🏁 {startWeight} kg</span>}
-                {targetWeight && <span className="font-semibold text-primary">🎯 {targetWeight} kg</span>}
-              </div>
-
-              {/* Current weight & diff */}
-              {latestWeight && (
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl font-extrabold text-foreground">{latestWeight} kg</span>
-                  {weightDiff !== null && (
-                    <Badge
-                      variant="outline"
-                      className={`text-[10px] gap-0.5 ${
-                        (isLosingGoal && weightDiff < 0) || (!isLosingGoal && weightDiff > 0)
-                          ? "border-success text-success"
-                          : weightDiff === 0
-                          ? "border-muted-foreground text-muted-foreground"
-                          : "border-destructive text-destructive"
-                      }`}
-                    >
-                      {weightDiff > 0 ? <ArrowUp className="h-3 w-3" /> : weightDiff < 0 ? <ArrowDown className="h-3 w-3" /> : null}
-                      {weightDiff > 0 ? "+" : ""}{weightDiff} kg
-                    </Badge>
-                  )}
-                  {bmi && (
-                    <Badge variant="secondary" className="text-[10px]">
-                      BMI {bmi}
-                    </Badge>
-                  )}
-                </div>
-              )}
-
-              {/* Progress bar */}
-              {progressPct !== null && totalToLose && (
-                <div className="space-y-1">
-                  <Progress value={progressPct} className="h-2.5" />
-                  <div className="flex justify-between text-[10px] text-muted-foreground">
-                    <span>{progressPct}% completato</span>
-                    <span>{remaining} kg {isLosingGoal ? "da perdere" : "da prendere"}</span>
+            {showGoalForm && (
+              <div className="space-y-2 border-t border-border pt-3">
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="text-[10px] font-medium text-muted-foreground">Altezza (cm)</label>
+                    <Input type="number" step="0.1" placeholder="170" value={goalForm.height_cm} onChange={(e) => setGoalForm({ ...goalForm, height_cm: e.target.value })} className="h-8 text-xs" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-medium text-muted-foreground">Peso partenza</label>
+                    <Input type="number" step="0.1" placeholder="80" value={goalForm.starting_weight_kg} onChange={(e) => setGoalForm({ ...goalForm, starting_weight_kg: e.target.value })} className="h-8 text-xs" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-medium text-muted-foreground">Peso obiettivo</label>
+                    <Input type="number" step="0.1" placeholder="70" value={goalForm.target_weight_kg} onChange={(e) => setGoalForm({ ...goalForm, target_weight_kg: e.target.value })} className="h-8 text-xs" />
                   </div>
                 </div>
-              )}
+                <Button size="sm" className="w-full h-8 text-xs gap-1" onClick={handleSaveGoal} disabled={savingGoal}>
+                  {savingGoal ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+                  Salva obiettivi
+                </Button>
+              </div>
+            )}
+
+            {goal && !showGoalForm && (
+              <div className="space-y-2.5">
+                <div className="flex items-center gap-3 text-xs">
+                  {heightCm && <span className="text-muted-foreground">📏 {heightCm} cm</span>}
+                  {startWeight && <span className="text-muted-foreground">🏁 {startWeight} kg</span>}
+                  {targetWeight && <span className="font-semibold text-primary">🎯 {targetWeight} kg</span>}
+                </div>
+
+                {latestWeight && (
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl font-extrabold text-foreground">{latestWeight} kg</span>
+                    {weightDiff !== null && (
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] gap-0.5 ${
+                          (isLosingGoal && weightDiff < 0) || (!isLosingGoal && weightDiff > 0)
+                            ? "border-success text-success"
+                            : weightDiff === 0
+                            ? "border-muted-foreground text-muted-foreground"
+                            : "border-destructive text-destructive"
+                        }`}
+                      >
+                        {weightDiff > 0 ? <ArrowUp className="h-3 w-3" /> : weightDiff < 0 ? <ArrowDown className="h-3 w-3" /> : null}
+                        {weightDiff > 0 ? "+" : ""}{weightDiff} kg
+                      </Badge>
+                    )}
+                    {bmi && (
+                      <Badge variant="secondary" className="text-[10px]">
+                        BMI {bmi}
+                      </Badge>
+                    )}
+                  </div>
+                )}
+
+                {progressPct !== null && totalToLose && (
+                  <div className="space-y-1">
+                    <Progress value={progressPct} className="h-2.5" />
+                    <div className="flex justify-between text-[10px] text-muted-foreground">
+                      <span>{progressPct}% completato</span>
+                      <span>{remaining} kg {isLosingGoal ? "da perdere" : "da prendere"}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!goal && !showGoalForm && (
+              <p className="text-xs text-muted-foreground">Nessun obiettivo impostato.</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Add measurement button */}
+        <Button className="w-full gap-2" onClick={() => setShowForm(!showForm)}>
+          <Plus className="h-4 w-4" /> Nuova misurazione
+        </Button>
+
+        {/* Measurement form */}
+        {showForm && (
+          <Card className="border-2 border-primary/20">
+            <CardContent className="py-4 space-y-3">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Data</label>
+                <Input type="date" value={form.measured_at} onChange={(e) => setForm({ ...form, measured_at: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Peso (kg)</label>
+                  <Input type="number" step="0.1" placeholder="75.5" value={form.weight_kg} onChange={(e) => setForm({ ...form, weight_kg: e.target.value })} />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Body fat (%)</label>
+                  <Input type="number" step="0.1" placeholder="18.5" value={form.body_fat_pct} onChange={(e) => setForm({ ...form, body_fat_pct: e.target.value })} />
+                </div>
+              </div>
+              <p className="text-xs font-semibold text-foreground flex items-center gap-1"><Ruler className="h-3.5 w-3.5" /> Circonferenze (cm)</p>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { key: "waist_cm", label: "Vita" },
+                  { key: "hips_cm", label: "Fianchi" },
+                  { key: "chest_cm", label: "Petto" },
+                  { key: "arm_cm", label: "Braccio" },
+                  { key: "thigh_cm", label: "Coscia" },
+                ].map((f) => (
+                  <div key={f.key}>
+                    <label className="text-xs font-medium text-muted-foreground">{f.label}</label>
+                    <Input type="number" step="0.1" placeholder="0" value={(form as any)[f.key]} onChange={(e) => setForm({ ...form, [f.key]: e.target.value })} />
+                  </div>
+                ))}
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Note</label>
+                <Textarea placeholder="Note opzionali..." value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="min-h-[50px]" />
+              </div>
+              <Button className="w-full" onClick={handleSaveMeasurement} disabled={saving}>
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Salva misurazione"}
+              </Button>
             </CardContent>
           </Card>
         )}
