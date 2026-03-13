@@ -34,7 +34,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 export type AddFoodContext = "inventory" | "meal" | "recipe" | "preparation";
 type MealType = "colazione" | "pranzo" | "cena" | "spuntino";
 type Method = "photo_ai" | "search" | "scan" | "manual";
-type Step = "method" | "photo_ai" | "scan" | "search" | "summary" | "recipes" | "receipt" | "receipt_photo";
+type Step = "method" | "photo_ai" | "scan" | "search" | "summary" | "recipes" | "receipt" | "receipt_photo" | "receipt_qr";
 
 interface SearchProduct {
   id: string;
@@ -1030,7 +1030,8 @@ const AddFoodFlow = ({
   const goBack = () => {
     if (step === "summary") setStep(method === "manual" ? "method" : method === "photo_ai" ? "photo_ai" : method === "scan" ? "scan" : "search");
     else if (step === "recipes") setStep("method");
-    else if (step === "receipt") setStep("scan");
+    else if (step === "receipt") setStep("receipt_qr");
+    else if (step === "receipt_qr") setStep("method");
     else if (step === "search" || step === "scan" || step === "photo_ai") setStep("method");
     else onOpenChange(false);
   };
@@ -1041,6 +1042,7 @@ const AddFoodFlow = ({
     if (step === "scan") return "Scansiona barcode";
     if (step === "search") return "Cerca prodotto";
     if (step === "receipt") return "Scontrino QR";
+    if (step === "receipt_qr") return "Scansiona QR scontrino";
     if (step === "recipes") return "Ricette dal piano";
     return "Riepilogo";
   };
@@ -1119,22 +1121,38 @@ const AddFoodFlow = ({
                     </div>
                   </button>
 
-                  {/* Foto scontrino – only for inventory context, not meals */}
+                  {/* ── Gruppo Scontrino – only for inventory context ── */}
                   {context !== "meal" && (
-                  <button
-                    onClick={() => {
-                      setStep("receipt_photo");
-                    }}
-                    className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 text-left active:scale-[0.98] transition-transform"
-                  >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                      <Receipt className="h-5 w-5 text-primary" />
+                    <div className="rounded-2xl border border-border bg-card overflow-hidden">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-4 pt-3 pb-1">
+                        Scontrino
+                      </p>
+                      <button
+                        onClick={() => setStep("receipt_photo")}
+                        className="flex w-full items-center gap-3 px-4 py-3 text-left active:bg-secondary/50 transition-colors"
+                      >
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                          <Receipt className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold" style={{ color: "#111827" }}>📋 Foto scontrino</p>
+                          <p className="text-xs" style={{ color: "#4B5563" }}>Fotografa lo scontrino cartaceo</p>
+                        </div>
+                      </button>
+                      <div className="border-t border-border" />
+                      <button
+                        onClick={() => setStep("receipt_qr")}
+                        className="flex w-full items-center gap-3 px-4 py-3 text-left active:bg-secondary/50 transition-colors"
+                      >
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                          <ScanLine className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold" style={{ color: "#111827" }}>📱 QR Scontrino</p>
+                          <p className="text-xs" style={{ color: "#4B5563" }}>Scansiona il QR code dello scontrino</p>
+                        </div>
+                      </button>
                     </div>
-                    <div>
-                      <p className="text-sm font-bold" style={{ color: "#111827" }}>📋 Foto scontrino</p>
-                      <p className="text-xs" style={{ color: "#4B5563" }}>Fotografa lo scontrino e carica tutto</p>
-                    </div>
-                  </button>
                   )}
 
                   {[
@@ -1587,7 +1605,6 @@ const AddFoodFlow = ({
                     })}
                     </div>
 
-
                     {/* Add selected CTA */}
                     <Button
                       className="w-full h-12 text-base font-bold gap-2"
@@ -1642,6 +1659,53 @@ const AddFoodFlow = ({
                     </Button>
                   </>
                 )}
+              </div>
+            )}
+
+            {/* ─── STEP: Receipt QR ─── */}
+            {step === "receipt_qr" && (
+              <div className="space-y-3">
+                <BarcodeScanner
+                  onDetected={async (code) => {
+                    const isQr = code.startsWith("http://") || code.startsWith("https://") || !/^\d+$/.test(code.trim());
+                    if (!isQr) {
+                      toast({ variant: "destructive", title: "Questo è un barcode prodotto", description: "Usa 'Scansiona barcode' per i prodotti singoli" });
+                      return;
+                    }
+                    setReceiptLoading(true);
+                    setStep("receipt");
+                    try {
+                      const { data: fnData, error: fnError } = await supabase.functions.invoke("parse-receipt-qr", {
+                        body: { qr_content: code },
+                      });
+                      if (fnError) throw fnError;
+                      const products = (fnData?.products || []).map((p: any) => {
+                        const st = guessStorage(p.category || "", p.name || "");
+                        const days = st === "freezer" ? 90 : st === "ambiente" ? 30 : 5;
+                        return { ...p, selected: true, storage_type: st, expiry_date: format(addDays(new Date(), days), "yyyy-MM-dd") };
+                      });
+                      setReceiptProducts(products);
+                      if (products.length === 0) {
+                        toast({ variant: "destructive", title: "Nessun prodotto trovato nello scontrino" });
+                      }
+                    } catch (e: any) {
+                      toast({ variant: "destructive", title: "Errore analisi scontrino", description: e.message });
+                      setStep("receipt_qr");
+                    } finally {
+                      setReceiptLoading(false);
+                    }
+                  }}
+                  active={step === "receipt_qr" && open}
+                />
+                {receiptLoading && (
+                  <div className="flex flex-col items-center gap-2 py-4">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    <p className="text-sm text-muted-foreground">Analisi scontrino in corso…</p>
+                  </div>
+                )}
+                <p className="text-center text-xs text-muted-foreground">
+                  Inquadra il QR code sullo scontrino
+                </p>
               </div>
             )}
 
