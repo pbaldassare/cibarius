@@ -367,6 +367,32 @@ const ProClientPantryPage = () => {
           Genera ricette dalla dispensa
         </Button>
 
+        {/* AI + Manual */}
+        <div className="flex gap-2">
+          <Button variant="outline" className="flex-1 gap-2" onClick={generateAiRecipe} disabled={aiGenerating || !mealTarget}>
+            {aiGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            Genera con IA
+          </Button>
+          <Button variant="outline" className="flex-1 gap-2" onClick={() => setShowManual(!showManual)}>
+            <PenLine className="h-4 w-4" />
+            {showManual ? "Nascondi" : "Scrivi ricetta"}
+          </Button>
+        </div>
+
+        {aiRecipe && (
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold text-foreground">🤖 Ricetta IA</h3>
+            <ProRecipeEditor initialRecipe={aiRecipe} onSend={(r) => sendEditorRecipe(r, setAiSending)} sending={aiSending} />
+          </div>
+        )}
+
+        {showManual && (
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold text-foreground">✏️ Ricetta personalizzata</h3>
+            <ProRecipeEditor onSend={(r) => sendEditorRecipe(r, setManualSending)} sending={manualSending} sendLabel="Invia ricetta al cliente" />
+          </div>
+        )}
+
         {/* Generated recipes */}
         {generatedRecipes.length > 0 && (
           <div className="space-y-3">
