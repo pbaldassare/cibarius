@@ -551,12 +551,14 @@ const ProfiloPage = () => {
 
         {/* ═══ Menu items ═══ */}
         <div className="rounded-[18px] bg-card shadow-card overflow-hidden">
-          {[
+          {(role === "professional" ? [
+            { icon: Sparkles, label: "Abbonamenti clienti", path: "/pro/clients" },
+          ] : [
             { icon: Heart, label: "Preferiti", path: undefined },
             { icon: Sparkles, label: "Abbonamento Premium", path: "/subscription" },
             { icon: Bell, label: "Promemoria scadenze", path: "/reminders" },
             { icon: Bell, label: "Promemoria pasti", path: "/meal-reminders" },
-          ].map((item, i) => (
+          ]).map((item, i) => (
             <button
               key={item.label}
               onClick={() => item.path ? navigate(item.path) : toast({ title: "In arrivo!", description: `${item.label} sarà disponibile a breve.` })}
