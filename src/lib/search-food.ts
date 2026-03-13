@@ -67,13 +67,17 @@ function dedup(existing: FoodSearchResult[], incoming: FoodSearchResult[]): Food
 }
 
 // ─── Local DB search (products + ingredients in parallel) ─
-async function searchLocal(query: string): Promise<FoodSearchResult[]> {
+async function searchLocal(query: string, requireNutrition = false): Promise<FoodSearchResult[]> {
+  let productsQuery = supabase
+    .from("products")
+    .select("id, name, brand, barcode, image_url, calories_100g, macros_100g")
+    .ilike("name", `%${query}%`)
+    .limit(10);
+  if (requireNutrition) {
+    productsQuery = productsQuery.eq("nutrition_available", true);
+  }
   const [productsRes, ingredientsRes] = await Promise.all([
-    supabase
-      .from("products")
-      .select("id, name, brand, barcode, image_url, calories_100g, macros_100g")
-      .ilike("name", `%${query}%`)
-      .limit(10),
+    productsQuery,
     supabase
       .from("ingredients")
       .select("id, name, kcal_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g")
