@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Wand2, Send, Package, Flame, AlertTriangle } from "lucide-react";
+import { Loader2, Wand2, Send, Package, Flame, AlertTriangle, Sparkles, PenLine } from "lucide-react";
+import ProRecipeEditor, { type RecipeData } from "@/components/ProRecipeEditor";
 
 const MEAL_LABELS: Record<string, string> = {
   colazione: "☀️ Colazione",
