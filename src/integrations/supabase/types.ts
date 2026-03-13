@@ -2201,6 +2201,36 @@ export type Database = {
           },
         ]
       }
+      pro_meal_text_suggestions: {
+        Row: {
+          created_at: string
+          id: string
+          meal_text: string
+          meal_type: string
+          professional_id: string
+          updated_at: string
+          usage_count: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          meal_text: string
+          meal_type: string
+          professional_id: string
+          updated_at?: string
+          usage_count?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          meal_text?: string
+          meal_type?: string
+          professional_id?: string
+          updated_at?: string
+          usage_count?: number
+        }
+        Relationships: []
+      }
       pro_suggestions: {
         Row: {
           client_user_id: string
