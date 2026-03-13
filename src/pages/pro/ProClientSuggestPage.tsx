@@ -284,7 +284,6 @@ const ProClientSuggestPage = () => {
         ingredients: recipe.ingredients,
         instructions: recipe.instructions,
       } as any,
-      },
     });
 
     setLoading(false);
