@@ -154,7 +154,8 @@ export type OnProgressCallback = (
  */
 export function searchFoodProgressive(
   query: string,
-  onProgress: OnProgressCallback
+  onProgress: OnProgressCallback,
+  options?: { requireNutrition?: boolean }
 ): () => void {
   const q = query.trim();
   let cancelled = false;
