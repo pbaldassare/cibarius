@@ -87,12 +87,19 @@ export default function ProLinkRequests({ onApproved }: { onApproved?: () => voi
         activated_at: new Date().toISOString(),
       });
 
-      if (linkErr && linkErr.code === "23505") {
-        await supabase
-          .from("client_links")
-          .update({ status: "active", activated_at: new Date().toISOString() })
-          .eq("professional_id", user.id)
-          .eq("client_user_id", req.user_id);
+      if (linkErr) {
+        if (linkErr.code === "23505") {
+          await supabase
+            .from("client_links")
+            .update({ status: "active", activated_at: new Date().toISOString() })
+            .eq("professional_id", user.id)
+            .eq("client_user_id", req.user_id);
+        } else {
+          console.error("client_links insert error:", linkErr);
+          toast({ variant: "destructive", title: "Errore collegamento", description: linkErr.message });
+          setActing(null);
+          return;
+        }
       }
 
       const { data: coupon } = await supabase
