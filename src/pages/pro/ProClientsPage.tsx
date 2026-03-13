@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { Users, Plus, Copy, Loader2, UserX, Eye, Link2, ClipboardList, Activity, Lightbulb, ChefHat, Salad } from "lucide-react";
 import ListSkeleton from "@/components/ListSkeleton";
 import EmptyState from "@/components/EmptyState";
+import ProLinkRequests from "@/components/ProLinkRequests";
 
 interface ClientLink {
   id: string;
@@ -134,6 +135,9 @@ const ProClientsPage = () => {
     <div>
       <MobileHeader title="Clienti" />
       <main className="px-4 py-5 space-y-4">
+        {/* Link requests from users */}
+        <ProLinkRequests onApproved={loadData} />
+
         {/* Actions */}
         <div className="flex gap-2">
           <Button className="flex-1 gap-2" onClick={generateInvite} disabled={creating}>

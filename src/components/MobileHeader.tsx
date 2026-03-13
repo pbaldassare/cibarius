@@ -1,6 +1,7 @@
 import { ChevronLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import cibariusLogo from "@/assets/cibarius-logo.png";
+import UserNotificationsBell from "@/components/UserNotificationsBell";
 
 interface MobileHeaderProps {
   title: string;
@@ -31,7 +32,7 @@ const MobileHeader = ({ title, showBack = true, right }: MobileHeaderProps) => {
           <div className="flex flex-1 items-center justify-center gap-2">
             <img src={cibariusLogo} alt="Cibarius" className="h-5 brightness-0 invert" />
           </div>
-          <div className="flex w-10 items-center justify-end text-white">{right}</div>
+          <div className="flex w-10 items-center justify-end text-white">{right || <UserNotificationsBell />}</div>
         </div>
       </header>
       {/* Smooth wave */}
