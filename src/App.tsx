@@ -11,6 +11,7 @@ import UserLayout from "./components/UserLayout";
 import RestaurantLayout from "./components/RestaurantLayout";
 import MobileLayout from "./components/MobileLayout";
 import AdminPwaGuard from "./components/AdminPwaGuard";
+import PlusGuard from "./components/PlusGuard";
 
 // Auth pages
 import LoginPage from "./pages/auth/LoginPage";
@@ -172,7 +173,7 @@ const App = () => (
                 <Route path="/preparations" element={<PreparationsPage />} />
                 <Route path="/messages" element={<UserMessagesPage />} />
                 <Route path="/shopping-list" element={<ShoppingListPage />} />
-                <Route path="/measurements" element={<UserMeasurementsPage />} />
+                <Route path="/measurements" element={<PlusGuard><UserMeasurementsPage /></PlusGuard>} />
                 <Route path="/progress" element={<UserProgressPage />} />
                 <Route path="/subscription" element={<SubscriptionPage />} />
               </Route>
