@@ -153,6 +153,10 @@ const AddFoodFlow = ({
   // Plan recipes state
   const [planRecipes, setPlanRecipes] = useState<any[]>([]);
   const [planRecipesLoading, setPlanRecipesLoading] = useState(false);
+
+  // Manual name autocomplete
+  const [manualSuggestions, setManualSuggestions] = useState<SearchProduct[]>([]);
+  const debouncedName = useDebounce(name, 300);
   const [activePlanTitle, setActivePlanTitle] = useState<string>("");
 
   // Receipt QR state
@@ -229,6 +233,35 @@ const AddFoodFlow = ({
     return "mediterranea";
   };
   const detectIsFemale = (title: string) => title.toLowerCase().includes("donna");
+
+  // Manual name autocomplete: suggest similar products while typing
+  useEffect(() => {
+    if (method !== "manual" || !debouncedName || debouncedName.length < 2 || step !== "summary") {
+      setManualSuggestions([]);
+      return;
+    }
+    const term = `%${debouncedName}%`;
+    Promise.all([
+      supabase.from("products").select("id, name, brand, calories_100g, macros_100g, image_url, serving_size_g").ilike("name", term).limit(5),
+      supabase.from("ingredients").select("id, name, kcal_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g").ilike("name", term).limit(5),
+    ]).then(([prodRes, ingrRes]) => {
+      const results: SearchProduct[] = [];
+      const seen = new Set<string>();
+      for (const p of (prodRes.data ?? [])) {
+        const key = p.name.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        results.push({ id: p.id, name: p.name, brand: p.brand, calories_100g: p.calories_100g, macros_100g: p.macros_100g as any, image_url: p.image_url, serving_size_g: p.serving_size_g });
+      }
+      for (const i of (ingrRes.data ?? [])) {
+        const key = i.name.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        results.push({ id: i.id, name: i.name, brand: null, calories_100g: i.kcal_per_100g, macros_100g: { protein: i.protein_per_100g, carbs: i.carbs_per_100g, fats: i.fat_per_100g }, image_url: null, serving_size_g: null });
+      }
+      setManualSuggestions(results.slice(0, 8));
+    });
+  }, [debouncedName, method, step]);
 
   // Fetch plan recipes when opening in meal context
   useEffect(() => {
@@ -455,6 +488,7 @@ const AddFoodFlow = ({
       setCalories100g(null);
       setMacros100g(null);
       setProductId(null);
+      setShowDetails(true);
       setStep("summary");
     }
   };
@@ -1739,80 +1773,85 @@ const AddFoodFlow = ({
 
                 {/* ── Product hero card ── */}
                 <div className="rounded-2xl bg-card shadow-card p-4">
-                  <div className="flex gap-3 items-center">
-                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-secondary overflow-hidden">
-                      {imageUrl ? (
-                        <img src={imageUrl} alt="" className="h-full w-full object-cover" />
-                      ) : (
-                        <Package className="h-7 w-7 text-muted-foreground" />
+                  {method === "manual" ? (
+                    <div className="space-y-2">
+                      <div className="relative">
+                        <Input
+                          autoFocus
+                          placeholder="Nome prodotto *"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          className="text-base font-semibold"
+                        />
+                      </div>
+                      {/* Autocomplete suggestions */}
+                      {manualSuggestions.length > 0 && (
+                        <div className="rounded-xl border border-border bg-background max-h-48 overflow-y-auto">
+                          {manualSuggestions.map((s) => (
+                            <button
+                              key={s.id}
+                              type="button"
+                              onClick={() => {
+                                setName(s.name);
+                                setBrand(s.brand ?? "");
+                                setImageUrl(s.image_url);
+                                setCalories100g(s.calories_100g);
+                                setMacros100g(s.macros_100g as any);
+                                setServingSizeG(s.serving_size_g);
+                                setProductId(s.id);
+                                setManualSuggestions([]);
+                              }}
+                              className="flex w-full items-center gap-3 px-3 py-2 text-left hover:bg-secondary/50 transition-colors border-b border-border last:border-b-0"
+                            >
+                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-secondary overflow-hidden">
+                                {s.image_url ? (
+                                  <img src={s.image_url} alt="" className="h-full w-full object-cover" />
+                                ) : (
+                                  <span className="text-sm">{getFoodEmoji(null, s.name)}</span>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-foreground truncate">{s.name}</p>
+                                {s.brand && <p className="text-[10px] text-muted-foreground">{s.brand}</p>}
+                              </div>
+                              {s.calories_100g != null && (
+                                <span className="text-[10px] font-medium text-primary shrink-0">{s.calories_100g} kcal</span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
                       )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-base font-semibold text-foreground truncate">{name || "Prodotto"}</p>
-                      {brand && <p className="text-xs text-muted-foreground truncate">{brand}</p>}
-                    </div>
-                    {computed.calories != null && (
-                      <div className="text-right shrink-0">
-                        <p className="text-xl font-bold text-primary leading-tight">{computed.calories}</p>
-                        <p className="text-[10px] text-muted-foreground">kcal</p>
+                  ) : (
+                    <div className="flex gap-3 items-center">
+                      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-secondary overflow-hidden">
+                        {imageUrl ? (
+                          <img src={imageUrl} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          <Package className="h-7 w-7 text-muted-foreground" />
+                        )}
                       </div>
-                    )}
-                  </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-base font-semibold text-foreground truncate">{name || "Prodotto"}</p>
+                        {brand && <p className="text-xs text-muted-foreground truncate">{brand}</p>}
+                      </div>
+                      {computed.calories != null && (
+                        <div className="text-right shrink-0">
+                          <p className="text-xl font-bold text-primary leading-tight">{computed.calories}</p>
+                          <p className="text-[10px] text-muted-foreground">kcal</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
-                {/* ── Missing nutrition banner (regular users only) ── */}
+                {/* ── Info: no nutrition data ── */}
                 {calories100g == null && !defaultRestaurantId && (
-                  <div className="rounded-2xl border-2 border-amber-300 bg-amber-50 p-4 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle className="h-5 w-5 text-amber-600" />
-                      <p className="text-sm font-semibold text-amber-800">
-                        Dati nutrizionali mancanti
-                      </p>
-                    </div>
-                    <p className="text-xs text-amber-700">
-                      Per salvare questo prodotto servono almeno le calorie. Scegli come procedere:
+                  <div className="flex items-start gap-2 rounded-xl border border-muted bg-muted/30 p-3">
+                    <AlertTriangle className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-muted-foreground">
+                      Prodotto salvato per scadenze e anti-spreco. Non sarà usato nei calcoli nutrizionali finché non avrà valori nutrizionali compilati.
                     </p>
-                    <div className="space-y-2">
-                      {(method === "photo_ai" || method === "scan") && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full gap-2 border-amber-300 text-amber-800 hover:bg-amber-100"
-                          onClick={() => {
-                            setAiPhotos([]);
-                            setFusedData(null);
-                            setScannedCode(null);
-                            setNotFound(false);
-                            setStep(method === "photo_ai" ? "photo_ai" : "scan");
-                          }}
-                        >
-                          <Camera className="h-4 w-4" />
-                          {method === "photo_ai" ? "Rifai la foto" : "Scansiona di nuovo"}
-                        </Button>
-                      )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full gap-2 border-amber-300 text-amber-800 hover:bg-amber-100"
-                        onClick={() => {
-                          setQuery(name || "");
-                          setStep("search");
-                          setMethod("search");
-                        }}
-                      >
-                        <Search className="h-4 w-4" />
-                        Cerca prodotti simili
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="w-full gap-2 border-amber-300 text-amber-800 hover:bg-amber-100"
-                        onClick={() => setShowDetails(true)}
-                      >
-                        <Keyboard className="h-4 w-4" />
-                        Inserisci a mano
-                      </Button>
-                    </div>
                   </div>
                 )}
 
