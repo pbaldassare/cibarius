@@ -35,6 +35,7 @@ interface InventoryItemWithProduct {
     calories_100g: number | null;
     serving_size_g: number | null;
     macros_100g: { protein: number; carbs: number; fats: number } | null;
+    data_source: string;
   };
 }
 
@@ -141,7 +142,7 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
 
     let query = supabase
       .from("inventory_items")
-      .select("id, quantity, unit, storage_type, expiry_date, notes, calories_total, macros_total, product:products(id, name, brand, image_url, category, calories_100g, serving_size_g, macros_100g)")
+      .select("id, quantity, unit, storage_type, expiry_date, notes, calories_total, macros_total, product:products(id, name, brand, image_url, category, calories_100g, serving_size_g, macros_100g, data_source)")
       .order("expiry_date", { ascending: true, nullsFirst: false });
 
     if (mode === "user") {
@@ -184,7 +185,8 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
         category: newCategory || null,
         unit: newUnit,
         image_url: newImageUrl,
-      })
+        data_source: "manual",
+      } as any)
       .select()
       .single();
 
@@ -478,7 +480,14 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <p className="truncate text-sm font-bold text-foreground">{item.product.name}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="truncate text-sm font-bold text-foreground">{item.product.name}</p>
+                      {(item.product as any).data_source === "manual" && (
+                        <Badge variant="outline" className="text-[8px] px-1 py-0 border-amber-400 text-amber-600 shrink-0">
+                          ✏️ Manuale
+                        </Badge>
+                      )}
+                    </div>
                     <p className="text-xs text-muted-foreground">
                       x{item.quantity} {item.unit ?? ""}
                     </p>

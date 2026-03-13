@@ -489,7 +489,8 @@ const AddFoodFlow = ({
             image_url: p.image_url,
             calories_100g: p.calories_100g,
             macros_100g: p.macros_100g as any,
-          }).select("id").single();
+            data_source: "barcode",
+          } as any).select("id").single();
           if (insErr) {
             console.error("Search product insert error:", insErr);
             const { data: fallback } = await supabase
@@ -507,7 +508,8 @@ const AddFoodFlow = ({
           image_url: p.image_url,
           calories_100g: p.calories_100g,
           macros_100g: p.macros_100g as any,
-        }).select("id").single();
+          data_source: "ai_search",
+        } as any).select("id").single();
         if (insErr) console.error("Search product insert (no barcode) error:", insErr);
         if (created) {
           pid = created.id;
@@ -593,7 +595,8 @@ const AddFoodFlow = ({
           calories_100g: data.calories_100g,
           macros_100g: data.macros_100g as any,
           serving_size_g: data.serving_size_g ?? null,
-        }).select("id").single();
+          data_source: "barcode",
+        } as any).select("id").single();
         if (insErr) {
           console.error("Product insert error:", insErr);
           const { data: fallback } = await supabase
@@ -879,7 +882,8 @@ const AddFoodFlow = ({
                 calories_100g: calories100g,
                 macros_100g: macros100g as any,
                 serving_size_g: servingSizeG,
-              })
+                data_source: barcode ? "barcode" : "manual",
+              } as any)
               .select("id").single();
             if (pErr) throw pErr;
             pid = created.id;
@@ -900,7 +904,8 @@ const AddFoodFlow = ({
             calories_100g: calories100g,
             macros_100g: macros100g as any,
             serving_size_g: servingSizeG,
-          })
+            data_source: "manual",
+          } as any)
           .select("id").single();
         if (tmpErr) throw tmpErr;
         pid = tmpProd.id;
