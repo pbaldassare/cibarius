@@ -64,7 +64,7 @@ const ProClientMessagesPage = () => {
             (msg.sender_id === user.id && msg.receiver_id === clientId) ||
             (msg.sender_id === clientId && msg.receiver_id === user.id)
           ) {
-            setMessages((prev) => [...prev, msg]);
+            setMessages((prev) => prev.some(m => m.id === msg.id) ? prev : [...prev, msg]);
             // Auto-mark as read
             if (msg.receiver_id === user.id) {
               supabase.from("messages" as any).update({ read_at: new Date().toISOString() } as any).eq("id", msg.id);
@@ -84,11 +84,15 @@ const ProClientMessagesPage = () => {
   const handleSend = async () => {
     if (!newMsg.trim() || !user || !clientId) return;
     setSending(true);
-    await supabase.from("messages" as any).insert({
+    const content = newMsg.trim();
+    const { data, error } = await supabase.from("messages" as any).insert({
       sender_id: user.id,
       receiver_id: clientId,
-      content: newMsg.trim(),
-    } as any);
+      content,
+    } as any).select().single();
+    if (!error && data) {
+      setMessages((prev) => [...prev, data as unknown as Message]);
+    }
     setNewMsg("");
     setSending(false);
   };
