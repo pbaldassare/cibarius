@@ -624,6 +624,26 @@ const ProClientPlanPage = () => {
                         <Input type="number" value={mt.fats_g || ""} onChange={(e) => updateMealTarget(idx, "fats_g", e.target.value)} className="h-8 text-xs" placeholder="0" />
                       </div>
                     </div>
+                    {showAdvancedMacros && (
+                      <div className="grid grid-cols-4 gap-2">
+                        <div>
+                          <label className="text-[10px] text-muted-foreground">Zucch.</label>
+                          <Input type="number" value={mt.sugars_g || ""} onChange={(e) => updateMealTarget(idx, "sugars_g", e.target.value)} className="h-8 text-xs" placeholder="—" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-muted-foreground">Fibre</label>
+                          <Input type="number" value={mt.fiber_g || ""} onChange={(e) => updateMealTarget(idx, "fiber_g", e.target.value)} className="h-8 text-xs" placeholder="—" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-muted-foreground">G. saturi</label>
+                          <Input type="number" value={mt.saturated_fats_g || ""} onChange={(e) => updateMealTarget(idx, "saturated_fats_g", e.target.value)} className="h-8 text-xs" placeholder="—" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-muted-foreground">G. insat.</label>
+                          <Input type="number" value={mt.unsaturated_fats_g || ""} onChange={(e) => updateMealTarget(idx, "unsaturated_fats_g", e.target.value)} className="h-8 text-xs" placeholder="—" />
+                        </div>
+                      </div>
+                    )
 
                     {/* Food items list */}
                     {mealItems.length > 0 && (
