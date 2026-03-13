@@ -20,6 +20,7 @@ interface Notification {
 
 export default function UserNotificationsBell() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
 
