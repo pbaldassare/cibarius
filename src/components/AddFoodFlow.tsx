@@ -153,6 +153,10 @@ const AddFoodFlow = ({
   // Plan recipes state
   const [planRecipes, setPlanRecipes] = useState<any[]>([]);
   const [planRecipesLoading, setPlanRecipesLoading] = useState(false);
+
+  // Manual name autocomplete
+  const [manualSuggestions, setManualSuggestions] = useState<SearchProduct[]>([]);
+  const debouncedName = useDebounce(name, 300);
   const [activePlanTitle, setActivePlanTitle] = useState<string>("");
 
   // Receipt QR state
