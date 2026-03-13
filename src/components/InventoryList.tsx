@@ -187,35 +187,55 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
     if (!user) return;
     setAdding(true);
 
-    const { data: product, error: productError } = await supabase
-      .from("products")
-      .insert({
-        name: newName,
-        category: newCategory || null,
-        unit: newUnit,
-        image_url: newImageUrl,
-        data_source: "manual",
-      } as any)
-      .select()
-      .single();
-
-    if (productError || !product) {
-      toast({ variant: "destructive", title: "Errore", description: productError?.message ?? "Errore creazione prodotto" });
-      setAdding(false);
-      return;
+    // Dedup check before creating product
+    if (!skipDedup && !dedupSelectedProduct && newName.trim().length >= 3) {
+      const similar = await findSimilarProducts(newName.trim(), { threshold: 0.5, limit: 5 });
+      if (similar.length > 0) {
+        setDedupResults(similar);
+        setDedupOpen(true);
+        setAdding(false);
+        return;
+      }
     }
 
-    if (newImagePath && newImageUrl) {
-      const attachData: any = {
-        entity_type: "product",
-        entity_id: product.id,
-        file_path: newImagePath,
-        public_url: newImageUrl,
-      };
-      if (mode === "user") attachData.owner_user_id = user.id;
-      else if (restaurant) attachData.restaurant_id = restaurant.id;
+    let productId: string;
 
-      await supabase.from("attachments").insert(attachData);
+    if (dedupSelectedProduct) {
+      // Use existing product selected from dedup dialog
+      productId = dedupSelectedProduct.id;
+    } else {
+      // Create new product
+      const { data: product, error: productError } = await supabase
+        .from("products")
+        .insert({
+          name: newName,
+          category: newCategory || null,
+          unit: newUnit,
+          image_url: newImageUrl,
+          data_source: "manual",
+        } as any)
+        .select()
+        .single();
+
+      if (productError || !product) {
+        toast({ variant: "destructive", title: "Errore", description: productError?.message ?? "Errore creazione prodotto" });
+        setAdding(false);
+        return;
+      }
+      productId = product.id;
+
+      if (newImagePath && newImageUrl) {
+        const attachData: any = {
+          entity_type: "product",
+          entity_id: product.id,
+          file_path: newImagePath,
+          public_url: newImageUrl,
+        };
+        if (mode === "user") attachData.owner_user_id = user.id;
+        else if (restaurant) attachData.restaurant_id = restaurant.id;
+
+        await supabase.from("attachments").insert(attachData);
+      }
     }
 
     const insertData: any = {
