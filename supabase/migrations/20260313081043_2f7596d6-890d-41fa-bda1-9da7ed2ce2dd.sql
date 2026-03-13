@@ -1,0 +1,1 @@
+DELETE FROM public.manual_subscription_overrides WHERE user_id = '718a977f-1742-40bc-9960-c61a876e1d93' AND role_type = 'user_plus';
