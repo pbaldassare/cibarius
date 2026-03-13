@@ -3,8 +3,9 @@ import { useParams } from "react-router-dom";
 import MobileHeader from "@/components/MobileHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, TrendingUp, Weight } from "lucide-react";
+import { Loader2, TrendingUp, Weight, Target, ArrowDown, ArrowUp } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
@@ -20,6 +21,14 @@ interface Measurement {
   thigh_cm: number | null;
   body_fat_pct: number | null;
   notes: string | null;
+}
+
+interface WeightGoal {
+  height_cm: number | null;
+  starting_weight_kg: number | null;
+  current_weight_kg: number | null;
+  target_weight_kg: number | null;
+  started_at: string | null;
 }
 
 const METRICS = [
@@ -38,11 +47,12 @@ const ProClientMeasurementsPage = () => {
   const [loading, setLoading] = useState(true);
   const [clientName, setClientName] = useState("");
   const [activeMetrics, setActiveMetrics] = useState<string[]>(["weight_kg", "waist_cm"]);
+  const [goal, setGoal] = useState<WeightGoal | null>(null);
 
   useEffect(() => {
     if (!clientId) return;
     const load = async () => {
-      const [{ data: mData }, { data: profile }] = await Promise.all([
+      const [{ data: mData }, { data: profile }, { data: gData }] = await Promise.all([
         supabase
           .from("body_measurements")
           .select("*")
@@ -50,9 +60,15 @@ const ProClientMeasurementsPage = () => {
           .order("measured_at", { ascending: false })
           .limit(50),
         supabase.from("profiles").select("full_name").eq("id", clientId).single(),
+        supabase
+          .from("weight_goals" as any)
+          .select("*")
+          .eq("user_id", clientId)
+          .maybeSingle(),
       ]);
       setMeasurements((mData as any[]) ?? []);
       setClientName(profile?.full_name || "Cliente");
+      if (gData) setGoal(gData as any);
       setLoading(false);
     };
     load();
@@ -74,6 +90,20 @@ const ProClientMeasurementsPage = () => {
       }, {} as any),
     }));
 
+  // Weight progress
+  const latestWeight = measurements.find(m => m.weight_kg != null)?.weight_kg ?? goal?.current_weight_kg ?? null;
+  const startWeight = goal?.starting_weight_kg ?? null;
+  const targetWeight = goal?.target_weight_kg ?? null;
+  const heightCm = goal?.height_cm ?? null;
+  const weightDiff = startWeight && latestWeight ? Math.round((latestWeight - startWeight) * 10) / 10 : null;
+  const isLosingGoal = startWeight && targetWeight ? targetWeight < startWeight : null;
+  const totalToLose = startWeight && targetWeight ? Math.abs(targetWeight - startWeight) : null;
+  const progressPct = totalToLose && startWeight && latestWeight
+    ? Math.min(100, Math.max(0, Math.round((Math.abs(startWeight - latestWeight) / totalToLose) * 100)))
+    : null;
+  const remaining = targetWeight && latestWeight ? Math.round(Math.abs(latestWeight - targetWeight) * 10) / 10 : null;
+  const bmi = heightCm && latestWeight ? Math.round((latestWeight / ((heightCm / 100) ** 2)) * 10) / 10 : null;
+
   if (loading) {
     return (
       <div>
@@ -87,6 +117,63 @@ const ProClientMeasurementsPage = () => {
     <div>
       <MobileHeader title={`Misurazioni – ${clientName}`} />
       <main className="px-4 py-5 pb-28 space-y-4">
+
+        {/* Weight goals card */}
+        {goal && (
+          <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+            <CardContent className="py-4 space-y-3">
+              <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                <Target className="h-4 w-4 text-primary" /> Obiettivo peso
+              </h3>
+
+              {/* Stats row */}
+              <div className="flex items-center gap-3 text-xs">
+                {heightCm && <span className="text-muted-foreground">📏 {heightCm} cm</span>}
+                {startWeight && <span className="text-muted-foreground">🏁 {startWeight} kg</span>}
+                {targetWeight && <span className="font-semibold text-primary">🎯 {targetWeight} kg</span>}
+              </div>
+
+              {/* Current weight & diff */}
+              {latestWeight && (
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl font-extrabold text-foreground">{latestWeight} kg</span>
+                  {weightDiff !== null && (
+                    <Badge
+                      variant="outline"
+                      className={`text-[10px] gap-0.5 ${
+                        (isLosingGoal && weightDiff < 0) || (!isLosingGoal && weightDiff > 0)
+                          ? "border-success text-success"
+                          : weightDiff === 0
+                          ? "border-muted-foreground text-muted-foreground"
+                          : "border-destructive text-destructive"
+                      }`}
+                    >
+                      {weightDiff > 0 ? <ArrowUp className="h-3 w-3" /> : weightDiff < 0 ? <ArrowDown className="h-3 w-3" /> : null}
+                      {weightDiff > 0 ? "+" : ""}{weightDiff} kg
+                    </Badge>
+                  )}
+                  {bmi && (
+                    <Badge variant="secondary" className="text-[10px]">
+                      BMI {bmi}
+                    </Badge>
+                  )}
+                </div>
+              )}
+
+              {/* Progress bar */}
+              {progressPct !== null && totalToLose && (
+                <div className="space-y-1">
+                  <Progress value={progressPct} className="h-2.5" />
+                  <div className="flex justify-between text-[10px] text-muted-foreground">
+                    <span>{progressPct}% completato</span>
+                    <span>{remaining} kg {isLosingGoal ? "da perdere" : "da prendere"}</span>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Chart */}
         {chartData.length >= 2 && (
           <Card className="border border-border">

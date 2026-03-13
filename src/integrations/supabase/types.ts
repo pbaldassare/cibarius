@@ -3204,6 +3204,42 @@ export type Database = {
         }
         Relationships: []
       }
+      weight_goals: {
+        Row: {
+          created_at: string
+          current_weight_kg: number | null
+          height_cm: number | null
+          id: string
+          started_at: string | null
+          starting_weight_kg: number | null
+          target_weight_kg: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_weight_kg?: number | null
+          height_cm?: number | null
+          id?: string
+          started_at?: string | null
+          starting_weight_kg?: number | null
+          target_weight_kg?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_weight_kg?: number | null
+          height_cm?: number | null
+          id?: string
+          started_at?: string | null
+          starting_weight_kg?: number | null
+          target_weight_kg?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
