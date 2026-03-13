@@ -2308,6 +2308,34 @@ const AddFoodFlow = ({
           </div>
         </DialogContent>
       </Dialog>
+      {/* ── Duplicate Product Dialog ── */}
+      <DuplicateProductDialog
+        open={dedupOpen}
+        onOpenChange={setDedupOpen}
+        newName={name}
+        similarProducts={dedupResults}
+        onSelectExisting={(p) => {
+          setProductId(p.id);
+          setName(p.name);
+          setBrand(p.brand ?? "");
+          setImageUrl(p.image_url);
+          setCalories100g(p.calories_100g);
+          setMacros100g(p.macros_100g as any);
+          setServingSizeG(p.serving_size_g);
+          setDedupOpen(false);
+          setDedupResults([]);
+          setSkipDedup(true);
+          // Re-trigger save with the selected product
+          setTimeout(() => handleSave(), 100);
+        }}
+        onCreateNew={() => {
+          setDedupOpen(false);
+          setDedupResults([]);
+          setSkipDedup(true);
+          // Re-trigger save bypassing dedup
+          setTimeout(() => handleSave(), 100);
+        }}
+      />
     </>
   );
 };
