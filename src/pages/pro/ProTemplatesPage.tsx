@@ -199,7 +199,12 @@ const ProTemplatesPage = () => {
         protein_g_day: importPreview.protein_g_day || 100,
         carbs_g_day: importPreview.carbs_g_day || 220,
         fats_g_day: importPreview.fats_g_day || 70,
+        sugars_g_day: importPreview.sugars_g_day || null,
+        fiber_g_day: importPreview.fiber_g_day || null,
+        saturated_fats_g_day: importPreview.saturated_fats_g_day || null,
+        unsaturated_fats_g_day: importPreview.unsaturated_fats_g_day || null,
         notes: importPreview.notes || null,
+        weekly_data: importPreview.weekly_data || null,
       }).select().single();
       if (error) throw error;
 
@@ -219,7 +224,8 @@ const ProTemplatesPage = () => {
       toast({ title: "Template importato! 📋" });
       setImportOpen(false);
       setImportPreview(null);
-      await load();
+      // Navigate to editor for further refinement
+      navigate(`/pro/template/${tmpl.id}`);
     } catch (err: any) {
       toast({ variant: "destructive", title: "Errore", description: err.message });
     }
