@@ -232,7 +232,7 @@ function ProfessionalCard({
           </div>
           <div className="flex-shrink-0">
             {status === "approved" && (
-              <Badge className="bg-green-600 text-white text-[10px]">
+              <Badge className="bg-primary text-primary-foreground text-[10px]">
                 <CheckCircle2 className="h-3 w-3 mr-1" /> Collegato
               </Badge>
             )}

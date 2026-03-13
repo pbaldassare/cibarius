@@ -69,7 +69,7 @@ export default function UserNotificationsBell() {
 
   const getIcon = (type: string) => {
     switch (type) {
-      case "link_approved": return <CheckCircle2 className="h-4 w-4 text-green-600" />;
+      case "link_approved": return <CheckCircle2 className="h-4 w-4 text-primary" />;
       case "link_rejected": return <XCircle className="h-4 w-4 text-destructive" />;
       case "link_request": return <Bell className="h-4 w-4 text-primary" />;
       default: return <Bell className="h-4 w-4 text-muted-foreground" />;
