@@ -126,6 +126,11 @@ const ProClientPlanPage = () => {
         setProteinDay(String(p.protein_g_day));
         setCarbsDay(String(p.carbs_g_day));
         setFatsDay(String(p.fats_g_day));
+        setSugarsDay(p.sugars_g_day != null ? String(p.sugars_g_day) : "");
+        setFiberDay(p.fiber_g_day != null ? String(p.fiber_g_day) : "");
+        setSatFatsDay(p.saturated_fats_g_day != null ? String(p.saturated_fats_g_day) : "");
+        setUnsatFatsDay(p.unsaturated_fats_g_day != null ? String(p.unsaturated_fats_g_day) : "");
+        if (p.sugars_g_day || p.fiber_g_day || p.saturated_fats_g_day || p.unsaturated_fats_g_day) setShowAdvancedMacros(true);
         setTitle(p.title || "Piano nutrizionale");
         setNotes(p.notes || "");
         if (p.diet_plan_meal_targets?.length > 0) {
@@ -133,8 +138,8 @@ const ProClientPlanPage = () => {
             MEAL_TYPES.map((mt) => {
               const existing = p.diet_plan_meal_targets.find((t: any) => t.meal_type === mt);
               return existing
-                ? { meal_type: mt, kcal_target: existing.kcal_target, protein_g: existing.protein_g, carbs_g: existing.carbs_g, fats_g: existing.fats_g, sugars_g: existing.sugars_g ?? 0 }
-                : { meal_type: mt, kcal_target: 0, protein_g: 0, carbs_g: 0, fats_g: 0, sugars_g: 0 };
+                ? { meal_type: mt, kcal_target: existing.kcal_target, protein_g: existing.protein_g, carbs_g: existing.carbs_g, fats_g: existing.fats_g, sugars_g: existing.sugars_g ?? 0, fiber_g: existing.fiber_g ?? 0, saturated_fats_g: existing.saturated_fats_g ?? 0, unsaturated_fats_g: existing.unsaturated_fats_g ?? 0 }
+                : { meal_type: mt, kcal_target: 0, protein_g: 0, carbs_g: 0, fats_g: 0, sugars_g: 0, fiber_g: 0, saturated_fats_g: 0, unsaturated_fats_g: 0 };
             })
           );
         }
