@@ -39,6 +39,16 @@ const InvitePage = () => {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Direct code flow state
+  const [code, setCode] = useState(searchParams.get("code") ?? "");
+  const [codeLoading, setCodeLoading] = useState(false);
+  const [proProfile, setProProfile] = useState<any>(null);
+  const [codeStep, setCodeStep] = useState<"input" | "confirm" | "done">("input");
+  const [linked, setLinked] = useState(false);
+  const defaultTab = searchParams.get("code") ? "code" : "search";
 
   const loadData = async () => {
     if (!user) return;
