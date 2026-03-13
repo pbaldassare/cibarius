@@ -833,7 +833,7 @@ const AddFoodFlow = ({
       toast({ variant: "destructive", title: "Seleziona dove conservi il prodotto" });
       return;
     }
-    if (context === "meal" && !selectedMealType) {
+    if (context === "meal" && !selectedMealType && !preselectedMealType) {
       toast({ variant: "destructive", title: "Seleziona il tipo di pasto" });
       return;
     }
