@@ -120,7 +120,17 @@ export default function UserNotificationsBell() {
                 <button
                   key={n.id}
                   className={`w-full text-left p-4 hover:bg-muted/50 transition-colors ${!n.read_at ? "bg-primary/5" : ""}`}
-                  onClick={() => !n.read_at && markRead(n.id)}
+                  onClick={() => {
+                    if (!n.read_at) markRead(n.id);
+                    // Navigate based on notification type
+                    if (n.type === "link_request") {
+                      setOpen(false);
+                      navigate("/pro/clients");
+                    } else if (n.type === "link_approved") {
+                      setOpen(false);
+                      navigate("/invite");
+                    }
+                  }}
                 >
                   <div className="flex gap-3">
                     <div className="mt-0.5">{getIcon(n.type)}</div>
