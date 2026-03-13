@@ -901,7 +901,8 @@ const AddFoodFlow = ({
             calories_100g: calories100g,
             macros_100g: macros100g as any,
             serving_size_g: servingSizeG,
-          })
+            data_source: "manual",
+          } as any)
           .select("id").single();
         if (tmpErr) throw tmpErr;
         pid = tmpProd.id;
