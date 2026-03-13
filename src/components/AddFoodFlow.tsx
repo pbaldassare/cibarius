@@ -1119,22 +1119,38 @@ const AddFoodFlow = ({
                     </div>
                   </button>
 
-                  {/* Foto scontrino – only for inventory context, not meals */}
+                  {/* ── Gruppo Scontrino – only for inventory context ── */}
                   {context !== "meal" && (
-                  <button
-                    onClick={() => {
-                      setStep("receipt_photo");
-                    }}
-                    className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 text-left active:scale-[0.98] transition-transform"
-                  >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                      <Receipt className="h-5 w-5 text-primary" />
+                    <div className="rounded-2xl border border-border bg-card overflow-hidden">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-4 pt-3 pb-1">
+                        Scontrino
+                      </p>
+                      <button
+                        onClick={() => setStep("receipt_photo")}
+                        className="flex w-full items-center gap-3 px-4 py-3 text-left active:bg-secondary/50 transition-colors"
+                      >
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                          <Receipt className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold" style={{ color: "#111827" }}>📋 Foto scontrino</p>
+                          <p className="text-xs" style={{ color: "#4B5563" }}>Fotografa lo scontrino cartaceo</p>
+                        </div>
+                      </button>
+                      <div className="border-t border-border" />
+                      <button
+                        onClick={() => setStep("receipt_qr")}
+                        className="flex w-full items-center gap-3 px-4 py-3 text-left active:bg-secondary/50 transition-colors"
+                      >
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                          <ScanLine className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold" style={{ color: "#111827" }}>📱 QR Scontrino</p>
+                          <p className="text-xs" style={{ color: "#4B5563" }}>Scansiona il QR code dello scontrino</p>
+                        </div>
+                      </button>
                     </div>
-                    <div>
-                      <p className="text-sm font-bold" style={{ color: "#111827" }}>📋 Foto scontrino</p>
-                      <p className="text-xs" style={{ color: "#4B5563" }}>Fotografa lo scontrino e carica tutto</p>
-                    </div>
-                  </button>
                   )}
 
                   {[
