@@ -239,7 +239,7 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
     }
 
     const insertData: any = {
-      product_id: product.id,
+      product_id: productId,
       quantity: parseFloat(newQuantity) || 1,
       unit: newUnit,
       storage_type: newStorage,
