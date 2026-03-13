@@ -47,8 +47,10 @@ const SignupPage = () => {
   // Step 2 - base
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   // Step 3 - restaurant
@@ -79,7 +81,7 @@ const SignupPage = () => {
   const canGoNext = () => {
     if (step === 1) return !!accountType;
     if (step === 2) {
-      const baseOk = email && password && password.length >= 6 && fullName;
+      const baseOk = email && password && password.length >= 6 && fullName && confirmPassword === password;
       if (accountType !== "user") return baseOk && phone;
       return baseOk;
     }
@@ -156,8 +158,8 @@ const SignupPage = () => {
     }
 
     toast({
-      title: "Registrazione completata",
-      description: "Controlla la tua email per confermare l'account.",
+      title: "Registrazione completata! 🎉",
+      description: "Benvenuto in Cibarius! Puoi iniziare subito ad usare l'app.",
     });
   };
 
@@ -277,8 +279,27 @@ const SignupPage = () => {
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
+                <div className="relative">
+                  <Input
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="Conferma password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {confirmPassword && confirmPassword !== password && (
+                  <p className="text-sm text-destructive">Le password non coincidono</p>
+                )}
                 <Input
-                  type="tel"
                   placeholder={accountType === "user" ? "Telefono (opzionale)" : "Telefono"}
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
