@@ -92,6 +92,7 @@ import ProWeeklyReportPage from "./pages/pro/ProWeeklyReportPage";
 import ProClientMessagesPage from "./pages/pro/ProClientMessagesPage";
 import ProAppointmentsPage from "./pages/pro/ProAppointmentsPage";
 import ProClientPlanPdfPage from "./pages/pro/ProClientPlanPdfPage";
+import ProWeeklyPlanPage from "./pages/pro/ProWeeklyPlanPage";
 
 // User diet page
 import UserDietPage from "./pages/UserDietPage";
