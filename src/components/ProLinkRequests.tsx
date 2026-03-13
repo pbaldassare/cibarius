@@ -5,7 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Check, X, Loader2, UserPlus, Bell } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Check, X, Loader2, UserPlus, Bell, MessageCircle } from "lucide-react";
 
 interface LinkRequest {
   id: string;
