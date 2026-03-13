@@ -160,7 +160,7 @@ const InvitePage = () => {
           <ListSkeleton />
         ) : filtered.length === 0 ? (
           <EmptyState
-            icon={<UserPlus className="h-12 w-12 text-muted-foreground" />}
+            icon={UserPlus}
             title="Nessun nutrizionista trovato"
             description={search ? "Prova a modificare la ricerca." : "Non ci sono ancora nutrizionisti registrati."}
           />
