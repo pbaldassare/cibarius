@@ -35,6 +35,7 @@ interface InventoryItemWithProduct {
     calories_100g: number | null;
     serving_size_g: number | null;
     macros_100g: { protein: number; carbs: number; fats: number } | null;
+    data_source: string;
   };
 }
 
