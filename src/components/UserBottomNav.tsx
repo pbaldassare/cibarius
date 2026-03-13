@@ -11,8 +11,8 @@ const tabs: TabItem[] = [
   { to: "/", icon: Home, label: "Home" },
   { to: "/expiry", icon: AlertTriangle, label: "Scadenze" },
   { to: "/plan", icon: ClipboardList, label: "Piano" },
-  { to: "/meals", icon: UtensilsCrossed, label: "Pasti", requiresPlan: true },
-  { to: "/progress", icon: TrendingUp, label: "Progressi", requiresPlan: true },
+  { to: "/meals", icon: UtensilsCrossed, label: "Pasti" },
+  { to: "/progress", icon: TrendingUp, label: "Progressi" },
   { to: "/profile", icon: User, label: "Profilo" },
 ];
 
