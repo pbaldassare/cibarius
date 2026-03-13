@@ -430,8 +430,10 @@ const ProClientPlanPage = () => {
       const { data: plan, error: planErr } = await supabase.from("diet_plans").insert({
         professional_id: user.id, client_user_id: clientId, title,
         kcal_day: targetKcal, protein_g_day: targetProtein, carbs_g_day: targetCarbs, fats_g_day: targetFats,
+        sugars_g_day: sugarsDay ? parseFloat(sugarsDay) : null, fiber_g_day: fiberDay ? parseFloat(fiberDay) : null,
+        saturated_fats_g_day: satFatsDay ? parseFloat(satFatsDay) : null, unsaturated_fats_g_day: unsatFatsDay ? parseFloat(unsatFatsDay) : null,
         notes: notes || null, is_active: true,
-      }).select().single();
+      } as any).select().single();
       if (planErr || !plan) throw planErr;
 
       const { error: mtErr } = await supabase.from("diet_plan_meal_targets").insert(
