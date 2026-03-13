@@ -185,6 +185,14 @@ export default function ProLinkRequests({ onApproved }: { onApproved?: () => voi
                 </Button>
                 <Button
                   size="sm"
+                  variant="outline"
+                  className="h-8 text-xs"
+                  onClick={() => navigate(`/pro/clients/${req.user_id}/messages`)}
+                >
+                  <MessageCircle className="h-3 w-3" />
+                </Button>
+                <Button
+                  size="sm"
                   className="h-8 text-xs"
                   onClick={() => handleAction(req, "approved")}
                   disabled={acting === req.id}
