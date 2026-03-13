@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import MealTextAutocomplete, { saveMealTextSuggestions } from "@/components/MealTextAutocomplete";
 import { useParams, useNavigate } from "react-router-dom";
 import MobileHeader from "@/components/MobileHeader";
 import { Button } from "@/components/ui/button";
@@ -350,6 +351,19 @@ const ProWeeklyPlanPage = () => {
         } as any, { onConflict: "user_id" });
       }
 
+      // Save meal text suggestions
+      const allMealTexts = weeks.flatMap((w) =>
+        w.days.flatMap((d) =>
+          d.meals.filter((m) => m.meal_text.trim()).map((m) => ({
+            meal_type: m.meal_type,
+            meal_text: m.meal_text.trim(),
+          }))
+        )
+      );
+      if (user && allMealTexts.length > 0) {
+        await saveMealTextSuggestions(user.id, allMealTexts);
+      }
+
       toast.success("Piano settimanale salvato! ✅");
       navigate(`/pro/client/${clientId}`);
     } catch (err: any) {
@@ -491,10 +505,11 @@ const ProWeeklyPlanPage = () => {
                                     <label className="text-[11px] font-medium text-muted-foreground mb-1 flex items-center gap-1">
                                       <span>{mealInfo?.emoji}</span> {mealInfo?.label?.replace(/^[^\s]+\s/, "") || meal.meal_type}
                                     </label>
-                                    <Textarea
+                                    <MealTextAutocomplete
                                       placeholder={meal.meal_type === "extra" ? "Note aggiuntive per il giorno..." : "es: latte 100g + biscotti senza zucchero 50g"}
                                       value={meal.meal_text}
-                                      onChange={(e) => updateMealText(weekIdx, dayIdx, mealIdx, e.target.value)}
+                                      onChange={(val) => updateMealText(weekIdx, dayIdx, mealIdx, val)}
+                                      mealType={meal.meal_type}
                                       className="min-h-[36px] text-xs resize-none"
                                     />
                                   </div>
