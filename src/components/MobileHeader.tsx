@@ -7,9 +7,10 @@ interface MobileHeaderProps {
   title: string;
   showBack?: boolean;
   right?: React.ReactNode;
+  hideNotifications?: boolean;
 }
 
-const MobileHeader = ({ title, showBack = true, right }: MobileHeaderProps) => {
+const MobileHeader = ({ title, showBack = true, right, hideNotifications = false }: MobileHeaderProps) => {
   const navigate = useNavigate();
 
   return (
@@ -32,7 +33,10 @@ const MobileHeader = ({ title, showBack = true, right }: MobileHeaderProps) => {
           <div className="flex flex-1 items-center justify-center gap-2">
             <img src={cibariusLogo} alt="Cibarius" className="h-5 brightness-0 invert" />
           </div>
-          <div className="flex w-10 items-center justify-end text-white">{right || <UserNotificationsBell />}</div>
+          <div className="flex items-center gap-1 text-white">
+            {right}
+            {!hideNotifications && <UserNotificationsBell />}
+          </div>
         </div>
       </header>
       {/* Smooth wave */}
