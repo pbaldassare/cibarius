@@ -2163,7 +2163,7 @@ const AddFoodFlow = ({
                   saved ? "bg-emerald-500 hover:bg-emerald-500 scale-95" : ""
                 }`}
                 onClick={handleSave}
-                disabled={saving || !name.trim() || saved || (calories100g == null && !defaultRestaurantId)}
+                disabled={saving || !name.trim() || saved}
               >
                 {saved ? (
                   <>
