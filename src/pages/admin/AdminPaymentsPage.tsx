@@ -249,6 +249,21 @@ const AdminPaymentsPage = () => {
     fetchAll();
   };
 
+  const handleDeleteCoupon = async (couponId: string, code: string) => {
+    if (!confirm(`Eliminare il coupon ${code}?`)) return;
+    const { error } = await supabase.from("custom_coupons").delete().eq("id", couponId);
+    if (error) {
+      toast({ title: "Errore", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Coupon eliminato 🗑️" });
+      await supabase.from("admin_audit_log").insert({
+        admin_id: user!.id, action: "delete_coupon", entity_type: "custom_coupons",
+        entity_id: couponId, details: { code },
+      });
+      fetchAll();
+    }
+  };
+
   const handleToggleNutriCoupon = async (id: string, currentActive: boolean) => {
     await supabase.from("nutritionist_coupons" as any).update({ is_active: !currentActive }).eq("id", id);
     fetchAll();
