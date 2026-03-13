@@ -76,7 +76,7 @@ const ProClientPlanPage = () => {
   // Step 2
   const [mealTargets, setMealTargets] = useState<MealTarget[]>(
     MEAL_TYPES.map((mt) => ({
-      meal_type: mt, kcal_target: 0, protein_g: 0, carbs_g: 0, fats_g: 0, sugars_g: 0,
+      meal_type: mt, kcal_target: 0, protein_g: 0, carbs_g: 0, fats_g: 0, sugars_g: 0, fiber_g: 0, saturated_fats_g: 0, unsaturated_fats_g: 0,
     }))
   );
 
