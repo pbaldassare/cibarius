@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import MealTextAutocomplete, { saveMealTextSuggestions } from "@/components/MealTextAutocomplete";
 import { useParams, useNavigate } from "react-router-dom";
 import MobileHeader from "@/components/MobileHeader";
 import { Button } from "@/components/ui/button";
