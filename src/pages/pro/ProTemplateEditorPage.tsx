@@ -554,10 +554,11 @@ const ProTemplateEditorPage = () => {
                                         <label className="text-[11px] font-medium text-muted-foreground mb-0.5 flex items-center gap-1">
                                           <span>{mealInfo?.emoji}</span> {mealInfo?.label?.replace(/^[^\s]+\s/, "") || meal.meal_type}
                                         </label>
-                                        <Textarea
+                                        <MealTextAutocomplete
                                           placeholder={meal.meal_type === "extra" ? "Note aggiuntive..." : "es: latte 100g + biscotti 50g"}
                                           value={meal.meal_text}
-                                          onChange={(e) => updateMealText(weekIdx, dayIdx, mealIdx, e.target.value)}
+                                          onChange={(val) => updateMealText(weekIdx, dayIdx, mealIdx, val)}
+                                          mealType={meal.meal_type}
                                           className="min-h-[32px] text-xs resize-none"
                                         />
                                       </div>
