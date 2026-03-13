@@ -116,6 +116,11 @@ const ProfiloPage = () => {
       if (data) setEmailPrefs({ receive_verification: data.receive_verification, receive_password_reset: data.receive_password_reset, receive_expiry_alerts: data.receive_expiry_alerts });
     });
 
+    // Load unread message count
+    supabase.from("messages").select("id", { count: "exact", head: true }).eq("receiver_id", user.id).is("read_at", null).then(({ count }) => {
+      setUnreadMsgCount(count ?? 0);
+    });
+
     // Load professional's own profile
     if (role === "professional") {
       (async () => {
