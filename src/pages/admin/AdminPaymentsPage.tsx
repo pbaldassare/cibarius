@@ -16,7 +16,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import {
   Loader2, Store, Sparkles, Users, Clock, CheckCircle, XCircle,
-  CreditCard, Gift, Settings, TrendingUp, Plus, Shield, Ticket, Copy, Search,
+  CreditCard, Gift, Settings, TrendingUp, Plus, Shield, Ticket, Copy, Search, Trash2,
 } from "lucide-react";
 import { format } from "date-fns";
 
