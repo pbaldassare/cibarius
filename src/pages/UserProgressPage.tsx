@@ -209,6 +209,21 @@ const UserProgressPage = () => {
         </Card>
       </div>
 
+      {/* Measurements shortcut */}
+      <Card
+        className="p-4 flex items-center gap-3 cursor-pointer hover:bg-muted/50 transition-colors"
+        onClick={() => navigate("/measurements")}
+      >
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent">
+          <Ruler className="h-5 w-5 text-accent-foreground" />
+        </div>
+        <div className="flex-1">
+          <p className="text-sm font-semibold text-foreground">Le mie misure</p>
+          <p className="text-xs text-muted-foreground">Peso, circonferenze, body fat</p>
+        </div>
+        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+      </Card>
+
       {/* Chart */}
       <Card className="p-4 space-y-3">
         <h3 className="text-sm font-bold text-foreground">Andamento ultimi 30 giorni</h3>
