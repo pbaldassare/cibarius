@@ -135,6 +135,9 @@ const ProClientsPage = () => {
     <div>
       <MobileHeader title="Clienti" />
       <main className="px-4 py-5 space-y-4">
+        {/* Link requests from users */}
+        <ProLinkRequests onApproved={loadData} />
+
         {/* Actions */}
         <div className="flex gap-2">
           <Button className="flex-1 gap-2" onClick={generateInvite} disabled={creating}>
