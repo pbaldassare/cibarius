@@ -44,7 +44,7 @@ import AdminSettingsPage from "./pages/admin/AdminSettingsPage";
 import AdminSeedPage from "./pages/admin/AdminSeedPage";
 import AdminProductReviewPage from "./pages/admin/AdminProductReviewPage";
 import AdminSupportPage from "./pages/admin/AdminSupportPage";
-import AdminCouponsPage from "./pages/admin/AdminCouponsPage";
+// AdminCouponsPage merged into AdminPaymentsPage
 import AdminRestaurantsPage from "./pages/admin/AdminRestaurantsPage";
 import AdminStatsPage from "./pages/admin/AdminStatsPage";
 import AdminHaccpTemplatesPage from "./pages/admin/AdminHaccpTemplatesPage";
