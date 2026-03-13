@@ -110,79 +110,31 @@ const ProTemplatesPage = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.name.endsWith(".csv")) {
-      // Client-side CSV parsing
-      const text = await file.text();
-      const lines = text.split("\n").filter(l => l.trim());
-      if (lines.length < 2) {
-        toast({ variant: "destructive", title: "CSV vuoto o non valido" });
-        return;
-      }
-      // Expected columns: pasto, alimento, quantita, kcal, proteine, carbo, grassi
-      const meals: Record<string, { kcal: number; protein: number; carbs: number; fats: number }> = {};
-      let totalKcal = 0, totalP = 0, totalC = 0, totalF = 0;
-
-      for (let i = 1; i < lines.length; i++) {
-        const cols = lines[i].split(/[;,]/).map(c => c.trim());
-        if (cols.length < 4) continue;
-        const mealType = cols[0].toLowerCase();
-        const kcal = parseFloat(cols[3]) || 0;
-        const prot = parseFloat(cols[4]) || 0;
-        const carbs = parseFloat(cols[5]) || 0;
-        const fats = parseFloat(cols[6]) || 0;
-        totalKcal += kcal;
-        totalP += prot;
-        totalC += carbs;
-        totalF += fats;
-        if (!meals[mealType]) meals[mealType] = { kcal: 0, protein: 0, carbs: 0, fats: 0 };
-        meals[mealType].kcal += kcal;
-        meals[mealType].protein += prot;
-        meals[mealType].carbs += carbs;
-        meals[mealType].fats += fats;
-      }
-
-      setImportPreview({
-        title: file.name.replace(/\.csv$/i, ""),
-        kcal_day: Math.round(totalKcal),
-        protein_g_day: Math.round(totalP),
-        carbs_g_day: Math.round(totalC),
-        fats_g_day: Math.round(totalF),
-        meals: Object.entries(meals).map(([mt, v]) => ({
-          meal_type: mt,
-          kcal_target: Math.round(v.kcal),
-          protein_g: Math.round(v.protein),
-          carbs_g: Math.round(v.carbs),
-          fats_g: Math.round(v.fats),
-        })),
-      });
-      setImportOpen(true);
-    } else {
-      // PDF → send to edge function
-      setImporting(true);
-      setImportOpen(true);
-      try {
-        const formData = new FormData();
-        formData.append("file", file);
-        const res = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-diet-template`,
-          {
-            method: "POST",
-            headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
-            body: formData,
-          }
-        );
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({ error: "Errore sconosciuto" }));
-          throw new Error(err.error || `HTTP ${res.status}`);
+    // Send both CSV and PDF to the edge function for AI extraction
+    setImporting(true);
+    setImportOpen(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-diet-template`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+          body: formData,
         }
-        const data = await res.json();
-        setImportPreview(data);
-      } catch (err: any) {
-        toast({ variant: "destructive", title: "Errore importazione", description: err.message });
-        setImportOpen(false);
-      } finally {
-        setImporting(false);
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Errore sconosciuto" }));
+        throw new Error(err.error || `HTTP ${res.status}`);
       }
+      const data = await res.json();
+      setImportPreview(data);
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Errore importazione", description: err.message });
+      setImportOpen(false);
+    } finally {
+      setImporting(false);
     }
     // Reset input
     if (fileInputRef.current) fileInputRef.current.value = "";
