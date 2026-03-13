@@ -171,6 +171,14 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
     fetchItems();
   }, [user, restaurant]);
 
+  // Auto-retry save after dedup decision
+  const formRef = useRef<HTMLFormElement>(null);
+  useEffect(() => {
+    if (skipDedup && !dedupOpen) {
+      formRef.current?.requestSubmit();
+    }
+  }, [skipDedup, dedupOpen]);
+
   const getUploadPath = () => {
     if (mode === "user" && user) return `users/${user.id}/products`;
     if (mode === "restaurant" && restaurant) return `restaurants/${restaurant.id}/products`;
