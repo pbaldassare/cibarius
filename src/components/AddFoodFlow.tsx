@@ -489,7 +489,8 @@ const AddFoodFlow = ({
             image_url: p.image_url,
             calories_100g: p.calories_100g,
             macros_100g: p.macros_100g as any,
-          }).select("id").single();
+            data_source: "barcode",
+          } as any).select("id").single();
           if (insErr) {
             console.error("Search product insert error:", insErr);
             const { data: fallback } = await supabase
