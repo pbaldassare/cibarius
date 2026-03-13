@@ -449,7 +449,8 @@ const ProClientPlanPage = () => {
 
       await supabase.from("nutrition_targets").upsert({
         user_id: clientId, kcal_day: targetKcal, protein_g: targetProtein, carbs_g: targetCarbs, fats_g: targetFats,
-      }, { onConflict: "user_id" });
+        fiber_g: fiberDay ? parseFloat(fiberDay) : null, saturated_fats_g: satFatsDay ? parseFloat(satFatsDay) : null, unsaturated_fats_g: unsatFatsDay ? parseFloat(unsatFatsDay) : null,
+      } as any, { onConflict: "user_id" });
 
       toast({ title: "Piano pubblicato! ✅" });
       navigate(`/pro/client/${clientId}`);
