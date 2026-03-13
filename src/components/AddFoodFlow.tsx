@@ -161,6 +161,11 @@ const AddFoodFlow = ({
   const debouncedName = useDebounce(name, 300);
   const [activePlanTitle, setActivePlanTitle] = useState<string>("");
 
+  // Dedup state
+  const [dedupOpen, setDedupOpen] = useState(false);
+  const [dedupResults, setDedupResults] = useState<SimilarProduct[]>([]);
+  const [skipDedup, setSkipDedup] = useState(false);
+
   // Receipt QR state
   interface ReceiptProduct { name: string; quantity: number; unit: string; price: number | null; category: string; selected: boolean; storage_type: string; expiry_date: string; }
   const [receiptProducts, setReceiptProducts] = useState<ReceiptProduct[]>([]);
