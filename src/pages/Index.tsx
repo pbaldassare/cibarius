@@ -10,6 +10,7 @@ import { getFoodImage } from "@/lib/food-images";
 import AddFoodFlow from "@/components/AddFoodFlow";
 import { useIngredientCompatibility } from "@/hooks/useIngredientCompatibility";
 import MealReminderBanner from "@/components/MealReminderBanner";
+import { WeightGoalHomeBar } from "@/components/WeightGoalMotivation";
 import ResolveExpiryFlow from "@/components/ResolveExpiryFlow";
 import {
   Clock, Plus, Search, ChevronRight,
@@ -448,6 +449,9 @@ const Index = () => {
         </div>
 
         <MealReminderBanner />
+
+        {/* Weight goal progress for Plus users */}
+        <WeightGoalHomeBar />
 
         {/* ═══ 1 — ATTENZIONE OGGI (Scadenze) ═══ */}
         <section className="space-y-2.5">

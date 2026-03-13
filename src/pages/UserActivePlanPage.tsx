@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import MealRecipeCard from "@/components/MealRecipeCard";
+import { WeightGoalPlanCard } from "@/components/WeightGoalMotivation";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useFavorites } from "@/hooks/useFavorites";
@@ -421,6 +422,9 @@ const UserActivePlanPage = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Weight goal motivation */}
+        <WeightGoalPlanCard />
 
         {/* Excess calorie warning banner */}
         {todayTotals.kcal > plan.kcal_day && (

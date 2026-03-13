@@ -15,6 +15,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useFavorites } from "@/hooks/useFavorites";
 import { Plus, UtensilsCrossed, Target, Trash2, Flame, Camera, Heart, ChefHat, Package, AlertTriangle } from "lucide-react";
+import { WeightGoalBadge } from "@/components/WeightGoalMotivation";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -289,6 +290,7 @@ const PastiPage = () => {
       <MobileHeader title="Pasti" />
       <main className="space-y-4 px-4 py-5 pb-28">
         <div className="flex items-center justify-between">
+          <WeightGoalBadge />
           <div>
             <h2 className="text-lg font-semibold text-foreground">Oggi</h2>
             {meals.length > 0 && (
