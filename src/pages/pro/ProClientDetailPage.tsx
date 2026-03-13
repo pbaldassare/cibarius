@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Send, Flame, ChevronLeft, ChevronRight, MessageSquare, ClipboardList, Activity, Lightbulb, ChefHat, Pencil, History, MessageCircle, FileDown, Ruler } from "lucide-react";
+import { Loader2, Send, Flame, ChevronLeft, ChevronRight, MessageSquare, ClipboardList, Activity, Lightbulb, ChefHat, Pencil, History, MessageCircle, FileDown, Ruler, CalendarDays } from "lucide-react";
 
 const MEAL_LABELS: Record<string, string> = {
   colazione: "🌅 Colazione",
