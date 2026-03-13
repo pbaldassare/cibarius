@@ -142,7 +142,7 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
 
     let query = supabase
       .from("inventory_items")
-      .select("id, quantity, unit, storage_type, expiry_date, notes, calories_total, macros_total, product:products(id, name, brand, image_url, category, calories_100g, serving_size_g, macros_100g, data_source)")
+      .select("id, quantity, unit, storage_type, expiry_date, notes, calories_total, macros_total, product:products(id, name, brand, image_url, category, calories_100g, serving_size_g, macros_100g, data_source, nutrition_available)")
       .order("expiry_date", { ascending: true, nullsFirst: false });
 
     if (mode === "user") {
