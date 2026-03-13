@@ -27,12 +27,13 @@ const SubscriptionPage = () => {
   const { user } = useAuth();
   const { role } = useRole();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);
-  const [couponCode, setCouponCode] = useState("");
+  const [couponCode, setCouponCode] = useState((location.state as any)?.couponCode || "");
 
   // Determine which tab to show based on role
   const isRestaurant = role === "restaurant_owner";
