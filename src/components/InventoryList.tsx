@@ -377,7 +377,7 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
               <DialogHeader>
                 <DialogTitle>Aggiungi prodotto</DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleAdd} className="space-y-3">
+              <form ref={formRef} onSubmit={handleAdd} className="space-y-3">
                 <div className="flex justify-center">
                   <ImageUpload
                     imageUrl={newImageUrl}
