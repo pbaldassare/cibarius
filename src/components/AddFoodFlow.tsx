@@ -403,6 +403,9 @@ const AddFoodFlow = ({
         setEditingChip(null);
         setReceiptProducts([]);
         setReceiptPhotoPreview(null);
+        setDedupOpen(false);
+        setDedupResults([]);
+        setSkipDedup(false);
       }, 300);
     }
   }, [open, preselectedMealType]);
