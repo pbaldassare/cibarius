@@ -942,12 +942,13 @@ const AddFoodFlow = ({
             mealDay = nd;
           }
 
+          const mealTypeToUse = selectedMealType || preselectedMealType!;
           let { data: meal } = await supabase
             .from("meals").select("id")
-            .eq("meal_day_id", mealDay!.id).eq("meal_type", selectedMealType!).maybeSingle();
+            .eq("meal_day_id", mealDay!.id).eq("meal_type", mealTypeToUse).maybeSingle();
           if (!meal) {
             const { data: nm, error: me } = await supabase
-              .from("meals").insert({ meal_day_id: mealDay!.id, meal_type: selectedMealType! })
+              .from("meals").insert({ meal_day_id: mealDay!.id, meal_type: mealTypeToUse })
               .select("id").single();
             if (me) throw me;
             meal = nm;
