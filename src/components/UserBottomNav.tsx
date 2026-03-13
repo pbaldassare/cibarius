@@ -21,7 +21,6 @@ const UserBottomNav = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
-  const [hasActivePlan, setHasActivePlan] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -44,20 +43,6 @@ const UserBottomNav = () => {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [user]);
-
-  useEffect(() => {
-    if (!user) return;
-    const checkPlan = async () => {
-      const { data } = await supabase
-        .from("diet_plans")
-        .select("id")
-        .eq("client_user_id", user.id)
-        .eq("is_active", true)
-        .limit(1);
-      setHasActivePlan(!!(data && data.length > 0));
-    };
-    checkPlan();
   }, [user]);
 
   return (
