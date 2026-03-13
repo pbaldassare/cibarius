@@ -143,7 +143,7 @@ const ProClientSuggestPage = () => {
     ];
     if (user && clientId) {
       promises.push(
-        supabase.from("generated_recipes").select("*").eq("professional_id", user.id).eq("client_user_id", clientId).ilike("title", term).limit(5).then((r: any) => r)
+        Promise.resolve(supabase.from("generated_recipes").select("*").eq("professional_id", user.id).eq("client_user_id", clientId).ilike("title", term).limit(5))
       );
     }
     Promise.all(promises).then(([pubRes, genRes]) => {
