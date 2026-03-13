@@ -560,6 +560,7 @@ export type Database = {
           sugars_g_day: number | null
           title: string
           unsaturated_fats_g_day: number | null
+          weekly_data: Json | null
         }
         Insert: {
           carbs_g_day: number
@@ -575,6 +576,7 @@ export type Database = {
           sugars_g_day?: number | null
           title?: string
           unsaturated_fats_g_day?: number | null
+          weekly_data?: Json | null
         }
         Update: {
           carbs_g_day?: number
@@ -590,6 +592,7 @@ export type Database = {
           sugars_g_day?: number | null
           title?: string
           unsaturated_fats_g_day?: number | null
+          weekly_data?: Json | null
         }
         Relationships: []
       }

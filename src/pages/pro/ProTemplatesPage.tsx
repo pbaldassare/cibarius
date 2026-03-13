@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Trash2, Plus, Upload, Copy, FileText } from "lucide-react";
+import { Loader2, Trash2, Plus, Upload, Copy, FileText, Pencil } from "lucide-react";
 
 const MEAL_LABELS: Record<string, string> = {
   colazione: "☀️ Colazione",
@@ -289,9 +289,14 @@ const ProTemplatesPage = () => {
                 Duplica
               </Button>
             ) : (
-              <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => setDeleteId(tmpl.id)}>
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              <>
+                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => navigate(`/pro/template/${tmpl.id}`)}>
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => setDeleteId(tmpl.id)}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </>
             )}
           </div>
         </div>
@@ -348,7 +353,7 @@ const ProTemplatesPage = () => {
       <main className="px-4 py-5 pb-28 space-y-4">
         {/* Action buttons */}
         <div className="flex gap-2">
-          <Button onClick={() => setCreateOpen(true)} className="flex-1 gap-2" size="sm">
+          <Button onClick={() => navigate("/pro/template/new")} className="flex-1 gap-2" size="sm">
             <Plus className="h-4 w-4" /> Crea template
           </Button>
           <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="flex-1 gap-2" size="sm">

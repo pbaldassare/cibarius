@@ -88,6 +88,7 @@ import ProReportsPage from "./pages/pro/ProReportsPage";
 import ProNotesPage from "./pages/pro/ProNotesPage";
 import ProClientPlanHistoryPage from "./pages/pro/ProClientPlanHistoryPage";
 import ProTemplatesPage from "./pages/pro/ProTemplatesPage";
+import ProTemplateEditorPage from "./pages/pro/ProTemplateEditorPage";
 import ProWeeklyReportPage from "./pages/pro/ProWeeklyReportPage";
 import ProClientMessagesPage from "./pages/pro/ProClientMessagesPage";
 import ProAppointmentsPage from "./pages/pro/ProAppointmentsPage";
@@ -219,6 +220,7 @@ const App = () => (
                 <Route path="/pro/reports" element={<RG roles={["professional", "admin"]}><ProReportsPage /></RG>} />
                 <Route path="/pro/notes" element={<RG roles={["professional", "admin"]}><ProNotesPage /></RG>} />
                 <Route path="/pro/templates" element={<RG roles={["professional", "admin"]}><ProTemplatesPage /></RG>} />
+                <Route path="/pro/template/:templateId" element={<RG roles={["professional", "admin"]}><ProTemplateEditorPage /></RG>} />
                 <Route path="/pro/weekly-report" element={<RG roles={["professional", "admin"]}><ProWeeklyReportPage /></RG>} />
                 <Route path="/pro/client/:clientId/messages" element={<RG roles={["professional", "admin"]}><ProClientMessagesPage /></RG>} />
                 <Route path="/pro/client/:clientId/plan-pdf" element={<RG roles={["professional", "admin"]}><ProClientPlanPdfPage /></RG>} />
