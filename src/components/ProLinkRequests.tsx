@@ -20,6 +20,7 @@ interface LinkRequest {
 export default function ProLinkRequests({ onApproved }: { onApproved?: () => void }) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [requests, setRequests] = useState<LinkRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [acting, setActing] = useState<string | null>(null);
