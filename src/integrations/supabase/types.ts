@@ -2316,6 +2316,7 @@ export type Database = {
           calories_100g: number | null
           category: string | null
           created_at: string
+          data_source: string
           id: string
           image_url: string | null
           macros_100g: Json | null
@@ -2330,6 +2331,7 @@ export type Database = {
           calories_100g?: number | null
           category?: string | null
           created_at?: string
+          data_source?: string
           id?: string
           image_url?: string | null
           macros_100g?: Json | null
@@ -2344,6 +2346,7 @@ export type Database = {
           calories_100g?: number | null
           category?: string | null
           created_at?: string
+          data_source?: string
           id?: string
           image_url?: string | null
           macros_100g?: Json | null
