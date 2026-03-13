@@ -423,6 +423,9 @@ const UserActivePlanPage = () => {
           </CardContent>
         </Card>
 
+        {/* Weight goal motivation */}
+        <WeightGoalPlanCard />
+
         {/* Excess calorie warning banner */}
         {todayTotals.kcal > plan.kcal_day && (
           <Alert className="border-destructive/50 bg-destructive/10">
