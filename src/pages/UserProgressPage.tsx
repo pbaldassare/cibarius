@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval, isToday, parseISO } from "date-fns";
 import { it } from "date-fns/locale";
-import { TrendingUp, Check, X, Minus, ChevronLeft, ChevronRight } from "lucide-react";
+import { TrendingUp, Check, X, Minus, ChevronLeft, ChevronRight, Ruler } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
