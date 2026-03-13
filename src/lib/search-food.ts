@@ -174,7 +174,7 @@ export function searchFoodProgressive(
   }
 
   // Phase 1: Local DB (instant)
-  searchLocal(q).then(localResults => {
+  searchLocal(q, options?.requireNutrition).then(localResults => {
     if (cancelled) return;
     accumulated = localResults;
     onProgress(accumulated, "local", false);

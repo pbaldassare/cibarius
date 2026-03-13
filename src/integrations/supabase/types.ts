@@ -2321,6 +2321,7 @@ export type Database = {
           image_url: string | null
           macros_100g: Json | null
           name: string
+          nutrition_available: boolean
           serving_size_g: number | null
           template_id: string | null
           unit: string | null
@@ -2336,6 +2337,7 @@ export type Database = {
           image_url?: string | null
           macros_100g?: Json | null
           name: string
+          nutrition_available?: boolean
           serving_size_g?: number | null
           template_id?: string | null
           unit?: string | null
@@ -2351,6 +2353,7 @@ export type Database = {
           image_url?: string | null
           macros_100g?: Json | null
           name?: string
+          nutrition_available?: boolean
           serving_size_g?: number | null
           template_id?: string | null
           unit?: string | null

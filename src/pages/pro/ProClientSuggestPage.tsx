@@ -117,7 +117,7 @@ const ProClientSuggestPage = () => {
     const term = `%${debouncedFoodSearch}%`;
 
     Promise.all([
-      supabase.from("products").select("id, name, brand, calories_100g, macros_100g").ilike("name", term).limit(8),
+      supabase.from("products").select("id, name, brand, calories_100g, macros_100g").ilike("name", term).eq("nutrition_available", true).limit(8),
       supabase.from("food_templates").select("id, name, calories_100g, protein_100g, carbs_100g, fats_100g, category").ilike("name", term).limit(8),
       supabase.from("ingredients").select("id, name, kcal_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g").ilike("name", term).limit(8),
     ]).then(([prodRes, tmplRes, ingrRes]) => {

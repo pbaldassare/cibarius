@@ -76,6 +76,7 @@ const AddMealSheet = ({ open, onOpenChange, onSaved }: AddMealSheetProps) => {
       .from("products")
       .select("id, name, brand, calories_100g, macros_100g, image_url")
       .ilike("name", `%${debouncedQuery}%`)
+      .eq("nutrition_available", true)
       .limit(20)
       .then(({ data }) => {
         setProducts((data as Product[]) ?? []);

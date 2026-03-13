@@ -130,6 +130,7 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
   const [newNotes, setNewNotes] = useState("");
   const [newImageUrl, setNewImageUrl] = useState<string | null>(null);
   const [newImagePath, setNewImagePath] = useState<string | null>(null);
+  const [newCalories, setNewCalories] = useState("");
   const [adding, setAdding] = useState(false);
 
   useEffect(() => {
