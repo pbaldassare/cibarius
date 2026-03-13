@@ -17,7 +17,6 @@ const tabs: TabItem[] = [
 
 const UserBottomNav = () => {
   const location = useLocation();
-  const navigate = useNavigate();
   const { user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
 
