@@ -185,7 +185,8 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
         category: newCategory || null,
         unit: newUnit,
         image_url: newImageUrl,
-      })
+        data_source: "manual",
+      } as any)
       .select()
       .single();
 
