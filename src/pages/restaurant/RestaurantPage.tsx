@@ -231,7 +231,7 @@ const RestaurantPage = () => {
         </div>
 
         {/* ═══ HACCP TODAY ═══ */}
-        <div className="rounded-[14px] bg-card shadow-card p-3.5">
+        <div className="rounded-[14px] bg-card shadow-card p-3.5" data-tour="rest-haccp-card">
           <div className="flex items-center justify-between mb-2.5">
             <h3 className="text-[15px] font-semibold text-foreground flex items-center gap-2">
               <ClipboardCheck className="h-4 w-4 text-primary" />
