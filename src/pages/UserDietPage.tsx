@@ -393,6 +393,23 @@ const UserDietPage = () => {
 
   const isSelfPlan = plan ? (plan.professional_id === plan.client_user_id) || !proProfile : false;
 
+  const handleDeactivatePlan = async () => {
+    if (!plan || !user) return;
+    setDeactivating(true);
+    const { error } = await supabase
+      .from("diet_plans")
+      .update({ is_active: false })
+      .eq("id", plan.id);
+    setDeactivating(false);
+    setConfirmDeactivate(false);
+    if (error) {
+      toast({ variant: "destructive", title: "Errore", description: error.message });
+    } else {
+      toast({ title: "Piano disattivato" });
+      await loadData();
+    }
+  };
+
   const handleCreateSelfPlan = async () => {
     if (!user) return;
     setSavingSelfPlan(true);
