@@ -1054,6 +1054,53 @@ const ProfiloPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ═══ Change Password Dialog ═══ */}
+      <Dialog open={passwordOpen} onOpenChange={(o) => { setPasswordOpen(o); if (!o) { setNewPassword(""); setConfirmPassword(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Modifica password</DialogTitle>
+            <DialogDescription>Inserisci la nuova password (minimo 6 caratteri).</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Nuova password</Label>
+              <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Minimo 6 caratteri" />
+            </div>
+            <div className="space-y-2">
+              <Label>Conferma nuova password</Label>
+              <Input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Ripeti la password" />
+              {confirmPassword.length > 0 && newPassword !== confirmPassword && (
+                <p className="text-[12px] text-destructive">Le password non coincidono</p>
+              )}
+              {newPassword.length > 0 && newPassword.length < 6 && (
+                <p className="text-[12px] text-destructive">La password deve avere almeno 6 caratteri</p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPasswordOpen(false)}>Annulla</Button>
+            <Button
+              disabled={savingPassword || newPassword.length < 6 || newPassword !== confirmPassword}
+              onClick={async () => {
+                setSavingPassword(true);
+                const { error } = await supabase.auth.updateUser({ password: newPassword });
+                setSavingPassword(false);
+                if (error) {
+                  toast({ variant: "destructive", title: "Errore", description: error.message });
+                } else {
+                  toast({ title: "Password aggiornata!" });
+                  setPasswordOpen(false);
+                  setNewPassword("");
+                  setConfirmPassword("");
+                }
+              }}
+            >
+              {savingPassword ? "Salvataggio..." : "Salva"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
