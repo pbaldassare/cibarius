@@ -306,7 +306,7 @@ const ProTemplatesPage = () => {
   }
 
   return (
-    <div>
+    <div data-tour="pro-templates-page">
       <MobileHeader title="I miei template" />
       <main className="px-4 py-5 pb-28 space-y-4">
         {/* Action buttons */}

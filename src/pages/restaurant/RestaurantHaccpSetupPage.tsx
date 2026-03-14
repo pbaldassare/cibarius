@@ -272,7 +272,7 @@ const RestaurantHaccpSetupPage = () => {
   const activeTemplate = templates.find(t => t.id === activeTemplateId);
 
   return (
-    <div className="space-y-4 p-4">
+    <div className="space-y-4 p-4" data-tour="rest-haccp-setup-page">
       <MobileHeader title="Configura HACCP" />
 
       {/* Template picker */}
