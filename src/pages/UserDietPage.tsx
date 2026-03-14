@@ -707,7 +707,7 @@ const UserDietPage = () => {
                           <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">{coach.bio}</p>
                         )}
                       </div>
-                      <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1 shrink-0" onClick={() => navigate("/invite")}>
+                      <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1 shrink-0" onClick={() => navigate(`/invite?pro=${coach.user_id}`)}>
                         <UserPlus className="h-3 w-3" /> Contatta
                       </Button>
                     </CardContent>
