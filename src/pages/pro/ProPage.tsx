@@ -45,7 +45,7 @@ const ProPage = () => {
       <main className="px-4 py-5 space-y-4">
         {/* Stats */}
         <div className="grid grid-cols-2 gap-3">
-          <Card className="border-2 border-accent cursor-pointer" onClick={() => navigate("/pro/clients")}>
+          <Card className="border-2 border-accent cursor-pointer" data-tour="pro-clients-card" onClick={() => navigate("/pro/clients")}>
             <CardContent className="flex flex-col items-center py-5">
               <Users className="h-8 w-8 text-primary mb-2" />
               <span className="text-2xl font-bold text-foreground">{clientCount}</span>
