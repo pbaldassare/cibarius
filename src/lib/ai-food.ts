@@ -60,7 +60,7 @@ export interface FusedFoodData {
     nutrition: number;
     expiry: number;
   };
-  source: "ai" | "off" | "fused";
+  source: "ai" | "off" | "fused" | "db_cache";
 }
 
 export interface ImageFile {
