@@ -1307,15 +1307,8 @@ const UserDietPage = () => {
           </div>
         )}
 
-        {/* ═══ ACTIONS: Disattiva piano + Cerca nutrizionista ═══ */}
+        {/* ═══ ACTIONS: Cerca nutrizionista ═══ */}
         <div className="flex flex-col gap-2">
-          <Button
-            variant="outline"
-            className="gap-2 text-destructive border-destructive/30"
-            onClick={() => setConfirmDeactivate(true)}
-          >
-            <X className="h-4 w-4" /> Disattiva piano attuale
-          </Button>
           <Button variant="ghost" onClick={() => navigate("/invite")} className="gap-2 text-muted-foreground">
             <UserPlus className="h-4 w-4" /> Cerca un nutrizionista tra i nostri professionisti
           </Button>
