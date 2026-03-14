@@ -611,7 +611,7 @@ const Index = () => {
         )}
 
         {/* ═══ 4 — LA TUA DISPENSA ═══ */}
-        <section className="space-y-2.5">
+        <section className="space-y-2.5" data-tour="home-pantry">
           <SectionHeader title="🏠 La tua dispensa" action="Apri dispensa" onAction={() => navigate("/products")} />
           <div className="rounded-[18px] bg-card shadow-card p-4">
             <div className="flex items-center gap-2.5">
