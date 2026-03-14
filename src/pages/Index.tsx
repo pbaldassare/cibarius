@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { getFoodImage } from "@/lib/food-images";
 import AddFoodFlow from "@/components/AddFoodFlow";
+import { useTour } from "@/components/AppTourContext";
 import { useIngredientCompatibility } from "@/hooks/useIngredientCompatibility";
 import MealReminderBanner from "@/components/MealReminderBanner";
 import { WeightGoalHomeBar } from "@/components/WeightGoalMotivation";
