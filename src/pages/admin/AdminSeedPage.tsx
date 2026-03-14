@@ -404,23 +404,63 @@ const AdminSeedPage = () => {
     setCleaning(false);
   };
 
+  const handleImportOFF = async () => {
+    setImporting(true);
+    setLogs([]);
+    log("🌍 Avvio importazione prodotti italiani da OpenFoodFacts...");
+    try {
+      const { data, error } = await supabase.functions.invoke("seed-off-products", {
+        body: { max_pages: 50 },
+      });
+      if (error) {
+        log(`❌ Errore: ${error.message}`);
+      } else {
+        log(`✅ Importazione completata: ${data.total_saved} prodotti salvati, ${data.total_skipped} saltati`);
+      }
+    } catch (err: any) {
+      log(`❌ Errore: ${err.message}`);
+    }
+    setImporting(false);
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Dati Demo</h1>
-          <p className="text-sm text-muted-foreground">Popola o pulisci i dati demo per testare la piattaforma</p>
+          <h1 className="text-2xl font-bold text-foreground">Dati Demo & Import</h1>
+          <p className="text-sm text-muted-foreground">Popola dati demo o importa prodotti reali da OpenFoodFacts</p>
         </div>
 
-        <div className="flex gap-3">
-          <Button onClick={handleSeed} disabled={running || cleaning} className="gap-2">
-            {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sprout className="h-4 w-4" />}
-            Genera dati demo
-          </Button>
-          <Button variant="destructive" onClick={handleClean} disabled={running || cleaning} className="gap-2">
-            {cleaning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-            Pulisci dati demo
-          </Button>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Dati Demo</CardTitle>
+              <CardDescription>Genera o pulisci dati fittizi per testare la piattaforma</CardDescription>
+            </CardHeader>
+            <CardContent className="flex gap-3">
+              <Button onClick={handleSeed} disabled={running || cleaning || importing} className="gap-2">
+                {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sprout className="h-4 w-4" />}
+                Genera
+              </Button>
+              <Button variant="destructive" onClick={handleClean} disabled={running || cleaning || importing} className="gap-2">
+                {cleaning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                Pulisci
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Importa da OpenFoodFacts</CardTitle>
+              <CardDescription>Importa i top ~5000 prodotti italiani più scansionati. Operazione una tantum (~2 min).</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button onClick={handleImportOFF} disabled={running || cleaning || importing} className="gap-2">
+                {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                {importing ? "Importazione in corso..." : "Importa prodotti IT"}
+              </Button>
+            </CardContent>
+          </Card>
         </div>
 
         <Card>
