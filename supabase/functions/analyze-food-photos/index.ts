@@ -7,6 +7,30 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+/** Generate a SHA-256 hex hash from a string */
+async function sha256(input: string): Promise<string> {
+  const data = new TextEncoder().encode(input);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  return [...new Uint8Array(hashBuffer)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/** Build a service-role Supabase client */
+function getServiceClient() {
+  return createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+}
+
+/** Log AI usage */
+async function logUsage(sb: ReturnType<typeof createClient>, userId: string | null, source: string) {
+  try {
+    await sb.from("ai_usage_log").insert({ user_id: userId, source, function_name: "analyze-food-photos" });
+  } catch (e) {
+    console.warn("Failed to log AI usage:", e);
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -19,8 +43,6 @@ serve(async (req) => {
     }
 
     const { images, context } = await req.json();
-    // images: Array<{ base64: string; mime_type: string }>
-    // context: "inventory" | "meal" | "recipe" | "preparation"
     if (!images?.length) {
       return new Response(JSON.stringify({ error: "Almeno un'immagine richiesta" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -34,6 +56,49 @@ serve(async (req) => {
       });
     }
 
+    // Extract user ID from JWT for logging
+    let userId: string | null = null;
+    try {
+      const token = authHeader.replace("Bearer ", "");
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      userId = payload.sub ?? null;
+    } catch { /* ignore */ }
+
+    const sb = getServiceClient();
+
+    // ─── Server-side cache: hash first 1000 chars of each image ───
+    const cacheInput = images.slice(0, 5).map((img: { base64: string }) => img.base64.substring(0, 1000)).join("|");
+    const cacheKey = await sha256(cacheInput);
+
+    // Check cache
+    const { data: cached } = await sb
+      .from("ai_cache")
+      .select("result")
+      .eq("cache_key", cacheKey)
+      .maybeSingle();
+
+    if (cached) {
+      // Cache hit — increment counter and return
+      await sb.from("ai_cache").update({ hit_count: sb.rpc ? undefined : 0, updated_at: new Date().toISOString() }).eq("cache_key", cacheKey);
+      // Increment hit_count with raw update
+      await sb.rpc("", {}).catch(() => null); // no-op, use direct update below
+      await sb.from("ai_cache").update({ updated_at: new Date().toISOString() }).eq("cache_key", cacheKey);
+      // Simple increment via select + update
+      const { data: cacheRow } = await sb.from("ai_cache").select("hit_count").eq("cache_key", cacheKey).single();
+      if (cacheRow) {
+        await sb.from("ai_cache").update({ hit_count: (cacheRow.hit_count ?? 0) + 1 }).eq("cache_key", cacheKey);
+      }
+
+      await logUsage(sb, userId, "server_cache");
+
+      const result = cached.result;
+      (result as any)._source = "server_cache";
+      return new Response(JSON.stringify({ result }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ─── No cache hit — call Gemini ───
     const imageContent = images.slice(0, 5).map((img: { base64: string; mime_type: string }) => ({
       type: "image_url",
       image_url: { url: `data:${img.mime_type || "image/jpeg"};base64,${img.base64}` },
@@ -194,15 +259,11 @@ Per quantity: se vedi un peso netto o volume sulla confezione, riportalo.`;
 
     const result = JSON.parse(toolCall.function.arguments);
 
-    // ─── DB enrichment: if AI found a barcode or name, check products table ───
+    // ─── DB enrichment ───
+    let enrichedFromDb = false;
     try {
-      const sbUrl = Deno.env.get("SUPABASE_URL")!;
-      const sbKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-      const sb = createClient(sbUrl, sbKey);
-
       let dbProduct: any = null;
 
-      // Try barcode first
       if (result.product?.barcode) {
         const { data } = await sb
           .from("products")
@@ -213,7 +274,6 @@ Per quantity: se vedi un peso netto o volume sulla confezione, riportalo.`;
         if (data) dbProduct = data;
       }
 
-      // Fallback: exact name match
       if (!dbProduct && result.product?.name) {
         const { data } = await sb
           .from("products")
@@ -225,7 +285,6 @@ Per quantity: se vedi un peso netto o volume sulla confezione, riportalo.`;
         if (data) dbProduct = data;
       }
 
-      // Enrich AI result with DB data if AI didn't find nutrition
       if (dbProduct && (!result.nutrition?.calories_100g || result.nutrition?.confidence < 0.7)) {
         const m = dbProduct.macros_100g as any;
         result.nutrition = {
@@ -237,10 +296,24 @@ Per quantity: se vedi un peso netto o volume sulla confezione, riportalo.`;
           confidence: 0.95,
         };
         result._source = "db_cache";
+        enrichedFromDb = true;
       }
     } catch (dbErr) {
       console.warn("DB enrichment failed (non-blocking):", dbErr);
     }
+
+    // ─── Save to server-side cache ───
+    try {
+      await sb.from("ai_cache").insert({
+        cache_key: cacheKey,
+        result: result,
+      });
+    } catch (cacheErr) {
+      console.warn("Cache write failed (non-blocking):", cacheErr);
+    }
+
+    // ─── Log usage ───
+    await logUsage(sb, userId, enrichedFromDb ? "db_enrichment" : "ai_call");
 
     return new Response(JSON.stringify({ result }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
