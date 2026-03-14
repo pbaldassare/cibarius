@@ -127,6 +127,9 @@ const UserDietPage = () => {
   const [coaches, setCoaches] = useState<ProProfile[]>([]);
   const [loadingCoaches, setLoadingCoaches] = useState(false);
   const [coachSearch, setCoachSearch] = useState("");
+  const [coachDialogOpen, setCoachDialogOpen] = useState(false);
+  const [sendingRequest, setSendingRequest] = useState<string | null>(null);
+  const [requestMap, setRequestMap] = useState<Record<string, "pending" | "active">>({});
 
   // Self-plan wizard
   const [showSelfPlan, setShowSelfPlan] = useState(false);
