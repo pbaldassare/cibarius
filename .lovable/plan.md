@@ -1,37 +1,62 @@
 
 
-# Piano: Popolare 300 traduzioni + Prompt IA preciso + Logica DB-first
+## Ampliare il DB con OpenFoodFacts per risparmiare sull'IA
 
-## Stato attuale
-- `ingredient_translation` ha solo 23 righe (il seed iniziale)
-- L'edge function `analyze-meal-photo` usa un prompt generico e non ha logica "dishes cache first"
+### Stato attuale
 
-## Cosa fare
+| Flusso | Cerca nel DB locale? | Salva nel DB dopo lookup esterno? |
+|--------|---------------------|----------------------------------|
+| Barcode scan (`barcode.ts`) | Solo localStorage | **Si** (upsert dopo OFF) ✓ |
+| Ricerca testo (`search-food` edge fn) | Si (client-side) | **No** -- i risultati OFF/USDA vengono restituiti ma non salvati |
+| Analisi foto AI (`analyze-food-photos`) | Cache server-side | **Si** (ai_cache) ✓ |
 
-### 1. Inserire ~260 nuove traduzioni in `ingredient_translation`
+### Opportunita mancanti
 
-Useremo una migrazione SQL con `INSERT ... ON CONFLICT DO NOTHING` per aggiungere tutte le righe del CSV fornito senza duplicare quelle gia' presenti. La tabella ha `name_it` UNIQUE, quindi i conflitti vengono gestiti automaticamente.
+1. **`search-food` edge function non salva i risultati OFF/USDA nel DB** -- ogni ricerca testuale rifà le chiamate esterne. Aggiungendo un upsert fire-and-forget nella edge function, ogni ricerca arricchisce automaticamente il catalogo `products`.
 
-### 2. Aggiornare il prompt IA nell'edge function
+2. **Nessun bulk import iniziale** -- non esiste un modo per pre-popolare il DB con i prodotti italiani piu comuni da OFF.
 
-Sostituire il `systemPrompt` attuale (generico) con il prompt dettagliato fornito dall'utente, che include:
-- Regole per pizza (base, salsa, mozzarella, olio, extra visibili)
-- Regole per pasta (tipo pasta, condimento, formaggio)
-- Regole per risotto (riso, soffritto, brodo, burro/parmigiano, ingrediente principale)
-- Output JSON obbligatorio con `name_it` e `notes`
+### Piano di implementazione
 
-### 3. Aggiungere logica DB-first (dishes cache)
+#### 1. Auto-save nella edge function `search-food`
 
-Prima di chiamare l'IA, la funzione controllera' se un piatto simile esiste gia' in `dishes` + `dish_ingredients`:
-1. Se trovato → carica ingredienti dalla cache, calcola macro, restituisci subito (NO IA, NO USDA)
-2. Se non trovato → chiama IA vision → arricchisci con USDA → salva in `dishes`/`dish_ingredients` per le prossime volte
+In `supabase/functions/search-food/index.ts`, dopo aver raccolto i risultati OFF/USDA, fare un batch upsert nella tabella `products` (fire-and-forget, con service_role client). Solo per risultati con nome e calorie validi.
 
-Questo richiede una modifica strutturale all'handler principale dell'edge function, aggiungendo un blocco di cache lookup prima della chiamata AI e un blocco di cache write dopo l'analisi.
+```text
+search-food edge fn
+  ├─ Cerca OFF IT + OFF World + USDA  ← gia fatto
+  ├─ Dedup + rispondi al client       ← gia fatto
+  └─ upsert batch → products table    ← NUOVO (fire-and-forget)
+       - barcode come conflict key (se presente)
+       - data_source: "openfoodfacts" o "usda"
+       - solo risultati con calories_100g != null
+```
 
-## File coinvolti
+#### 2. Edge function `seed-off-products` per bulk import
 
-| File | Azione |
-|------|--------|
-| Migrazione SQL | INSERT ~260 righe in `ingredient_translation` |
-| `supabase/functions/analyze-meal-photo/index.ts` | Nuovo prompt + logica dishes cache |
+Nuova edge function che importa i top prodotti italiani da OFF in batch. Chiamabile dall'admin una tantum.
+
+- Endpoint OFF: `https://it.openfoodfacts.org/api/v2/search?countries_tags=en:italy&sort_by=unique_scans_n&page_size=100&page=N`
+- Itera pagine 1-50 (fino a 5000 prodotti)
+- Upsert in `products` con `data_source: 'openfoodfacts'`
+- Restituisce contatore prodotti importati
+
+#### 3. Bottone admin per lanciare il bulk import
+
+In `AdminSeedPage.tsx`, aggiungere una card dedicata "Importa prodotti OpenFoodFacts" con bottone che invoca la nuova edge function e mostra progresso.
+
+### File coinvolti
+
+| File | Modifica |
+|------|----------|
+| `supabase/functions/search-food/index.ts` | Aggiungere Supabase service client + batch upsert dopo raccolta risultati |
+| `supabase/functions/seed-off-products/index.ts` | Nuova edge function per bulk import top prodotti IT |
+| `supabase/config.toml` | Aggiungere config per `seed-off-products` (verify_jwt = false) |
+| `src/pages/admin/AdminSeedPage.tsx` | Card + bottone "Importa da OpenFoodFacts" |
+
+### Risultato atteso
+
+- Ogni ricerca testuale (non solo barcode) arricchisce il DB automaticamente
+- Bulk import da ~5000 prodotti italiani come base iniziale
+- Piu prodotti nel DB = piu hit "local" = meno chiamate OFF/USDA/IA = costi ridotti e risposte piu veloci
 
