@@ -1,33 +1,37 @@
 
 
-## Problema: Registrazione bloccata - "Unexpected status code returned from hook: 500"
+# Piano: Popolare 300 traduzioni + Prompt IA preciso + Logica DB-first
 
-### Causa
-L'edge function `auth-email-hook` crasha durante la verifica della firma webhook. Il log mostra:
+## Stato attuale
+- `ingredient_translation` ha solo 23 righe (il seed iniziale)
+- L'edge function `analyze-meal-photo` usa un prompt generico e non ha logica "dishes cache first"
 
-```
-Base64Coder: incorrect characters for decoding
-```
+## Cosa fare
 
-Il problema e' nella riga che costruisce il segreto per la classe `Webhook`. Il valore di `SEND_EMAIL_HOOK_SECRET` non viene elaborato correttamente prima di passarlo a `new Webhook()`, causando un errore di decodifica Base64.
+### 1. Inserire ~260 nuove traduzioni in `ingredient_translation`
 
-### Soluzione
+Useremo una migrazione SQL con `INSERT ... ON CONFLICT DO NOTHING` per aggiungere tutte le righe del CSV fornito senza duplicare quelle gia' presenti. La tabella ha `name_it` UNIQUE, quindi i conflitti vengono gestiti automaticamente.
 
-Modificare `supabase/functions/auth-email-hook/index.ts` per gestire correttamente il formato del segreto:
+### 2. Aggiornare il prompt IA nell'edge function
 
-1. Il segreto Supabase arriva come `v1,whsec_<base64>`. Attualmente il codice fa `HOOK_SECRET.replace("v1,whsec_", "")` e poi aggiunge `whsec_` di nuovo -- ma il problema e' che la libreria `standardwebhooks` potrebbe aspettarsi il segreto in un formato diverso, oppure il segreto contiene caratteri non-base64.
+Sostituire il `systemPrompt` attuale (generico) con il prompt dettagliato fornito dall'utente, che include:
+- Regole per pizza (base, salsa, mozzarella, olio, extra visibili)
+- Regole per pasta (tipo pasta, condimento, formaggio)
+- Regole per risotto (riso, soffritto, brodo, burro/parmigiano, ingrediente principale)
+- Output JSON obbligatorio con `name_it` e `notes`
 
-2. La fix: usare un blocco try/catch attorno alla verifica webhook, e se la verifica fallisce, procedere comunque con il parsing JSON del payload (dato che la funzione e' gia' protetta da `verify_jwt = false` e viene chiamata solo internamente da Supabase Auth). In alternativa, correggere il parsing del segreto.
+### 3. Aggiungere logica DB-first (dishes cache)
 
-3. Approccio piu' robusto: se il segreto non e' valido per la verifica, fare il parse diretto del payload JSON senza verifica della firma, loggando un warning -- questo sblocca la registrazione immediatamente.
+Prima di chiamare l'IA, la funzione controllera' se un piatto simile esiste gia' in `dishes` + `dish_ingredients`:
+1. Se trovato → carica ingredienti dalla cache, calcola macro, restituisci subito (NO IA, NO USDA)
+2. Se non trovato → chiama IA vision → arricchisci con USDA → salva in `dishes`/`dish_ingredients` per le prossime volte
 
-### File da modificare
+Questo richiede una modifica strutturale all'handler principale dell'edge function, aggiungendo un blocco di cache lookup prima della chiamata AI e un blocco di cache write dopo l'analisi.
 
-| File | Modifica |
-|------|----------|
-| `supabase/functions/auth-email-hook/index.ts` | Aggiungere fallback: se la verifica webhook fallisce, parsare il payload JSON direttamente e procedere con l'invio email |
+## File coinvolti
 
-### Dettagli tecnici
-
-Nella sezione di verifica (righe 174-193), wrappare il `wh.verify()` in un try/catch. Se fallisce, fare `JSON.parse(payloadText)` come fallback. Questo e' sicuro perche' l'hook viene chiamato solo dal motore Auth interno di Supabase, non da utenti esterni.
+| File | Azione |
+|------|--------|
+| Migrazione SQL | INSERT ~260 righe in `ingredient_translation` |
+| `supabase/functions/analyze-meal-photo/index.ts` | Nuovo prompt + logica dishes cache |
 

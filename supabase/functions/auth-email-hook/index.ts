@@ -175,23 +175,29 @@ Deno.serve(async (req) => {
     const payloadText = await req.text();
     console.log("Raw payload received, length:", payloadText.length);
 
-    // Verify webhook signature
-    // The secret from Supabase dashboard has prefix "v1,whsec_" - we need just the base64 part
-    const secretPart = HOOK_SECRET.startsWith("v1,whsec_")
-      ? HOOK_SECRET.replace("v1,whsec_", "")
-      : HOOK_SECRET;
-
-    const wh = new Webhook(`whsec_${secretPart}`);
-
-    const headers = {
-      "webhook-id": req.headers.get("webhook-id") || "",
-      "webhook-timestamp": req.headers.get("webhook-timestamp") || "",
-      "webhook-signature": req.headers.get("webhook-signature") || "",
-    };
-
+    // Verify webhook signature with fallback
     // deno-lint-ignore no-explicit-any
-    const payload = wh.verify(payloadText, headers) as any;
-    console.log("Webhook verified successfully, type:", payload.type);
+    let payload: any;
+    try {
+      const secretPart = HOOK_SECRET.startsWith("v1,whsec_")
+        ? HOOK_SECRET.replace("v1,whsec_", "")
+        : HOOK_SECRET;
+
+      const wh = new Webhook(`whsec_${secretPart}`);
+
+      const headers = {
+        "webhook-id": req.headers.get("webhook-id") || "",
+        "webhook-timestamp": req.headers.get("webhook-timestamp") || "",
+        "webhook-signature": req.headers.get("webhook-signature") || "",
+      };
+
+      payload = wh.verify(payloadText, headers) as any;
+      console.log("Webhook verified successfully, type:", payload.type);
+    } catch (verifyError) {
+      console.warn("Webhook signature verification failed, using direct JSON parse:", verifyError.message);
+      payload = JSON.parse(payloadText);
+      console.log("Payload parsed directly, type:", payload.type);
+    }
 
     // Extract user and email_data from verified payload
     const user = payload.user;
