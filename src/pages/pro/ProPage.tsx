@@ -62,7 +62,7 @@ const ProPage = () => {
         </div>
 
         {/* Quick actions */}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2" data-tour="pro-quick-actions">
           <Button className="gap-2" onClick={() => navigate("/pro/clients")}>
             <UserPlus className="h-4 w-4" /> Gestisci clienti
           </Button>
