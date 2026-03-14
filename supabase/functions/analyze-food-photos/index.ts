@@ -79,15 +79,11 @@ serve(async (req) => {
 
     if (cached) {
       // Cache hit — increment counter and return
-      await sb.from("ai_cache").update({ hit_count: sb.rpc ? undefined : 0, updated_at: new Date().toISOString() }).eq("cache_key", cacheKey);
-      // Increment hit_count with raw update
-      await sb.rpc("", {}).catch(() => null); // no-op, use direct update below
-      await sb.from("ai_cache").update({ updated_at: new Date().toISOString() }).eq("cache_key", cacheKey);
-      // Simple increment via select + update
       const { data: cacheRow } = await sb.from("ai_cache").select("hit_count").eq("cache_key", cacheKey).single();
-      if (cacheRow) {
-        await sb.from("ai_cache").update({ hit_count: (cacheRow.hit_count ?? 0) + 1 }).eq("cache_key", cacheKey);
-      }
+      await sb.from("ai_cache").update({
+        hit_count: (cacheRow?.hit_count ?? 0) + 1,
+        updated_at: new Date().toISOString(),
+      }).eq("cache_key", cacheKey);
 
       await logUsage(sb, userId, "server_cache");
 
