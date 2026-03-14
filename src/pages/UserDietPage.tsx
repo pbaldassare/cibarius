@@ -746,6 +746,93 @@ const UserDietPage = () => {
           )}
         </main>
 
+        {/* Coach search dialog */}
+        <Dialog open={coachDialogOpen} onOpenChange={(open) => { setCoachDialogOpen(open); if (!open) setCoachSearch(""); }}>
+          <DialogContent className="max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Cerca un nutrizionista</DialogTitle>
+              <DialogDescription>Trova il professionista ideale e invia una richiesta di contatto gratuita.</DialogDescription>
+            </DialogHeader>
+            <div className="relative">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Cerca per nome, specializzazione o città..."
+                value={coachSearch}
+                onChange={(e) => setCoachSearch(e.target.value)}
+                className="pl-9 h-9 text-sm"
+              />
+            </div>
+            {loadingCoaches ? (
+              <div className="flex justify-center py-6"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+            ) : filteredCoaches.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                {coachSearch.trim() ? "Nessun risultato per la tua ricerca." : "Nessun professionista disponibile al momento."}
+              </p>
+            ) : (
+              <div className="space-y-2 max-h-[55vh] overflow-y-auto">
+                {filteredCoaches.map((coach, idx) => {
+                  const status = requestMap[coach.user_id];
+                  return (
+                    <Card key={idx} className="border border-border">
+                      <CardContent className="py-3 flex items-start gap-3">
+                        <Avatar className="h-10 w-10 border border-primary/20">
+                          {coach.photo_url && <AvatarImage src={coach.photo_url} />}
+                          <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+                            {coach.display_name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-foreground">{coach.display_name}</p>
+                          {coach.specialization && (
+                            <Badge variant="outline" className="text-[9px] mt-0.5">{coach.specialization}</Badge>
+                          )}
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
+                            {coach.city && (
+                              <p className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                                <MapPin className="h-2.5 w-2.5" /> {coach.city}
+                              </p>
+                            )}
+                            {coach.experience_years != null && (
+                              <p className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                                <GraduationCap className="h-2.5 w-2.5" /> {coach.experience_years} anni
+                              </p>
+                            )}
+                          </div>
+                          {(coach.works_online || coach.works_in_person) && (
+                            <div className="flex gap-1 mt-1">
+                              {coach.works_online && <Badge variant="secondary" className="text-[8px] px-1.5 py-0 gap-0.5"><Monitor className="h-2.5 w-2.5" /> Online</Badge>}
+                              {coach.works_in_person && <Badge variant="secondary" className="text-[8px] px-1.5 py-0 gap-0.5"><Building2 className="h-2.5 w-2.5" /> Presenza</Badge>}
+                            </div>
+                          )}
+                          {coach.bio && (
+                            <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">{coach.bio}</p>
+                          )}
+                        </div>
+                        {status === "active" ? (
+                          <Badge variant="secondary" className="text-[10px] shrink-0 gap-1"><UserCheck className="h-3 w-3" /> Collegato</Badge>
+                        ) : status === "pending" ? (
+                          <Badge variant="outline" className="text-[10px] shrink-0 gap-1"><Loader2 className="h-3 w-3" /> In attesa</Badge>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-[10px] gap-1 shrink-0"
+                            disabled={sendingRequest === coach.user_id}
+                            onClick={() => handleContactCoach(coach.user_id)}
+                          >
+                            {sendingRequest === coach.user_id ? <Loader2 className="h-3 w-3 animate-spin" /> : <UserPlus className="h-3 w-3" />}
+                            Contatta
+                          </Button>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
         {/* Self-plan dialog — 2-step wizard */}
         <Dialog open={showSelfPlan} onOpenChange={(open) => { setShowSelfPlan(open); if (!open) { setSelfStep(1); setEditingPlanId(null); } }}>
           <DialogContent className="max-h-[85vh] overflow-y-auto">
