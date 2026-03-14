@@ -1,49 +1,37 @@
 
 
-## Aggiunta step finali al tour + chiusura automatica
+# Piano: Popolare 300 traduzioni + Prompt IA preciso + Logica DB-first
 
-### Modifiche
+## Stato attuale
+- `ingredient_translation` ha solo 23 righe (il seed iniziale)
+- L'edge function `analyze-meal-photo` usa un prompt generico e non ha logica "dishes cache first"
 
-**`src/components/AppTourContext.tsx`** — Aggiungere 2 nuovi step prima del finale e migliorare lo step finale:
+## Cosa fare
 
-1. **"Condividi con gli amici 🤝"** — step che punta al profilo (selector `nav-profile`), invita a condividere Cibarius con amici dal profilo
-2. **"Fatti seguire da un nutrizionista 👨‍⚕️"** — step che spiega che possono collegarsi a un professionista per avere piani personalizzati
-3. **Step finale aggiornato** — messaggio di ringraziamento: "Grazie per la tua attenzione! Ora sei pronto per usare Cibarius al meglio." con navigazione a `/` 
+### 1. Inserire ~260 nuove traduzioni in `ingredient_translation`
 
-**`src/components/AppTour.tsx`** — Quando il tour finisce (ultimo step completato), chiamare `stopTour()` e navigare a `/` automaticamente, assicurandosi che overlay e tooltip vengano rimossi.
+Useremo una migrazione SQL con `INSERT ... ON CONFLICT DO NOTHING` per aggiungere tutte le righe del CSV fornito senza duplicare quelle gia' presenti. La tabella ha `name_it` UNIQUE, quindi i conflitti vengono gestiti automaticamente.
 
-### Step aggiunti (prima del finale attuale)
+### 2. Aggiornare il prompt IA nell'edge function
 
-```
-// Dopo "Il tuo Profilo ⚙️" e prima del finale:
+Sostituire il `systemPrompt` attuale (generico) con il prompt dettagliato fornito dall'utente, che include:
+- Regole per pizza (base, salsa, mozzarella, olio, extra visibili)
+- Regole per pasta (tipo pasta, condimento, formaggio)
+- Regole per risotto (riso, soffritto, brodo, burro/parmigiano, ingrediente principale)
+- Output JSON obbligatorio con `name_it` e `notes`
 
-{
-  selector: "nav-profile",
-  title: "Condividi Cibarius con gli amici 🤝",
-  description: "Ti piace Cibarius? Dal profilo puoi condividere l'app con amici e famiglia via WhatsApp, Telegram e altri canali!",
-  page: "/",
-  action: { type: "navigate", target: "/", delay: 400 },
-},
-{
-  selector: "nav-plan",
-  title: "Fatti seguire da un nutrizionista 👨‍⚕️",
-  description: "Collega il tuo account a un nutrizionista professionista per ricevere piani alimentari personalizzati e monitoraggio dedicato.",
-  page: "/",
-},
+### 3. Aggiungere logica DB-first (dishes cache)
 
-// Finale aggiornato:
-{
-  selector: "home-greeting",
-  title: "Grazie per la tua attenzione! 🎊",
-  description: "Ora conosci tutte le funzionalità di Cibarius. Inizia aggiungendo i tuoi primi prodotti e scopri quanto è facile mangiare meglio. Buon appetito! 🍽️",
-  page: "/",
-  action: { type: "navigate", target: "/", delay: 400 },
-}
-```
+Prima di chiamare l'IA, la funzione controllera' se un piatto simile esiste gia' in `dishes` + `dish_ingredients`:
+1. Se trovato → carica ingredienti dalla cache, calcola macro, restituisci subito (NO IA, NO USDA)
+2. Se non trovato → chiama IA vision → arricchisci con USDA → salva in `dishes`/`dish_ingredients` per le prossime volte
 
-### File modificati
-| File | Modifica |
-|------|----------|
-| `src/components/AppTourContext.tsx` | Aggiungere 2 step (condivisione + nutrizionista), aggiornare testo finale |
-| `src/components/AppTour.tsx` | Assicurare che a fine tour si chiuda e torni a `/` |
+Questo richiede una modifica strutturale all'handler principale dell'edge function, aggiungendo un blocco di cache lookup prima della chiamata AI e un blocco di cache write dopo l'analisi.
+
+## File coinvolti
+
+| File | Azione |
+|------|--------|
+| Migrazione SQL | INSERT ~260 righe in `ingredient_translation` |
+| `supabase/functions/analyze-meal-photo/index.ts` | Nuovo prompt + logica dishes cache |
 
