@@ -611,9 +611,11 @@ const AddFoodFlow = ({
       }
       return;
     }
-
-    const data = await lookupBarcode(code);
-    if (data && data.name) {
+    // DB-first: check products table before OpenFoodFacts
+    let data = await lookupProductInDB(code);
+    if (!data) {
+      data = await lookupBarcode(code);
+    }
       // Upsert product by barcode
       const { data: existing, error: selErr } = await supabase
         .from("products").select("id").eq("barcode", code).maybeSingle();
