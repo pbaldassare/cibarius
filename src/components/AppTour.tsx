@@ -4,7 +4,10 @@ import { useTour, TOUR_STEPS } from "./AppTourContext";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 
 const AppTour = () => {
-  const { isActive, currentStep, nextStep, prevStep, stopTour, totalSteps } = useTour();
+  const {
+    isActive, currentStep, nextStep, prevStep, stopTour, totalSteps,
+    openAddFood, closeAddFood,
+  } = useTour();
   const navigate = useNavigate();
   const location = useLocation();
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
@@ -20,57 +23,101 @@ const AppTour = () => {
 
     const el = document.querySelector(`[data-tour="${step.selector}"]`);
     if (!el) {
-      // Retry a few times for elements that need to render
-      if (retryRef.current < 20) {
+      if (retryRef.current < 30) {
         retryRef.current++;
         rafRef.current = window.setTimeout(findAndHighlight, 150);
         return;
       }
-      // Skip this step if element not found
+      // Skip this step if element not found after retries
       setShowTooltip(false);
+      nextStep();
       return;
     }
 
     retryRef.current = 0;
     const rect = el.getBoundingClientRect();
     setTargetRect(rect);
-
-    // Animate cursor to target center
     setCursorPos({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
 
-    // Scroll element into view if needed
     el.scrollIntoView({ behavior: "smooth", block: "center" });
 
-    // Show tooltip after cursor animation
     setShowTooltip(false);
     setTimeout(() => {
-      // Re-read rect after scroll
       const updatedRect = el.getBoundingClientRect();
       setTargetRect(updatedRect);
       setCursorPos({ x: updatedRect.left + updatedRect.width / 2, y: updatedRect.top + updatedRect.height / 2 });
       setShowTooltip(true);
     }, 500);
-  }, [step]);
+  }, [step, nextStep]);
 
-  // Navigate to required page if needed
+  // Execute action then find+highlight
+  const executeStepAction = useCallback(() => {
+    if (!step) return;
+
+    const action = step.action;
+    if (!action) {
+      // No action, just find element
+      const delay = step.page && location.pathname !== step.page ? 400 : 100;
+      if (step.page && location.pathname !== step.page) {
+        navigate(step.page);
+      }
+      rafRef.current = window.setTimeout(findAndHighlight, delay);
+      return;
+    }
+
+    switch (action.type) {
+      case "navigate":
+        if (action.target && location.pathname !== action.target) {
+          navigate(action.target);
+        }
+        rafRef.current = window.setTimeout(findAndHighlight, action.delay || 500);
+        break;
+
+      case "open-add-food":
+        openAddFood();
+        rafRef.current = window.setTimeout(findAndHighlight, action.delay || 600);
+        break;
+
+      case "close-add-food":
+        closeAddFood();
+        rafRef.current = window.setTimeout(() => {
+          // After closing, navigate home if needed
+          if (step.page && location.pathname !== step.page) {
+            navigate(step.page);
+          }
+          rafRef.current = window.setTimeout(findAndHighlight, 300);
+        }, action.delay || 400);
+        break;
+
+      case "scroll": {
+        if (action.target) {
+          const scrollEl = document.querySelector(`[data-tour="${action.target}"]`);
+          scrollEl?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+        rafRef.current = window.setTimeout(findAndHighlight, action.delay || 400);
+        break;
+      }
+
+      case "wait":
+        rafRef.current = window.setTimeout(findAndHighlight, action.delay || 300);
+        break;
+
+      default:
+        rafRef.current = window.setTimeout(findAndHighlight, 100);
+    }
+  }, [step, location.pathname, navigate, findAndHighlight, openAddFood, closeAddFood]);
+
   useEffect(() => {
     if (!isActive || !step) return;
-
     setShowTooltip(false);
     retryRef.current = 0;
 
-    if (step.page && location.pathname !== step.page) {
-      navigate(step.page);
-      // Wait for navigation + render
-      rafRef.current = window.setTimeout(findAndHighlight, 400);
-    } else {
-      rafRef.current = window.setTimeout(findAndHighlight, 100);
-    }
+    executeStepAction();
 
     return () => {
       if (rafRef.current) clearTimeout(rafRef.current);
     };
-  }, [isActive, currentStep, step, location.pathname, navigate, findAndHighlight]);
+  }, [isActive, currentStep, step, executeStepAction]);
 
   // Handle window resize
   useEffect(() => {
@@ -98,7 +145,6 @@ const AppTour = () => {
       tooltipStyle.bottom = window.innerHeight - targetRect.top + 16;
     }
 
-    // Center horizontally, clamp to viewport
     const centerX = targetRect.left + targetRect.width / 2;
     const tooltipWidth = 300;
     tooltipStyle.left = Math.max(16, Math.min(centerX - tooltipWidth / 2, window.innerWidth - tooltipWidth - 16));
@@ -114,11 +160,11 @@ const AppTour = () => {
             <rect width="100%" height="100%" fill="white" />
             {targetRect && (
               <rect
-                x={targetRect.left - 6}
-                y={targetRect.top - 6}
-                width={targetRect.width + 12}
-                height={targetRect.height + 12}
-                rx="12"
+                x={targetRect.left - 8}
+                y={targetRect.top - 8}
+                width={targetRect.width + 16}
+                height={targetRect.height + 16}
+                rx="14"
                 fill="black"
               />
             )}
@@ -127,7 +173,7 @@ const AppTour = () => {
         <rect
           width="100%"
           height="100%"
-          fill="rgba(0,0,0,0.6)"
+          fill="rgba(0,0,0,0.65)"
           mask="url(#tour-mask)"
           style={{ pointerEvents: "auto" }}
           onClick={(e) => e.stopPropagation()}
@@ -137,13 +183,14 @@ const AppTour = () => {
       {/* Spotlight border glow */}
       {targetRect && (
         <div
-          className="absolute rounded-xl border-2 border-primary shadow-[0_0_20px_rgba(var(--primary),0.3)] transition-all duration-500 ease-out"
+          className="absolute rounded-2xl border-2 border-primary transition-all duration-500 ease-out"
           style={{
-            left: targetRect.left - 6,
-            top: targetRect.top - 6,
-            width: targetRect.width + 12,
-            height: targetRect.height + 12,
+            left: targetRect.left - 8,
+            top: targetRect.top - 8,
+            width: targetRect.width + 16,
+            height: targetRect.height + 16,
             pointerEvents: "none",
+            boxShadow: "0 0 24px 4px hsl(var(--primary) / 0.25)",
           }}
         />
       )}
@@ -158,7 +205,7 @@ const AppTour = () => {
           opacity: showTooltip ? 0 : 1,
         }}
       >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
           <path d="M5 3L19 12L12 13L9 20L5 3Z" fill="hsl(var(--primary))" stroke="white" strokeWidth="1.5" strokeLinejoin="round" />
         </svg>
       </div>
@@ -226,7 +273,7 @@ const AppTour = () => {
                   onClick={nextStep}
                   className="flex items-center gap-1 h-8 px-4 rounded-lg text-[12px] font-semibold btn-brand text-primary-foreground"
                 >
-                  {currentStep === totalSteps - 1 ? "Fine!" : "Avanti"}
+                  {currentStep === totalSteps - 1 ? "Fine! 🎉" : "Avanti"}
                   {currentStep < totalSteps - 1 && <ChevronRight className="h-3.5 w-3.5" />}
                 </button>
               </div>
