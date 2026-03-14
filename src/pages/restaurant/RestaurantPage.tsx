@@ -207,7 +207,7 @@ const RestaurantPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" data-tour="rest-greeting">
       <MobileHeader title={restaurant?.name ?? "Dashboard"} />
       <main className="space-y-3 px-4 pt-1 pb-28">
         <RestaurantSubscriptionBanner />
