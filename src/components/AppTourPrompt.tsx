@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { useTour } from "./AppTourContext";
+import { useTour, TourRole } from "./AppTourContext";
+import { useRole } from "@/hooks/useRole";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -7,13 +8,13 @@ import { Sparkles, Map } from "lucide-react";
 
 const AppTourPrompt = () => {
   const { startTour } = useTour();
+  const { role } = useRole();
   const [open, setOpen] = useState(false);
   const [dontShow, setDontShow] = useState(false);
 
   useEffect(() => {
     const done = localStorage.getItem("cibarius_tour_done");
     if (!done) {
-      // Small delay to let the page render first
       const t = setTimeout(() => setOpen(true), 1200);
       return () => clearTimeout(t);
     }
@@ -22,7 +23,7 @@ const AppTourPrompt = () => {
   const handleStart = () => {
     setOpen(false);
     if (dontShow) localStorage.setItem("cibarius_tour_done", "1");
-    startTour();
+    startTour((role as TourRole) ?? "user");
   };
 
   const handleSkip = () => {

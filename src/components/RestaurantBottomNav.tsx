@@ -2,14 +2,14 @@ import { NavLink, useLocation } from "react-router-dom";
 import { LayoutDashboard, Clock, ChefHat, BookOpen, FileText, ClipboardCheck } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
-interface TabItem { to: string; icon: LucideIcon; label: string }
+interface TabItem { to: string; icon: LucideIcon; label: string; tourId: string }
 
 const tabs: TabItem[] = [
-  { to: "/restaurant", icon: LayoutDashboard, label: "Home" },
-  { to: "/restaurant/haccp", icon: ClipboardCheck, label: "HACCP" },
-  { to: "/restaurant/products", icon: Clock, label: "Scadenze" },
-  { to: "/restaurant/preparations", icon: ChefHat, label: "Preparaz." },
-  { to: "/restaurant/invoices", icon: FileText, label: "Bolle" },
+  { to: "/restaurant", icon: LayoutDashboard, label: "Home", tourId: "rest-nav-home" },
+  { to: "/restaurant/haccp", icon: ClipboardCheck, label: "HACCP", tourId: "rest-nav-haccp" },
+  { to: "/restaurant/products", icon: Clock, label: "Scadenze", tourId: "rest-nav-products" },
+  { to: "/restaurant/preparations", icon: ChefHat, label: "Preparaz.", tourId: "rest-nav-preparations" },
+  { to: "/restaurant/invoices", icon: FileText, label: "Bolle", tourId: "rest-nav-invoices" },
 ];
 
 const RestaurantBottomNav = () => {
@@ -23,12 +23,13 @@ const RestaurantBottomNav = () => {
       }}
     >
       <div className="mx-auto flex h-16 max-w-2xl items-center justify-around px-1">
-        {tabs.map(({ to, icon: Icon, label }) => {
+        {tabs.map(({ to, icon: Icon, label, tourId }) => {
           const isActive = location.pathname === to;
           return (
             <NavLink
               key={to}
               to={to}
+              data-tour={tourId}
               className="flex flex-col items-center gap-0.5 px-2 py-1 relative"
             >
               <Icon
