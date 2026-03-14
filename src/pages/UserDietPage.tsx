@@ -597,94 +597,65 @@ const UserDietPage = () => {
   };
 
   if (!plan) {
+    const filteredCoaches = coaches.filter((c) => {
+      if (!coachSearch.trim()) return true;
+      const q = coachSearch.toLowerCase();
+      return (
+        c.display_name?.toLowerCase().includes(q) ||
+        c.specialization?.toLowerCase().includes(q) ||
+        c.city?.toLowerCase().includes(q)
+      );
+    });
+
     return (
       <div>
         <MobileHeader title="Il mio piano" />
         <main className="px-4 py-6 space-y-6">
-          {/* Motivational header */}
-          <div className="text-center space-y-2">
-            <ClipboardList className="h-10 w-10 text-primary mx-auto" />
-            <h2 className="text-lg font-bold text-foreground">
-              Scegli il piano alimentare per te
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Collegalo alla tua spesa e alle tue abitudini!
-            </p>
-          </div>
+          {/* 1. HERO — Crea il tuo piano personalizzato (paid) */}
+          <Card className="border-primary/40 bg-gradient-to-br from-primary/10 to-primary/5 shadow-md">
+            <CardContent className="py-5 space-y-3 text-center">
+              <Crown className="h-9 w-9 text-primary mx-auto" />
+              <h2 className="text-lg font-bold text-foreground">Crea il tuo piano personalizzato</h2>
+              <p className="text-sm text-muted-foreground">
+                Personalizza calorie e macro, aggiungi i tuoi alimenti preferiti e costruisci il piano perfetto per i tuoi obiettivi.
+              </p>
+              <Button
+                className="w-full gap-2"
+                onClick={() => {
+                  if (!plusActive) { navigate("/subscription"); return; }
+                  setShowSelfPlan(true);
+                }}
+              >
+                {!plusActive && <Crown className="h-4 w-4" />}
+                <Sparkles className="h-4 w-4" /> Inizia ora
+                {!plusActive && <Badge variant="secondary" className="text-[9px] ml-1 bg-background/60">Plus</Badge>}
+              </Button>
+            </CardContent>
+          </Card>
 
-          {/* Template cards */}
-          {systemTemplates.length > 0 && (
-            <div className="grid grid-cols-1 gap-3">
-              {systemTemplates.map((tmpl) => (
-                <Card
-                  key={tmpl.id}
-                  className="border border-border cursor-pointer hover:border-primary/50 transition-colors"
-                  onClick={() => setConfirmTemplate(tmpl)}
-                >
-                  <CardContent className="py-4 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <p className="font-bold text-sm text-foreground">{tmpl.title}</p>
-                      <Badge variant="secondary" className="text-xs">
-                        <Flame className="h-3 w-3 mr-0.5" /> {tmpl.kcal_day} kcal
-                      </Badge>
-                    </div>
-                    <div className="flex gap-3 text-[11px] text-muted-foreground">
-                      <span className="text-blue-600 font-medium">P {tmpl.protein_g_day}g</span>
-                      <span className="text-amber-600 font-medium">C {tmpl.carbs_g_day}g</span>
-                      <span className="text-rose-600 font-medium">G {tmpl.fats_g_day}g</span>
-                    </div>
-                    {(() => {
-                      const info = getTemplateInfo(tmpl.title);
-                      return (
-                        <div className="mt-1 pt-2 border-t border-dashed border-border space-y-1.5 text-[11px] text-muted-foreground">
-                          <p><span className="font-semibold text-foreground">👤 Per chi:</span> {info.target}</p>
-                          <p><span className="font-semibold text-foreground">🎯 Obiettivi:</span> {info.goals}</p>
-                          <p><span className="font-semibold text-foreground">📋</span> {info.description}</p>
-                        </div>
-                      );
-                    })()}
-                    {tmpl.notes && (
-                      <p className="text-[10px] text-muted-foreground line-clamp-2">{tmpl.notes}</p>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-
-          {savingTemplate && (
-            <div className="flex justify-center py-4">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            </div>
-          )}
-
-          {/* Secondary actions */}
-          <div className="flex flex-col gap-2">
-            <Button onClick={() => {
-              if (!plusActive) { navigate("/subscription"); return; }
-              setShowSelfPlan(true);
-            }} variant="outline" className="gap-2">
-              {!plusActive && <Crown className="h-4 w-4 text-amber-500" />}
-              <Plus className="h-4 w-4" /> Crea il tuo piano personalizzato
-              {!plusActive && <Badge variant="secondary" className="text-[9px] ml-1">Plus</Badge>}
-            </Button>
-            <Button variant="ghost" onClick={() => navigate("/invite")} className="gap-2 text-muted-foreground">
-              <Sparkles className="h-4 w-4" /> Cerca un nutrizionista tra i nostri professionisti
-            </Button>
-          </div>
-
-          {/* Coach discovery */}
+          {/* 2. CERCA UN NUTRIZIONISTA — inline search */}
           <div className="space-y-3">
             <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
-              <Search className="h-4 w-4 text-primary" /> Cerca un professionista
+              <Search className="h-4 w-4 text-primary" /> Cerca un nutrizionista
             </h3>
+            <div className="relative">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Cerca per nome, specializzazione o città..."
+                value={coachSearch}
+                onChange={(e) => setCoachSearch(e.target.value)}
+                className="pl-9 h-9 text-sm"
+              />
+            </div>
             {loadingCoaches ? (
               <div className="flex justify-center py-6"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-            ) : coaches.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center">Nessun professionista disponibile al momento.</p>
+            ) : filteredCoaches.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                {coachSearch.trim() ? "Nessun risultato per la tua ricerca." : "Nessun professionista disponibile al momento."}
+              </p>
             ) : (
               <div className="space-y-2">
-                {coaches.map((coach, idx) => (
+                {filteredCoaches.map((coach, idx) => (
                   <Card key={idx} className="border border-border">
                     <CardContent className="py-3 flex items-start gap-3">
                       <Avatar className="h-10 w-10 border border-primary/20">
@@ -737,6 +708,57 @@ const UserDietPage = () => {
               </div>
             )}
           </div>
+
+          {/* 3. PIANI STANDARD GRATUITI — templates */}
+          {systemTemplates.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                <BookOpen className="h-4 w-4 text-primary" /> Piani standard gratuiti
+              </h3>
+              <div className="grid grid-cols-1 gap-3">
+                {systemTemplates.map((tmpl) => (
+                  <Card
+                    key={tmpl.id}
+                    className="border border-border cursor-pointer hover:border-primary/50 transition-colors"
+                    onClick={() => setConfirmTemplate(tmpl)}
+                  >
+                    <CardContent className="py-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <p className="font-bold text-sm text-foreground">{tmpl.title}</p>
+                        <Badge variant="secondary" className="text-xs">
+                          <Flame className="h-3 w-3 mr-0.5" /> {tmpl.kcal_day} kcal
+                        </Badge>
+                      </div>
+                      <div className="flex gap-3 text-[11px] text-muted-foreground">
+                        <span className="text-blue-600 font-medium">P {tmpl.protein_g_day}g</span>
+                        <span className="text-amber-600 font-medium">C {tmpl.carbs_g_day}g</span>
+                        <span className="text-rose-600 font-medium">G {tmpl.fats_g_day}g</span>
+                      </div>
+                      {(() => {
+                        const info = getTemplateInfo(tmpl.title);
+                        return (
+                          <div className="mt-1 pt-2 border-t border-dashed border-border space-y-1.5 text-[11px] text-muted-foreground">
+                            <p><span className="font-semibold text-foreground">👤 Per chi:</span> {info.target}</p>
+                            <p><span className="font-semibold text-foreground">🎯 Obiettivi:</span> {info.goals}</p>
+                            <p><span className="font-semibold text-foreground">📋</span> {info.description}</p>
+                          </div>
+                        );
+                      })()}
+                      {tmpl.notes && (
+                        <p className="text-[10px] text-muted-foreground line-clamp-2">{tmpl.notes}</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {savingTemplate && (
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          )}
         </main>
 
         {/* Self-plan dialog — 2-step wizard */}
