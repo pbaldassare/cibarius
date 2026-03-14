@@ -1154,6 +1154,7 @@ const AddFoodFlow = ({
                 <div className="grid grid-cols-1 gap-2">
                   {/* Foto AI (first, recommended) */}
                   <button
+                    data-tour="add-photo-ai"
                     onClick={() => {
                       if (context === "meal" && !preselectedMealType && !selectedMealType) {
                         toast({ variant: "destructive", title: "Seleziona prima il tipo di pasto" });
