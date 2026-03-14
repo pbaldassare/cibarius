@@ -15,6 +15,15 @@ const tabs: TabItem[] = [
   { to: "/profile", icon: User, label: "Profilo" },
 ];
 
+const tourIds: Record<string, string> = {
+  "/": "nav-home",
+  "/expiry": "nav-expiry",
+  "/plan": "nav-plan",
+  "/meals": "nav-meals",
+  "/progress": "nav-progress",
+  "/profile": "nav-profile",
+};
+
 const UserBottomNav = () => {
   const location = useLocation();
   const { user } = useAuth();
