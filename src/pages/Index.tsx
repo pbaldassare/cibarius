@@ -441,7 +441,7 @@ const Index = () => {
       <main className="space-y-5 px-4 pt-1 pb-28">
 
         {/* ─── Greeting ─── */}
-        <div>
+        <div data-tour="home-greeting">
           <h2 className="text-base text-foreground">
             {greeting}{firstName ? `, ${firstName}` : ""} 👋
           </h2>
