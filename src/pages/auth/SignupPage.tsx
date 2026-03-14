@@ -25,6 +25,7 @@ const ACCOUNT_TYPES: { value: AccountType; label: string; desc: string; icon: ty
 const SignupPage = () => {
   const { session, loading } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
   // Check for referral from URL param or localStorage
