@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { lookupBarcode, type ProductData } from "@/lib/barcode";
+import { lookupBarcode, setProductCache, type ProductData } from "@/lib/barcode";
 
 /* ─── Types ─── */
 export interface AIFoodResult {
@@ -60,7 +60,7 @@ export interface FusedFoodData {
     nutrition: number;
     expiry: number;
   };
-  source: "ai" | "off" | "fused";
+  source: "ai" | "off" | "fused" | "db_cache";
 }
 
 export interface ImageFile {
@@ -107,14 +107,75 @@ export async function analyzeFoodPhotos(
 }
 
 /**
- * Fuse AI result with OpenFoodFacts data (if barcode found)
+ * Look up a product by barcode in the local DB (products table).
+ * Returns ProductData-compatible object or null.
+ */
+export async function lookupProductInDB(barcode: string): Promise<ProductData | null> {
+  const { data } = await supabase
+    .from("products")
+    .select("name, brand, barcode, image_url, calories_100g, macros_100g, serving_size_g")
+    .eq("barcode", barcode)
+    .maybeSingle();
+  if (!data || !data.name) return null;
+  const m = data.macros_100g as { protein?: number; carbs?: number; fats?: number } | null;
+  return {
+    name: data.name,
+    brand: data.brand || "",
+    barcode: data.barcode || barcode,
+    image_url: data.image_url,
+    calories_100g: data.calories_100g,
+    macros_100g: m ? { protein: m.protein ?? 0, carbs: m.carbs ?? 0, fats: m.fats ?? 0 } : null,
+    serving_size_g: data.serving_size_g,
+  };
+}
+
+/**
+ * Look up a product by exact name in the local DB.
+ */
+export async function lookupProductByName(name: string): Promise<ProductData | null> {
+  const { data } = await supabase
+    .from("products")
+    .select("name, brand, barcode, image_url, calories_100g, macros_100g, serving_size_g")
+    .ilike("name", name)
+    .not("calories_100g", "is", null)
+    .limit(1)
+    .maybeSingle();
+  if (!data || !data.name) return null;
+  const m = data.macros_100g as { protein?: number; carbs?: number; fats?: number } | null;
+  return {
+    name: data.name,
+    brand: data.brand || "",
+    barcode: data.barcode || "",
+    image_url: data.image_url,
+    calories_100g: data.calories_100g,
+    macros_100g: m ? { protein: m.protein ?? 0, carbs: m.carbs ?? 0, fats: m.fats ?? 0 } : null,
+    serving_size_g: data.serving_size_g,
+  };
+}
+
+/**
+ * Fuse AI result with DB/OpenFoodFacts data (DB-first, then OFF as fallback)
  */
 export async function fuseWithOFF(aiResult: AIFoodResult): Promise<FusedFoodData> {
   let offData: ProductData | null = null;
 
-  // If AI found a barcode, try OpenFoodFacts
+  // DB-first: check products table before calling external APIs
   if (aiResult.product.barcode) {
+    offData = await lookupProductInDB(aiResult.product.barcode);
+    if (offData) {
+      // Cache locally for future lookups
+      setProductCache(aiResult.product.barcode, offData);
+    }
+  }
+
+  // Fallback to OpenFoodFacts if not in DB
+  if (!offData && aiResult.product.barcode) {
     offData = await lookupBarcode(aiResult.product.barcode);
+  }
+
+  // If still no nutrition data, try name match in DB
+  if (!offData && aiResult.product.name) {
+    offData = await lookupProductByName(aiResult.product.name);
   }
 
   const ai = aiResult;
@@ -180,6 +241,6 @@ export async function fuseWithOFF(aiResult: AIFoodResult): Promise<FusedFoodData
     ingredients_list: ai.ingredients_list ?? [],
     allergens: ai.allergens ?? [],
     confidence,
-    source: off ? "fused" : "ai",
+    source: off ? (off.barcode ? "db_cache" : "fused") : "ai",
   };
 }
