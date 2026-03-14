@@ -760,7 +760,7 @@ const Index = () => {
       </main>
 
       {/* ─── FAB ─── */}
-      <div className="fixed bottom-[calc(76px+env(safe-area-inset-bottom,0px))] right-4 z-40">
+      <div className="fixed bottom-[calc(76px+env(safe-area-inset-bottom,0px))] right-4 z-40" data-tour="home-fab">
         <button
           onClick={() => setAddFoodOpen(true)}
           className="flex h-12 w-12 items-center justify-center rounded-full btn-brand active:scale-95 transition-all shadow-brand"
