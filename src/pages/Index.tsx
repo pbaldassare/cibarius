@@ -690,7 +690,7 @@ const Index = () => {
         </section>
 
         {/* ═══ 6 — I TUOI PASTI DI OGGI ═══ */}
-        <section className="space-y-2.5">
+        <section className="space-y-2.5" data-tour="home-meals">
           <SectionHeader title="🍽️ I tuoi pasti di oggi" action="Vai al diario" onAction={() => navigate("/meals")} />
           <div className="rounded-[18px] bg-card shadow-card overflow-hidden divide-y divide-border">
             {todayMeals.filter(m => m.type !== "spuntino" || m.count > 0).map(meal => {
