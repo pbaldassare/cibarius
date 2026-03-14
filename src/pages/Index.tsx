@@ -140,6 +140,7 @@ const Index = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { loaded: compatLoaded, buildGroups } = useIngredientCompatibility();
+  const { registerAddFoodControl } = useTour();
 
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [prepItems, setPrepItems] = useState<any[]>([]);
