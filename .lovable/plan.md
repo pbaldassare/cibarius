@@ -1,19 +1,37 @@
 
 
-## Rimuovere la modifica calorie dai piani template (default)
+# Piano: Popolare 300 traduzioni + Prompt IA preciso + Logica DB-first
 
-I piani standard gratuiti sono predefiniti e non devono essere personalizzabili. La modifica calorie/macro è una funzionalità riservata al piano personalizzato (Plus).
+## Stato attuale
+- `ingredient_translation` ha solo 23 righe (il seed iniziale)
+- L'edge function `analyze-meal-photo` usa un prompt generico e non ha logica "dishes cache first"
 
-### Modifiche — `src/pages/UserDietPage.tsx`
+## Cosa fare
 
-**Rimuovere il blocco "Modifica calorie (opzionale)"** da entrambi i dialog di conferma template:
+### 1. Inserire ~260 nuove traduzioni in `ingredient_translation`
 
-1. **Dialog 1** (righe 1065-1075): Rimuovere il `<div>` con label, Input e nota "I macro verranno ricalcolati in proporzione"
-2. **Dialog 2** (righe 1486-1496): Stesso blocco, rimuovere
+Useremo una migrazione SQL con `INSERT ... ON CONFLICT DO NOTHING` per aggiungere tutte le righe del CSV fornito senza duplicare quelle gia' presenti. La tabella ha `name_it` UNIQUE, quindi i conflitti vengono gestiti automaticamente.
 
-**Semplificare la logica di conferma** in entrambi i `AlertDialogAction onClick`:
-- Rimuovere il controllo `overrideKcal` e la logica di ricalcolo proporzionale
-- Chiamare direttamente `saveTemplateAsPlan(confirmTemplate)` senza override
+### 2. Aggiornare il prompt IA nell'edge function
 
-Lo state `confirmKcalOverride` può restare (usato altrove) oppure essere rimosso se non serve più.
+Sostituire il `systemPrompt` attuale (generico) con il prompt dettagliato fornito dall'utente, che include:
+- Regole per pizza (base, salsa, mozzarella, olio, extra visibili)
+- Regole per pasta (tipo pasta, condimento, formaggio)
+- Regole per risotto (riso, soffritto, brodo, burro/parmigiano, ingrediente principale)
+- Output JSON obbligatorio con `name_it` e `notes`
+
+### 3. Aggiungere logica DB-first (dishes cache)
+
+Prima di chiamare l'IA, la funzione controllera' se un piatto simile esiste gia' in `dishes` + `dish_ingredients`:
+1. Se trovato → carica ingredienti dalla cache, calcola macro, restituisci subito (NO IA, NO USDA)
+2. Se non trovato → chiama IA vision → arricchisci con USDA → salva in `dishes`/`dish_ingredients` per le prossime volte
+
+Questo richiede una modifica strutturale all'handler principale dell'edge function, aggiungendo un blocco di cache lookup prima della chiamata AI e un blocco di cache write dopo l'analisi.
+
+## File coinvolti
+
+| File | Azione |
+|------|--------|
+| Migrazione SQL | INSERT ~260 righe in `ingredient_translation` |
+| `supabase/functions/analyze-meal-photo/index.ts` | Nuovo prompt + logica dishes cache |
 
