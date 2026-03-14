@@ -1,3 +1,5 @@
+import { supabase } from "@/integrations/supabase/client";
+
 // ─── Types ────────────────────────────────────────────
 export interface OFFProduct {
   product_name?: string;
