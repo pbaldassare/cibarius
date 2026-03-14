@@ -276,7 +276,7 @@ const UserDietPage = () => {
     setLoadingCoaches(true);
     const { data } = await supabase
       .from("professional_profiles")
-      .select("display_name, specialization, city, bio, photo_url, experience_years, additional_roles, workplace, works_online, works_in_person, is_visible")
+      .select("user_id, display_name, specialization, city, bio, photo_url, experience_years, additional_roles, workplace, works_online, works_in_person, is_visible")
       .eq("is_visible", true)
       .limit(20);
     setCoaches((data ?? []) as any);
