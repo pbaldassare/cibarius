@@ -64,6 +64,7 @@ const AdminSeedPage = () => {
   const { user } = useAuth();
   const [running, setRunning] = useState(false);
   const [cleaning, setCleaning] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
   const logRef = useRef<HTMLDivElement>(null);
 
