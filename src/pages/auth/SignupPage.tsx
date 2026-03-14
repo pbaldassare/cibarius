@@ -162,6 +162,7 @@ const SignupPage = () => {
       title: "Registrazione completata! 🎉",
       description: "Benvenuto in Cibarius! Puoi iniziare subito ad usare l'app.",
     });
+    navigate("/", { replace: true });
   };
 
   return (
