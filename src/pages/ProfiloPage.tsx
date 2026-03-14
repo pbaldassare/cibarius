@@ -10,7 +10,7 @@ import {
   ChevronRight, Settings, Heart, Bell, LogOut, Sparkles,
   MessageSquareWarning, MessageCircle, Trash2, Camera, MapPin, GraduationCap,
   Globe, Instagram, Facebook, Linkedin, Briefcase, Monitor, Building2, Eye, EyeOff, Pencil, X,
-  Share2, Copy, Lock,
+  Share2, Copy, Lock, MessageCircleMore, Map as MapIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
