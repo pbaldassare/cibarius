@@ -1,37 +1,59 @@
 
 
-# Piano: Popolare 300 traduzioni + Prompt IA preciso + Logica DB-first
+## Tour Interattivo dell'App Cibarius
 
-## Stato attuale
-- `ingredient_translation` ha solo 23 righe (il seed iniziale)
-- L'edge function `analyze-meal-photo` usa un prompt generico e non ha logica "dishes cache first"
+### Cosa costruiremo
+Un componente `AppTour` che simula un tour guidato interattivo con:
+- Un **cursore animato** che si sposta verso gli elementi dell'interfaccia
+- **Fumetti/tooltip** che spiegano ogni funzionalità
+- **Navigazione tra pagine** (Home → Scadenze → Piano → Pasti → Progressi → Profilo)
+- **Highlight** dell'elemento corrente con overlay scuro sul resto
+- Pulsanti Avanti/Indietro/Salta
 
-## Cosa fare
+### Comportamento
+1. **Prima login**: mostra un dialog di benvenuto ("Vuoi fare un tour dell'app?") con opzioni Sì / No + checkbox "Non mostrare più"
+2. **Flag localStorage**: `cibarius_tour_done` — se presente, non mostra il prompt
+3. **Nelle impostazioni** (ProfiloPage): aggiungere un pulsante "Rivedi il tour" che riattiva il tour
 
-### 1. Inserire ~260 nuove traduzioni in `ingredient_translation`
+### Step del tour (utente consumer, ~20 step)
 
-Useremo una migrazione SQL con `INSERT ... ON CONFLICT DO NOTHING` per aggiungere tutte le righe del CSV fornito senza duplicare quelle gia' presenti. La tabella ha `name_it` UNIQUE, quindi i conflitti vengono gestiti automaticamente.
+**Homepage:**
+1. Header Cibarius — "Questa è la tua home. Qui trovi tutto a colpo d'occhio"
+2. Icona Cerca — "Cerca rapidamente tra i tuoi prodotti"
+3. Sezione Attenzione oggi — "Qui vedi i prodotti in scadenza o scaduti"
+4. Azioni rapide: Scansiona — "Scansiona il barcode di un prodotto per aggiungerlo"
+5. Azioni rapide: Aggiungi — "Aggiungi un prodotto manualmente o con foto AI"
+6. Azioni rapide: Svuota frigo — "Trova ricette per consumare ciò che sta scadendo"
+7. Azioni rapide: Cosa mangio? — "L'AI ti suggerisce cosa cucinare con quello che hai"
+8. La tua dispensa — "Panoramica di tutti i tuoi prodotti"
+9. Ricette anti-spreco — "Ricette suggerite in base a ciò che hai in casa"
+10. I tuoi pasti di oggi — "Registra colazione, pranzo e cena per monitorare la tua alimentazione"
+11. FAB (+) — "Premi qui in qualsiasi momento per aggiungere un prodotto"
 
-### 2. Aggiornare il prompt IA nell'edge function
+**Bottom Nav (navigazione tra pagine):**
+12. Tab Scadenze — "Vai alla lista completa delle scadenze, filtra e gestisci"
+13. Tab Piano — "Il tuo piano alimentare dal nutrizionista"
+14. Tab Pasti — "Il diario alimentare completo con foto e macro"
+15. Tab Progressi — "Monitora peso, misurazioni e aderenza al piano"
+16. Tab Profilo — "Impostazioni, collegamento nutrizionista e supporto"
 
-Sostituire il `systemPrompt` attuale (generico) con il prompt dettagliato fornito dall'utente, che include:
-- Regole per pizza (base, salsa, mozzarella, olio, extra visibili)
-- Regole per pasta (tipo pasta, condimento, formaggio)
-- Regole per risotto (riso, soffritto, brodo, burro/parmigiano, ingrediente principale)
-- Output JSON obbligatorio con `name_it` e `notes`
+### Implementazione tecnica
 
-### 3. Aggiungere logica DB-first (dishes cache)
+| File | Modifica |
+|------|----------|
+| `src/components/AppTour.tsx` | **Nuovo** — Componente tour con overlay, cursore animato, tooltip e step |
+| `src/components/AppTourPrompt.tsx` | **Nuovo** — Dialog di benvenuto al primo accesso con "Fai il tour" / "Salta" |
+| `src/pages/Index.tsx` | Aggiungere `data-tour="..."` attributes ai componenti chiave + montare `AppTourPrompt` |
+| `src/pages/ProfiloPage.tsx` | Aggiungere pulsante "Rivedi il tour dell'app" nella sezione impostazioni |
+| `src/components/UserLayout.tsx` | Montare `AppTour` a livello di layout (per poter navigare tra pagine) |
 
-Prima di chiamare l'IA, la funzione controllera' se un piatto simile esiste gia' in `dishes` + `dish_ingredients`:
-1. Se trovato → carica ingredienti dalla cache, calcola macro, restituisci subito (NO IA, NO USDA)
-2. Se non trovato → chiama IA vision → arricchisci con USDA → salva in `dishes`/`dish_ingredients` per le prossime volte
-
-Questo richiede una modifica strutturale all'handler principale dell'edge function, aggiungendo un blocco di cache lookup prima della chiamata AI e un blocco di cache write dopo l'analisi.
-
-## File coinvolti
-
-| File | Azione |
-|------|--------|
-| Migrazione SQL | INSERT ~260 righe in `ingredient_translation` |
-| `supabase/functions/analyze-meal-photo/index.ts` | Nuovo prompt + logica dishes cache |
+### Meccanismo tecnico
+- Ogni step ha: `selector` (data-tour attribute), `title`, `description`, `page` (route opzionale)
+- Se lo step richiede una pagina diversa, il tour naviga con `navigate()`, attende il render, poi evidenzia l'elemento
+- L'overlay usa un "spotlight" CSS (box-shadow enorme semi-trasparente) sull'elemento target
+- Il cursore è un `div` animato con `transition` che si sposta verso il target
+- Il tooltip si posiziona sopra/sotto l'elemento con una freccia
+- Stato gestito con Context per condividerlo tra layout e pagine
+- localStorage `cibarius_tour_done` per il flag "non mostrare più"
+- localStorage `cibarius_tour_active` per gestire il tour attivo tra navigazioni
 
