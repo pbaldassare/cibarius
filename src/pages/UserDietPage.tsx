@@ -286,7 +286,48 @@ const UserDietPage = () => {
       .eq("is_visible", true)
       .limit(20);
     setCoaches((data ?? []) as any);
+
+    // Load existing request/link statuses
+    if (user) {
+      const [reqRes, linkRes] = await Promise.all([
+        supabase.from("professional_link_requests").select("professional_id, status").eq("user_id", user.id),
+        supabase.from("client_links").select("professional_id, status").eq("client_user_id", user.id).eq("status", "active"),
+      ]);
+      const map: Record<string, "pending" | "active"> = {};
+      (reqRes.data ?? []).forEach((r: any) => { if (r.status === "pending") map[r.professional_id] = "pending"; });
+      (linkRes.data ?? []).forEach((r: any) => { map[r.professional_id] = "active"; });
+      setRequestMap(map);
+    }
+
     setLoadingCoaches(false);
+  };
+
+  const handleContactCoach = async (coachId: string) => {
+    if (!user) return;
+    setSendingRequest(coachId);
+    try {
+      const { error } = await supabase.from("professional_link_requests").insert({
+        user_id: user.id,
+        professional_id: coachId,
+        status: "pending",
+      });
+      if (error) throw error;
+
+      // Send in-app notification to the professional
+      await supabase.from("in_app_notifications").insert({
+        user_id: coachId,
+        type: "link_request",
+        title: "Nuova richiesta di collegamento",
+        body: `Un utente vuole collegarsi con te.`,
+      });
+
+      setRequestMap((prev) => ({ ...prev, [coachId]: "pending" }));
+      toast({ title: "Richiesta inviata!", description: "Il professionista riceverà una notifica." });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Errore", description: err.message });
+    } finally {
+      setSendingRequest(null);
+    }
   };
 
   const markSeen = async (id: string) => {
