@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { lookupBarcode, type ProductData } from "@/lib/barcode";
+import { lookupBarcode, setProductCache, type ProductData } from "@/lib/barcode";
 
 /* ─── Types ─── */
 export interface AIFoodResult {
