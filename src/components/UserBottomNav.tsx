@@ -68,6 +68,7 @@ const UserBottomNav = () => {
             <NavLink
               key={to}
               to={to}
+              data-tour={tourIds[to]}
               className="flex flex-col items-center gap-0.5 px-1 py-1 relative"
             >
               <div className="relative flex items-center justify-center">
