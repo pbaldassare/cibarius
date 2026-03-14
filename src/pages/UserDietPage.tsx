@@ -647,12 +647,8 @@ const UserDietPage = () => {
               <Plus className="h-4 w-4" /> Crea il tuo piano personalizzato
               {!plusActive && <Badge variant="secondary" className="text-[9px] ml-1">Plus</Badge>}
             </Button>
-            <Button variant="ghost" onClick={() => {
-              if (!plusActive) { navigate("/subscription"); return; }
-              navigate("/invite");
-            }} className="gap-2 text-muted-foreground">
-              <Sparkles className="h-4 w-4" /> Collega un professionista
-              {!plusActive && <Badge variant="secondary" className="text-[9px] ml-1">Plus</Badge>}
+            <Button variant="ghost" onClick={() => navigate("/invite")} className="gap-2 text-muted-foreground">
+              <Sparkles className="h-4 w-4" /> Cerca un nutrizionista tra i nostri professionisti
             </Button>
           </div>
 
