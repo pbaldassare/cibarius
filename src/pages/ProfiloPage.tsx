@@ -172,20 +172,6 @@ const ProfiloPage = () => {
     navigate("/auth/login", { replace: true });
   };
 
-  const revokeAccess = async () => {
-    if (!proLink) return;
-    const { error } = await supabase
-      .from("client_links")
-      .update({ status: "revoked" })
-      .eq("id", proLink.id);
-    if (error) {
-      toast({ variant: "destructive", title: "Errore", description: error.message });
-    } else {
-      toast({ title: "Accesso revocato" });
-      setProLink(null);
-      setProProfile(null);
-    }
-  };
 
   const handleAvatarClick = () => fileRef.current?.click();
 
