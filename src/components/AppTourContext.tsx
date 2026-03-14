@@ -122,6 +122,8 @@ export const TourProvider = ({ children }: { children: ReactNode }) => {
   const [isActive, setIsActive] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [steps, setSteps] = useState<TourStep[]>(USER_TOUR_STEPS);
+  const stepsRef = useRef(steps);
+  stepsRef.current = steps;
   const addFoodOpenRef = useRef<(() => void) | null>(null);
   const addFoodCloseRef = useRef<(() => void) | null>(null);
 
@@ -136,6 +138,7 @@ export const TourProvider = ({ children }: { children: ReactNode }) => {
   const startTour = useCallback((role?: TourRole) => {
     const tourSteps = getTourSteps(role ?? "user");
     setSteps(tourSteps);
+    stepsRef.current = tourSteps;
     setCurrentStep(0);
     setIsActive(true);
   }, []);
@@ -149,15 +152,12 @@ export const TourProvider = ({ children }: { children: ReactNode }) => {
 
   const nextStep = useCallback(() => {
     setCurrentStep(prev => {
-      // Use functional ref to steps length
-      setSteps(currentSteps => {
-        if (prev >= currentSteps.length - 1) {
-          setIsActive(false);
-          localStorage.setItem("cibarius_tour_done", "1");
-          addFoodCloseRef.current?.();
-        }
-        return currentSteps;
-      });
+      if (prev >= stepsRef.current.length - 1) {
+        setIsActive(false);
+        localStorage.setItem("cibarius_tour_done", "1");
+        addFoodCloseRef.current?.();
+        return 0;
+      }
       return prev + 1;
     });
   }, []);
