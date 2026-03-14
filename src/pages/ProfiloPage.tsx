@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useTour } from "@/components/AppTourContext";
-import { usePwaInstall } from "@/hooks/usePwaInstall";
+import cibariusLogo from "@/assets/cibarius-logo.png";
 import MobileHeader from "@/components/MobileHeader";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
@@ -11,7 +11,7 @@ import {
   ChevronRight, Settings, Heart, Bell, LogOut, UserX, Stethoscope, Sparkles,
   ClipboardList, MessageSquareWarning, MessageCircle, Trash2, Camera, MapPin, GraduationCap,
   Globe, Instagram, Facebook, Linkedin, Briefcase, Monitor, Building2, Eye, EyeOff, Pencil, X,
-  Download, Crown, Map,
+  Crown, Map, Share2, Copy, Lock, MessageCircleMore,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -106,8 +106,11 @@ const ProfiloPage = () => {
   const [savingEmailPrefs, setSavingEmailPrefs] = useState(false);
   const [unreadMsgCount, setUnreadMsgCount] = useState(0);
 
-  // PWA install
-  const { canInstall, isInstalled: isPwaInstalled, isIos, install: handlePwaInstall } = usePwaInstall();
+  // Change password
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [savingPassword, setSavingPassword] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -629,24 +632,14 @@ const ProfiloPage = () => {
             <span className="flex-1 text-[15px] font-medium text-foreground">Segnala un problema o suggerimento</span>
             <ChevronRight size={16} className="text-muted-foreground" />
            </button>
-          {!isPwaInstalled && (
-            <button
-              onClick={() => {
-                if (canInstall) {
-                  handlePwaInstall();
-                } else if (isIos) {
-                  toast({ title: "Installa Cibarius", description: "Tocca Condividi ↑ poi \"Aggiungi alla schermata Home\"" });
-                } else {
-                  toast({ title: "Installa Cibarius", description: "Apri il menù del browser (⋮) e seleziona \"Installa app\" o \"Aggiungi alla schermata Home\"" });
-                }
-              }}
-              className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors active:bg-secondary border-t border-border"
-            >
-              <Download size={20} className="text-primary shrink-0" />
-              <span className="flex-1 text-[15px] font-medium text-foreground">Installa app</span>
-              <ChevronRight size={16} className="text-muted-foreground" />
-            </button>
-          )}
+          <button
+            onClick={() => setPasswordOpen(true)}
+            className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors active:bg-secondary border-t border-border"
+          >
+            <Lock size={20} className="text-muted-foreground shrink-0" />
+            <span className="flex-1 text-[15px] font-medium text-foreground">Modifica password</span>
+            <ChevronRight size={16} className="text-muted-foreground" />
+          </button>
         </div>
 
         {/* ═══ Email Preferences ═══ */}
@@ -684,6 +677,83 @@ const ProfiloPage = () => {
               />
             </div>
           ))}
+        </div>
+
+        {/* ═══ Condividi Cibarius ═══ */}
+        <div className="rounded-[18px] overflow-hidden border border-border bg-gradient-to-br from-primary/10 via-card to-primary/5">
+          <div className="px-4 pt-4 pb-2">
+            <div className="flex items-center gap-2 mb-1">
+              <Share2 size={18} className="text-primary" />
+              <h3 className="text-[15px] font-semibold text-foreground">Condividi Cibarius</h3>
+            </div>
+            <p className="text-[13px] text-muted-foreground mb-3">
+              Invita amici e colleghi a provare Cibarius! Condividi il link dell'app. 🍽️
+            </p>
+            <div className="flex items-center gap-2 mb-3 rounded-xl bg-background/80 border border-border px-3 py-2.5">
+              <span className="flex-1 text-[13px] text-foreground truncate select-all">simple-blue-frame.lovable.app</span>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2 shrink-0"
+                onClick={() => {
+                  navigator.clipboard.writeText("https://simple-blue-frame.lovable.app");
+                  toast({ title: "Link copiato!" });
+                }}
+              >
+                <Copy size={14} />
+              </Button>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap pb-3">
+              {typeof navigator.share === "function" && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 text-[13px]"
+                  onClick={() => {
+                    navigator.share({
+                      title: "Cibarius",
+                      text: "Prova Cibarius! Gestisci dispensa, pasti e ricette in modo intelligente 🍽️",
+                      url: "https://simple-blue-frame.lovable.app",
+                    }).catch(() => {});
+                  }}
+                >
+                  <Share2 size={14} /> Condividi
+                </Button>
+              )}
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 text-[13px]"
+                onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent("Prova Cibarius! Gestisci dispensa, pasti e ricette in modo intelligente 🍽️ https://simple-blue-frame.lovable.app")}`, "_blank")}
+              >
+                <MessageCircleMore size={14} /> WhatsApp
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 text-[13px]"
+                onClick={() => window.open(`https://t.me/share/url?url=${encodeURIComponent("https://simple-blue-frame.lovable.app")}&text=${encodeURIComponent("Prova Cibarius! Gestisci dispensa, pasti e ricette in modo intelligente 🍽️")}`, "_blank")}
+              >
+                Telegram
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 text-[13px]"
+                onClick={() => window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent("https://simple-blue-frame.lovable.app")}&text=${encodeURIComponent("Prova Cibarius! Gestisci dispensa, pasti e ricette in modo intelligente 🍽️")}`, "_blank")}
+              >
+                X
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 text-[13px]"
+                onClick={() => window.open(`mailto:?subject=${encodeURIComponent("Prova Cibarius!")}&body=${encodeURIComponent("Ciao! Prova Cibarius, l'app per gestire dispensa, pasti e ricette in modo intelligente 🍽️\n\nhttps://simple-blue-frame.lovable.app")}`, "_blank")}
+              >
+                Email
+              </Button>
+            </div>
+          </div>
         </div>
 
         {/* ═══ Rivedi tour ═══ */}
@@ -980,6 +1050,53 @@ const ProfiloPage = () => {
             <Button variant="outline" onClick={() => setDeleteOpen(false)} className="flex-1">Annulla</Button>
             <Button variant="destructive" onClick={handleDeleteAccount} disabled={deleting} className="flex-1">
               {deleting ? "Eliminazione..." : "Elimina"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ═══ Change Password Dialog ═══ */}
+      <Dialog open={passwordOpen} onOpenChange={(o) => { setPasswordOpen(o); if (!o) { setNewPassword(""); setConfirmPassword(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Modifica password</DialogTitle>
+            <DialogDescription>Inserisci la nuova password (minimo 6 caratteri).</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Nuova password</Label>
+              <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Minimo 6 caratteri" />
+            </div>
+            <div className="space-y-2">
+              <Label>Conferma nuova password</Label>
+              <Input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Ripeti la password" />
+              {confirmPassword.length > 0 && newPassword !== confirmPassword && (
+                <p className="text-[12px] text-destructive">Le password non coincidono</p>
+              )}
+              {newPassword.length > 0 && newPassword.length < 6 && (
+                <p className="text-[12px] text-destructive">La password deve avere almeno 6 caratteri</p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPasswordOpen(false)}>Annulla</Button>
+            <Button
+              disabled={savingPassword || newPassword.length < 6 || newPassword !== confirmPassword}
+              onClick={async () => {
+                setSavingPassword(true);
+                const { error } = await supabase.auth.updateUser({ password: newPassword });
+                setSavingPassword(false);
+                if (error) {
+                  toast({ variant: "destructive", title: "Errore", description: error.message });
+                } else {
+                  toast({ title: "Password aggiornata!" });
+                  setPasswordOpen(false);
+                  setNewPassword("");
+                  setConfirmPassword("");
+                }
+              }}
+            >
+              {savingPassword ? "Salvataggio..." : "Salva"}
             </Button>
           </DialogFooter>
         </DialogContent>
