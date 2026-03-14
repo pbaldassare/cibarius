@@ -241,6 +241,6 @@ export async function fuseWithOFF(aiResult: AIFoodResult): Promise<FusedFoodData
     ingredients_list: ai.ingredients_list ?? [],
     allergens: ai.allergens ?? [],
     confidence,
-    source: off ? "fused" : "ai",
+    source: off ? (off.barcode ? "db_cache" : "fused") : "ai",
   };
 }
