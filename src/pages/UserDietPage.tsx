@@ -1062,17 +1062,6 @@ const UserDietPage = () => {
                     <span className="font-medium" style={{ color: "hsl(38, 92%, 50%)" }}>C {confirmTemplate?.carbs_g_day}g</span>
                     <span className="font-medium" style={{ color: "hsl(350, 89%, 60%)" }}>G {confirmTemplate?.fats_g_day}g</span>
                   </span>
-                  <div className="pt-2 border-t border-border space-y-1.5">
-                    <label className="text-xs font-medium text-foreground">Modifica calorie (opzionale)</label>
-                    <Input
-                      type="number"
-                      placeholder={String(confirmTemplate?.kcal_day || 2000)}
-                      value={confirmKcalOverride}
-                      onChange={(e) => setConfirmKcalOverride(e.target.value)}
-                      className="h-9"
-                    />
-                    <p className="text-[10px] text-muted-foreground">I macro verranno ricalcolati in proporzione.</p>
-                  </div>
                   <span className="block text-xs">Il piano precedente verrà disattivato.</span>
                 </div>
               </AlertDialogDescription>
