@@ -160,6 +160,8 @@ const UserDietPage = () => {
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [confirmTemplate, setConfirmTemplate] = useState<any>(null);
   const [confirmKcalOverride, setConfirmKcalOverride] = useState<string>("");
+  const [confirmDeactivate, setConfirmDeactivate] = useState(false);
+  const [deactivating, setDeactivating] = useState(false);
 
   const getTemplateInfo = (title: string) => {
     const lower = title.toLowerCase();
@@ -390,6 +392,23 @@ const UserDietPage = () => {
   };
 
   const isSelfPlan = plan ? (plan.professional_id === plan.client_user_id) || !proProfile : false;
+
+  const handleDeactivatePlan = async () => {
+    if (!plan || !user) return;
+    setDeactivating(true);
+    const { error } = await supabase
+      .from("diet_plans")
+      .update({ is_active: false })
+      .eq("id", plan.id);
+    setDeactivating(false);
+    setConfirmDeactivate(false);
+    if (error) {
+      toast({ variant: "destructive", title: "Errore", description: error.message });
+    } else {
+      toast({ title: "Piano disattivato" });
+      await loadData();
+    }
+  };
 
   const handleCreateSelfPlan = async () => {
     if (!user) return;
@@ -1278,7 +1297,22 @@ const UserDietPage = () => {
           </div>
         )}
 
-        {/* ═══ 5. SUGGESTIONS ═══ */}
+        {/* ═══ ACTIONS: Disattiva piano + Cerca nutrizionista ═══ */}
+        <div className="flex flex-col gap-2">
+          <Button
+            variant="outline"
+            className="gap-2 text-destructive border-destructive/30"
+            onClick={() => setConfirmDeactivate(true)}
+          >
+            <X className="h-4 w-4" /> Disattiva piano attuale
+          </Button>
+          <Button variant="ghost" onClick={() => navigate("/invite")} className="gap-2 text-muted-foreground">
+            <UserPlus className="h-4 w-4" /> Cerca un nutrizionista tra i nostri professionisti
+          </Button>
+        </div>
+
+
+
         {!isSelfPlan && suggestions.length > 0 && (
           <div className="space-y-2">
             <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
@@ -1390,6 +1424,25 @@ const UserDietPage = () => {
             }} disabled={savingTemplate}>
               {savingTemplate ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
               Conferma
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Deactivation confirmation dialog */}
+      <AlertDialog open={confirmDeactivate} onOpenChange={setConfirmDeactivate}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Disattivare il piano?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Vuoi disattivare il piano attuale? Potrai sceglierne uno nuovo subito dopo.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annulla</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeactivatePlan} disabled={deactivating} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {deactivating ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              Disattiva
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

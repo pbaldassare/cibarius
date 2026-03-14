@@ -6,12 +6,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useRole } from "@/hooks/useRole";
 import { supabase } from "@/integrations/supabase/client";
-import { useSubscription } from "@/hooks/useSubscription";
 import {
-  ChevronRight, Settings, Heart, Bell, LogOut, UserX, Stethoscope, Sparkles,
-  ClipboardList, MessageSquareWarning, MessageCircle, Trash2, Camera, MapPin, GraduationCap,
+  ChevronRight, Settings, Heart, Bell, LogOut, Sparkles,
+  MessageSquareWarning, MessageCircle, Trash2, Camera, MapPin, GraduationCap,
   Globe, Instagram, Facebook, Linkedin, Briefcase, Monitor, Building2, Eye, EyeOff, Pencil, X,
-  Crown, Map, Share2, Copy, Lock, MessageCircleMore,
+  Share2, Copy, Lock, MessageCircleMore, Map as MapIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -55,13 +54,6 @@ const ProfiloPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { startTour } = useTour();
-  const [proLink, setProLink] = useState<any>(null);
-  const [proProfile, setProProfile] = useState<any>(null);
-  const [proProfessionalProfile, setProProfessionalProfile] = useState<ProProfileData | null>(null);
-  const [loadingPro, setLoadingPro] = useState(true);
-  const [hasPlan, setHasPlan] = useState(false);
-  const [proCoupon, setProCoupon] = useState<{ coupon_code: string; client_discount_percent: number } | null>(null);
-  const { isActive: hasPlus } = useSubscription("user_plus");
 
   // Professional's own profile (when role=professional)
   const [myProProfile, setMyProProfile] = useState<ProProfileData | null>(null);
@@ -82,7 +74,7 @@ const ProfiloPage = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [coachDialogOpen, setCoachDialogOpen] = useState(false);
+  
 
   // Settings form
   const [editName, setEditName] = useState("");
@@ -172,31 +164,6 @@ const ProfiloPage = () => {
       setLoadingMyPro(false);
     }
 
-    const loadProLink = async () => {
-      const { data: link } = await supabase
-        .from("client_links")
-        .select("*")
-        .eq("client_user_id", user.id)
-        .eq("status", "active")
-        .limit(1)
-        .maybeSingle();
-
-      if (link) {
-        setProLink(link);
-        const [profileRes, planRes, proProfRes, couponRes] = await Promise.all([
-          supabase.from("profiles").select("full_name, email").eq("id", link.professional_id).single(),
-          supabase.from("diet_plans").select("id").eq("client_user_id", user.id).eq("is_active", true).maybeSingle(),
-          supabase.from("professional_profiles").select("*").eq("user_id", link.professional_id).maybeSingle(),
-          supabase.from("nutritionist_coupons").select("coupon_code, client_discount_percent").eq("nutritionist_user_id", link.professional_id).eq("is_active", true).limit(1).maybeSingle(),
-        ]);
-        setProProfile(profileRes.data);
-        setHasPlan(!!planRes.data);
-        setProProfessionalProfile(proProfRes.data as any);
-        setProCoupon(couponRes.data as any);
-      }
-      setLoadingPro(false);
-    };
-    loadProLink();
   }, [user, role]);
 
   const handleLogout = async () => {
@@ -204,20 +171,6 @@ const ProfiloPage = () => {
     navigate("/auth/login", { replace: true });
   };
 
-  const revokeAccess = async () => {
-    if (!proLink) return;
-    const { error } = await supabase
-      .from("client_links")
-      .update({ status: "revoked" })
-      .eq("id", proLink.id);
-    if (error) {
-      toast({ variant: "destructive", title: "Errore", description: error.message });
-    } else {
-      toast({ title: "Accesso revocato" });
-      setProLink(null);
-      setProProfile(null);
-    }
-  };
 
   const handleAvatarClick = () => fileRef.current?.click();
 
@@ -368,7 +321,7 @@ const ProfiloPage = () => {
     }
   };
 
-  const coachDisplayName = proProfessionalProfile?.display_name || proProfile?.full_name || "Professionista";
+  
 
   return (
     <div className="min-h-screen bg-background" data-tour="profile-page-header">
@@ -501,96 +454,13 @@ const ProfiloPage = () => {
           </div>
         )}
 
-        {/* ═══ Nutrizionista card (for users) ═══ */}
-        {role !== "professional" && role !== "restaurant_owner" && role !== "supplier" && <div className="rounded-[18px] bg-card shadow-card overflow-hidden">
-          <div className="px-4 pt-4 pb-3">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
-                <Stethoscope className="h-4.5 w-4.5 text-primary" />
-              </div>
-              <div className="flex-1">
-                <p className="text-[15px] font-semibold text-foreground">Il tuo nutrizionista</p>
-                <p className="text-[12px] text-muted-foreground">Monitoraggio alimentare</p>
-              </div>
-            </div>
-
-            {loadingPro ? (
-              <p className="text-sm text-muted-foreground py-2">Caricamento…</p>
-            ) : proLink ? (
-              <div className="space-y-3">
-                <button
-                  onClick={() => setCoachDialogOpen(true)}
-                  className="flex w-full items-center gap-3 rounded-[14px] bg-success/5 border border-success/20 p-3 text-left active:scale-[0.98] transition-transform"
-                >
-                  <Avatar className="h-10 w-10 shrink-0">
-                    {proProfessionalProfile?.photo_url ? (
-                      <AvatarImage src={proProfessionalProfile.photo_url} alt={coachDisplayName} className="object-cover" />
-                    ) : null}
-                    <AvatarFallback className="bg-success/10 text-lg font-semibold text-success">
-                      {coachDisplayName.charAt(0).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{coachDisplayName}</p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {proProfessionalProfile?.specialization || proProfile?.email || ""}
-                    </p>
-                  </div>
-                  <Badge className="bg-success/10 text-success border-0 text-[10px]">Attivo</Badge>
-                </button>
-
-                {/* Upsell Plus banner for free users */}
-                {!hasPlus && (
-                  <button
-                    onClick={() => navigate("/subscription", { state: { couponCode: proCoupon?.coupon_code } })}
-                    className="flex w-full items-center gap-3 rounded-[14px] bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20 p-3 text-left active:scale-[0.98] transition-transform"
-                  >
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 shrink-0">
-                      <Crown className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-foreground">Passa a Plus</p>
-                      <p className="text-xs text-muted-foreground">
-                        {proCoupon ? `Sconto ${proCoupon.client_discount_percent}% con il codice ${proCoupon.coupon_code}` : "Sblocca piani alimentari e monitoraggio"}
-                      </p>
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-primary shrink-0" />
-                  </button>
-                )}
-
-                <Button variant="outline" size="sm" className="w-full text-destructive border-destructive/30 gap-2 rounded-xl" onClick={revokeAccess}>
-                  <UserX className="h-4 w-4" /> Revoca accesso
-                </Button>
-                {hasPlan && (
-                  <Button variant="outline" size="sm" className="w-full gap-2 rounded-xl" onClick={() => navigate("/diet")}>
-                    <ClipboardList className="h-4 w-4" /> Vedi il mio piano
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <button
-                onClick={() => navigate("/invite")}
-                className="flex w-full items-center gap-3 rounded-[14px] bg-primary/5 border border-primary/15 p-3.5 text-left active:scale-[0.98] transition-transform"
-              >
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 shrink-0">
-                  <Sparkles className="h-5 w-5 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-foreground">Collega un nutrizionista</p>
-                  <p className="text-xs text-muted-foreground">Condividi i tuoi dati alimentari</p>
-                </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-              </button>
-            )}
-          </div>
-        </div>}
 
         {/* ═══ Menu items ═══ */}
         <div className="rounded-[18px] bg-card shadow-card overflow-hidden">
           {(role === "professional" ? [
             { icon: Sparkles, label: "Abbonamenti clienti", path: "/pro/clients", badge: 0 },
           ] : [
-            ...(proLink ? [{ icon: MessageCircle, label: "Messaggi", path: "/messages", badge: unreadMsgCount }] : []),
+            ...[{ icon: MessageCircle, label: "Messaggi", path: "/messages", badge: unreadMsgCount }],
             { icon: Heart, label: "Preferiti", path: undefined, badge: 0 },
             { icon: Sparkles, label: "Abbonamento Premium", path: "/subscription", badge: 0 },
             { icon: Bell, label: "Promemoria scadenze", path: "/reminders", badge: 0 },
@@ -764,7 +634,7 @@ const ProfiloPage = () => {
           }}
           className="flex w-full items-center gap-3 rounded-[18px] border border-border bg-card px-4 py-3.5 text-left transition-colors active:bg-secondary"
         >
-          <Map size={20} className="text-primary shrink-0" />
+          <MapIcon size={20} className="text-primary shrink-0" />
           <span className="flex-1 text-[15px] font-medium text-foreground">Rivedi il tour dell'app</span>
           <ChevronRight size={16} className="text-muted-foreground" />
         </button>
@@ -787,85 +657,6 @@ const ProfiloPage = () => {
         </button>
       </main>
 
-      {/* ═══ Coach Info Dialog (enriched) ═══ */}
-      <Dialog open={coachDialogOpen} onOpenChange={setCoachDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Il tuo nutrizionista</DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col items-center gap-4 py-4">
-            <Avatar className="h-20 w-20">
-              {proProfessionalProfile?.photo_url ? (
-                <AvatarImage src={proProfessionalProfile.photo_url} alt={coachDisplayName} className="object-cover" />
-              ) : null}
-              <AvatarFallback className="bg-primary/10 text-2xl font-bold">
-                {coachDisplayName.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div className="text-center space-y-1">
-              <h3 className="text-lg font-semibold text-foreground">{coachDisplayName}</h3>
-              {proProfessionalProfile?.specialization && (
-                <div className="flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
-                  <GraduationCap className="h-4 w-4" />
-                  {proProfessionalProfile.specialization}
-                </div>
-              )}
-              {proProfessionalProfile?.experience_years != null && (
-                <p className="text-sm text-muted-foreground">{proProfessionalProfile.experience_years} anni di esperienza</p>
-              )}
-              {proProfessionalProfile?.city && (
-                <div className="flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
-                  <MapPin className="h-4 w-4" />
-                  {proProfessionalProfile.city}
-                </div>
-              )}
-              {proProfessionalProfile?.workplace && (
-                <div className="flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
-                  <Building2 className="h-4 w-4" />
-                  {proProfessionalProfile.workplace}
-                </div>
-              )}
-            </div>
-
-            {/* Availability */}
-            {(proProfessionalProfile?.works_online || proProfessionalProfile?.works_in_person) && (
-              <div className="flex gap-2">
-                {proProfessionalProfile.works_online && <Badge variant="outline" className="text-[10px] gap-1"><Monitor className="h-3 w-3" /> Online</Badge>}
-                {proProfessionalProfile.works_in_person && <Badge variant="outline" className="text-[10px] gap-1"><Building2 className="h-3 w-3" /> In presenza</Badge>}
-              </div>
-            )}
-
-            {/* Additional roles */}
-            {proProfessionalProfile?.additional_roles && proProfessionalProfile.additional_roles.length > 0 && (
-              <div className="flex flex-wrap justify-center gap-1">
-                {proProfessionalProfile.additional_roles.map(r => (
-                  <Badge key={r} variant="secondary" className="text-[10px]">{r}</Badge>
-                ))}
-              </div>
-            )}
-
-            {proProfessionalProfile?.bio && (
-              <p className="text-sm text-muted-foreground text-center leading-relaxed px-2">
-                {proProfessionalProfile.bio}
-              </p>
-            )}
-
-            {/* Social links */}
-            {(proProfessionalProfile?.website || proProfessionalProfile?.instagram || proProfessionalProfile?.facebook || proProfessionalProfile?.linkedin) && (
-              <div className="flex gap-3 pt-1">
-                {proProfessionalProfile.website && <a href={proProfessionalProfile.website} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary"><Globe className="h-5 w-5" /></a>}
-                {proProfessionalProfile.instagram && <a href={`https://instagram.com/${proProfessionalProfile.instagram.replace("@", "")}`} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary"><Instagram className="h-5 w-5" /></a>}
-                {proProfessionalProfile.facebook && <a href={proProfessionalProfile.facebook} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary"><Facebook className="h-5 w-5" /></a>}
-                {proProfessionalProfile.linkedin && <a href={proProfessionalProfile.linkedin} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary"><Linkedin className="h-5 w-5" /></a>}
-              </div>
-            )}
-
-            {proProfile?.email && (
-              <p className="text-xs text-muted-foreground">{proProfile.email}</p>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* ═══ Pro Profile Edit Dialog ═══ */}
       <Dialog open={proEditOpen} onOpenChange={setProEditOpen}>

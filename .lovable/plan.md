@@ -1,25 +1,37 @@
 
 
-## Spostare sezione nutrizionista nel Piano + Disattivazione piano
+# Piano: Popolare 300 traduzioni + Prompt IA preciso + Logica DB-first
 
-### Problema
-1. La sezione "Il tuo nutrizionista" / "Collega un nutrizionista" è nel Profilo ma dovrebbe stare nella pagina Piano (`UserDietPage`)
-2. Non c'è modo di disattivare il piano attivo per sceglierne un altro
+## Stato attuale
+- `ingredient_translation` ha solo 23 righe (il seed iniziale)
+- L'edge function `analyze-meal-photo` usa un prompt generico e non ha logica "dishes cache first"
 
-### Modifiche
+## Cosa fare
 
-**File 1: `src/pages/ProfiloPage.tsx`**
-- Rimuovere l'intero blocco "Nutrizionista card" (righe ~504-586) — la sezione con "Il tuo nutrizionista", il coach collegato, "Collega un nutrizionista", "Revoca accesso", "Passa a Plus"
-- Rimuovere lo state e la logica collegata (`proLink`, `proProfile`, `proProfessionalProfile`, `loadingPro`, `hasPlan`, `proCoupon`, `coachDialogOpen`, `revokeAccess`, `loadProLink`) che non serve più altrove nella pagina
+### 1. Inserire ~260 nuove traduzioni in `ingredient_translation`
 
-**File 2: `src/pages/UserDietPage.tsx`**
-- **Nella vista con piano attivo** (dopo il Professional Card, riga ~1037): aggiungere un pulsante "Disattiva piano" che apre un `AlertDialog` di conferma
-  - Testo: "Vuoi disattivare il piano attuale? Potrai sceglierne uno nuovo."
-  - Su conferma: `UPDATE diet_plans SET is_active = false WHERE id = plan.id`, poi `loadData()` per tornare alla selezione template
-- **Nella vista con piano attivo (self-plan)**: mostrare anche lì il pulsante disattiva sotto i template
-- **Aggiungere sezione "Collega un nutrizionista"** visibile sia con piano attivo che senza, sotto i template/azioni — card semplice con link a `/invite` (già presente nella vista senza piano, va aggiunta anche nella vista con piano attivo)
+Useremo una migrazione SQL con `INSERT ... ON CONFLICT DO NOTHING` per aggiungere tutte le righe del CSV fornito senza duplicare quelle gia' presenti. La tabella ha `name_it` UNIQUE, quindi i conflitti vengono gestiti automaticamente.
 
-### Flusso risultante
-- Piano attivo → l'utente vede il piano + pulsante "Disattiva piano" → popup conferma → disattiva → torna alla selezione template
-- Sezione nutrizionista sempre visibile nella pagina Piano, non più nel Profilo
+### 2. Aggiornare il prompt IA nell'edge function
+
+Sostituire il `systemPrompt` attuale (generico) con il prompt dettagliato fornito dall'utente, che include:
+- Regole per pizza (base, salsa, mozzarella, olio, extra visibili)
+- Regole per pasta (tipo pasta, condimento, formaggio)
+- Regole per risotto (riso, soffritto, brodo, burro/parmigiano, ingrediente principale)
+- Output JSON obbligatorio con `name_it` e `notes`
+
+### 3. Aggiungere logica DB-first (dishes cache)
+
+Prima di chiamare l'IA, la funzione controllera' se un piatto simile esiste gia' in `dishes` + `dish_ingredients`:
+1. Se trovato → carica ingredienti dalla cache, calcola macro, restituisci subito (NO IA, NO USDA)
+2. Se non trovato → chiama IA vision → arricchisci con USDA → salva in `dishes`/`dish_ingredients` per le prossime volte
+
+Questo richiede una modifica strutturale all'handler principale dell'edge function, aggiungendo un blocco di cache lookup prima della chiamata AI e un blocco di cache write dopo l'analisi.
+
+## File coinvolti
+
+| File | Azione |
+|------|--------|
+| Migrazione SQL | INSERT ~260 righe in `ingredient_translation` |
+| `supabase/functions/analyze-meal-photo/index.ts` | Nuovo prompt + logica dishes cache |
 
