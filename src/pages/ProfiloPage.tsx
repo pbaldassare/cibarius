@@ -82,7 +82,7 @@ const ProfiloPage = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [supportOpen, setSupportOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [coachDialogOpen, setCoachDialogOpen] = useState(false);
+  
 
   // Settings form
   const [editName, setEditName] = useState("");
