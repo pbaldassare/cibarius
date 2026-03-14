@@ -1183,7 +1183,7 @@ const AddFoodFlow = ({
 
                   {/* ── Gruppo Scontrino – only for inventory context ── */}
                   {context !== "meal" && (
-                    <div className="rounded-2xl border border-border bg-card overflow-hidden">
+                    <div data-tour="add-receipt" className="rounded-2xl border border-border bg-card overflow-hidden">
                       <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-4 pt-3 pb-1">
                         Scontrino
                       </p>
