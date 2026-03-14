@@ -368,7 +368,7 @@ const RestaurantPage = () => {
 
         {/* ═══ Quick rows: Produzione + Bolle ═══ */}
         <div className="grid grid-cols-2 gap-2">
-          <div className="rounded-[14px] bg-card shadow-card p-3.5">
+          <div className="rounded-[14px] bg-card shadow-card p-3.5" data-tour="rest-production-card">
             <div className="flex items-center gap-2 mb-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-[8px] bg-accent/10">
                 <ChefHat className="h-4 w-4 text-accent" />
