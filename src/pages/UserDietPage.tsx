@@ -162,7 +162,6 @@ const UserDietPage = () => {
   const [confirmKcalOverride, setConfirmKcalOverride] = useState<string>("");
   const [confirmDeactivate, setConfirmDeactivate] = useState(false);
   const [deactivating, setDeactivating] = useState(false);
-  const [confirmKcalOverride, setConfirmKcalOverride] = useState<string>("");
 
   const getTemplateInfo = (title: string) => {
     const lower = title.toLowerCase();
