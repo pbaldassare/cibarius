@@ -536,10 +536,10 @@ const Index = () => {
           <SectionHeader title="Cosa vuoi fare?" />
           <div className="grid grid-cols-4 gap-2">
             {[
-              { icon: ScanLine, label: "Scansiona", color: "hsl(var(--primary))", bg: "bg-primary/10", onClick: () => navigate("/scan") },
-              { icon: Plus, label: "Aggiungi", color: "hsl(152,56%,46%)", bg: "bg-success/10", onClick: () => setAddFoodOpen(true) },
-              { icon: Refrigerator, label: "Svuota frigo", color: "hsl(37,90%,51%)", bg: "bg-warning/10", onClick: () => navigate("/anti-waste?mode=expiring") },
-              { icon: Sparkles, label: "Cosa mangio?", color: "hsl(262,83%,58%)", bg: "bg-accent/10", onClick: () => navigate("/anti-waste") },
+              { icon: ScanLine, label: "Scansiona", color: "hsl(var(--primary))", bg: "bg-primary/10", onClick: () => navigate("/scan"), tourId: "home-action-scan" },
+              { icon: Plus, label: "Aggiungi", color: "hsl(152,56%,46%)", bg: "bg-success/10", onClick: () => setAddFoodOpen(true), tourId: "home-action-add" },
+              { icon: Refrigerator, label: "Svuota frigo", color: "hsl(37,90%,51%)", bg: "bg-warning/10", onClick: () => navigate("/anti-waste?mode=expiring"), tourId: "home-action-fridge" },
+              { icon: Sparkles, label: "Cosa mangio?", color: "hsl(262,83%,58%)", bg: "bg-accent/10", onClick: () => navigate("/anti-waste"), tourId: "home-action-suggest" },
             ].map(({ icon: Icon, label, color, bg, onClick }) => (
               <button
                 key={label}
