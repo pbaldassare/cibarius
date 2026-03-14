@@ -1,40 +1,37 @@
 
 
-## Correzione logica pagina Piani (UserDietPage)
+# Piano: Popolare 300 traduzioni + Prompt IA preciso + Logica DB-first
 
-### Problema attuale
-- "Collega un professionista" richiede Plus, ma cercare e contattare un nutrizionista dovrebbe essere gratuito
-- Il pulsante "Contatta" nella lista coach porta a `/invite` senza contesto
-- "Crea il tuo piano personalizzato" e "Cerca nutrizionista" non sono ben separati
+## Stato attuale
+- `ingredient_translation` ha solo 23 righe (il seed iniziale)
+- L'edge function `analyze-meal-photo` usa un prompt generico e non ha logica "dishes cache first"
 
-### Modifiche
+## Cosa fare
 
-**File: `src/pages/UserDietPage.tsx`** (sezione "no plan", righe ~640-722)
+### 1. Inserire ~260 nuove traduzioni in `ingredient_translation`
 
-1. **"Crea il tuo piano personalizzato"** — resta con gate Plus → porta a `/subscription` se non Plus (già corretto)
+Useremo una migrazione SQL con `INSERT ... ON CONFLICT DO NOTHING` per aggiungere tutte le righe del CSV fornito senza duplicare quelle gia' presenti. La tabella ha `name_it` UNIQUE, quindi i conflitti vengono gestiti automaticamente.
 
-2. **"Cerca un nutrizionista"** — rimuovere il gate Plus dal pulsante "Collega un professionista". Chiunque può cercare e inviare richiesta gratuitamente. Il gate Plus si applica solo quando il nutrizionista crea il piano.
-   - Cambiare il pulsante da:
-     ```
-     if (!plusActive) { navigate("/subscription"); return; }
-     navigate("/invite");
-     ```
-     a semplicemente:
-     ```
-     navigate("/invite");
-     ```
-   - Rimuovere badge "Plus" e icona Crown dal pulsante
+### 2. Aggiornare il prompt IA nell'edge function
 
-3. **Pulsante "Contatta" nella card coach** — passare il `user_id` del coach come parametro: `navigate("/invite?pro=" + coach.user_id)` così la pagina Invite pre-seleziona quel professionista
+Sostituire il `systemPrompt` attuale (generico) con il prompt dettagliato fornito dall'utente, che include:
+- Regole per pizza (base, salsa, mozzarella, olio, extra visibili)
+- Regole per pasta (tipo pasta, condimento, formaggio)
+- Regole per risotto (riso, soffritto, brodo, burro/parmigiano, ingrediente principale)
+- Output JSON obbligatorio con `name_it` e `notes`
 
-4. **Testo più chiaro** — Sostituire "Collega un professionista" con "Cerca un nutrizionista tra i nostri professionisti"
+### 3. Aggiungere logica DB-first (dishes cache)
 
-### Riepilogo flusso corretto
-- **Gratis**: scegliere template standard, cercare nutrizionista, inviare richiesta di collegamento, chattare
-- **Plus**: creare piano personalizzato da zero, modificare macro liberamente, ricevere piano dal nutrizionista
+Prima di chiamare l'IA, la funzione controllera' se un piatto simile esiste gia' in `dishes` + `dish_ingredients`:
+1. Se trovato → carica ingredienti dalla cache, calcola macro, restituisci subito (NO IA, NO USDA)
+2. Se non trovato → chiama IA vision → arricchisci con USDA → salva in `dishes`/`dish_ingredients` per le prossime volte
 
-### File modificati
-| File | Modifica |
-|------|----------|
-| `src/pages/UserDietPage.tsx` | Rimuovere gate Plus da "Cerca nutrizionista", migliorare testi, passare user_id coach |
+Questo richiede una modifica strutturale all'handler principale dell'edge function, aggiungendo un blocco di cache lookup prima della chiamata AI e un blocco di cache write dopo l'analisi.
+
+## File coinvolti
+
+| File | Azione |
+|------|--------|
+| Migrazione SQL | INSERT ~260 righe in `ingredient_translation` |
+| `supabase/functions/analyze-meal-photo/index.ts` | Nuovo prompt + logica dishes cache |
 

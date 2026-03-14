@@ -94,6 +94,7 @@ interface PlanItem {
 }
 
 interface ProProfile {
+  user_id: string;
   display_name: string;
   specialization: string;
   city: string | null;
@@ -275,7 +276,7 @@ const UserDietPage = () => {
     setLoadingCoaches(true);
     const { data } = await supabase
       .from("professional_profiles")
-      .select("display_name, specialization, city, bio, photo_url, experience_years, additional_roles, workplace, works_online, works_in_person, is_visible")
+      .select("user_id, display_name, specialization, city, bio, photo_url, experience_years, additional_roles, workplace, works_online, works_in_person, is_visible")
       .eq("is_visible", true)
       .limit(20);
     setCoaches((data ?? []) as any);
@@ -647,12 +648,8 @@ const UserDietPage = () => {
               <Plus className="h-4 w-4" /> Crea il tuo piano personalizzato
               {!plusActive && <Badge variant="secondary" className="text-[9px] ml-1">Plus</Badge>}
             </Button>
-            <Button variant="ghost" onClick={() => {
-              if (!plusActive) { navigate("/subscription"); return; }
-              navigate("/invite");
-            }} className="gap-2 text-muted-foreground">
-              <Sparkles className="h-4 w-4" /> Collega un professionista
-              {!plusActive && <Badge variant="secondary" className="text-[9px] ml-1">Plus</Badge>}
+            <Button variant="ghost" onClick={() => navigate("/invite")} className="gap-2 text-muted-foreground">
+              <Sparkles className="h-4 w-4" /> Cerca un nutrizionista tra i nostri professionisti
             </Button>
           </div>
 
@@ -711,7 +708,7 @@ const UserDietPage = () => {
                           <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">{coach.bio}</p>
                         )}
                       </div>
-                      <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1 shrink-0" onClick={() => navigate("/invite")}>
+                      <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1 shrink-0" onClick={() => navigate(`/invite?pro=${coach.user_id}`)}>
                         <UserPlus className="h-3 w-3" /> Contatta
                       </Button>
                     </CardContent>
