@@ -1,25 +1,37 @@
 
 
-## Modifiche richieste
+# Piano: Popolare 300 traduzioni + Prompt IA preciso + Logica DB-first
 
-### 1. Tour auto-avanzante (senza pulsanti Avanti/Indietro)
-Il tour avanza automaticamente: ogni step resta visibile per un tempo proporzionale alla lunghezza del testo (~4-7 secondi), poi passa al successivo. L'utente vede solo un pulsante "Salta tour" e la progress bar. Un countdown visuale (cerchio che si svuota) indica il tempo rimanente. Cliccando sul tooltip si può mettere in pausa/riprendere.
+## Stato attuale
+- `ingredient_translation` ha solo 23 righe (il seed iniziale)
+- L'edge function `analyze-meal-photo` usa un prompt generico e non ha logica "dishes cache first"
 
-**File: `src/components/AppTour.tsx`**
-- Rimuovere pulsanti "Avanti" e "Indietro"
-- Aggiungere `setTimeout(nextStep, durata)` dopo che il tooltip diventa visibile
-- Durata calcolata: `Math.max(4000, step.description.length * 40)` ms
-- Aggiungere animazione CSS di countdown sulla progress bar o un cerchio timer
-- Aggiungere pulsante pausa/play piccolo nel tooltip
-- Mantenere solo "Salta tour" e il contatore step
+## Cosa fare
 
-**File: `src/components/AppTourContext.tsx`**
-- Aggiungere campo `duration` opzionale a `TourStep` per step che richiedono più tempo (es. apertura modale)
-- Nessuna modifica strutturale
+### 1. Inserire ~260 nuove traduzioni in `ingredient_translation`
 
-### 2. OG meta tags migliorati
-I tag `og:title`, `og:description`, `og:image` e `twitter:*` sono **già presenti** in `index.html`. Aggiungo solo il tag `og:url` mancante per completezza.
+Useremo una migrazione SQL con `INSERT ... ON CONFLICT DO NOTHING` per aggiungere tutte le righe del CSV fornito senza duplicare quelle gia' presenti. La tabella ha `name_it` UNIQUE, quindi i conflitti vengono gestiti automaticamente.
 
-**File: `index.html`**
-- Aggiungere `<meta property="og:url" content="https://simple-blue-frame.lovable.app">` per il link canonico
+### 2. Aggiornare il prompt IA nell'edge function
+
+Sostituire il `systemPrompt` attuale (generico) con il prompt dettagliato fornito dall'utente, che include:
+- Regole per pizza (base, salsa, mozzarella, olio, extra visibili)
+- Regole per pasta (tipo pasta, condimento, formaggio)
+- Regole per risotto (riso, soffritto, brodo, burro/parmigiano, ingrediente principale)
+- Output JSON obbligatorio con `name_it` e `notes`
+
+### 3. Aggiungere logica DB-first (dishes cache)
+
+Prima di chiamare l'IA, la funzione controllera' se un piatto simile esiste gia' in `dishes` + `dish_ingredients`:
+1. Se trovato → carica ingredienti dalla cache, calcola macro, restituisci subito (NO IA, NO USDA)
+2. Se non trovato → chiama IA vision → arricchisci con USDA → salva in `dishes`/`dish_ingredients` per le prossime volte
+
+Questo richiede una modifica strutturale all'handler principale dell'edge function, aggiungendo un blocco di cache lookup prima della chiamata AI e un blocco di cache write dopo l'analisi.
+
+## File coinvolti
+
+| File | Azione |
+|------|--------|
+| Migrazione SQL | INSERT ~260 righe in `ingredient_translation` |
+| `supabase/functions/analyze-meal-photo/index.ts` | Nuovo prompt + logica dishes cache |
 

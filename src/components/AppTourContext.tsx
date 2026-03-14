@@ -15,6 +15,7 @@ export interface TourStep {
   page?: string;
   position?: "top" | "bottom" | "left" | "right";
   action?: TourAction;
+  duration?: number; // ms override for auto-advance
 }
 
 interface TourContextType {

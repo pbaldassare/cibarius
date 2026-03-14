@@ -1,11 +1,14 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTour, TOUR_STEPS } from "./AppTourContext";
-import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, Pause, Play } from "lucide-react";
+
+const AUTO_ADVANCE_MIN = 4000;
+const MS_PER_CHAR = 40;
 
 const AppTour = () => {
   const {
-    isActive, currentStep, nextStep, prevStep, stopTour, totalSteps,
+    isActive, currentStep, nextStep, stopTour, totalSteps,
     openAddFood, closeAddFood,
   } = useTour();
   const navigate = useNavigate();
@@ -13,10 +16,72 @@ const AppTour = () => {
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
   const [showTooltip, setShowTooltip] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const [countdown, setCountdown] = useState(0); // 0-1 progress
   const rafRef = useRef<number>(0);
   const retryRef = useRef<number>(0);
+  const autoTimerRef = useRef<number>(0);
+  const countdownRafRef = useRef<number>(0);
+  const startTimeRef = useRef(0);
+  const durationRef = useRef(0);
+  const elapsedBeforePauseRef = useRef(0);
 
   const step = TOUR_STEPS[currentStep];
+
+  const stepDuration = step
+    ? step.duration || Math.max(AUTO_ADVANCE_MIN, step.description.length * MS_PER_CHAR)
+    : AUTO_ADVANCE_MIN;
+
+  // Countdown animation
+  const startCountdown = useCallback((remaining: number, total: number) => {
+    const elapsed = total - remaining;
+    startTimeRef.current = performance.now() - elapsed;
+    durationRef.current = total;
+
+    const tick = () => {
+      const now = performance.now();
+      const progress = Math.min(1, (now - startTimeRef.current) / durationRef.current);
+      setCountdown(progress);
+      if (progress < 1) {
+        countdownRafRef.current = requestAnimationFrame(tick);
+      }
+    };
+    cancelAnimationFrame(countdownRafRef.current);
+    countdownRafRef.current = requestAnimationFrame(tick);
+  }, []);
+
+  // Auto-advance logic
+  const startAutoAdvance = useCallback(() => {
+    clearTimeout(autoTimerRef.current);
+    elapsedBeforePauseRef.current = 0;
+    setCountdown(0);
+
+    startCountdown(stepDuration, stepDuration);
+    autoTimerRef.current = window.setTimeout(() => {
+      nextStep();
+    }, stepDuration);
+  }, [stepDuration, nextStep, startCountdown]);
+
+  // Pause/resume
+  const togglePause = useCallback(() => {
+    setPaused(prev => {
+      const wasPaused = prev;
+      if (wasPaused) {
+        // Resume
+        const remaining = durationRef.current - elapsedBeforePauseRef.current;
+        startCountdown(remaining, durationRef.current);
+        autoTimerRef.current = window.setTimeout(() => {
+          nextStep();
+        }, remaining);
+      } else {
+        // Pause
+        clearTimeout(autoTimerRef.current);
+        cancelAnimationFrame(countdownRafRef.current);
+        elapsedBeforePauseRef.current = performance.now() - startTimeRef.current;
+      }
+      return !wasPaused;
+    });
+  }, [nextStep, startCountdown]);
 
   const findAndHighlight = useCallback(() => {
     if (!step) return;
@@ -28,7 +93,6 @@ const AppTour = () => {
         rafRef.current = window.setTimeout(findAndHighlight, 150);
         return;
       }
-      // Skip this step if element not found after retries
       setShowTooltip(false);
       nextStep();
       return;
@@ -56,7 +120,6 @@ const AppTour = () => {
 
     const action = step.action;
     if (!action) {
-      // No action, just find element
       const delay = step.page && location.pathname !== step.page ? 400 : 100;
       if (step.page && location.pathname !== step.page) {
         navigate(step.page);
@@ -72,23 +135,19 @@ const AppTour = () => {
         }
         rafRef.current = window.setTimeout(findAndHighlight, action.delay || 500);
         break;
-
       case "open-add-food":
         openAddFood();
         rafRef.current = window.setTimeout(findAndHighlight, action.delay || 600);
         break;
-
       case "close-add-food":
         closeAddFood();
         rafRef.current = window.setTimeout(() => {
-          // After closing, navigate home if needed
           if (step.page && location.pathname !== step.page) {
             navigate(step.page);
           }
           rafRef.current = window.setTimeout(findAndHighlight, 300);
         }, action.delay || 400);
         break;
-
       case "scroll": {
         if (action.target) {
           const scrollEl = document.querySelector(`[data-tour="${action.target}"]`);
@@ -97,19 +156,29 @@ const AppTour = () => {
         rafRef.current = window.setTimeout(findAndHighlight, action.delay || 400);
         break;
       }
-
       case "wait":
         rafRef.current = window.setTimeout(findAndHighlight, action.delay || 300);
         break;
-
       default:
         rafRef.current = window.setTimeout(findAndHighlight, 100);
     }
   }, [step, location.pathname, navigate, findAndHighlight, openAddFood, closeAddFood]);
 
+  // Start auto-advance when tooltip becomes visible
+  useEffect(() => {
+    if (showTooltip && isActive && !paused) {
+      startAutoAdvance();
+    }
+    return () => {
+      clearTimeout(autoTimerRef.current);
+      cancelAnimationFrame(countdownRafRef.current);
+    };
+  }, [showTooltip, isActive, currentStep]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (!isActive || !step) return;
     setShowTooltip(false);
+    setPaused(false);
     retryRef.current = 0;
 
     executeStepAction();
@@ -215,6 +284,7 @@ const AppTour = () => {
         <div
           className="absolute z-[10002] animate-in fade-in slide-in-from-bottom-2 duration-300"
           style={{ ...tooltipStyle, pointerEvents: "auto" }}
+          onClick={togglePause}
         >
           {/* Arrow */}
           <div
@@ -224,13 +294,25 @@ const AppTour = () => {
           />
 
           <div className="relative rounded-2xl bg-card shadow-xl border border-border overflow-hidden">
-            {/* Header with step counter */}
+            {/* Header with step counter + pause */}
             <div className="px-4 pt-3 pb-0 flex items-center justify-between">
-              <span className="text-[10px] font-bold text-primary uppercase tracking-wider">
-                {currentStep + 1} / {totalSteps}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-primary uppercase tracking-wider">
+                  {currentStep + 1} / {totalSteps}
+                </span>
+                <button
+                  onClick={(e) => { e.stopPropagation(); togglePause(); }}
+                  className="h-5 w-5 flex items-center justify-center rounded-full hover:bg-muted transition-colors"
+                  title={paused ? "Riprendi" : "Pausa"}
+                >
+                  {paused
+                    ? <Play className="h-3 w-3 text-primary" />
+                    : <Pause className="h-3 w-3 text-muted-foreground" />
+                  }
+                </button>
+              </div>
               <button
-                onClick={stopTour}
+                onClick={(e) => { e.stopPropagation(); stopTour(); }}
                 className="h-6 w-6 flex items-center justify-center rounded-full hover:bg-muted transition-colors"
               >
                 <X className="h-3.5 w-3.5 text-muted-foreground" />
@@ -243,40 +325,31 @@ const AppTour = () => {
               <p className="text-[12px] text-muted-foreground mt-1 leading-relaxed">{step.description}</p>
             </div>
 
-            {/* Progress bar */}
-            <div className="h-1 bg-muted">
+            {/* Countdown progress bar */}
+            <div className="h-1 bg-muted relative overflow-hidden">
+              {/* Step progress (background) */}
               <div
-                className="h-full bg-primary transition-all duration-300 rounded-r-full"
+                className="absolute inset-0 bg-primary/20"
                 style={{ width: `${((currentStep + 1) / totalSteps) * 100}%` }}
+              />
+              {/* Countdown bar (foreground, depleting) */}
+              <div
+                className="absolute inset-y-0 left-0 bg-primary rounded-r-full"
+                style={{
+                  width: `${(1 - countdown) * 100}%`,
+                  transition: paused ? "none" : undefined,
+                }}
               />
             </div>
 
-            {/* Actions */}
-            <div className="px-4 py-2.5 flex items-center justify-between">
+            {/* Skip button only */}
+            <div className="px-4 py-2 flex items-center justify-center">
               <button
-                onClick={stopTour}
+                onClick={(e) => { e.stopPropagation(); stopTour(); }}
                 className="text-[12px] text-muted-foreground font-medium hover:text-foreground transition-colors"
               >
                 Salta tour
               </button>
-              <div className="flex items-center gap-2">
-                {currentStep > 0 && (
-                  <button
-                    onClick={prevStep}
-                    className="flex items-center gap-1 h-8 px-3 rounded-lg text-[12px] font-semibold border border-border text-foreground hover:bg-muted transition-colors"
-                  >
-                    <ChevronLeft className="h-3.5 w-3.5" />
-                    Indietro
-                  </button>
-                )}
-                <button
-                  onClick={nextStep}
-                  className="flex items-center gap-1 h-8 px-4 rounded-lg text-[12px] font-semibold btn-brand text-primary-foreground"
-                >
-                  {currentStep === totalSteps - 1 ? "Fine! 🎉" : "Avanti"}
-                  {currentStep < totalSteps - 1 && <ChevronRight className="h-3.5 w-3.5" />}
-                </button>
-              </div>
             </div>
           </div>
         </div>
