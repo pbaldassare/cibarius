@@ -295,7 +295,7 @@ const ExpiryPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" data-tour="expiry-page-header">
       <MobileHeader title="Scadenze" showBack right={headerRight} />
       <main className="space-y-3 px-4 py-4 pb-28">
         {/* Status tabs */}

@@ -1216,12 +1216,13 @@ const AddFoodFlow = ({
                   )}
 
                   {[
-                    { m: "scan" as Method, icon: ScanLine, label: "Scansiona barcode", desc: "Usa la fotocamera" },
-                    { m: "search" as Method, icon: Search, label: "Cerca prodotto", desc: "Cerca nel database" },
-                    { m: "manual" as Method, icon: Keyboard, label: "Inserisci manualmente", desc: "Scrivi nome e valori" },
-                  ].map(({ m, icon: Icon, label, desc }) => (
+                    { m: "scan" as Method, icon: ScanLine, label: "Scansiona barcode", desc: "Usa la fotocamera", tourId: "add-scan" },
+                    { m: "search" as Method, icon: Search, label: "Cerca prodotto", desc: "Cerca nel database", tourId: "add-search" },
+                    { m: "manual" as Method, icon: Keyboard, label: "Inserisci manualmente", desc: "Scrivi nome e valori", tourId: "add-manual" },
+                  ].map(({ m, icon: Icon, label, desc, tourId }) => (
                     <button
                       key={m}
+                      data-tour={tourId}
                       onClick={() => {
                         if (context === "meal" && !preselectedMealType && !selectedMealType) {
                           toast({ variant: "destructive", title: "Seleziona prima il tipo di pasto" });

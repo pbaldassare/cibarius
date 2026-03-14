@@ -148,6 +148,14 @@ const Index = () => {
   const [addFoodOpen, setAddFoodOpen] = useState(false);
   const [resolveOpen, setResolveOpen] = useState(false);
 
+  // Register add food modal control for tour
+  useEffect(() => {
+    registerAddFoodControl(
+      () => setAddFoodOpen(true),
+      () => setAddFoodOpen(false),
+    );
+  }, [registerAddFoodControl]);
+
   // Today's meals
   const [todayMeals, setTodayMeals] = useState<{ type: string; count: number }[]>([]);
 
