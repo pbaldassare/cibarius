@@ -1,37 +1,23 @@
 
 
-# Piano: Popolare 300 traduzioni + Prompt IA preciso + Logica DB-first
+## Disabilitare la conferma email alla registrazione
 
-## Stato attuale
-- `ingredient_translation` ha solo 23 righe (il seed iniziale)
-- L'edge function `analyze-meal-photo` usa un prompt generico e non ha logica "dishes cache first"
+### Problema
+Dopo la registrazione, l'utente riceve l'errore "Email not confirmed" quando prova a fare login. La conferma email via link blocca l'accesso immediato.
 
-## Cosa fare
+### Soluzione
+Questo non è un problema di codice frontend — è un'impostazione di Supabase. Bisogna disabilitare la conferma email obbligatoria nel progetto Supabase.
 
-### 1. Inserire ~260 nuove traduzioni in `ingredient_translation`
+**Azione nel dashboard Supabase:**
+- Authentication → Settings → "Confirm email" → **disattivare**
 
-Useremo una migrazione SQL con `INSERT ... ON CONFLICT DO NOTHING` per aggiungere tutte le righe del CSV fornito senza duplicare quelle gia' presenti. La tabella ha `name_it` UNIQUE, quindi i conflitti vengono gestiti automaticamente.
+Questo permette agli utenti di accedere immediatamente dopo la registrazione senza dover cliccare il link di conferma.
 
-### 2. Aggiornare il prompt IA nell'edge function
+### Inoltre, nel codice
+Nel `LoginPage.tsx`, il messaggio di errore per "email_not_confirmed" non è gestito in modo user-friendly. Si può aggiungere un caso specifico nel toast di errore per mostrare un messaggio più chiaro.
 
-Sostituire il `systemPrompt` attuale (generico) con il prompt dettagliato fornito dall'utente, che include:
-- Regole per pizza (base, salsa, mozzarella, olio, extra visibili)
-- Regole per pasta (tipo pasta, condimento, formaggio)
-- Regole per risotto (riso, soffritto, brodo, burro/parmigiano, ingrediente principale)
-- Output JSON obbligatorio con `name_it` e `notes`
-
-### 3. Aggiungere logica DB-first (dishes cache)
-
-Prima di chiamare l'IA, la funzione controllera' se un piatto simile esiste gia' in `dishes` + `dish_ingredients`:
-1. Se trovato → carica ingredienti dalla cache, calcola macro, restituisci subito (NO IA, NO USDA)
-2. Se non trovato → chiama IA vision → arricchisci con USDA → salva in `dishes`/`dish_ingredients` per le prossime volte
-
-Questo richiede una modifica strutturale all'handler principale dell'edge function, aggiungendo un blocco di cache lookup prima della chiamata AI e un blocco di cache write dopo l'analisi.
-
-## File coinvolti
-
-| File | Azione |
-|------|--------|
-| Migrazione SQL | INSERT ~260 righe in `ingredient_translation` |
-| `supabase/functions/analyze-meal-photo/index.ts` | Nuovo prompt + logica dishes cache |
+| File | Modifica |
+|------|----------|
+| Dashboard Supabase | Authentication → Settings → disattivare "Confirm email" |
+| `src/pages/auth/LoginPage.tsx` | Aggiungere gestione errore "email not confirmed" con messaggio italiano più chiaro (opzionale, non servirà più dopo la disattivazione) |
 
