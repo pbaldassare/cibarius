@@ -1064,6 +1064,11 @@ const UserDietPage = () => {
           <div className="text-center py-2">
             <h2 className="text-lg font-bold text-foreground">Scegli il tuo piano nutrizionale</h2>
             <p className="text-xs text-muted-foreground mt-1">Seleziona un template gratuito adatto ai tuoi obiettivi. Puoi cambiarlo in qualsiasi momento.</p>
+            {plan && (
+              <Button variant="ghost" size="sm" className="text-destructive mt-2 text-xs gap-1.5" onClick={() => setConfirmDeactivate(true)}>
+                <X className="h-3.5 w-3.5" /> Disattiva piano attuale
+              </Button>
+            )}
           </div>
         )}
 
