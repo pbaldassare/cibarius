@@ -1051,6 +1051,11 @@ const UserDietPage = () => {
                   <UserCheck className="h-3 w-3" /> Collegato
                 </Badge>
               </div>
+              <div className="mt-3 pt-3 border-t border-border/50 flex justify-end">
+                <Button variant="ghost" size="sm" className="text-destructive h-8 px-2 text-xs gap-1.5" onClick={() => setConfirmDeactivate(true)}>
+                  <X className="h-3.5 w-3.5" /> Disattiva piano
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}
@@ -1059,6 +1064,11 @@ const UserDietPage = () => {
           <div className="text-center py-2">
             <h2 className="text-lg font-bold text-foreground">Scegli il tuo piano nutrizionale</h2>
             <p className="text-xs text-muted-foreground mt-1">Seleziona un template gratuito adatto ai tuoi obiettivi. Puoi cambiarlo in qualsiasi momento.</p>
+            {plan && (
+              <Button variant="ghost" size="sm" className="text-destructive mt-2 text-xs gap-1.5" onClick={() => setConfirmDeactivate(true)}>
+                <X className="h-3.5 w-3.5" /> Disattiva piano attuale
+              </Button>
+            )}
           </div>
         )}
 
@@ -1297,15 +1307,8 @@ const UserDietPage = () => {
           </div>
         )}
 
-        {/* ═══ ACTIONS: Disattiva piano + Cerca nutrizionista ═══ */}
+        {/* ═══ ACTIONS: Cerca nutrizionista ═══ */}
         <div className="flex flex-col gap-2">
-          <Button
-            variant="outline"
-            className="gap-2 text-destructive border-destructive/30"
-            onClick={() => setConfirmDeactivate(true)}
-          >
-            <X className="h-4 w-4" /> Disattiva piano attuale
-          </Button>
           <Button variant="ghost" onClick={() => navigate("/invite")} className="gap-2 text-muted-foreground">
             <UserPlus className="h-4 w-4" /> Cerca un nutrizionista tra i nostri professionisti
           </Button>
