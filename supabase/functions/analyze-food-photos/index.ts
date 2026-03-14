@@ -194,6 +194,54 @@ Per quantity: se vedi un peso netto o volume sulla confezione, riportalo.`;
 
     const result = JSON.parse(toolCall.function.arguments);
 
+    // ─── DB enrichment: if AI found a barcode or name, check products table ───
+    try {
+      const sbUrl = Deno.env.get("SUPABASE_URL")!;
+      const sbKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const sb = createClient(sbUrl, sbKey);
+
+      let dbProduct: any = null;
+
+      // Try barcode first
+      if (result.product?.barcode) {
+        const { data } = await sb
+          .from("products")
+          .select("name, brand, calories_100g, macros_100g, image_url, serving_size_g")
+          .eq("barcode", result.product.barcode)
+          .not("calories_100g", "is", null)
+          .maybeSingle();
+        if (data) dbProduct = data;
+      }
+
+      // Fallback: exact name match
+      if (!dbProduct && result.product?.name) {
+        const { data } = await sb
+          .from("products")
+          .select("name, brand, calories_100g, macros_100g, image_url, serving_size_g")
+          .ilike("name", result.product.name)
+          .not("calories_100g", "is", null)
+          .limit(1)
+          .maybeSingle();
+        if (data) dbProduct = data;
+      }
+
+      // Enrich AI result with DB data if AI didn't find nutrition
+      if (dbProduct && (!result.nutrition?.calories_100g || result.nutrition?.confidence < 0.7)) {
+        const m = dbProduct.macros_100g as any;
+        result.nutrition = {
+          calories_100g: dbProduct.calories_100g,
+          protein_100g: m?.protein ?? 0,
+          carbs_100g: m?.carbs ?? 0,
+          fats_100g: m?.fats ?? 0,
+          serving_size_g: dbProduct.serving_size_g ?? result.nutrition?.serving_size_g ?? null,
+          confidence: 0.95,
+        };
+        result._source = "db_cache";
+      }
+    } catch (dbErr) {
+      console.warn("DB enrichment failed (non-blocking):", dbErr);
+    }
+
     return new Response(JSON.stringify({ result }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
