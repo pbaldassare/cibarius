@@ -94,6 +94,7 @@ interface PlanItem {
 }
 
 interface ProProfile {
+  user_id: string;
   display_name: string;
   specialization: string;
   city: string | null;
