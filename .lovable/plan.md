@@ -1,43 +1,37 @@
 
 
-## Ristrutturare la pagina Piano: enfasi e ordine corretto
+# Piano: Popolare 300 traduzioni + Prompt IA preciso + Logica DB-first
 
-### Struttura attuale (problematica)
-La pagina mostra prima i template, poi in fondo "Crea il tuo piano personalizzato" e "Cerca un nutrizionista" come azioni secondarie. L'utente non li vede subito.
+## Stato attuale
+- `ingredient_translation` ha solo 23 righe (il seed iniziale)
+- L'edge function `analyze-meal-photo` usa un prompt generico e non ha logica "dishes cache first"
 
-### Nuova struttura della pagina (vista senza piano attivo)
+## Cosa fare
 
-```text
-┌─────────────────────────────┐
-│  Header "Il mio piano"      │
-├─────────────────────────────┤
-│  ★ CREA IL TUO PIANO       │  ← Card grande, gradient primary
-│    PERSONALIZZATO           │     con Crown, badge Plus,
-│    Descrizione + CTA        │     bottone prominente
-├─────────────────────────────┤
-│  🔍 CERCA UN NUTRIZIONISTA  │  ← Sezione con input di ricerca
-│  [___ricerca per nome___]   │     filtra i coach in tempo reale
-│  Coach card 1               │     pulsante "Contatta"
-│  Coach card 2               │
-├─────────────────────────────┤
-│  📋 Piani standard          │  ← Titolo sezione
-│  Template card 1            │     I template gratuiti restano
-│  Template card 2            │     sotto come opzione base
-│  ...                        │
-└─────────────────────────────┘
-```
+### 1. Inserire ~260 nuove traduzioni in `ingredient_translation`
 
-### Modifiche — `src/pages/UserDietPage.tsx`
+Useremo una migrazione SQL con `INSERT ... ON CONFLICT DO NOTHING` per aggiungere tutte le righe del CSV fornito senza duplicare quelle gia' presenti. La tabella ha `name_it` UNIQUE, quindi i conflitti vengono gestiti automaticamente.
 
-**1. Riordinare le sezioni** (righe ~600-738):
-- **Prima**: Card "Crea il tuo piano personalizzato" — grande, con gradient `bg-gradient-to-br from-primary/10 to-primary/5`, bordo primary, icona Crown grande, testo descrittivo ("Personalizza calorie e macro, aggiungi i tuoi alimenti preferiti"), bottone pieno `variant="default"` con "Inizia ora" + badge Plus se non abbonato
-- **Seconda**: Sezione "Cerca un nutrizionista" — aggiungere un `<Input>` di ricerca (filtra `coaches` per `display_name` o `specialization` o `city`) sopra la lista coach esistente. Rimuovere il bottone ghost separato "Cerca un nutrizionista tra i nostri professionisti" (il link a `/invite` non serve più, la ricerca è inline)
-- **Terza**: Sezione "Piani standard gratuiti" con i template cards già esistenti
+### 2. Aggiornare il prompt IA nell'edge function
 
-**2. Aggiungere filtro ricerca coach**:
-- Nuovo state `coachSearch` (stringa)
-- Filtrare `coaches` client-side per nome, specializzazione o città
-- Input con icona Search dentro la sezione coach
+Sostituire il `systemPrompt` attuale (generico) con il prompt dettagliato fornito dall'utente, che include:
+- Regole per pizza (base, salsa, mozzarella, olio, extra visibili)
+- Regole per pasta (tipo pasta, condimento, formaggio)
+- Regole per risotto (riso, soffritto, brodo, burro/parmigiano, ingrediente principale)
+- Output JSON obbligatorio con `name_it` e `notes`
 
-**3. Rimuovere** il vecchio blocco "Secondary actions" (righe 660-673) — le due azioni sono ora integrate nelle sezioni sopra
+### 3. Aggiungere logica DB-first (dishes cache)
+
+Prima di chiamare l'IA, la funzione controllera' se un piatto simile esiste gia' in `dishes` + `dish_ingredients`:
+1. Se trovato → carica ingredienti dalla cache, calcola macro, restituisci subito (NO IA, NO USDA)
+2. Se non trovato → chiama IA vision → arricchisci con USDA → salva in `dishes`/`dish_ingredients` per le prossime volte
+
+Questo richiede una modifica strutturale all'handler principale dell'edge function, aggiungendo un blocco di cache lookup prima della chiamata AI e un blocco di cache write dopo l'analisi.
+
+## File coinvolti
+
+| File | Azione |
+|------|--------|
+| Migrazione SQL | INSERT ~260 righe in `ingredient_translation` |
+| `supabase/functions/analyze-meal-photo/index.ts` | Nuovo prompt + logica dishes cache |
 
