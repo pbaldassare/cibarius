@@ -461,7 +461,7 @@ const ProfiloPage = () => {
           {(role === "professional" ? [
             { icon: Sparkles, label: "Abbonamenti clienti", path: "/pro/clients", badge: 0 },
           ] : [
-            ...(proLink ? [{ icon: MessageCircle, label: "Messaggi", path: "/messages", badge: unreadMsgCount }] : []),
+            ...[{ icon: MessageCircle, label: "Messaggi", path: "/messages", badge: unreadMsgCount }],
             { icon: Heart, label: "Preferiti", path: undefined, badge: 0 },
             { icon: Sparkles, label: "Abbonamento Premium", path: "/subscription", badge: 0 },
             { icon: Bell, label: "Promemoria scadenze", path: "/reminders", badge: 0 },
