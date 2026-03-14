@@ -69,6 +69,8 @@ const getCached = (barcode: string): ProductData | null => {
   return entry.data;
 };
 
+export const setProductCache = (barcode: string, data: ProductData) => setCache(barcode, data);
+
 const setCache = (barcode: string, data: ProductData) => {
   const c = getCache();
   c[barcode] = { data, ts: Date.now() };

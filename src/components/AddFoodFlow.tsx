@@ -15,7 +15,7 @@ import { useDebounce } from "@/hooks/useDebounce";
 import BarcodeScanner from "@/components/BarcodeScanner";
 import { lookupBarcode, calcNutrition, type ProductData } from "@/lib/barcode";
 import { searchFoodProgressive, type FoodSearchResult, type SearchPhase } from "@/lib/search-food";
-import { analyzeFoodPhotos, fuseWithOFF, fileToImageFile, type ImageFile, type FusedFoodData } from "@/lib/ai-food";
+import { analyzeFoodPhotos, fuseWithOFF, fileToImageFile, lookupProductInDB, type ImageFile, type FusedFoodData } from "@/lib/ai-food";
 import { Switch } from "@/components/ui/switch";
 import MealRecipeCard from "@/components/MealRecipeCard";
 import { Slider } from "@/components/ui/slider";
