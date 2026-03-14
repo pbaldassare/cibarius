@@ -632,24 +632,14 @@ const ProfiloPage = () => {
             <span className="flex-1 text-[15px] font-medium text-foreground">Segnala un problema o suggerimento</span>
             <ChevronRight size={16} className="text-muted-foreground" />
            </button>
-          {!isPwaInstalled && (
-            <button
-              onClick={() => {
-                if (canInstall) {
-                  handlePwaInstall();
-                } else if (isIos) {
-                  toast({ title: "Installa Cibarius", description: "Tocca Condividi ↑ poi \"Aggiungi alla schermata Home\"" });
-                } else {
-                  toast({ title: "Installa Cibarius", description: "Apri il menù del browser (⋮) e seleziona \"Installa app\" o \"Aggiungi alla schermata Home\"" });
-                }
-              }}
-              className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors active:bg-secondary border-t border-border"
-            >
-              <Download size={20} className="text-primary shrink-0" />
-              <span className="flex-1 text-[15px] font-medium text-foreground">Installa app</span>
-              <ChevronRight size={16} className="text-muted-foreground" />
-            </button>
-          )}
+          <button
+            onClick={() => setPasswordOpen(true)}
+            className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors active:bg-secondary border-t border-border"
+          >
+            <Lock size={20} className="text-muted-foreground shrink-0" />
+            <span className="flex-1 text-[15px] font-medium text-foreground">Modifica password</span>
+            <ChevronRight size={16} className="text-muted-foreground" />
+          </button>
         </div>
 
         {/* ═══ Email Preferences ═══ */}
