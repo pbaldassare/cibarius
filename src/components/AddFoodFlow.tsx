@@ -1113,7 +1113,7 @@ const AddFoodFlow = ({
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent side="bottom" className="h-[90vh] rounded-t-3xl px-0 flex flex-col">
           <SheetHeader className="px-4 pb-3 border-b border-border shrink-0">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3" data-tour="add-close-tour">
               <button onClick={goBack} className="p-1 -ml-1 text-muted-foreground">
                 <ArrowLeft className="h-5 w-5" />
               </button>
@@ -1154,6 +1154,7 @@ const AddFoodFlow = ({
                 <div className="grid grid-cols-1 gap-2">
                   {/* Foto AI (first, recommended) */}
                   <button
+                    data-tour="add-photo-ai"
                     onClick={() => {
                       if (context === "meal" && !preselectedMealType && !selectedMealType) {
                         toast({ variant: "destructive", title: "Seleziona prima il tipo di pasto" });
@@ -1182,7 +1183,7 @@ const AddFoodFlow = ({
 
                   {/* ── Gruppo Scontrino – only for inventory context ── */}
                   {context !== "meal" && (
-                    <div className="rounded-2xl border border-border bg-card overflow-hidden">
+                    <div data-tour="add-receipt" className="rounded-2xl border border-border bg-card overflow-hidden">
                       <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-4 pt-3 pb-1">
                         Scontrino
                       </p>
@@ -1215,12 +1216,13 @@ const AddFoodFlow = ({
                   )}
 
                   {[
-                    { m: "scan" as Method, icon: ScanLine, label: "Scansiona barcode", desc: "Usa la fotocamera" },
-                    { m: "search" as Method, icon: Search, label: "Cerca prodotto", desc: "Cerca nel database" },
-                    { m: "manual" as Method, icon: Keyboard, label: "Inserisci manualmente", desc: "Scrivi nome e valori" },
-                  ].map(({ m, icon: Icon, label, desc }) => (
+                    { m: "scan" as Method, icon: ScanLine, label: "Scansiona barcode", desc: "Usa la fotocamera", tourId: "add-scan" },
+                    { m: "search" as Method, icon: Search, label: "Cerca prodotto", desc: "Cerca nel database", tourId: "add-search" },
+                    { m: "manual" as Method, icon: Keyboard, label: "Inserisci manualmente", desc: "Scrivi nome e valori", tourId: "add-manual" },
+                  ].map(({ m, icon: Icon, label, desc, tourId }) => (
                     <button
                       key={m}
+                      data-tour={tourId}
                       onClick={() => {
                         if (context === "meal" && !preselectedMealType && !selectedMealType) {
                           toast({ variant: "destructive", title: "Seleziona prima il tipo di pasto" });

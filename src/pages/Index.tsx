@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { getFoodImage } from "@/lib/food-images";
 import AddFoodFlow from "@/components/AddFoodFlow";
+import { useTour } from "@/components/AppTourContext";
 import { useIngredientCompatibility } from "@/hooks/useIngredientCompatibility";
 import MealReminderBanner from "@/components/MealReminderBanner";
 import { WeightGoalHomeBar } from "@/components/WeightGoalMotivation";
@@ -139,12 +140,21 @@ const Index = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { loaded: compatLoaded, buildGroups } = useIngredientCompatibility();
+  const { registerAddFoodControl } = useTour();
 
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [prepItems, setPrepItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [addFoodOpen, setAddFoodOpen] = useState(false);
   const [resolveOpen, setResolveOpen] = useState(false);
+
+  // Register add food modal control for tour
+  useEffect(() => {
+    registerAddFoodControl(
+      () => setAddFoodOpen(true),
+      () => setAddFoodOpen(false),
+    );
+  }, [registerAddFoodControl]);
 
   // Today's meals
   const [todayMeals, setTodayMeals] = useState<{ type: string; count: number }[]>([]);

@@ -286,7 +286,7 @@ const PastiPage = () => {
   );
 
   return (
-    <div>
+    <div data-tour="meals-page-header">
       <MobileHeader title="Pasti" />
       <main className="space-y-4 px-4 py-5 pb-28">
         <div className="flex items-center justify-between">

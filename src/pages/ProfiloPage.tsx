@@ -368,7 +368,7 @@ const ProfiloPage = () => {
   const coachDisplayName = proProfessionalProfile?.display_name || proProfile?.full_name || "Professionista";
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" data-tour="profile-page-header">
       <MobileHeader title="Profilo" />
       <main className="px-4 py-5 space-y-5 pb-28">
         {/* Avatar section */}
