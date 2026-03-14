@@ -126,6 +126,7 @@ const UserDietPage = () => {
   // Coach search (when no plan)
   const [coaches, setCoaches] = useState<ProProfile[]>([]);
   const [loadingCoaches, setLoadingCoaches] = useState(false);
+  const [coachSearch, setCoachSearch] = useState("");
 
   // Self-plan wizard
   const [showSelfPlan, setShowSelfPlan] = useState(false);
