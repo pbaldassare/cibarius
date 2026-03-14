@@ -322,7 +322,7 @@ const ProfiloPage = () => {
     }
   };
 
-  const coachDisplayName = proProfessionalProfile?.display_name || proProfile?.full_name || "Professionista";
+  
 
   return (
     <div className="min-h-screen bg-background" data-tour="profile-page-header">
