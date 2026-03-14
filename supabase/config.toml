@@ -53,3 +53,6 @@ verify_jwt = false
 
 [functions.auth-email-hook]
 verify_jwt = false
+
+[functions.seed-off-products]
+verify_jwt = false
