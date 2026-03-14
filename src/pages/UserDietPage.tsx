@@ -1070,20 +1070,8 @@ const UserDietPage = () => {
               <AlertDialogCancel>Annulla</AlertDialogCancel>
               <AlertDialogAction onClick={() => {
                 if (!confirmTemplate) return;
-                const overrideKcal = parseFloat(confirmKcalOverride);
-                if (overrideKcal && overrideKcal !== confirmTemplate.kcal_day) {
-                  const ratio = overrideKcal / confirmTemplate.kcal_day;
-                  saveTemplateAsPlan({
-                    ...confirmTemplate,
-                    kcal_day: Math.round(overrideKcal),
-                    protein_g_day: Math.round(confirmTemplate.protein_g_day * ratio),
-                    carbs_g_day: Math.round(confirmTemplate.carbs_g_day * ratio),
-                    fats_g_day: Math.round(confirmTemplate.fats_g_day * ratio),
-                  });
-                } else {
-                  saveTemplateAsPlan(confirmTemplate);
-                }
-                setConfirmKcalOverride("");
+                saveTemplateAsPlan(confirmTemplate);
+                setConfirmTemplate(null);
               }} disabled={savingTemplate}>
                 {savingTemplate ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
                 Conferma
