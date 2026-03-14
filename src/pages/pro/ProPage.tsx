@@ -78,7 +78,7 @@ const ProPage = () => {
         </div>
 
         {/* Recent notes */}
-        <Card className="border-2 border-accent">
+        <Card className="border-2 border-accent" data-tour="pro-notes-card">
           <CardHeader className="flex flex-row items-center gap-3 pb-2">
             <MessageSquare className="h-5 w-5 text-primary" />
             <CardTitle className="text-base">Note recenti</CardTitle>
