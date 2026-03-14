@@ -78,18 +78,47 @@ export const USER_TOUR_STEPS: TourStep[] = [
 
 /* ═══════════════ RESTAURANT TOUR ═══════════════ */
 export const RESTAURANT_TOUR_STEPS: TourStep[] = [
-  { selector: "rest-greeting", title: "Benvenuto nella tua cucina digitale! 🍳", description: "Questa è la dashboard del tuo ristorante. Qui monitori scadenze, controlli HACCP, preparazioni e bolle in un colpo d'occhio.", page: "/restaurant" },
-  { selector: "rest-haccp-card", title: "Controlli HACCP oggi ✅", description: "Il pannello HACCP mostra i controlli da completare oggi: temperature, pulizie, sanificazioni. Tutto tracciato e a norma.", page: "/restaurant", action: { type: "scroll", target: "rest-haccp-card" } },
-  { selector: "rest-expiry-card", title: "Scadenze prodotti ⚠️", description: "Monitora in tempo reale quanti prodotti sono scaduti, in scadenza o senza data. Gestiscili con un tap.", page: "/restaurant", action: { type: "scroll", target: "rest-expiry-card" } },
-  { selector: "rest-production-card", title: "Preparazioni e produzione 👨‍🍳", description: "Crea preparazioni, genera etichette con lotto e scadenza, e tieni traccia di tutto il processo produttivo.", page: "/restaurant", action: { type: "scroll", target: "rest-production-card" } },
-  { selector: "rest-invoices-card", title: "Bolle e documenti 📄", description: "Carica bolle e fatture fornitori. Scansiona con la fotocamera e i prodotti vengono estratti automaticamente.", page: "/restaurant", action: { type: "scroll", target: "rest-invoices-card" } },
-  { selector: "rest-nav-haccp", title: "Tab HACCP 📋", description: "Dalla barra in basso accedi alla checklist HACCP completa: registra controlli, temperature e scarichi.", page: "/restaurant" },
-  { selector: "rest-nav-products", title: "Tab Scadenze 📅", description: "Tutti i prodotti con le scadenze. Filtra per stato, tipo di conservazione e gestisci rapidamente.", page: "/restaurant" },
-  { selector: "rest-nav-preparations", title: "Tab Preparazioni 🧑‍🍳", description: "Le tue preparazioni: semilavorati, salse, impasti. Ogni preparazione ha lotto, scadenza e allergeni tracciati.", page: "/restaurant" },
-  { selector: "rest-nav-invoices", title: "Tab Bolle 📑", description: "Qui trovi tutte le bolle caricate. Scansiona, verifica e archivia i documenti dei fornitori.", page: "/restaurant" },
-  { selector: "rest-haccp-page", title: "Pagina HACCP 📋", description: "La checklist completa: completa i controlli giornalieri, registra temperature e segna le non conformità.", page: "/restaurant/haccp", action: { type: "navigate", target: "/restaurant/haccp", delay: 500 } },
-  { selector: "rest-products-page", title: "Pagina Scadenze 📅", description: "Visualizza tutti i prodotti per scadenza. Filtra scaduti, in scadenza, e gestisci rapidamente lo smaltimento.", page: "/restaurant/products", action: { type: "navigate", target: "/restaurant/products", delay: 500 } },
-  { selector: "rest-greeting", title: "Grazie per la tua attenzione! 🎊", description: "Ora conosci tutte le funzionalità del tuo ristorante su Cibarius. Inizia completando i controlli HACCP di oggi! 💪", page: "/restaurant", action: { type: "navigate", target: "/restaurant", delay: 400 } },
+  // Dashboard (/restaurant) — 7 step
+  { selector: "rest-greeting", title: "Benvenuto nella tua cucina digitale! 🍳", description: "Questa è la dashboard del tuo ristorante. Qui monitori scadenze, controlli HACCP, preparazioni e bolle in un colpo d'occhio. Ogni dato è in tempo reale.", page: "/restaurant" },
+  { selector: "rest-topbar", title: "Profilo e Backoffice 🔧", description: "Da qui accedi al profilo del ristorante (nome, indirizzo, social) e al Backoffice per gestire staff, impostazioni e la Modalità Controllo HACCP per le ispezioni.", page: "/restaurant", action: { type: "scroll", target: "rest-topbar" } },
+  { selector: "rest-haccp-card", title: "Controlli HACCP oggi ✅", description: "Il pannello HACCP mostra i controlli da completare oggi con barra di progresso. Se ci sono temperature da registrare vedrai un alert dedicato. Ogni controllo è tracciato con operatore, data e note.", page: "/restaurant", action: { type: "scroll", target: "rest-haccp-card" } },
+  { selector: "rest-quick-actions", title: "Azioni rapide ⚡", description: "Accesso diretto ai controlli più frequenti: celle frigo, forni, cappe, scadenze. Un tap ti porta alla sezione giusta senza passare dal menu.", page: "/restaurant", action: { type: "scroll", target: "rest-quick-actions" } },
+  { selector: "rest-expiry-card", title: "Scadenze prodotti ⚠️", description: "Monitora in tempo reale quanti prodotti sono scaduti, in scadenza o senza data. Il pulsante 'Gestisci scadenze' ti permette di smaltire, consumare o donare in blocco.", page: "/restaurant", action: { type: "scroll", target: "rest-expiry-card" } },
+  { selector: "rest-production-card", title: "Preparazioni e produzione 👨‍🍳", description: "Crea preparazioni interne (ragù, impasti, salse). Ogni preparazione ha lotto, scadenza, allergeni tracciati e un'etichetta stampabile 2x3cm con QR code per la tracciabilità.", page: "/restaurant", action: { type: "scroll", target: "rest-production-card" } },
+  { selector: "rest-invoices-card", title: "Bolle e documenti fornitori 📄", description: "Carica foto di bolle e fatture. L'AI estrae automaticamente fornitore, data, articoli, quantità e totali. Tutto archiviato e consultabile.", page: "/restaurant", action: { type: "scroll", target: "rest-invoices-card" } },
+
+  // HACCP (/restaurant/haccp) — 4 step
+  { selector: "rest-haccp-page", title: "Checklist HACCP giornaliera 📋", description: "Ecco la pagina HACCP con il calendario settimanale. Ogni riga è un'attività, ogni colonna un giorno. ✅ = completata, ⚠️ = in ritardo, ○ = da fare.", page: "/restaurant/haccp", action: { type: "navigate", target: "/restaurant/haccp", delay: 600 } },
+  { selector: "rest-haccp-page", title: "Completare un controllo 📝", description: "Tocca una cella 'Da fare' per registrare il controllo. Si apre un dialog dove inserisci note, alleghi foto e — per le temperature — il valore in °C con verifica automatica delle soglie.", page: "/restaurant/haccp" },
+  { selector: "rest-haccp-page", title: "Temperature con soglie 🌡️", description: "Per celle frigo (max 4°C), freezer (max -18°C) e frigoriferi il sistema verifica automaticamente se la temperatura è nella norma. Se fuori soglia, ricevi un alert immediato.", page: "/restaurant/haccp" },
+  { selector: "rest-haccp-page", title: "Storico e configurazione ⚙️", description: "Usa le frecce per navigare tra le settimane e vedere lo storico. Il pulsante 'Configura' ti porta alla pagina di setup dove personalizzare attività e attrezzature.", page: "/restaurant/haccp" },
+
+  // Setup HACCP (/restaurant/haccp/setup) — 3 step
+  { selector: "rest-haccp-setup-page", title: "Configurazione HACCP ⚙️", description: "Qui configuri le attività HACCP del tuo ristorante. Puoi scegliere un template preconfigurato (pizzeria, ristorante, bar) oppure creare attività personalizzate.", page: "/restaurant/haccp/setup", action: { type: "navigate", target: "/restaurant/haccp/setup", delay: 600 } },
+  { selector: "rest-haccp-setup-page", title: "Attività personalizzate 📝", description: "Aggiungi attività con nome, categoria (pulizia, temperature, superfici...) e frequenza (giornaliera, settimanale, mensile). Ogni attività può essere attivata/disattivata con un toggle.", page: "/restaurant/haccp/setup" },
+  { selector: "rest-haccp-setup-page", title: "Attrezzature da controllare 🧊", description: "Indica quante celle, frigoriferi, freezer, forni e cappe hai. Il sistema genera automaticamente i controlli temperatura per ogni attrezzatura.", page: "/restaurant/haccp/setup" },
+
+  // Scadenze (/restaurant/products) — 4 step
+  { selector: "rest-products-page", title: "Gestione Scadenze 📅", description: "La lista completa dei prodotti con scadenze. Filtra per stato (scaduti, in scadenza, OK), tipo di conservazione (frigo, freezer, dispensa) e cerca per nome.", page: "/restaurant/products", action: { type: "navigate", target: "/restaurant/products", delay: 600 } },
+  { selector: "rest-products-page", title: "Aggiungere prodotti 📦", description: "Premi il + per aggiungere. Puoi usare: 📸 Foto AI (scatta e l'AI legge tutto), 🔍 Barcode, 📋 Scontrino, o inserire manualmente. L'AI rileva nome, scadenza, lotto e valori nutrizionali.", page: "/restaurant/products" },
+  { selector: "rest-products-page", title: "Tracciabilità completa 🔖", description: "Ogni prodotto ha lotto, data di produzione, 'chef life' (scadenza interna in ore) e tipo di conservazione. Le etichette QR permettono la verifica istantanea da smartphone.", page: "/restaurant/products" },
+  { selector: "rest-products-page", title: "Gestione scadenze 🔄", description: "Per i prodotti scaduti o in scadenza: smaltisci, segna come consumato, dona o scarta. Tutto tracciato per la reportistica anti-spreco.", page: "/restaurant/products" },
+
+  // Preparazioni (/restaurant/preparations) — 3 step
+  { selector: "rest-preparations-page", title: "Preparazioni 🧑‍🍳", description: "Le preparazioni interne: ragù, impasti, salse, semilavorati. Ogni elemento ha scadenza, tipo di conservazione, lotto e numero di porzioni.", page: "/restaurant/preparations", action: { type: "navigate", target: "/restaurant/preparations", delay: 600 } },
+  { selector: "rest-preparations-page", title: "Creare una preparazione ✏️", description: "Premi + per creare. Inserisci nome, ingredienti (con quantità e unità), allergeni, tipo di conservazione e scadenza. Il sistema suggerisce la data di scadenza in base alla conservazione.", page: "/restaurant/preparations" },
+  { selector: "rest-preparations-page", title: "Etichette stampabili 🏷️", description: "Ogni preparazione genera un codice etichetta con QR code. Stampa etichette 2x3cm per applicarle ai contenitori. Il QR porta alla scheda dettaglio con ingredienti e allergeni.", page: "/restaurant/preparations" },
+
+  // Bolle (/restaurant/invoices) — 3 step
+  { selector: "rest-invoices-page", title: "Bolle e Documenti 📑", description: "Qui carichi e archivi bolle, fatture e DDT dei fornitori. Ogni documento è consultabile con anteprima immagine o PDF.", page: "/restaurant/invoices", action: { type: "navigate", target: "/restaurant/invoices", delay: 600 } },
+  { selector: "rest-invoices-page", title: "Upload e analisi AI 🤖", description: "Carica una foto della bolla e l'AI estrae automaticamente: fornitore, P.IVA, numero documento, data, lista articoli con quantità e prezzi, totale e IVA.", page: "/restaurant/invoices" },
+  { selector: "rest-invoices-page", title: "Archivio consultabile 📂", description: "Tutti i documenti sono archiviati con i dati estratti. Puoi rieseguire l'analisi AI, scaricare il file originale o eliminare documenti obsoleti.", page: "/restaurant/invoices" },
+
+  // Bottom Nav — 1 step
+  { selector: "rest-nav-home", title: "Navigazione 🧭", description: "Usa la barra in basso per navigare: Home (dashboard), HACCP (checklist), Scadenze (prodotti), Preparaz. (semilavorati), Bolle (documenti fornitori).", page: "/restaurant/invoices" },
+
+  // Finale
+  { selector: "rest-greeting", title: "Grazie per la tua attenzione! 🎊", description: "Ora conosci tutte le funzionalità del tuo ristorante su Cibarius: HACCP digitale, scadenze AI, preparazioni con etichette QR e gestione bolle automatizzata. Inizia completando i controlli HACCP di oggi! 💪", page: "/restaurant", action: { type: "navigate", target: "/restaurant", delay: 400 } },
 ];
 
 /* ═══════════════ PROFESSIONAL TOUR ═══════════════ */
