@@ -54,6 +54,7 @@ const ProfiloPage = () => {
   const { role } = useRole();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { startTour } = useTour();
   const [proLink, setProLink] = useState<any>(null);
   const [proProfile, setProProfile] = useState<any>(null);
   const [proProfessionalProfile, setProProfessionalProfile] = useState<ProProfileData | null>(null);
