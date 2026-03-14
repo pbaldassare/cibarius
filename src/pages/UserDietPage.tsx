@@ -1429,7 +1429,26 @@ const UserDietPage = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-    </div>
+      {/* Deactivation confirmation dialog */}
+      <AlertDialog open={confirmDeactivate} onOpenChange={setConfirmDeactivate}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Disattivare il piano?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Vuoi disattivare il piano attuale? Potrai sceglierne uno nuovo subito dopo.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annulla</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeactivatePlan} disabled={deactivating} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {deactivating ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              Disattiva
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+
   );
 };
 
