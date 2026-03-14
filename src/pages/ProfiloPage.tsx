@@ -106,8 +106,11 @@ const ProfiloPage = () => {
   const [savingEmailPrefs, setSavingEmailPrefs] = useState(false);
   const [unreadMsgCount, setUnreadMsgCount] = useState(0);
 
-  // PWA install
-  const { canInstall, isInstalled: isPwaInstalled, isIos, install: handlePwaInstall } = usePwaInstall();
+  // Change password
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [savingPassword, setSavingPassword] = useState(false);
 
   useEffect(() => {
     if (!user) return;
