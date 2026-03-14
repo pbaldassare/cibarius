@@ -211,11 +211,26 @@ export const TOUR_STEPS: TourStep[] = [
     action: { type: "navigate", target: "/profile", delay: 500 },
   },
 
-  // ── Phase 6: Finale ──
+  // ── Phase 6: Condivisione & Nutrizionista ──
+  {
+    selector: "nav-profile",
+    title: "Condividi Cibarius con gli amici 🤝",
+    description: "Ti piace Cibarius? Dal profilo puoi condividere l'app con amici e famiglia via WhatsApp, Telegram e altri canali!",
+    page: "/",
+    action: { type: "navigate", target: "/", delay: 400 },
+  },
+  {
+    selector: "nav-plan",
+    title: "Fatti seguire da un nutrizionista 👨‍⚕️",
+    description: "Collega il tuo account a un nutrizionista professionista per ricevere piani alimentari personalizzati e monitoraggio dedicato.",
+    page: "/",
+  },
+
+  // ── Phase 7: Finale ──
   {
     selector: "home-greeting",
-    title: "Tour completato! 🎊",
-    description: "Ora conosci tutte le funzionalità di Cibarius. Inizia aggiungendo i tuoi primi prodotti. Buon appetito! 🍽️",
+    title: "Grazie per la tua attenzione! 🎊",
+    description: "Ora conosci tutte le funzionalità di Cibarius. Inizia aggiungendo i tuoi primi prodotti e scopri quanto è facile mangiare meglio. Buon appetito! 🍽️",
     page: "/",
     action: { type: "navigate", target: "/", delay: 400 },
   },
