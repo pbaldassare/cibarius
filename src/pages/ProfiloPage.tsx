@@ -634,7 +634,7 @@ const ProfiloPage = () => {
           }}
           className="flex w-full items-center gap-3 rounded-[18px] border border-border bg-card px-4 py-3.5 text-left transition-colors active:bg-secondary"
         >
-          <Map size={20} className="text-primary shrink-0" />
+          <MapIcon size={20} className="text-primary shrink-0" />
           <span className="flex-1 text-[15px] font-medium text-foreground">Rivedi il tour dell'app</span>
           <ChevronRight size={16} className="text-muted-foreground" />
         </button>
