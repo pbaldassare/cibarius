@@ -1,37 +1,45 @@
 
 
-# Piano: Popolare 300 traduzioni + Prompt IA preciso + Logica DB-first
+## Ristrutturazione Pagina Profilo: Condivisione App + Cambio Password + Tour
 
-## Stato attuale
-- `ingredient_translation` ha solo 23 righe (il seed iniziale)
-- L'edge function `analyze-meal-photo` usa un prompt generico e non ha logica "dishes cache first"
+### Cosa cambia
 
-## Cosa fare
+1. **Rimuovere "Installa app"** dalla lista profilo (righe 632-649 di ProfiloPage.tsx)
 
-### 1. Inserire ~260 nuove traduzioni in `ingredient_translation`
+2. **Aggiungere sezione "Condividi Cibarius"** — una card con CTA accattivante che:
+   - Mostra il link della PWA (`https://simple-blue-frame.lovable.app`) con anteprima/miniatura del logo Cibarius
+   - Pulsante "Copia link"
+   - Pulsanti di condivisione diretta: **WhatsApp**, **Telegram**, **Twitter/X**, **Email** e **Web Share API** (nativa su mobile)
+   - Usa `navigator.share()` come prima opzione su mobile, con fallback ai singoli link
+   - Il messaggio di condivisione sarà tipo: "Prova Cibarius! Gestisci dispensa, pasti e ricette in modo intelligente 🍽️"
+   - Design: card con gradiente brand, logo Cibarius, testo invitante
 
-Useremo una migrazione SQL con `INSERT ... ON CONFLICT DO NOTHING` per aggiungere tutte le righe del CSV fornito senza duplicare quelle gia' presenti. La tabella ha `name_it` UNIQUE, quindi i conflitti vengono gestiti automaticamente.
+3. **Aggiungere "Modifica password"** — nuovo item nel menu che apre un Dialog con:
+   - Campo "Nuova password"
+   - Campo "Conferma nuova password" (doppio controllo come registrazione)
+   - Validazione inline: minimo 6 caratteri, le due password devono coincidere
+   - Usa `supabase.auth.updateUser({ password })` per il cambio
+   - Toast di conferma/errore
 
-### 2. Aggiornare il prompt IA nell'edge function
+4. **Il "Rivedi il tour"** resta dove è (righe 689-700), nessuna modifica necessaria
 
-Sostituire il `systemPrompt` attuale (generico) con il prompt dettagliato fornito dall'utente, che include:
-- Regole per pizza (base, salsa, mozzarella, olio, extra visibili)
-- Regole per pasta (tipo pasta, condimento, formaggio)
-- Regole per risotto (riso, soffritto, brodo, burro/parmigiano, ingrediente principale)
-- Output JSON obbligatorio con `name_it` e `notes`
+### File modificati
 
-### 3. Aggiungere logica DB-first (dishes cache)
+| File | Modifica |
+|------|----------|
+| `src/pages/ProfiloPage.tsx` | Rimuovere sezione "Installa app", aggiungere sezione condivisione con sharing buttons e card, aggiungere dialog cambio password con doppio controllo |
 
-Prima di chiamare l'IA, la funzione controllera' se un piatto simile esiste gia' in `dishes` + `dish_ingredients`:
-1. Se trovato → carica ingredienti dalla cache, calcola macro, restituisci subito (NO IA, NO USDA)
-2. Se non trovato → chiama IA vision → arricchisci con USDA → salva in `dishes`/`dish_ingredients` per le prossime volte
+### Dettagli sharing
 
-Questo richiede una modifica strutturale all'handler principale dell'edge function, aggiungendo un blocco di cache lookup prima della chiamata AI e un blocco di cache write dopo l'analisi.
+```text
+Web Share API (mobile nativo)
+  ↓ fallback
+WhatsApp: https://wa.me/?text=...
+Telegram: https://t.me/share/url?url=...&text=...
+Twitter: https://twitter.com/intent/tweet?url=...&text=...
+Email: mailto:?subject=...&body=...
+Copy link: navigator.clipboard.writeText(url)
+```
 
-## File coinvolti
-
-| File | Azione |
-|------|--------|
-| Migrazione SQL | INSERT ~260 righe in `ingredient_translation` |
-| `supabase/functions/analyze-meal-photo/index.ts` | Nuovo prompt + logica dishes cache |
+Il link condiviso sarà l'URL pubblicato della PWA. L'OG metadata (miniatura) dipende dal `index.html` che ha già il manifest — gli utenti vedranno il titolo e l'icona di Cibarius quando condividono.
 
