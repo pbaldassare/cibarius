@@ -425,7 +425,7 @@ const Index = () => {
 
   const headerRight = (
     <div className="flex items-center gap-1">
-      <button onClick={() => setSearchOpen(true)} className="p-1.5 rounded-lg active:bg-white/10 transition-colors" aria-label="Cerca">
+      <button data-tour="home-search" onClick={() => setSearchOpen(true)} className="p-1.5 rounded-lg active:bg-white/10 transition-colors" aria-label="Cerca">
         <Search className="h-[18px] w-[18px] text-white" strokeWidth={2} />
       </button>
       <button onClick={() => navigate("/expiry")} className="p-1.5 rounded-lg active:bg-white/10 transition-colors" aria-label="Filtri">
