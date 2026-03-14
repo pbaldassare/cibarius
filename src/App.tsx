@@ -271,6 +271,7 @@ const App = () => (
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
+    </TourProvider>
     </PwaInstallProvider>
   </QueryClientProvider>
 );
