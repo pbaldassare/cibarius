@@ -52,7 +52,7 @@ const ProPage = () => {
               <span className="text-xs text-muted-foreground">Clienti attivi</span>
             </CardContent>
           </Card>
-          <Card className="border-2 border-accent cursor-pointer" onClick={() => navigate("/pro/weekly-report")}>
+          <Card className="border-2 border-accent cursor-pointer" data-tour="pro-report-card" onClick={() => navigate("/pro/weekly-report")}>
             <CardContent className="flex flex-col items-center py-5">
               <BarChart3 className="h-8 w-8 text-primary mb-2" />
               <span className="text-2xl font-bold text-foreground">📊</span>
