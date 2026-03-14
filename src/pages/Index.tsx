@@ -425,7 +425,7 @@ const Index = () => {
 
   const headerRight = (
     <div className="flex items-center gap-1">
-      <button onClick={() => setSearchOpen(true)} className="p-1.5 rounded-lg active:bg-white/10 transition-colors" aria-label="Cerca">
+      <button data-tour="home-search" onClick={() => setSearchOpen(true)} className="p-1.5 rounded-lg active:bg-white/10 transition-colors" aria-label="Cerca">
         <Search className="h-[18px] w-[18px] text-white" strokeWidth={2} />
       </button>
       <button onClick={() => navigate("/expiry")} className="p-1.5 rounded-lg active:bg-white/10 transition-colors" aria-label="Filtri">
@@ -441,7 +441,7 @@ const Index = () => {
       <main className="space-y-5 px-4 pt-1 pb-28">
 
         {/* ─── Greeting ─── */}
-        <div>
+        <div data-tour="home-greeting">
           <h2 className="text-base text-foreground">
             {greeting}{firstName ? `, ${firstName}` : ""} 👋
           </h2>
@@ -454,7 +454,7 @@ const Index = () => {
         <WeightGoalHomeBar />
 
         {/* ═══ 1 — ATTENZIONE OGGI (Scadenze) ═══ */}
-        <section className="space-y-2.5">
+        <section className="space-y-2.5" data-tour="home-expiry">
           <SectionHeader title="⚠️ Attenzione oggi" action={counts.total > 0 ? `Vedi tutti (${counts.total})` : undefined} onAction={() => navigate("/expiry")} />
 
           {counts.total > 0 ? (
@@ -536,13 +536,14 @@ const Index = () => {
           <SectionHeader title="Cosa vuoi fare?" />
           <div className="grid grid-cols-4 gap-2">
             {[
-              { icon: ScanLine, label: "Scansiona", color: "hsl(var(--primary))", bg: "bg-primary/10", onClick: () => navigate("/scan") },
-              { icon: Plus, label: "Aggiungi", color: "hsl(152,56%,46%)", bg: "bg-success/10", onClick: () => setAddFoodOpen(true) },
-              { icon: Refrigerator, label: "Svuota frigo", color: "hsl(37,90%,51%)", bg: "bg-warning/10", onClick: () => navigate("/anti-waste?mode=expiring") },
-              { icon: Sparkles, label: "Cosa mangio?", color: "hsl(262,83%,58%)", bg: "bg-accent/10", onClick: () => navigate("/anti-waste") },
-            ].map(({ icon: Icon, label, color, bg, onClick }) => (
+              { icon: ScanLine, label: "Scansiona", color: "hsl(var(--primary))", bg: "bg-primary/10", onClick: () => navigate("/scan"), tourId: "home-action-scan" },
+              { icon: Plus, label: "Aggiungi", color: "hsl(152,56%,46%)", bg: "bg-success/10", onClick: () => setAddFoodOpen(true), tourId: "home-action-add" },
+              { icon: Refrigerator, label: "Svuota frigo", color: "hsl(37,90%,51%)", bg: "bg-warning/10", onClick: () => navigate("/anti-waste?mode=expiring"), tourId: "home-action-fridge" },
+              { icon: Sparkles, label: "Cosa mangio?", color: "hsl(262,83%,58%)", bg: "bg-accent/10", onClick: () => navigate("/anti-waste"), tourId: "home-action-suggest" },
+            ].map(({ icon: Icon, label, color, bg, onClick, tourId }) => (
               <button
                 key={label}
+                data-tour={tourId}
                 onClick={onClick}
                 className={`flex flex-col items-center gap-1.5 rounded-[14px] ${bg} py-3 active:scale-[0.95] transition-all`}
               >
@@ -610,7 +611,7 @@ const Index = () => {
         )}
 
         {/* ═══ 4 — LA TUA DISPENSA ═══ */}
-        <section className="space-y-2.5">
+        <section className="space-y-2.5" data-tour="home-pantry">
           <SectionHeader title="🏠 La tua dispensa" action="Apri dispensa" onAction={() => navigate("/products")} />
           <div className="rounded-[18px] bg-card shadow-card p-4">
             <div className="flex items-center gap-2.5">
@@ -642,7 +643,7 @@ const Index = () => {
         </section>
 
         {/* ═══ 5 — RICETTE ANTI-SPRECO ═══ */}
-        <section className="space-y-2.5">
+        <section className="space-y-2.5" data-tour="home-recipes">
           <SectionHeader title="🍳 Ricette anti-spreco" action="Vedi tutte" onAction={() => navigate("/anti-waste")} />
           <div className="grid grid-cols-1 gap-2">
             {(() => {
@@ -689,7 +690,7 @@ const Index = () => {
         </section>
 
         {/* ═══ 6 — I TUOI PASTI DI OGGI ═══ */}
-        <section className="space-y-2.5">
+        <section className="space-y-2.5" data-tour="home-meals">
           <SectionHeader title="🍽️ I tuoi pasti di oggi" action="Vai al diario" onAction={() => navigate("/meals")} />
           <div className="rounded-[18px] bg-card shadow-card overflow-hidden divide-y divide-border">
             {todayMeals.filter(m => m.type !== "spuntino" || m.count > 0).map(meal => {
@@ -759,7 +760,7 @@ const Index = () => {
       </main>
 
       {/* ─── FAB ─── */}
-      <div className="fixed bottom-[calc(76px+env(safe-area-inset-bottom,0px))] right-4 z-40">
+      <div className="fixed bottom-[calc(76px+env(safe-area-inset-bottom,0px))] right-4 z-40" data-tour="home-fab">
         <button
           onClick={() => setAddFoodOpen(true)}
           className="flex h-12 w-12 items-center justify-center rounded-full btn-brand active:scale-95 transition-all shadow-brand"

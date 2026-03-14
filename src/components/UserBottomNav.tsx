@@ -15,6 +15,15 @@ const tabs: TabItem[] = [
   { to: "/profile", icon: User, label: "Profilo" },
 ];
 
+const tourIds: Record<string, string> = {
+  "/": "nav-home",
+  "/expiry": "nav-expiry",
+  "/plan": "nav-plan",
+  "/meals": "nav-meals",
+  "/progress": "nav-progress",
+  "/profile": "nav-profile",
+};
+
 const UserBottomNav = () => {
   const location = useLocation();
   const { user } = useAuth();
@@ -59,6 +68,7 @@ const UserBottomNav = () => {
             <NavLink
               key={to}
               to={to}
+              data-tour={tourIds[to]}
               className="flex flex-col items-center gap-0.5 px-1 py-1 relative"
             >
               <div className="relative flex items-center justify-center">

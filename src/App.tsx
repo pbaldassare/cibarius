@@ -122,6 +122,7 @@ import NutritionistPublicPage from "./pages/NutritionistPublicPage";
 import NotFound from "./pages/NotFound";
 import PwaInstallBanner from "./components/PwaInstallBanner";
 import { PwaInstallProvider } from "./hooks/usePwaInstall";
+import { TourProvider } from "./components/AppTourContext";
 
 const queryClient = new QueryClient();
 
@@ -132,6 +133,7 @@ const RG = ({ roles, children }: { roles: string[]; children: React.ReactNode })
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <PwaInstallProvider>
+    <TourProvider>
     <TooltipProvider>
       <Toaster />
       <Sonner />
@@ -269,6 +271,7 @@ const App = () => (
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
+    </TourProvider>
     </PwaInstallProvider>
   </QueryClientProvider>
 );
