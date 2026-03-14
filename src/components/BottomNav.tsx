@@ -11,15 +11,16 @@ interface TabItem {
   to: string;
   icon: LucideIcon;
   label: string;
+  tourId?: string;
 }
 
 const tabsByRole: Record<string, TabItem[]> = {
   user: [
-    { to: "/", icon: Home, label: "Home" },
-    { to: "/expiry", icon: Clock, label: "Scadenze" },
-    { to: "/diet", icon: ClipboardList, label: "Piano" },
-    { to: "/meals", icon: UtensilsCrossed, label: "Pasti" },
-    { to: "/profile", icon: User, label: "Profilo" },
+    { to: "/", icon: Home, label: "Home", tourId: "nav-home" },
+    { to: "/expiry", icon: Clock, label: "Scadenze", tourId: "nav-expiry" },
+    { to: "/diet", icon: ClipboardList, label: "Piano", tourId: "nav-plan" },
+    { to: "/meals", icon: UtensilsCrossed, label: "Pasti", tourId: "nav-meals" },
+    { to: "/profile", icon: User, label: "Profilo", tourId: "nav-profile" },
   ],
   restaurant_owner: [
     { to: "/restaurant", icon: LayoutDashboard, label: "Dashboard" },
@@ -29,11 +30,11 @@ const tabsByRole: Record<string, TabItem[]> = {
     { to: "/restaurant/invoices", icon: FileText, label: "Bolle" },
   ],
   professional: [
-    { to: "/pro", icon: LayoutDashboard, label: "Dashboard" },
-    { to: "/pro/clients", icon: Users, label: "Clienti" },
-    { to: "/pro/reports", icon: FileText, label: "Report" },
-    { to: "/pro/notes", icon: MessageSquare, label: "Note" },
-    { to: "/pro/profile", icon: User, label: "Profilo" },
+    { to: "/pro", icon: LayoutDashboard, label: "Dashboard", tourId: "pro-nav-dashboard" },
+    { to: "/pro/clients", icon: Users, label: "Clienti", tourId: "pro-nav-clients" },
+    { to: "/pro/reports", icon: FileText, label: "Report", tourId: "pro-nav-reports" },
+    { to: "/pro/notes", icon: MessageSquare, label: "Note", tourId: "pro-nav-notes" },
+    { to: "/pro/profile", icon: User, label: "Profilo", tourId: "pro-nav-profile" },
   ],
   supplier: [
     { to: "/supplier", icon: LayoutDashboard, label: "Dashboard" },
@@ -64,12 +65,13 @@ const BottomNav = () => {
       }}
     >
       <div className="mx-auto flex h-[72px] max-w-lg items-center justify-around px-2">
-        {tabs.map(({ to, icon: Icon, label }) => {
+        {tabs.map(({ to, icon: Icon, label, tourId }) => {
           const isActive = location.pathname === to;
           return (
             <NavLink
               key={to}
               to={to}
+              data-tour={tourId}
               className="flex flex-col items-center gap-0.5 px-3 py-1.5 relative"
             >
               <div
@@ -90,7 +92,6 @@ const BottomNav = () => {
               >
                 {label}
               </span>
-              {/* Active underline */}
               {isActive && (
                 <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 h-[2px] w-5 rounded-full bg-white" />
               )}

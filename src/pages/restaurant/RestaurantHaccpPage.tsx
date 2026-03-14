@@ -220,7 +220,7 @@ const RestaurantHaccpPage = () => {
   const needsTemp = completeDialog ? isTemperatureTask(completeDialog.task.category) : false;
 
   return (
-    <div className="space-y-4 p-4">
+    <div className="space-y-4 p-4" data-tour="rest-haccp-page">
       <MobileHeader title="HACCP" />
 
       {/* Week navigation */}

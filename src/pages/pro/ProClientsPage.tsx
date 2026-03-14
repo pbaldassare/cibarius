@@ -132,7 +132,7 @@ const ProClientsPage = () => {
   const activeInvites = invites.filter((i) => i.status === "active");
 
   return (
-    <div>
+    <div data-tour="pro-clients-page">
       <MobileHeader title="Clienti" />
       <main className="px-4 py-5 space-y-4">
         {/* Link requests from users */}

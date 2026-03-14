@@ -207,7 +207,7 @@ const RestaurantPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" data-tour="rest-greeting">
       <MobileHeader title={restaurant?.name ?? "Dashboard"} />
       <main className="space-y-3 px-4 pt-1 pb-28">
         <RestaurantSubscriptionBanner />
@@ -231,7 +231,7 @@ const RestaurantPage = () => {
         </div>
 
         {/* ═══ HACCP TODAY ═══ */}
-        <div className="rounded-[14px] bg-card shadow-card p-3.5">
+        <div className="rounded-[14px] bg-card shadow-card p-3.5" data-tour="rest-haccp-card">
           <div className="flex items-center justify-between mb-2.5">
             <h3 className="text-[15px] font-semibold text-foreground flex items-center gap-2">
               <ClipboardCheck className="h-4 w-4 text-primary" />
@@ -336,7 +336,7 @@ const RestaurantPage = () => {
         </div>
 
         {/* ═══ Expiry counters ═══ */}
-        <div className="rounded-[14px] bg-card shadow-card p-3.5">
+        <div className="rounded-[14px] bg-card shadow-card p-3.5" data-tour="rest-expiry-card">
           <div className="flex items-center justify-between mb-2.5">
             <h3 className="text-[15px] font-semibold text-foreground">Scadenze</h3>
             <button onClick={() => navigate("/restaurant/products")} className="text-[12px] font-medium text-primary flex items-center gap-0.5">
@@ -368,7 +368,7 @@ const RestaurantPage = () => {
 
         {/* ═══ Quick rows: Produzione + Bolle ═══ */}
         <div className="grid grid-cols-2 gap-2">
-          <div className="rounded-[14px] bg-card shadow-card p-3.5">
+          <div className="rounded-[14px] bg-card shadow-card p-3.5" data-tour="rest-production-card">
             <div className="flex items-center gap-2 mb-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-[8px] bg-accent/10">
                 <ChefHat className="h-4 w-4 text-accent" />
@@ -384,7 +384,7 @@ const RestaurantPage = () => {
               <Plus className="h-3.5 w-3.5" /> Preparazione
             </button>
           </div>
-          <div className="rounded-[14px] bg-card shadow-card p-3.5">
+          <div className="rounded-[14px] bg-card shadow-card p-3.5" data-tour="rest-invoices-card">
             <div className="flex items-center gap-2 mb-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-[8px] bg-success/10">
                 <FileText className="h-4 w-4 text-success" />

@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { useTour } from "@/components/AppTourContext";
+import { useTour, TourRole } from "@/components/AppTourContext";
 import cibariusLogo from "@/assets/cibarius-logo.png";
 import MobileHeader from "@/components/MobileHeader";
 import { useAuth } from "@/hooks/useAuth";
@@ -584,7 +584,7 @@ const ProfiloPage = () => {
         <button
           onClick={() => {
             localStorage.removeItem("cibarius_tour_done");
-            startTour();
+            startTour((role as TourRole) ?? "user");
           }}
           className="flex w-full items-center gap-3 rounded-[18px] border border-border bg-card px-4 py-3.5 text-left transition-colors active:bg-secondary"
         >

@@ -40,19 +40,19 @@ const ProPage = () => {
   }
 
   return (
-    <div>
+    <div data-tour="pro-greeting">
       <MobileHeader title="Dashboard Pro" />
       <main className="px-4 py-5 space-y-4">
         {/* Stats */}
         <div className="grid grid-cols-2 gap-3">
-          <Card className="border-2 border-accent cursor-pointer" onClick={() => navigate("/pro/clients")}>
+          <Card className="border-2 border-accent cursor-pointer" data-tour="pro-clients-card" onClick={() => navigate("/pro/clients")}>
             <CardContent className="flex flex-col items-center py-5">
               <Users className="h-8 w-8 text-primary mb-2" />
               <span className="text-2xl font-bold text-foreground">{clientCount}</span>
               <span className="text-xs text-muted-foreground">Clienti attivi</span>
             </CardContent>
           </Card>
-          <Card className="border-2 border-accent cursor-pointer" onClick={() => navigate("/pro/weekly-report")}>
+          <Card className="border-2 border-accent cursor-pointer" data-tour="pro-report-card" onClick={() => navigate("/pro/weekly-report")}>
             <CardContent className="flex flex-col items-center py-5">
               <BarChart3 className="h-8 w-8 text-primary mb-2" />
               <span className="text-2xl font-bold text-foreground">📊</span>
@@ -62,7 +62,7 @@ const ProPage = () => {
         </div>
 
         {/* Quick actions */}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-2" data-tour="pro-quick-actions">
           <Button className="gap-2" onClick={() => navigate("/pro/clients")}>
             <UserPlus className="h-4 w-4" /> Gestisci clienti
           </Button>
@@ -78,7 +78,7 @@ const ProPage = () => {
         </div>
 
         {/* Recent notes */}
-        <Card className="border-2 border-accent">
+        <Card className="border-2 border-accent" data-tour="pro-notes-card">
           <CardHeader className="flex flex-row items-center gap-3 pb-2">
             <MessageSquare className="h-5 w-5 text-primary" />
             <CardTitle className="text-base">Note recenti</CardTitle>

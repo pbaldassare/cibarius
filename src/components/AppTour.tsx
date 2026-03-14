@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useTour, TOUR_STEPS } from "./AppTourContext";
+import { useTour } from "./AppTourContext";
 import { X, Pause, Play } from "lucide-react";
 
 const AUTO_ADVANCE_MIN = 2500;
@@ -8,7 +8,7 @@ const MS_PER_CHAR = 25;
 
 const AppTour = () => {
   const {
-    isActive, currentStep, nextStep, stopTour, totalSteps,
+    isActive, currentStep, steps, nextStep, stopTour, totalSteps,
     openAddFood, closeAddFood,
   } = useTour();
   const navigate = useNavigate();
@@ -17,7 +17,7 @@ const AppTour = () => {
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
   const [showTooltip, setShowTooltip] = useState(false);
   const [paused, setPaused] = useState(false);
-  const [countdown, setCountdown] = useState(0); // 0-1 progress
+  const [countdown, setCountdown] = useState(0);
   const rafRef = useRef<number>(0);
   const retryRef = useRef<number>(0);
   const autoTimerRef = useRef<number>(0);
@@ -26,13 +26,12 @@ const AppTour = () => {
   const durationRef = useRef(0);
   const elapsedBeforePauseRef = useRef(0);
 
-  const step = TOUR_STEPS[currentStep];
+  const step = steps[currentStep];
 
   const stepDuration = step
     ? step.duration || Math.max(AUTO_ADVANCE_MIN, step.description.length * MS_PER_CHAR)
     : AUTO_ADVANCE_MIN;
 
-  // Countdown animation
   const startCountdown = useCallback((remaining: number, total: number) => {
     const elapsed = total - remaining;
     startTimeRef.current = performance.now() - elapsed;
@@ -50,7 +49,6 @@ const AppTour = () => {
     countdownRafRef.current = requestAnimationFrame(tick);
   }, []);
 
-  // Auto-advance logic
   const startAutoAdvance = useCallback(() => {
     clearTimeout(autoTimerRef.current);
     elapsedBeforePauseRef.current = 0;
@@ -62,19 +60,16 @@ const AppTour = () => {
     }, stepDuration);
   }, [stepDuration, nextStep, startCountdown]);
 
-  // Pause/resume
   const togglePause = useCallback(() => {
     setPaused(prev => {
       const wasPaused = prev;
       if (wasPaused) {
-        // Resume
         const remaining = durationRef.current - elapsedBeforePauseRef.current;
         startCountdown(remaining, durationRef.current);
         autoTimerRef.current = window.setTimeout(() => {
           nextStep();
         }, remaining);
       } else {
-        // Pause
         clearTimeout(autoTimerRef.current);
         cancelAnimationFrame(countdownRafRef.current);
         elapsedBeforePauseRef.current = performance.now() - startTimeRef.current;
@@ -114,7 +109,6 @@ const AppTour = () => {
     }, 500);
   }, [step, nextStep]);
 
-  // Execute action then find+highlight
   const executeStepAction = useCallback(() => {
     if (!step) return;
 
@@ -164,7 +158,6 @@ const AppTour = () => {
     }
   }, [step, location.pathname, navigate, findAndHighlight, openAddFood, closeAddFood]);
 
-  // Start auto-advance when tooltip becomes visible
   useEffect(() => {
     if (showTooltip && isActive && !paused) {
       startAutoAdvance();
@@ -188,7 +181,6 @@ const AppTour = () => {
     };
   }, [isActive, currentStep, step, executeStepAction]);
 
-  // Handle window resize
   useEffect(() => {
     if (!isActive) return;
     const handler = () => findAndHighlight();
@@ -198,7 +190,6 @@ const AppTour = () => {
 
   if (!isActive || !step) return null;
 
-  // Calculate tooltip position
   const tooltipStyle: React.CSSProperties = {};
   let tooltipPosition: "top" | "bottom" = "bottom";
 
@@ -222,7 +213,6 @@ const AppTour = () => {
 
   return (
     <div className="fixed inset-0 z-[9999]" style={{ pointerEvents: "auto" }}>
-      {/* Overlay with spotlight cutout */}
       <svg className="absolute inset-0 w-full h-full" style={{ pointerEvents: "none" }}>
         <defs>
           <mask id="tour-mask">
@@ -249,7 +239,6 @@ const AppTour = () => {
         />
       </svg>
 
-      {/* Spotlight border glow */}
       {targetRect && (
         <div
           className="absolute rounded-2xl border-2 border-primary transition-all duration-500 ease-out"
@@ -264,7 +253,6 @@ const AppTour = () => {
         />
       )}
 
-      {/* Animated cursor */}
       <div
         className="absolute z-[10001] transition-all duration-500 ease-out"
         style={{
@@ -279,14 +267,12 @@ const AppTour = () => {
         </svg>
       </div>
 
-      {/* Tooltip */}
       {showTooltip && targetRect && (
         <div
           className="absolute z-[10002] animate-in fade-in slide-in-from-bottom-2 duration-300"
           style={{ ...tooltipStyle, pointerEvents: "auto" }}
           onClick={togglePause}
         >
-          {/* Arrow */}
           <div
             className={`absolute left-1/2 -translate-x-1/2 w-3 h-3 rotate-45 bg-card ${
               tooltipPosition === "bottom" ? "-top-1.5" : "-bottom-1.5"
@@ -294,7 +280,6 @@ const AppTour = () => {
           />
 
           <div className="relative rounded-2xl bg-card shadow-xl border border-border overflow-hidden">
-            {/* Header with step counter + pause */}
             <div className="px-4 pt-3 pb-0 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-bold text-primary uppercase tracking-wider">
@@ -319,20 +304,16 @@ const AppTour = () => {
               </button>
             </div>
 
-            {/* Content */}
             <div className="px-4 pt-1.5 pb-3">
               <h4 className="text-[15px] font-bold text-foreground leading-snug">{step.title}</h4>
               <p className="text-[12px] text-muted-foreground mt-1 leading-relaxed">{step.description}</p>
             </div>
 
-            {/* Countdown progress bar */}
             <div className="h-1 bg-muted relative overflow-hidden">
-              {/* Step progress (background) */}
               <div
                 className="absolute inset-0 bg-primary/20"
                 style={{ width: `${((currentStep + 1) / totalSteps) * 100}%` }}
               />
-              {/* Countdown bar (foreground, depleting) */}
               <div
                 className="absolute inset-y-0 left-0 bg-primary rounded-r-full"
                 style={{
@@ -342,7 +323,6 @@ const AppTour = () => {
               />
             </div>
 
-            {/* Skip button only */}
             <div className="px-4 py-2 flex items-center justify-center">
               <button
                 onClick={(e) => { e.stopPropagation(); stopTour(); }}

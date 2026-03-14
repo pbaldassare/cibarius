@@ -1,5 +1,9 @@
 import InventoryList from "@/components/InventoryList";
 
-const RestaurantProductsPage = () => <InventoryList mode="restaurant" />;
+const RestaurantProductsPage = () => (
+  <div data-tour="rest-products-page">
+    <InventoryList mode="restaurant" />
+  </div>
+);
 
 export default RestaurantProductsPage;
