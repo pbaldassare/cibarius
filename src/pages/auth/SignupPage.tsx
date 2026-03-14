@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, Navigate, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { getSavedReferralCode, saveReferralCode } from "@/pages/JoinReferralPage";
 import { useAuth } from "@/hooks/useAuth";
@@ -25,6 +25,7 @@ const ACCOUNT_TYPES: { value: AccountType; label: string; desc: string; icon: ty
 const SignupPage = () => {
   const { session, loading } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
   // Check for referral from URL param or localStorage
@@ -161,6 +162,7 @@ const SignupPage = () => {
       title: "Registrazione completata! 🎉",
       description: "Benvenuto in Cibarius! Puoi iniziare subito ad usare l'app.",
     });
+    navigate("/", { replace: true });
   };
 
   return (

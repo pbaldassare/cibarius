@@ -1,16 +1,37 @@
 
 
-## Fix: Redirect automatico dopo la registrazione
+# Piano: Popolare 300 traduzioni + Prompt IA preciso + Logica DB-first
 
-### Problema
-Dopo la registrazione, il toast "Registrazione completata!" appare ma l'utente resta sulla pagina di signup. Manca una chiamata `navigate()` dopo il signup riuscito.
+## Stato attuale
+- `ingredient_translation` ha solo 23 righe (il seed iniziale)
+- L'edge function `analyze-meal-photo` usa un prompt generico e non ha logica "dishes cache first"
 
-### Soluzione
-In `src/pages/auth/SignupPage.tsx`, dopo il toast di successo (riga 163), aggiungere una navigazione verso la home page appropriata per il ruolo dell'utente. Dato che il signup crea una sessione immediatamente, il `ProtectedRoute` e `Index.tsx` gestiranno il redirect in base al ruolo.
+## Cosa fare
 
-| File | Modifica |
-|------|----------|
-| `src/pages/auth/SignupPage.tsx` | Dopo il toast di successo, aggiungere `navigate("/", { replace: true })` per portare l'utente in app. Importare `useNavigate` se non già presente. |
+### 1. Inserire ~260 nuove traduzioni in `ingredient_translation`
 
-La pagina Index si occupa già di redirigere verso la dashboard corretta in base al ruolo (admin → /admin, restaurant_owner → /restaurant, ecc.).
+Useremo una migrazione SQL con `INSERT ... ON CONFLICT DO NOTHING` per aggiungere tutte le righe del CSV fornito senza duplicare quelle gia' presenti. La tabella ha `name_it` UNIQUE, quindi i conflitti vengono gestiti automaticamente.
+
+### 2. Aggiornare il prompt IA nell'edge function
+
+Sostituire il `systemPrompt` attuale (generico) con il prompt dettagliato fornito dall'utente, che include:
+- Regole per pizza (base, salsa, mozzarella, olio, extra visibili)
+- Regole per pasta (tipo pasta, condimento, formaggio)
+- Regole per risotto (riso, soffritto, brodo, burro/parmigiano, ingrediente principale)
+- Output JSON obbligatorio con `name_it` e `notes`
+
+### 3. Aggiungere logica DB-first (dishes cache)
+
+Prima di chiamare l'IA, la funzione controllera' se un piatto simile esiste gia' in `dishes` + `dish_ingredients`:
+1. Se trovato → carica ingredienti dalla cache, calcola macro, restituisci subito (NO IA, NO USDA)
+2. Se non trovato → chiama IA vision → arricchisci con USDA → salva in `dishes`/`dish_ingredients` per le prossime volte
+
+Questo richiede una modifica strutturale all'handler principale dell'edge function, aggiungendo un blocco di cache lookup prima della chiamata AI e un blocco di cache write dopo l'analisi.
+
+## File coinvolti
+
+| File | Azione |
+|------|--------|
+| Migrazione SQL | INSERT ~260 righe in `ingredient_translation` |
+| `supabase/functions/analyze-meal-photo/index.ts` | Nuovo prompt + logica dishes cache |
 
