@@ -616,6 +616,7 @@ const AddFoodFlow = ({
     if (!data) {
       data = await lookupBarcode(code);
     }
+    if (data && data.name) {
       // Upsert product by barcode
       const { data: existing, error: selErr } = await supabase
         .from("products").select("id").eq("barcode", code).maybeSingle();
