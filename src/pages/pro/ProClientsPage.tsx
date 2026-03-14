@@ -136,7 +136,7 @@ const ProClientsPage = () => {
       <MobileHeader title="Clienti" />
       <main className="px-4 py-5 space-y-4">
         {/* Link requests from users */}
-        <ProLinkRequests onApproved={loadData} />
+        <div data-tour="pro-link-requests"><ProLinkRequests onApproved={loadData} /></div>
 
         {/* Actions */}
         <div className="flex gap-2">
