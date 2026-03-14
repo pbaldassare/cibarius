@@ -40,7 +40,7 @@ const ProPage = () => {
   }
 
   return (
-    <div>
+    <div data-tour="pro-greeting">
       <MobileHeader title="Dashboard Pro" />
       <main className="px-4 py-5 space-y-4">
         {/* Stats */}
