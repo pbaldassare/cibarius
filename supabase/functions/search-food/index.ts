@@ -1,10 +1,12 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const API_TIMEOUT_MS = 8000; // 8s max per external API call
+const API_TIMEOUT_MS = 8000;
 
 interface NormalizedResult {
   source: "off" | "usda";
@@ -19,19 +21,17 @@ interface NormalizedResult {
   fats_100g: number | null;
 }
 
-/** Fetch with timeout via AbortController */
 async function fetchWithTimeout(url: string, timeoutMs = API_TIMEOUT_MS): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(url, { signal: controller.signal });
-    return res;
+    return await fetch(url, { signal: controller.signal });
   } finally {
     clearTimeout(timer);
   }
 }
 
-// ─── OFF Italian search (it.openfoodfacts.org) ───────
+// ─── OFF Italian search ───────
 async function searchOFF_IT(query: string): Promise<NormalizedResult[]> {
   try {
     const url = `https://it.openfoodfacts.org/api/v2/search?search_terms=${encodeURIComponent(query)}&fields=product_name,product_name_it,brands,code,image_front_url,image_url,nutriments&page_size=10&json=1`;
@@ -39,9 +39,7 @@ async function searchOFF_IT(query: string): Promise<NormalizedResult[]> {
     if (!res.ok) return [];
     const json = await res.json();
     return mapOFFProducts(json.products ?? [], "off_it", query);
-  } catch {
-    return [];
-  }
+  } catch { return []; }
 }
 
 // ─── OFF World search ────────────────────────────────
@@ -52,9 +50,7 @@ async function searchOFF_World(query: string): Promise<NormalizedResult[]> {
     if (!res.ok) return [];
     const json = await res.json();
     return mapOFFProducts(json.products ?? [], "off_world", query);
-  } catch {
-    return [];
-  }
+  } catch { return []; }
 }
 
 function round2(v: number | null | undefined): number | null {
@@ -114,8 +110,41 @@ async function searchUSDA(query: string, apiKey: string): Promise<NormalizedResu
         fats_100g: get(1004),
       };
     });
-  } catch {
-    return [];
+  } catch { return []; }
+}
+
+// ─── Auto-save results to products table (fire-and-forget) ───
+function saveResultsToDB(results: NormalizedResult[]) {
+  try {
+    const sb = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+
+    // Only save results with valid name, calories, and barcode
+    const rows = results
+      .filter(r => r.name && r.calories_100g != null && r.barcode)
+      .map(r => ({
+        name: r.name.slice(0, 255),
+        brand: r.brand,
+        barcode: r.barcode,
+        image_url: r.image_url,
+        calories_100g: r.calories_100g,
+        macros_100g: { p: r.protein_100g ?? 0, c: r.carbs_100g ?? 0, f: r.fats_100g ?? 0 },
+        data_source: r.source === "off" ? "openfoodfacts" : "usda",
+      }));
+
+    if (rows.length === 0) return;
+
+    // Fire-and-forget upsert — don't await
+    sb.from("products")
+      .upsert(rows, { onConflict: "barcode" })
+      .then(({ error }) => {
+        if (error) console.error("Auto-save products error:", error.message);
+        else console.log(`Auto-saved ${rows.length} products to DB`);
+      });
+  } catch (e) {
+    console.error("saveResultsToDB error:", e);
   }
 }
 
@@ -136,7 +165,6 @@ Deno.serve(async (req) => {
     const usdaKey = Deno.env.get("USDA_API_KEY") || "";
     const requestedSources: string[] = sources ?? ["off", "usda"];
 
-    // Run ALL requested sources in parallel
     const promises: Promise<NormalizedResult[]>[] = [];
 
     if (requestedSources.includes("off")) {
@@ -160,7 +188,6 @@ Deno.serve(async (req) => {
 
     const allResults = await Promise.all(promises);
 
-    // Dedup across all sources
     const seen = new Set<string>();
     const results: NormalizedResult[] = [];
     for (const batch of allResults) {
@@ -169,6 +196,9 @@ Deno.serve(async (req) => {
         if (!seen.has(key)) { seen.add(key); results.push(r); }
       }
     }
+
+    // Auto-save to DB (fire-and-forget, doesn't block response)
+    saveResultsToDB(results);
 
     return new Response(JSON.stringify({ results: results.slice(0, 20) }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
