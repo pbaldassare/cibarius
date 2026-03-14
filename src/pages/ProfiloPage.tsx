@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { useTour } from "@/components/AppTourContext";
+import { useTour, TourRole } from "@/components/AppTourContext";
 import cibariusLogo from "@/assets/cibarius-logo.png";
 import MobileHeader from "@/components/MobileHeader";
 import { useAuth } from "@/hooks/useAuth";
