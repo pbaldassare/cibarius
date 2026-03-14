@@ -1448,7 +1448,7 @@ const UserDietPage = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-
+    </div>
   );
 };
 
