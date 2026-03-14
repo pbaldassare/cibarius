@@ -1113,7 +1113,7 @@ const AddFoodFlow = ({
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent side="bottom" className="h-[90vh] rounded-t-3xl px-0 flex flex-col">
           <SheetHeader className="px-4 pb-3 border-b border-border shrink-0">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3" data-tour="add-close-tour">
               <button onClick={goBack} className="p-1 -ml-1 text-muted-foreground">
                 <ArrowLeft className="h-5 w-5" />
               </button>
