@@ -1,37 +1,67 @@
 
 
-# Piano: Popolare 300 traduzioni + Prompt IA preciso + Logica DB-first
+## Cache server-side nell'edge function + contatore AI risparmiate in admin
 
-## Stato attuale
-- `ingredient_translation` ha solo 23 righe (il seed iniziale)
-- L'edge function `analyze-meal-photo` usa un prompt generico e non ha logica "dishes cache first"
+### 1. Tabella `ai_cache` per cache server-side
 
-## Cosa fare
+Creare una nuova tabella `ai_cache` che memorizza i risultati dell'analisi AI per barcode/nome prodotto. Quando l'edge function riceve una richiesta, controlla prima questa tabella prima di chiamare Gemini.
 
-### 1. Inserire ~260 nuove traduzioni in `ingredient_translation`
+```sql
+CREATE TABLE public.ai_cache (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  cache_key text NOT NULL UNIQUE,  -- hash di barcode o nome normalizzato
+  result jsonb NOT NULL,
+  hit_count int DEFAULT 0,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
 
-Useremo una migrazione SQL con `INSERT ... ON CONFLICT DO NOTHING` per aggiungere tutte le righe del CSV fornito senza duplicare quelle gia' presenti. La tabella ha `name_it` UNIQUE, quindi i conflitti vengono gestiti automaticamente.
+-- TTL: 30 giorni, pulizia periodica opzionale
+CREATE INDEX idx_ai_cache_key ON public.ai_cache(cache_key);
+CREATE INDEX idx_ai_cache_updated ON public.ai_cache(updated_at);
+```
 
-### 2. Aggiornare il prompt IA nell'edge function
+RLS: accesso solo da service_role (edge function), nessuna policy pubblica necessaria.
 
-Sostituire il `systemPrompt` attuale (generico) con il prompt dettagliato fornito dall'utente, che include:
-- Regole per pizza (base, salsa, mozzarella, olio, extra visibili)
-- Regole per pasta (tipo pasta, condimento, formaggio)
-- Regole per risotto (riso, soffritto, brodo, burro/parmigiano, ingrediente principale)
-- Output JSON obbligatorio con `name_it` e `notes`
+### 2. Tabella `ai_usage_log` per tracciamento
 
-### 3. Aggiungere logica DB-first (dishes cache)
+Traccia ogni chiamata AI (hit cache vs chiamata reale) per il contatore admin.
 
-Prima di chiamare l'IA, la funzione controllera' se un piatto simile esiste gia' in `dishes` + `dish_ingredients`:
-1. Se trovato → carica ingredienti dalla cache, calcola macro, restituisci subito (NO IA, NO USDA)
-2. Se non trovato → chiama IA vision → arricchisci con USDA → salva in `dishes`/`dish_ingredients` per le prossime volte
+```sql
+CREATE TABLE public.ai_usage_log (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  source text NOT NULL,  -- 'ai_call' | 'server_cache' | 'db_enrichment'
+  function_name text DEFAULT 'analyze-food-photos',
+  created_at timestamptz DEFAULT now()
+);
 
-Questo richiede una modifica strutturale all'handler principale dell'edge function, aggiungendo un blocco di cache lookup prima della chiamata AI e un blocco di cache write dopo l'analisi.
+CREATE INDEX idx_ai_usage_created ON public.ai_usage_log(created_at);
+CREATE INDEX idx_ai_usage_source ON public.ai_usage_log(source);
+```
 
-## File coinvolti
+### 3. Modificare `analyze-food-photos/index.ts`
 
-| File | Azione |
-|------|--------|
-| Migrazione SQL | INSERT ~260 righe in `ingredient_translation` |
-| `supabase/functions/analyze-meal-photo/index.ts` | Nuovo prompt + logica dishes cache |
+Flusso aggiornato:
+1. Ricevi immagini → genera `cache_key` dal contenuto (hash SHA-256 dei base64 delle immagini)
+2. Controlla `ai_cache` per match → se trovato, incrementa `hit_count`, logga `source: 'server_cache'`, restituisci risultato
+3. Se non in cache → chiama Gemini come ora
+4. Dopo risposta AI → salva in `ai_cache` con il `cache_key`
+5. Logga `source: 'ai_call'` nel `ai_usage_log`
+6. Arricchisci con DB come già implementato
+
+Il cache_key sarà un hash SHA-256 delle immagini concatenate (primi 1000 char di ogni base64) per evitare collisioni ma restare performante.
+
+### 4. Contatore nella pagina admin `AdminStatsPage.tsx`
+
+Aggiungere due card:
+- **Chiamate IA totali**: count da `ai_usage_log` dove `source = 'ai_call'`
+- **Chiamate IA risparmiate**: count da `ai_usage_log` dove `source IN ('server_cache', 'db_enrichment')`
+- **Tasso di risparmio**: percentuale risparmiata
+
+### File modificati
+- **Migrazione SQL**: crea `ai_cache` + `ai_usage_log`
+- **`supabase/functions/analyze-food-photos/index.ts`**: cache lookup/write + logging
+- **`src/pages/admin/AdminStatsPage.tsx`**: nuove card con contatori AI
+- **`src/lib/ai-food.ts`**: loggare `db_enrichment` anche dal client (opzionale, o delegare all'edge function)
 
