@@ -133,6 +133,7 @@ const RG = ({ roles, children }: { roles: string[]; children: React.ReactNode })
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <PwaInstallProvider>
+    <TourProvider>
     <TooltipProvider>
       <Toaster />
       <Sonner />
