@@ -1,3 +1,5 @@
+import { supabase } from "@/integrations/supabase/client";
+
 // ─── Types ────────────────────────────────────────────
 export interface OFFProduct {
   product_name?: string;
@@ -108,6 +110,19 @@ export const lookupBarcode = async (barcode: string): Promise<ProductData | null
       serving_size_g: p.serving_quantity ? Number(p.serving_quantity) : null,
     };
     setCache(barcode, data);
+
+    // Fire-and-forget: persist to products table for DB-first hits
+    supabase.from("products").upsert({
+      barcode,
+      name: data.name,
+      brand: data.brand,
+      image_url: data.image_url,
+      calories_100g: data.calories_100g,
+      macros_100g: data.macros_100g,
+      serving_size_g: data.serving_size_g,
+      data_source: "openfoodfacts",
+    }, { onConflict: "barcode" }).then(() => {});
+
     return data;
   } catch {
     return null;
