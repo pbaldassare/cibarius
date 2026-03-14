@@ -677,81 +677,22 @@ const UserDietPage = () => {
             </CardContent>
           </Card>
 
-          {/* 2. CERCA UN NUTRIZIONISTA — inline search */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
-              <Search className="h-4 w-4 text-primary" /> Cerca un nutrizionista
-            </h3>
-            <div className="relative">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Cerca per nome, specializzazione o città..."
-                value={coachSearch}
-                onChange={(e) => setCoachSearch(e.target.value)}
-                className="pl-9 h-9 text-sm"
-              />
-            </div>
-            {loadingCoaches ? (
-              <div className="flex justify-center py-6"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-            ) : filteredCoaches.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                {coachSearch.trim() ? "Nessun risultato per la tua ricerca." : "Nessun professionista disponibile al momento."}
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {filteredCoaches.map((coach, idx) => (
-                  <Card key={idx} className="border border-border">
-                    <CardContent className="py-3 flex items-start gap-3">
-                      <Avatar className="h-10 w-10 border border-primary/20">
-                        {coach.photo_url && <AvatarImage src={coach.photo_url} />}
-                        <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
-                          {coach.display_name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-foreground">{coach.display_name}</p>
-                        {coach.specialization && (
-                          <Badge variant="outline" className="text-[9px] mt-0.5">{coach.specialization}</Badge>
-                        )}
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
-                          {coach.city && (
-                            <p className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-                              <MapPin className="h-2.5 w-2.5" /> {coach.city}
-                            </p>
-                          )}
-                          {coach.experience_years != null && (
-                            <p className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-                              <GraduationCap className="h-2.5 w-2.5" /> {coach.experience_years} anni
-                            </p>
-                          )}
-                        </div>
-                        {(coach.works_online || coach.works_in_person) && (
-                          <div className="flex gap-1 mt-1">
-                            {coach.works_online && <Badge variant="secondary" className="text-[8px] px-1.5 py-0 gap-0.5"><Monitor className="h-2.5 w-2.5" /> Online</Badge>}
-                            {coach.works_in_person && <Badge variant="secondary" className="text-[8px] px-1.5 py-0 gap-0.5"><Building2 className="h-2.5 w-2.5" /> Presenza</Badge>}
-                          </div>
-                        )}
-                        {coach.additional_roles && coach.additional_roles.length > 0 && (
-                          <div className="flex flex-wrap gap-0.5 mt-1">
-                            {coach.additional_roles.slice(0, 3).map(r => (
-                              <Badge key={r} variant="outline" className="text-[8px] px-1.5 py-0">{r}</Badge>
-                            ))}
-                            {coach.additional_roles.length > 3 && <span className="text-[8px] text-muted-foreground">+{coach.additional_roles.length - 3}</span>}
-                          </div>
-                        )}
-                        {coach.bio && (
-                          <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2">{coach.bio}</p>
-                        )}
-                      </div>
-                      <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1 shrink-0" onClick={() => navigate(`/invite?pro=${coach.user_id}`)}>
-                        <UserPlus className="h-3 w-3" /> Contatta
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
+          {/* 2. CERCA UN NUTRIZIONISTA — bottone che apre dialog */}
+          <Card
+            className="border border-border cursor-pointer hover:border-primary/40 transition-colors"
+            onClick={() => { setCoachDialogOpen(true); if (coaches.length === 0) loadCoaches(); }}
+          >
+            <CardContent className="py-4 flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <Search className="h-5 w-5 text-primary" />
               </div>
-            )}
-          </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-foreground">Cerca un nutrizionista</p>
+                <p className="text-[11px] text-muted-foreground">Trova il professionista giusto e invia una richiesta di contatto</p>
+              </div>
+              <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+            </CardContent>
+          </Card>
 
           {/* 3. PIANI STANDARD GRATUITI — templates */}
           {systemTemplates.length > 0 && (
