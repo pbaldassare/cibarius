@@ -44,6 +44,57 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_cache: {
+        Row: {
+          cache_key: string
+          created_at: string | null
+          hit_count: number | null
+          id: string
+          result: Json
+          updated_at: string | null
+        }
+        Insert: {
+          cache_key: string
+          created_at?: string | null
+          hit_count?: number | null
+          id?: string
+          result: Json
+          updated_at?: string | null
+        }
+        Update: {
+          cache_key?: string
+          created_at?: string | null
+          hit_count?: number | null
+          id?: string
+          result?: Json
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      ai_usage_log: {
+        Row: {
+          created_at: string | null
+          function_name: string | null
+          id: string
+          source: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          function_name?: string | null
+          id?: string
+          source: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          function_name?: string | null
+          id?: string
+          source?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       allergens: {
         Row: {
           code: string
