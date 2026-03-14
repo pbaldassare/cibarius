@@ -1,37 +1,47 @@
 
 
-# Piano: Popolare 300 traduzioni + Prompt IA preciso + Logica DB-first
+## Piano: Fix hit_count + Auto-save OFF → DB
 
-## Stato attuale
-- `ingredient_translation` ha solo 23 righe (il seed iniziale)
-- L'edge function `analyze-meal-photo` usa un prompt generico e non ha logica "dishes cache first"
+### 1. Fix hit_count nell'edge function (righe 82-90)
 
-## Cosa fare
+Il codice attuale per incrementare `hit_count` su cache hit è ridondante — fa 4 update separati di cui uno è un no-op. Va sostituito con un singolo select+update pulito.
 
-### 1. Inserire ~260 nuove traduzioni in `ingredient_translation`
+**File:** `supabase/functions/analyze-food-photos/index.ts` (righe 82-90)
 
-Useremo una migrazione SQL con `INSERT ... ON CONFLICT DO NOTHING` per aggiungere tutte le righe del CSV fornito senza duplicare quelle gia' presenti. La tabella ha `name_it` UNIQUE, quindi i conflitti vengono gestiti automaticamente.
+Sostituire con:
+```typescript
+const { data: cacheRow } = await sb.from("ai_cache").select("hit_count").eq("cache_key", cacheKey).single();
+await sb.from("ai_cache").update({ 
+  hit_count: (cacheRow?.hit_count ?? 0) + 1, 
+  updated_at: new Date().toISOString() 
+}).eq("cache_key", cacheKey);
+```
 
-### 2. Aggiornare il prompt IA nell'edge function
+### 2. Auto-save prodotti OFF nel DB
 
-Sostituire il `systemPrompt` attuale (generico) con il prompt dettagliato fornito dall'utente, che include:
-- Regole per pizza (base, salsa, mozzarella, olio, extra visibili)
-- Regole per pasta (tipo pasta, condimento, formaggio)
-- Regole per risotto (riso, soffritto, brodo, burro/parmigiano, ingrediente principale)
-- Output JSON obbligatorio con `name_it` e `notes`
+Quando `lookupBarcode()` in `src/lib/barcode.ts` recupera dati da OpenFoodFacts, fare un upsert nella tabella `products` così il dato diventa disponibile a tutti gli utenti futuri (DB-first hit).
 
-### 3. Aggiungere logica DB-first (dishes cache)
+**File:** `src/lib/barcode.ts`
+- Importare `supabase` client
+- Dopo riga 110 (`setCache(barcode, data)`), aggiungere upsert asincrono (fire-and-forget) su `products`:
 
-Prima di chiamare l'IA, la funzione controllera' se un piatto simile esiste gia' in `dishes` + `dish_ingredients`:
-1. Se trovato → carica ingredienti dalla cache, calcola macro, restituisci subito (NO IA, NO USDA)
-2. Se non trovato → chiama IA vision → arricchisci con USDA → salva in `dishes`/`dish_ingredients` per le prossime volte
+```typescript
+supabase.from("products").upsert({
+  barcode,
+  name: data.name,
+  brand: data.brand,
+  image_url: data.image_url,
+  calories_100g: data.calories_100g,
+  macros_100g: data.macros_100g,
+  serving_size_g: data.serving_size_g,
+  data_source: "openfoodfacts",
+}, { onConflict: "barcode" }).then(() => {});
+```
 
-Questo richiede una modifica strutturale all'handler principale dell'edge function, aggiungendo un blocco di cache lookup prima della chiamata AI e un blocco di cache write dopo l'analisi.
+### File coinvolti
 
-## File coinvolti
-
-| File | Azione |
-|------|--------|
-| Migrazione SQL | INSERT ~260 righe in `ingredient_translation` |
-| `supabase/functions/analyze-meal-photo/index.ts` | Nuovo prompt + logica dishes cache |
+| File | Modifica |
+|------|----------|
+| `supabase/functions/analyze-food-photos/index.ts` | Fix hit_count (righe 82-90) |
+| `src/lib/barcode.ts` | Auto-save OFF → products table |
 
