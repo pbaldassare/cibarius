@@ -1051,6 +1051,11 @@ const UserDietPage = () => {
                   <UserCheck className="h-3 w-3" /> Collegato
                 </Badge>
               </div>
+              <div className="mt-3 pt-3 border-t border-border/50 flex justify-end">
+                <Button variant="ghost" size="sm" className="text-destructive h-8 px-2 text-xs gap-1.5" onClick={() => setConfirmDeactivate(true)}>
+                  <X className="h-3.5 w-3.5" /> Disattiva piano
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}
