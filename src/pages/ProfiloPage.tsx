@@ -679,6 +679,83 @@ const ProfiloPage = () => {
           ))}
         </div>
 
+        {/* ═══ Condividi Cibarius ═══ */}
+        <div className="rounded-[18px] overflow-hidden border border-border bg-gradient-to-br from-primary/10 via-card to-primary/5">
+          <div className="px-4 pt-4 pb-2">
+            <div className="flex items-center gap-2 mb-1">
+              <Share2 size={18} className="text-primary" />
+              <h3 className="text-[15px] font-semibold text-foreground">Condividi Cibarius</h3>
+            </div>
+            <p className="text-[13px] text-muted-foreground mb-3">
+              Invita amici e colleghi a provare Cibarius! Condividi il link dell'app. 🍽️
+            </p>
+            <div className="flex items-center gap-2 mb-3 rounded-xl bg-background/80 border border-border px-3 py-2.5">
+              <span className="flex-1 text-[13px] text-foreground truncate select-all">simple-blue-frame.lovable.app</span>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2 shrink-0"
+                onClick={() => {
+                  navigator.clipboard.writeText("https://simple-blue-frame.lovable.app");
+                  toast({ title: "Link copiato!" });
+                }}
+              >
+                <Copy size={14} />
+              </Button>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap pb-3">
+              {typeof navigator.share === "function" && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 text-[13px]"
+                  onClick={() => {
+                    navigator.share({
+                      title: "Cibarius",
+                      text: "Prova Cibarius! Gestisci dispensa, pasti e ricette in modo intelligente 🍽️",
+                      url: "https://simple-blue-frame.lovable.app",
+                    }).catch(() => {});
+                  }}
+                >
+                  <Share2 size={14} /> Condividi
+                </Button>
+              )}
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 text-[13px]"
+                onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent("Prova Cibarius! Gestisci dispensa, pasti e ricette in modo intelligente 🍽️ https://simple-blue-frame.lovable.app")}`, "_blank")}
+              >
+                <MessageCircleMore size={14} /> WhatsApp
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 text-[13px]"
+                onClick={() => window.open(`https://t.me/share/url?url=${encodeURIComponent("https://simple-blue-frame.lovable.app")}&text=${encodeURIComponent("Prova Cibarius! Gestisci dispensa, pasti e ricette in modo intelligente 🍽️")}`, "_blank")}
+              >
+                Telegram
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 text-[13px]"
+                onClick={() => window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent("https://simple-blue-frame.lovable.app")}&text=${encodeURIComponent("Prova Cibarius! Gestisci dispensa, pasti e ricette in modo intelligente 🍽️")}`, "_blank")}
+              >
+                X
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 text-[13px]"
+                onClick={() => window.open(`mailto:?subject=${encodeURIComponent("Prova Cibarius!")}&body=${encodeURIComponent("Ciao! Prova Cibarius, l'app per gestire dispensa, pasti e ricette in modo intelligente 🍽️\n\nhttps://simple-blue-frame.lovable.app")}`, "_blank")}
+              >
+                Email
+              </Button>
+            </div>
+          </div>
+        </div>
+
         {/* ═══ Rivedi tour ═══ */}
         <button
           onClick={() => {
