@@ -320,7 +320,7 @@ const RestaurantPage = () => {
         </div>
 
         {/* ═══ Quick Actions ═══ */}
-        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide" data-tour="rest-quick-actions">
           {QUICK_ACTIONS.map(({ label, icon: Icon, to, color, bg }) => (
             <button
               key={label}

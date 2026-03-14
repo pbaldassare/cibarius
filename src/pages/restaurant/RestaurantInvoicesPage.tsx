@@ -192,7 +192,7 @@ const RestaurantInvoicesPage = () => {
   const ed = detailDoc?.extracted_data;
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "#F5F7FA" }}>
+    <div className="min-h-screen" style={{ backgroundColor: "#F5F7FA" }} data-tour="rest-invoices-page">
       <MobileHeader title="Bolle e Documenti" showBack />
       <main className="px-4 py-4 pb-28 space-y-3">
         <Button onClick={() => setUploadOpen(true)} className="w-full">

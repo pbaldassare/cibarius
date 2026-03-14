@@ -139,7 +139,7 @@ const ProClientsPage = () => {
         <div data-tour="pro-link-requests"><ProLinkRequests onApproved={loadData} /></div>
 
         {/* Actions */}
-        <div className="flex gap-2">
+        <div className="flex gap-2" data-tour="pro-generate-invite">
           <Button className="flex-1 gap-2" onClick={generateInvite} disabled={creating}>
             {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
             Genera invito
