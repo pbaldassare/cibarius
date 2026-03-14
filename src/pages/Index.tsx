@@ -643,7 +643,7 @@ const Index = () => {
         </section>
 
         {/* ═══ 5 — RICETTE ANTI-SPRECO ═══ */}
-        <section className="space-y-2.5">
+        <section className="space-y-2.5" data-tour="home-recipes">
           <SectionHeader title="🍳 Ricette anti-spreco" action="Vedi tutte" onAction={() => navigate("/anti-waste")} />
           <div className="grid grid-cols-1 gap-2">
             {(() => {
