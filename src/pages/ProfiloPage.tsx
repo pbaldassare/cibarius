@@ -686,6 +686,19 @@ const ProfiloPage = () => {
           ))}
         </div>
 
+        {/* ═══ Rivedi tour ═══ */}
+        <button
+          onClick={() => {
+            localStorage.removeItem("cibarius_tour_done");
+            startTour();
+          }}
+          className="flex w-full items-center gap-3 rounded-[18px] border border-border bg-card px-4 py-3.5 text-left transition-colors active:bg-secondary"
+        >
+          <Map size={20} className="text-primary shrink-0" />
+          <span className="flex-1 text-[15px] font-medium text-foreground">Rivedi il tour dell'app</span>
+          <ChevronRight size={16} className="text-muted-foreground" />
+        </button>
+
         <button
           onClick={() => setDeleteOpen(true)}
           className="flex w-full items-center justify-center gap-2 rounded-[18px] border border-destructive/20 py-3.5 text-sm font-medium text-destructive/70 transition-colors active:bg-destructive/5"
