@@ -1155,32 +1155,27 @@ const AddFoodFlow = ({
 
                 <p className="text-sm font-semibold" style={{ color: "#111827" }}>Come vuoi aggiungere?</p>
                 <div className="grid grid-cols-1 gap-2">
-                  {/* Foto AI (first, recommended) */}
+                  {/* Scansiona barcode (first, recommended) */}
                   <button
-                    data-tour="add-photo-ai"
+                    data-tour="add-scan"
                     onClick={() => {
                       if (context === "meal" && !preselectedMealType && !selectedMealType) {
                         toast({ variant: "destructive", title: "Seleziona prima il tipo di pasto" });
                         return;
                       }
-                      if (context === "meal") {
-                        onOpenChange(false);
-                        navigate("/meals/photo");
-                        return;
-                      }
-                      selectMethod("photo_ai");
+                      selectMethod("scan");
                     }}
                     className="flex items-center gap-3 rounded-2xl border-2 border-primary/30 bg-primary/5 p-4 text-left active:scale-[0.98] transition-transform"
                   >
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/20">
-                      <Sparkles className="h-5 w-5 text-primary" />
+                      <ScanLine className="h-5 w-5 text-primary" />
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-bold" style={{ color: "#111827" }}>📸 Foto AI</p>
+                        <p className="text-sm font-bold" style={{ color: "#111827" }}>📷 Scansiona barcode</p>
                         <Badge className="text-[9px] bg-primary/20 text-primary border-0">consigliato</Badge>
                       </div>
-                      <p className="text-xs" style={{ color: "#4B5563" }}>Scatta 1-5 foto e l'AI legge tutto</p>
+                      <p className="text-xs" style={{ color: "#4B5563" }}>Inquadra il codice a barre sulla confezione. Lo trovi di solito sul retro o sul fondo del prodotto.</p>
                     </div>
                   </button>
 
@@ -1199,7 +1194,7 @@ const AddFoodFlow = ({
                         </div>
                         <div>
                           <p className="text-sm font-bold" style={{ color: "#111827" }}>📋 Foto scontrino</p>
-                          <p className="text-xs" style={{ color: "#4B5563" }}>Fotografa lo scontrino cartaceo</p>
+                          <p className="text-xs" style={{ color: "#4B5563" }}>Fotografa lo scontrino della spesa per aggiungere tutti i prodotti insieme</p>
                         </div>
                       </button>
                       <div className="border-t border-border" />
@@ -1212,38 +1207,79 @@ const AddFoodFlow = ({
                         </div>
                         <div>
                           <p className="text-sm font-bold" style={{ color: "#111827" }}>📱 QR Scontrino</p>
-                          <p className="text-xs" style={{ color: "#4B5563" }}>Scansiona il QR code dello scontrino</p>
+                          <p className="text-xs" style={{ color: "#4B5563" }}>Inquadra il QR code stampato sullo scontrino</p>
                         </div>
                       </button>
                     </div>
                   )}
 
-                  {[
-                    { m: "scan" as Method, icon: ScanLine, label: "Scansiona barcode", desc: "Usa la fotocamera", tourId: "add-scan" },
-                    { m: "search" as Method, icon: Search, label: "Cerca prodotto", desc: "Cerca nel database", tourId: "add-search" },
-                    { m: "manual" as Method, icon: Keyboard, label: "Inserisci manualmente", desc: "Scrivi nome e valori", tourId: "add-manual" },
-                  ].map(({ m, icon: Icon, label, desc, tourId }) => (
-                    <button
-                      key={m}
-                      data-tour={tourId}
-                      onClick={() => {
-                        if (context === "meal" && !preselectedMealType && !selectedMealType) {
-                          toast({ variant: "destructive", title: "Seleziona prima il tipo di pasto" });
-                          return;
-                        }
-                        selectMethod(m);
-                      }}
-                      className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 text-left active:scale-[0.98] transition-transform"
-                    >
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-                        <Icon className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold" style={{ color: "#111827" }}>{label}</p>
-                        <p className="text-xs" style={{ color: "#4B5563" }}>{desc}</p>
-                      </div>
-                    </button>
-                  ))}
+                  {/* Foto AI */}
+                  <button
+                    data-tour="add-photo-ai"
+                    onClick={() => {
+                      if (context === "meal" && !preselectedMealType && !selectedMealType) {
+                        toast({ variant: "destructive", title: "Seleziona prima il tipo di pasto" });
+                        return;
+                      }
+                      if (context === "meal") {
+                        onOpenChange(false);
+                        navigate("/meals/photo");
+                        return;
+                      }
+                      selectMethod("photo_ai");
+                    }}
+                    className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 text-left active:scale-[0.98] transition-transform"
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                      <Sparkles className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold" style={{ color: "#111827" }}>📸 Foto AI</p>
+                      <p className="text-xs" style={{ color: "#4B5563" }}>Scatta foto del prodotto (fronte, retro, scadenza) e l'AI riconosce tutto automaticamente</p>
+                    </div>
+                  </button>
+
+                  {/* Cerca prodotto */}
+                  <button
+                    data-tour="add-search"
+                    onClick={() => {
+                      if (context === "meal" && !preselectedMealType && !selectedMealType) {
+                        toast({ variant: "destructive", title: "Seleziona prima il tipo di pasto" });
+                        return;
+                      }
+                      selectMethod("search");
+                    }}
+                    className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 text-left active:scale-[0.98] transition-transform"
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                      <Search className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold" style={{ color: "#111827" }}>🔍 Cerca prodotto</p>
+                      <p className="text-xs" style={{ color: "#4B5563" }}>Scrivi il nome del prodotto per cercarlo nel nostro archivio</p>
+                    </div>
+                  </button>
+
+                  {/* Inserisci manualmente */}
+                  <button
+                    data-tour="add-manual"
+                    onClick={() => {
+                      if (context === "meal" && !preselectedMealType && !selectedMealType) {
+                        toast({ variant: "destructive", title: "Seleziona prima il tipo di pasto" });
+                        return;
+                      }
+                      selectMethod("manual");
+                    }}
+                    className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4 text-left active:scale-[0.98] transition-transform"
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                      <Keyboard className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold" style={{ color: "#111827" }}>✏️ Inserisci manualmente</p>
+                      <p className="text-xs" style={{ color: "#4B5563" }}>Inserisci a mano nome, quantità e valori nutrizionali</p>
+                    </div>
+                  </button>
 
                   {/* Ricette dal piano – only for meal context with active plan */}
                   {context === "meal" && planRecipes.length > 0 && (
@@ -1272,7 +1308,6 @@ const AddFoodFlow = ({
                     <button
                       onClick={() => {
                         onOpenChange(false);
-                        // Navigate to preparations page (the FAB there opens the creation form)
                         navigate(defaultRestaurantId ? "/restaurant/preparations" : "/preparations");
                       }}
                       className="flex items-center gap-3 rounded-2xl border border-dashed border-[#7C3AED]/30 bg-[#EDE9FE]/30 p-4 text-left active:scale-[0.98] transition-transform"
