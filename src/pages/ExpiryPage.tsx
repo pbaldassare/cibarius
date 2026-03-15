@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import MobileHeader from "@/components/MobileHeader";
@@ -69,7 +69,8 @@ const ExpiryPage = () => {
   const { toast } = useToast();
   const [items, setItems] = useState<ExpiryItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<string>("expired");
+  const [activeTab, setActiveTab] = useState<string>("expiring");
+  const initialTabSet = useRef(false);
   const [storageFilter, setStorageFilter] = useState("all");
   const [actionSheet, setActionSheet] = useState<ExpiryItem | null>(null);
   const [addFoodOpen, setAddFoodOpen] = useState(false);
@@ -164,6 +165,12 @@ const ExpiryPage = () => {
     items.forEach((i) => { const s = getStatus(i.expiry_date); if (s in c) c[s]++; });
     return c;
   }, [items]);
+
+  useEffect(() => {
+    if (initialTabSet.current || loading) return;
+    initialTabSet.current = true;
+    setActiveTab(tabCounts.expired > 0 ? "expired" : "expiring");
+  }, [tabCounts, loading]);
 
   const handleChangeStorage = async (item: ExpiryItem, newStorage: string) => {
     if (item.storage_type === newStorage) return;
