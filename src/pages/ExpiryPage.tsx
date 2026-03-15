@@ -166,6 +166,12 @@ const ExpiryPage = () => {
     return c;
   }, [items]);
 
+  useEffect(() => {
+    if (initialTabSet.current || loading) return;
+    initialTabSet.current = true;
+    setActiveTab(tabCounts.expired > 0 ? "expired" : "expiring");
+  }, [tabCounts, loading]);
+
   const handleChangeStorage = async (item: ExpiryItem, newStorage: string) => {
     if (item.storage_type === newStorage) return;
     await supabase.from("inventory_items").update({ storage_type: newStorage }).eq("id", item.id);
