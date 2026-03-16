@@ -607,7 +607,9 @@ const AddFoodFlow = ({
     setMacros100g(p.macros_100g as any);
     setServingSizeG(p.serving_size_g);
     setBarcode(bc || null);
-    setQuantity(100);
+    // Use default portion from ingredients if available
+    const defaultPortion = p.serving_size_g && p.serving_size_g !== 100 ? p.serving_size_g : 100;
+    setQuantity(defaultPortion);
     setUnit("g");
     setStep("summary");
   };
