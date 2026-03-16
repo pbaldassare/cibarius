@@ -456,7 +456,8 @@ const AddFoodFlow = ({
               ? { protein: r.protein_100g, carbs: r.carbs_100g ?? 0, fats: r.fats_100g ?? 0 }
               : null,
           image_url: r.image_url,
-          serving_size_g: null,
+          serving_size_g: r.serving_size_g || null,
+          _serving_label: r.serving_label || null,
           _source: r.source,
           _barcode: r.barcode,
         })) as any
