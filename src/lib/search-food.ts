@@ -82,7 +82,7 @@ async function searchLocal(query: string, requireNutrition = false): Promise<Foo
     productsQuery,
     supabase
       .from("ingredients")
-      .select("id, name, kcal_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g")
+      .select("id, name, kcal_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, default_portion_g, default_portion_label")
       .ilike("name", `%${query}%`)
       .limit(10),
   ]);
