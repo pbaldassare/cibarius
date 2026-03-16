@@ -1418,6 +1418,8 @@ export type Database = {
           carbs_per_100g: number
           category: string | null
           created_at: string | null
+          default_portion_g: number | null
+          default_portion_label: string | null
           fat_per_100g: number
           id: string
           kcal_per_100g: number
@@ -1431,6 +1433,8 @@ export type Database = {
           carbs_per_100g?: number
           category?: string | null
           created_at?: string | null
+          default_portion_g?: number | null
+          default_portion_label?: string | null
           fat_per_100g?: number
           id?: string
           kcal_per_100g?: number
@@ -1444,6 +1448,8 @@ export type Database = {
           carbs_per_100g?: number
           category?: string | null
           created_at?: string | null
+          default_portion_g?: number | null
+          default_portion_label?: string | null
           fat_per_100g?: number
           id?: string
           kcal_per_100g?: number
