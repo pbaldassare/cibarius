@@ -508,9 +508,12 @@ const AddFoodFlow = ({
     const src = (p as any)._source as string | undefined;
     const bc = (p as any)._barcode as string | undefined;
 
-    // If it's from OFF/USDA, upsert into products first
-    let pid = p.id;
-    if (src === "off" || src === "usda") {
+    // If id is not a valid UUID (e.g. "local:pasta integrale" from ingredients table), treat as no product
+    const isValidUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(p.id);
+    let pid = isValidUuid ? p.id : null;
+
+    // If it's from OFF/USDA or a local ingredient without a product record, upsert into products
+    if (src === "off" || src === "usda" || !pid) {
       if (bc) {
         const { data: existing, error: selErr } = await supabase
           .from("products").select("id").eq("barcode", bc).maybeSingle();
