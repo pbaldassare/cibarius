@@ -1,0 +1,173 @@
+
+INSERT INTO public.ingredients (name, name_en, kcal_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, category, source)
+VALUES
+-- Legumi mancanti
+('fagioli bianchi di spagna', 'white kidney beans', 284, 21, 47, 1.2, 'legumi', 'crea'),
+('fagioli rossi', 'red kidney beans', 304, 22.5, 50, 1.1, 'legumi', 'crea'),
+('fagioli dall''occhio', 'black-eyed peas', 290, 21, 49, 1.3, 'legumi', 'crea'),
+('piselli secchi', 'dried peas', 304, 23, 52, 1.2, 'legumi', 'crea'),
+('piselli freschi', 'fresh peas', 81, 5.4, 14, 0.4, 'legumi', 'crea'),
+('cicerchie', 'grass peas', 320, 26, 48, 1.5, 'legumi', 'crea'),
+('soia gialla', 'soybeans', 407, 37, 23, 18, 'legumi', 'crea'),
+('azuki', 'adzuki beans', 329, 20, 60, 0.5, 'legumi', 'crea'),
+('fave fresche', 'fresh broad beans', 65, 5.4, 8.6, 0.6, 'legumi', 'crea'),
+
+-- Cereali e farine mancanti
+('orzo perlato', 'pearl barley', 320, 10, 64, 1.2, 'cereali', 'crea'),
+('orzo decorticato', 'hulled barley', 325, 12.5, 63, 2.3, 'cereali', 'crea'),
+('grano saraceno', 'buckwheat', 343, 13, 72, 3.4, 'cereali', 'crea'),
+('quinoa', 'quinoa', 368, 14, 64, 6.1, 'cereali', 'crea'),
+('kamut', 'kamut', 337, 14.5, 68, 2.2, 'cereali', 'crea'),
+('sorgo', 'sorghum', 339, 11, 72, 3.3, 'cereali', 'crea'),
+('segale', 'rye', 338, 10, 69, 1.6, 'cereali', 'crea'),
+('semola di grano duro', 'durum wheat semolina', 339, 11.5, 72, 0.5, 'cereali_farine', 'crea'),
+('farina di avena', 'oat flour', 389, 13, 66, 6.9, 'cereali_farine', 'crea'),
+('farina di farro', 'spelt flour', 338, 14, 67, 2.4, 'cereali_farine', 'crea'),
+('farina di grano saraceno', 'buckwheat flour', 335, 12.6, 70, 3.1, 'cereali_farine', 'crea'),
+('amido di riso', 'rice starch', 351, 0.2, 87, 0.1, 'cereali_farine', 'crea'),
+('crusca di frumento', 'wheat bran', 216, 16, 21, 4.3, 'cereali_farine', 'crea'),
+('germe di grano', 'wheat germ', 360, 26, 44, 10, 'cereali_farine', 'crea'),
+
+-- Pasta speciale
+('pasta di farro', 'spelt pasta', 349, 14, 67, 2.5, 'pasta_riso_pane', 'crea'),
+('pasta di legumi', 'legume pasta', 335, 22, 53, 3, 'pasta_riso_pane', 'crea'),
+('pasta di riso', 'rice pasta', 360, 7, 80, 0.6, 'pasta_riso_pane', 'crea'),
+('pasta integrale', 'whole wheat pasta', 338, 13.5, 65, 2.5, 'pasta_riso_pane', 'crea'),
+('riso basmati', 'basmati rice', 350, 8.1, 77, 0.6, 'pasta_riso_pane', 'crea'),
+('riso integrale', 'brown rice', 362, 7.5, 76, 2.7, 'pasta_riso_pane', 'crea'),
+('riso venere', 'black rice', 356, 8, 74, 2.8, 'pasta_riso_pane', 'crea'),
+('pane integrale', 'whole wheat bread', 247, 9, 44, 3.5, 'pasta_riso_pane', 'crea'),
+('pane di segale', 'rye bread', 259, 8.5, 48, 3.3, 'pasta_riso_pane', 'crea'),
+('piadina', 'piadina flatbread', 312, 8.5, 48, 10, 'pasta_riso_pane', 'crea'),
+('tortilla', 'tortilla wrap', 312, 8.5, 50, 8.5, 'pasta_riso_pane', 'crea'),
+('pangrattato', 'breadcrumbs', 395, 11, 72, 5.5, 'pasta_riso_pane', 'crea'),
+
+-- Pesce mancante
+('salmone affumicato', 'smoked salmon', 117, 18, 0, 4.5, 'pesce', 'crea'),
+('tonno in scatola', 'canned tuna', 130, 26, 0, 2.5, 'pesce', 'crea'),
+('sgombro', 'mackerel', 205, 19, 0, 14, 'pesce', 'crea'),
+('sardine', 'sardines', 208, 25, 0, 11, 'pesce', 'crea'),
+('trota', 'trout', 119, 20, 0, 3.5, 'pesce', 'crea'),
+('pesce spada', 'swordfish', 121, 20, 0, 4.1, 'pesce', 'crea'),
+('orata', 'sea bream', 100, 20, 0, 1.8, 'pesce', 'crea'),
+('sogliola', 'sole', 86, 18, 0, 1.2, 'pesce', 'crea'),
+('seppia', 'cuttlefish', 79, 16, 0.7, 0.7, 'pesce', 'crea'),
+('polpo', 'octopus', 82, 15, 2.2, 1, 'pesce', 'crea'),
+('vongole', 'clams', 72, 12.8, 2.6, 0.8, 'pesce', 'crea'),
+('tonno fresco', 'fresh tuna', 144, 23, 0, 5, 'pesce', 'crea'),
+('merluzzo surgelato', 'frozen cod', 80, 18, 0, 0.7, 'pesce', 'crea'),
+('alici sott''olio', 'anchovies in oil', 186, 25, 0, 9.7, 'pesce', 'crea'),
+
+-- Verdure mancanti
+('zucca', 'pumpkin', 26, 1, 6.5, 0.1, 'verdure', 'crea'),
+('radicchio', 'radicchio', 23, 1.4, 3.6, 0.3, 'verdure', 'crea'),
+('rucola', 'arugula', 25, 2.6, 3.7, 0.7, 'verdure', 'crea'),
+('porro', 'leek', 61, 1.5, 14, 0.3, 'verdure', 'crea'),
+('rape', 'turnips', 28, 0.9, 6.4, 0.1, 'verdure', 'crea'),
+('topinambur', 'jerusalem artichoke', 73, 2, 17, 0.01, 'verdure', 'crea'),
+('crescione', 'watercress', 11, 2.3, 1.3, 0.1, 'verdure', 'crea'),
+('cavolo verza', 'savoy cabbage', 27, 2, 6, 0.1, 'verdure', 'crea'),
+('cavolo cappuccio', 'cabbage', 25, 1.3, 5.8, 0.1, 'verdure', 'crea'),
+('peperoncino', 'chili pepper', 40, 1.9, 8.8, 0.4, 'verdure', 'crea'),
+('cipollotto', 'spring onion', 32, 1.8, 7.3, 0.2, 'verdure', 'crea'),
+('sedano rapa', 'celeriac', 42, 1.5, 9.2, 0.3, 'verdure', 'crea'),
+('catalogna', 'puntarelle', 16, 1.5, 1.5, 0.3, 'verdure', 'crea'),
+('scarola', 'escarole', 17, 1.3, 3.4, 0.2, 'verdure', 'crea'),
+('cardo', 'cardoon', 17, 0.7, 4, 0.1, 'verdure', 'crea'),
+('taccole', 'snow peas', 42, 2.8, 7.6, 0.2, 'verdure', 'crea'),
+('mais dolce', 'sweet corn', 86, 3.3, 19, 1.2, 'verdure', 'crea'),
+('olive verdi', 'green olives', 145, 1, 3.8, 15, 'verdure', 'crea'),
+('olive nere', 'black olives', 115, 0.8, 6, 11, 'verdure', 'crea'),
+('pomodori secchi', 'sun-dried tomatoes', 258, 14, 44, 3, 'verdure', 'crea'),
+('pomodorini', 'cherry tomatoes', 18, 0.9, 3.9, 0.1, 'verdure', 'crea'),
+('patata dolce', 'sweet potato', 86, 1.6, 20, 0.1, 'verdure', 'crea'),
+
+-- Frutta mancante
+('papaya', 'papaya', 43, 0.5, 11, 0.3, 'frutta', 'crea'),
+('passion fruit', 'passion fruit', 97, 2.2, 23, 0.7, 'frutta', 'crea'),
+('melograno', 'pomegranate seeds', 83, 1.7, 19, 1.2, 'frutta', 'crea'),
+('pompelmo', 'grapefruit', 42, 0.8, 11, 0.1, 'frutta', 'crea'),
+('prugne', 'plums', 46, 0.7, 11, 0.3, 'frutta', 'crea'),
+('prugne secche', 'dried prunes', 240, 2.2, 63, 0.4, 'frutta', 'crea'),
+('uva', 'grapes', 69, 0.7, 18, 0.2, 'frutta', 'crea'),
+('uva sultanina', 'sultana raisins', 299, 3.1, 79, 0.5, 'frutta', 'crea'),
+('cocco grattugiato', 'shredded coconut', 660, 6.9, 6.4, 62, 'frutta', 'crea'),
+('frutto della passione', 'passion fruit', 97, 2.2, 23, 0.7, 'frutta', 'crea'),
+
+-- Carne mancante
+('petto di pollo', 'chicken breast', 110, 23, 0, 1.2, 'carne', 'crea'),
+('petto di tacchino', 'turkey breast', 104, 24, 0, 0.7, 'carne', 'crea'),
+('cosce di pollo', 'chicken thigh', 177, 20, 0, 10, 'carne', 'crea'),
+('vitello', 'veal', 107, 21, 0, 2, 'carne', 'crea'),
+('bistecca', 'steak', 218, 26, 0, 12, 'carne', 'crea'),
+('salsiccia', 'sausage', 304, 16, 1, 26, 'carne', 'crea'),
+('pancetta', 'bacon/pancetta', 393, 14, 0, 37, 'carne', 'crea'),
+('lardo', 'lard', 812, 1.4, 0, 89, 'carne', 'crea'),
+
+-- Salumi mancanti
+('prosciutto cotto', 'cooked ham', 132, 20, 1, 5, 'salumi', 'crea'),
+('prosciutto crudo', 'parma ham', 224, 27, 0, 12, 'salumi', 'crea'),
+('salame', 'salami', 378, 26, 1, 30, 'salumi', 'crea'),
+('speck', 'speck', 303, 28, 0.5, 20, 'salumi', 'crea'),
+
+-- Latticini mancanti
+('parmigiano reggiano', 'parmesan', 392, 33, 0, 28, 'latticini', 'crea'),
+('pecorino romano', 'pecorino romano', 387, 32, 0.7, 27, 'latticini', 'crea'),
+('ricotta di pecora', 'sheep ricotta', 174, 11, 4, 13, 'latticini', 'crea'),
+('stracchino', 'stracchino', 300, 18, 0, 25, 'latticini', 'crea'),
+('scamorza', 'scamorza', 334, 25, 1, 25, 'latticini', 'crea'),
+('scamorza affumicata', 'smoked scamorza', 271, 20, 1, 21, 'latticini', 'crea'),
+('provolone', 'provolone', 351, 26, 0.6, 27, 'latticini', 'crea'),
+('yogurt greco', 'greek yogurt', 97, 9, 3.6, 5, 'latticini', 'crea'),
+('yogurt magro', 'low-fat yogurt', 45, 4.3, 6.3, 0.3, 'latticini', 'crea'),
+('skyr', 'skyr', 63, 11, 3.5, 0.2, 'latticini', 'crea'),
+('panna da cucina', 'cooking cream', 292, 2.1, 3.5, 30, 'latticini', 'crea'),
+('panna montata', 'whipped cream', 257, 2.7, 12, 22, 'latticini', 'crea'),
+
+-- Spezie e aromi mancanti
+('origano', 'oregano', 265, 9, 49, 4.3, 'spezie', 'crea'),
+('rosmarino', 'rosemary', 131, 3.3, 21, 5.9, 'spezie', 'crea'),
+('timo', 'thyme', 101, 5.6, 24, 1.7, 'spezie', 'crea'),
+('prezzemolo', 'parsley', 36, 3, 6.3, 0.8, 'spezie', 'crea'),
+('salvia', 'sage', 315, 11, 42, 13, 'spezie', 'crea'),
+('zenzero fresco', 'fresh ginger', 80, 1.8, 18, 0.8, 'spezie', 'crea'),
+('peperoncino in polvere', 'chili powder', 282, 12, 50, 8, 'spezie', 'crea'),
+('paprika', 'paprika', 282, 14, 54, 13, 'spezie', 'crea'),
+('zafferano', 'saffron', 310, 11, 65, 5.9, 'spezie', 'crea'),
+('cumino', 'cumin', 375, 18, 44, 22, 'spezie', 'crea'),
+
+-- Semi mancanti
+('semi di lino', 'flax seeds', 534, 18, 29, 42, 'semi', 'crea'),
+('semi di chia', 'chia seeds', 486, 17, 42, 31, 'semi', 'crea'),
+('semi di girasole', 'sunflower seeds', 584, 21, 20, 51, 'semi', 'crea'),
+('semi di zucca', 'pumpkin seeds', 559, 30, 11, 49, 'semi', 'crea'),
+('semi di sesamo', 'sesame seeds', 573, 18, 23, 50, 'semi', 'crea'),
+('semi di canapa', 'hemp seeds', 553, 32, 4.7, 49, 'semi', 'crea'),
+('semi di papavero', 'poppy seeds', 525, 18, 28, 42, 'semi', 'crea'),
+
+-- Condimenti e salse mancanti
+('pesto alla genovese', 'basil pesto', 469, 4, 6, 47, 'condimenti', 'crea'),
+('salsa di soia', 'soy sauce', 53, 8, 4.9, 0.1, 'condimenti', 'crea'),
+('tahina', 'tahini', 595, 17, 21, 54, 'condimenti', 'crea'),
+('senape', 'mustard', 66, 4.4, 5.3, 3.3, 'condimenti', 'crea'),
+('olio di cocco', 'coconut oil', 862, 0, 0, 100, 'condimenti', 'crea'),
+('olio di sesamo', 'sesame oil', 884, 0, 0, 100, 'condimenti', 'crea'),
+('aceto di vino bianco', 'white wine vinegar', 19, 0, 0.3, 0, 'condimenti', 'crea'),
+('passata di pomodoro', 'tomato passata', 24, 1.2, 4, 0.2, 'condimenti', 'crea'),
+
+-- Bevande mancanti
+('succo di arancia', 'orange juice', 45, 0.7, 10, 0.2, 'bevande', 'crea'),
+('succo di mela', 'apple juice', 46, 0.1, 11, 0.1, 'bevande', 'crea'),
+('tè verde', 'green tea', 1, 0, 0, 0, 'bevande', 'crea'),
+('latte di avena barista', 'oat milk barista', 59, 1, 9.5, 1.8, 'bevande', 'crea'),
+
+-- Dolci e snack mancanti
+('marmellata di fragole', 'strawberry jam', 246, 0.3, 60, 0.1, 'dolci_snack', 'crea'),
+('cioccolato fondente 70%', 'dark chocolate 70%', 530, 7.8, 46, 34, 'dolci_snack', 'crea'),
+('torta di mele', 'apple cake', 265, 3.5, 40, 10, 'dolci_snack', 'crea'),
+('tiramisù', 'tiramisu', 283, 7, 30, 15, 'dolci_snack', 'crea'),
+('panna cotta', 'panna cotta', 232, 3, 25, 13, 'dolci_snack', 'crea'),
+('barretta proteica', 'protein bar', 350, 30, 35, 10, 'dolci_snack', 'crea'),
+('muesli con frutta', 'fruit muesli', 370, 9, 68, 7, 'dolci_snack', 'crea')
+
+ON CONFLICT (name) DO NOTHING;
