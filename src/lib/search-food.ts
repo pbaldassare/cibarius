@@ -112,6 +112,8 @@ async function searchLocal(query: string, requireNutrition = false): Promise<Foo
     protein_100g: i.protein_per_100g,
     carbs_100g: i.carbs_per_100g,
     fats_100g: i.fat_per_100g,
+    serving_size_g: i.default_portion_g || null,
+    serving_label: i.default_portion_label || null,
   }));
 
   return dedup(productResults, ingredientResults);
