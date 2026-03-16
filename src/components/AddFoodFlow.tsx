@@ -2120,20 +2120,41 @@ const AddFoodFlow = ({
                     </div>
                     <div className="flex gap-1">
                       {["g", "ml", "pezzi", "kg", "porzioni"].map((u) => (
-                        <button key={u} onClick={() => setUnit(u)}
+                        <button key={u} onClick={() => {
+                          setUnit(u);
+                          if (u === "pezzi" || u === "porzioni") {
+                            const guessed = guessServingWeight(name);
+                            if (guessed && !servingSizeG) setServingSizeG(guessed);
+                            if (quantity >= 50) setQuantity(1); // likely was grams, reset to 1 piece
+                          } else if (u === "g" || u === "ml") {
+                            if (quantity <= 5) setQuantity(100); // was pieces, reset to grams
+                          }
+                        }}
                           className={`flex-1 rounded-lg py-1.5 text-[11px] font-medium transition-colors ${unit === u ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
                           {u}
                         </button>
                       ))}
                     </div>
-                    <div className="flex gap-1.5">
-                      {[50, 100, 150, 200, 300].map((g) => (
-                        <button key={g} onClick={() => { setQuantity(g); setUnit("g"); }}
-                          className={`flex-1 rounded-lg py-1.5 text-[11px] font-medium transition-colors ${
-                            quantity === g && unit === "g" ? "bg-primary text-primary-foreground" : "bg-card border border-border text-foreground"
-                          }`}>{g}g</button>
-                      ))}
-                    </div>
+                    {!isUnitPieces && (
+                      <div className="flex gap-1.5">
+                        {[50, 100, 150, 200, 300].map((g) => (
+                          <button key={g} onClick={() => { setQuantity(g); setUnit("g"); }}
+                            className={`flex-1 rounded-lg py-1.5 text-[11px] font-medium transition-colors ${
+                              quantity === g && unit === "g" ? "bg-primary text-primary-foreground" : "bg-card border border-border text-foreground"
+                            }`}>{g}g</button>
+                        ))}
+                      </div>
+                    )}
+                    {isUnitPieces && (
+                      <div className="flex gap-1.5">
+                        {[1, 2, 3, 4, 6].map((n) => (
+                          <button key={n} onClick={() => setQuantity(n)}
+                            className={`flex-1 rounded-lg py-1.5 text-[11px] font-medium transition-colors ${
+                              quantity === n ? "bg-primary text-primary-foreground" : "bg-card border border-border text-foreground"
+                            }`}>{n} pz</button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
 
