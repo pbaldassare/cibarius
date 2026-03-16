@@ -483,9 +483,39 @@ const AddFoodFlow = ({
     setSearchPhase("done");
   };
 
+  // ─── Common food default weights (grams per piece) ───
+  const COMMON_WEIGHTS: Record<string, number> = {
+    uovo: 60, uova: 60, egg: 60,
+    banana: 120, mela: 180, pera: 170, arancia: 200, kiwi: 75,
+    pesca: 150, albicocca: 45, mandarino: 80, limone: 60,
+    pomodoro: 150, carota: 80, patata: 170, zucchina: 200,
+    peperone: 160, cipolla: 120, melanzana: 250,
+    fetta: 30, "fetta biscottata": 10, biscotto: 10, biscotti: 10,
+    cracker: 7, grissino: 8, grissini: 8,
+    yogurt: 125, "vasetto yogurt": 125,
+    brioche: 40, cornetto: 50, croissant: 50,
+    panino: 80, pane: 50, "fetta di pane": 30,
+    wurstel: 50, würstel: 50, hamburger: 100,
+    "fetta di prosciutto": 20, "fetta di salame": 15,
+    mozzarella: 125, "mozzarella di bufala": 125,
+    "sottiletta": 20, "sottilette": 20,
+  };
+
+  const guessServingWeight = (productName: string): number | null => {
+    const lower = productName.toLowerCase().trim();
+    // Exact match first
+    if (COMMON_WEIGHTS[lower]) return COMMON_WEIGHTS[lower];
+    // Partial match
+    for (const [key, weight] of Object.entries(COMMON_WEIGHTS)) {
+      if (lower.includes(key) || key.includes(lower)) return weight;
+    }
+    return null;
+  };
+
   // Calcs
   const computed = calcNutrition(quantity, unit, calories100g, macros100g, servingSizeG);
-  const needsServingSize = (unit === "pezzi" || unit === "porzioni") && !servingSizeG;
+  const isUnitPieces = unit === "pezzi" || unit === "porzioni";
+  const needsServingSize = isUnitPieces && !servingSizeG;
 
   // ─── Method handlers ───
   const selectMethod = (m: Method) => {
