@@ -112,7 +112,9 @@ const AddFoodFlow = ({
   const [name, setName] = useState("");
   const [brand, setBrand] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [quantity, setQuantity] = useState(100);
+  const [quantity, setQuantityRaw] = useState(100);
+  const [quantityInput, setQuantityInput] = useState("100");
+  const setQuantity = (v: number) => { setQuantityRaw(v); setQuantityInput(String(v)); };
   const [unit, setUnit] = useState("g");
   const [calories100g, setCalories100g] = useState<number | null>(null);
   const [macros100g, setMacros100g] = useState<{ protein: number; carbs: number; fats: number } | null>(null);
@@ -2071,8 +2073,14 @@ const AddFoodFlow = ({
                       </button>
                       <Input
                         type="number"
-                        value={quantity}
-                        onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 0))}
+                        inputMode="numeric"
+                        value={quantityInput}
+                        onChange={(e) => setQuantityInput(e.target.value)}
+                        onFocus={(e) => e.target.select()}
+                        onBlur={() => {
+                          const parsed = parseInt(quantityInput) || 1;
+                          setQuantity(Math.max(1, parsed));
+                        }}
                         className="text-center text-base font-bold flex-1 h-9"
                         min={1}
                       />
