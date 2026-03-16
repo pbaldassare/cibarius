@@ -1573,12 +1573,21 @@ const AddFoodFlow = ({
                             </Badge>
                           )}
                         </div>
-                        {p.brand && <p className="text-xs" style={{ color: "#4B5563" }}>{p.brand}</p>}
+                        {p.brand ? (
+                          <p className="text-xs text-muted-foreground">{p.brand}</p>
+                        ) : (p as any)._serving_label && (p as any)._serving_label !== "100 g" ? (
+                          <p className="text-[10px] text-muted-foreground">{(p as any)._serving_label} ({p.serving_size_g}g)</p>
+                        ) : null}
                       </div>
                       {p.calories_100g != null && (
-                        <span className="text-xs font-medium text-primary shrink-0">
-                          {Math.round(p.calories_100g)} kcal
-                        </span>
+                        <div className="shrink-0 text-right">
+                          <span className="text-xs font-medium text-primary">
+                            {Math.round(p.calories_100g * (p.serving_size_g && p.serving_size_g !== 100 ? p.serving_size_g : 100) / 100)} kcal
+                          </span>
+                          {p.serving_size_g && p.serving_size_g !== 100 && (p as any)._serving_label && (
+                            <span className="block text-[9px] text-muted-foreground">/{(p as any)._serving_label}</span>
+                          )}
+                        </div>
                       )}
                     </button>
                   ))}
