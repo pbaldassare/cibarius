@@ -13,6 +13,8 @@ interface ResultItem {
   fats: number;
   category: string | null;
   source: "food_templates" | "ingredients";
+  defaultPortionG: number;
+  defaultPortionLabel: string;
 }
 
 interface IngredientAutocompleteProps {
@@ -22,6 +24,8 @@ interface IngredientAutocompleteProps {
     id: string;
     name: string;
     per100: { protein: number; carbs: number; fats: number; kcal: number };
+    defaultPortionG?: number;
+    defaultPortionLabel?: string;
   }) => void;
   placeholder?: string;
   className?: string;
@@ -63,8 +67,6 @@ const IngredientAutocomplete = ({
       const tokens = q.split(/\s+/).filter(t => t.length >= 2);
       const combined: ResultItem[] = [];
 
-      // Build OR filter for food_templates: each token must appear in name
-      // Use first token for primary ilike, then filter client-side for multi-token
       const primaryToken = tokens[0];
 
       // Search food_templates
@@ -77,7 +79,6 @@ const IngredientAutocomplete = ({
       if (ftData) {
         for (const t of ftData) {
           const nameLower = t.name.toLowerCase();
-          // All tokens must appear in the name
           if (tokens.every(tk => nameLower.includes(tk))) {
             combined.push({
               id: t.id,
@@ -88,6 +89,8 @@ const IngredientAutocomplete = ({
               fats: Number(t.fats_100g),
               category: t.category,
               source: "food_templates",
+              defaultPortionG: 100,
+              defaultPortionLabel: "100 g",
             });
           }
         }
@@ -96,7 +99,7 @@ const IngredientAutocomplete = ({
       // Search ingredients table
       const { data: ingData } = await supabase
         .from("ingredients")
-        .select("id, name, kcal_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, category")
+        .select("id, name, kcal_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, category, default_portion_g, default_portion_label")
         .ilike("name", `%${primaryToken}%`)
         .limit(20);
 
@@ -114,11 +117,13 @@ const IngredientAutocomplete = ({
             fats: Number(i.fat_per_100g),
             category: i.category,
             source: "ingredients",
+            defaultPortionG: Number(i.default_portion_g) || 100,
+            defaultPortionLabel: (i.default_portion_label as string) || "100 g",
           });
         }
       }
 
-      // Sort: exact start match first, then shorter names first (more specific)
+      // Sort: exact start match first, then shorter names first
       combined.sort((a, b) => {
         const aName = a.name.toLowerCase();
         const bName = b.name.toLowerCase();
@@ -145,6 +150,8 @@ const IngredientAutocomplete = ({
       id: r.id,
       name: r.name,
       per100: { protein: r.protein, carbs: r.carbs, fats: r.fats, kcal: r.kcal },
+      defaultPortionG: r.defaultPortionG,
+      defaultPortionLabel: r.defaultPortionLabel,
     });
     setOpen(false);
   };
@@ -178,13 +185,20 @@ const IngredientAutocomplete = ({
             >
               <div className="min-w-0 flex-1">
                 <p className="font-medium text-popover-foreground truncate">{r.name}</p>
-                {r.category && (
-                  <p className="text-[10px] text-muted-foreground">{r.category}</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {r.defaultPortionLabel !== "100 g" ? `${r.defaultPortionLabel} (${r.defaultPortionG}g)` : r.category || ""}
+                </p>
+              </div>
+              <div className="shrink-0 text-right">
+                <span className="text-[10px] text-muted-foreground block">
+                  {Math.round(r.kcal * r.defaultPortionG / 100)} kcal
+                </span>
+                {r.defaultPortionLabel !== "100 g" && (
+                  <span className="text-[9px] text-muted-foreground/60 block">
+                    /{r.defaultPortionLabel}
+                  </span>
                 )}
               </div>
-              <span className="shrink-0 text-[10px] text-muted-foreground">
-                {r.kcal} kcal
-              </span>
             </button>
           ))}
         </div>
