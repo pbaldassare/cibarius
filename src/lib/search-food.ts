@@ -132,7 +132,7 @@ function dedup(existing: FoodSearchResult[], incoming: FoodSearchResult[]): Food
 async function searchLocal(query: string, requireNutrition = false): Promise<FoodSearchResult[]> {
   let productsQuery = supabase
     .from("products")
-    .select("id, name, brand, barcode, image_url, calories_100g, macros_100g")
+    .select("id, name, brand, barcode, image_url, calories_100g, macros_100g, serving_size_g")
     .ilike("name", `%${query}%`)
     .limit(10);
   if (requireNutrition) {
@@ -147,34 +147,42 @@ async function searchLocal(query: string, requireNutrition = false): Promise<Foo
       .limit(10),
   ]);
 
-  const productResults: FoodSearchResult[] = (productsRes.data ?? []).map((p: any) => ({
-    source: "local" as const,
-    source_detail: "local" as const,
-    name: p.name,
-    brand: p.brand,
-    barcode: p.barcode,
-    image_url: p.image_url,
-    calories_100g: p.calories_100g,
-    protein_100g: p.macros_100g?.protein ?? p.macros_100g?.p ?? null,
-    carbs_100g: p.macros_100g?.carbs ?? p.macros_100g?.c ?? null,
-    fats_100g: p.macros_100g?.fats ?? p.macros_100g?.f ?? null,
-    local_product_id: p.id,
-  }));
+  const productResults: FoodSearchResult[] = (productsRes.data ?? []).map((p: any) => {
+    const serving = resolveServing(p.name, p.serving_size_g ?? null, null);
+    return {
+      source: "local" as const,
+      source_detail: "local" as const,
+      name: p.name,
+      brand: p.brand,
+      barcode: p.barcode,
+      image_url: p.image_url,
+      calories_100g: p.calories_100g,
+      protein_100g: p.macros_100g?.protein ?? p.macros_100g?.p ?? null,
+      carbs_100g: p.macros_100g?.carbs ?? p.macros_100g?.c ?? null,
+      fats_100g: p.macros_100g?.fats ?? p.macros_100g?.f ?? null,
+      local_product_id: p.id,
+      serving_size_g: serving.serving_size_g,
+      serving_label: serving.serving_label,
+    };
+  });
 
-  const ingredientResults: FoodSearchResult[] = (ingredientsRes.data ?? []).map((i: any) => ({
-    source: "local" as const,
-    source_detail: "local" as const,
-    name: i.name,
-    brand: null,
-    barcode: null,
-    image_url: null,
-    calories_100g: i.kcal_per_100g,
-    protein_100g: i.protein_per_100g,
-    carbs_100g: i.carbs_per_100g,
-    fats_100g: i.fat_per_100g,
-    serving_size_g: i.default_portion_g || null,
-    serving_label: i.default_portion_label || null,
-  }));
+  const ingredientResults: FoodSearchResult[] = (ingredientsRes.data ?? []).map((i: any) => {
+    const serving = resolveServing(i.name, i.default_portion_g || null, i.default_portion_label || null);
+    return {
+      source: "local" as const,
+      source_detail: "local" as const,
+      name: i.name,
+      brand: null,
+      barcode: null,
+      image_url: null,
+      calories_100g: i.kcal_per_100g,
+      protein_100g: i.protein_per_100g,
+      carbs_100g: i.carbs_per_100g,
+      fats_100g: i.fat_per_100g,
+      serving_size_g: serving.serving_size_g,
+      serving_label: serving.serving_label,
+    };
+  });
 
   return dedup(productResults, ingredientResults);
 }
