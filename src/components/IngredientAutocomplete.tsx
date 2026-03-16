@@ -59,28 +59,37 @@ const IngredientAutocomplete = ({
     let cancelled = false;
     const search = async () => {
       setLoading(true);
-      const q = debouncedQuery.toLowerCase();
+      const q = debouncedQuery.toLowerCase().trim();
+      const tokens = q.split(/\s+/).filter(t => t.length >= 2);
       const combined: ResultItem[] = [];
+
+      // Build OR filter for food_templates: each token must appear in name
+      // Use first token for primary ilike, then filter client-side for multi-token
+      const primaryToken = tokens[0];
 
       // Search food_templates
       const { data: ftData } = await supabase
         .from("food_templates")
         .select("id, name, calories_100g, protein_100g, carbs_100g, fats_100g, category")
-        .or(`name.ilike.%${q}%,keywords.cs.{${q}}`)
-        .limit(5);
+        .or(`name.ilike.%${primaryToken}%,keywords.cs.{${primaryToken}}`)
+        .limit(20);
 
       if (ftData) {
         for (const t of ftData) {
-          combined.push({
-            id: t.id,
-            name: t.name,
-            kcal: Number(t.calories_100g),
-            protein: Number(t.protein_100g),
-            carbs: Number(t.carbs_100g),
-            fats: Number(t.fats_100g),
-            category: t.category,
-            source: "food_templates",
-          });
+          const nameLower = t.name.toLowerCase();
+          // All tokens must appear in the name
+          if (tokens.every(tk => nameLower.includes(tk))) {
+            combined.push({
+              id: t.id,
+              name: t.name,
+              kcal: Number(t.calories_100g),
+              protein: Number(t.protein_100g),
+              carbs: Number(t.carbs_100g),
+              fats: Number(t.fats_100g),
+              category: t.category,
+              source: "food_templates",
+            });
+          }
         }
       }
 
@@ -88,13 +97,14 @@ const IngredientAutocomplete = ({
       const { data: ingData } = await supabase
         .from("ingredients")
         .select("id, name, kcal_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, category")
-        .ilike("name", `%${q}%`)
-        .limit(5);
+        .ilike("name", `%${primaryToken}%`)
+        .limit(20);
 
       if (ingData) {
         for (const i of ingData) {
-          // Skip duplicates by name
-          if (combined.some((c) => c.name.toLowerCase() === i.name.toLowerCase())) continue;
+          const nameLower = i.name.toLowerCase();
+          if (!tokens.every(tk => nameLower.includes(tk))) continue;
+          if (combined.some((c) => c.name.toLowerCase() === nameLower)) continue;
           combined.push({
             id: i.id,
             name: i.name,
@@ -107,6 +117,17 @@ const IngredientAutocomplete = ({
           });
         }
       }
+
+      // Sort: exact start match first, then shorter names first (more specific)
+      combined.sort((a, b) => {
+        const aName = a.name.toLowerCase();
+        const bName = b.name.toLowerCase();
+        const aStartsAll = tokens.every(tk => aName.startsWith(tk) || aName.includes(` ${tk}`));
+        const bStartsAll = tokens.every(tk => bName.startsWith(tk) || bName.includes(` ${tk}`));
+        if (aStartsAll && !bStartsAll) return -1;
+        if (!aStartsAll && bStartsAll) return 1;
+        return aName.length - bName.length;
+      });
 
       if (!cancelled) {
         setResults(combined.slice(0, 8));
