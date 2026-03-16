@@ -19,7 +19,7 @@ export interface FoodSearchResult {
 export type SearchPhase = "local" | "off" | "usda" | "done";
 
 // ─── Query cache (localStorage, 7-day TTL) ───────────
-const SEARCH_CACHE_KEY = "cibarius_search_cache";
+const SEARCH_CACHE_KEY = "cibarius_search_cache_v2";
 const SEARCH_CACHE_TTL = 7 * 24 * 60 * 60 * 1000;
 
 interface SearchCacheEntry {
@@ -54,25 +54,85 @@ function setCachedSearch(query: string, results: FoodSearchResult[]) {
   localStorage.setItem(SEARCH_CACHE_KEY, JSON.stringify(c));
 }
 
+function resolveServing(name: string, size: number | null | undefined, label?: string | null) {
+  const normalizedName = name.toLowerCase();
+  const isOil = /\bolio\b/i.test(normalizedName) && !/sott['’]?olio/i.test(normalizedName);
+
+  if (isOil) {
+    return { serving_size_g: 10, serving_label: "1 cucchiaio" };
+  }
+
+  if (size && size > 0) {
+    if (label && label.trim().length > 0) {
+      return { serving_size_g: size, serving_label: label };
+    }
+    return { serving_size_g: size, serving_label: size === 100 ? "100 g" : `${size} g` };
+  }
+
+  return { serving_size_g: null, serving_label: null };
+}
+
+function mergeResults(base: FoodSearchResult, candidate: FoodSearchResult): FoodSearchResult {
+  const merged: FoodSearchResult = { ...base };
+
+  if (merged.calories_100g == null && candidate.calories_100g != null) merged.calories_100g = candidate.calories_100g;
+  if (merged.protein_100g == null && candidate.protein_100g != null) merged.protein_100g = candidate.protein_100g;
+  if (merged.carbs_100g == null && candidate.carbs_100g != null) merged.carbs_100g = candidate.carbs_100g;
+  if (merged.fats_100g == null && candidate.fats_100g != null) merged.fats_100g = candidate.fats_100g;
+
+  if (!merged.brand && candidate.brand) merged.brand = candidate.brand;
+  if (!merged.barcode && candidate.barcode) merged.barcode = candidate.barcode;
+  if (!merged.image_url && candidate.image_url) merged.image_url = candidate.image_url;
+  if (!merged.local_product_id && candidate.local_product_id) merged.local_product_id = candidate.local_product_id;
+
+  if ((merged.serving_size_g == null || merged.serving_size_g === 100) && candidate.serving_size_g && candidate.serving_size_g !== 100) {
+    merged.serving_size_g = candidate.serving_size_g;
+  }
+  if ((!merged.serving_label || merged.serving_label === "100 g") && candidate.serving_label && candidate.serving_label !== "100 g") {
+    merged.serving_label = candidate.serving_label;
+  }
+
+  if (merged.source !== "local" && candidate.source === "local") {
+    merged.source = "local";
+    merged.source_detail = candidate.source_detail;
+  }
+
+  const serving = resolveServing(merged.name, merged.serving_size_g, merged.serving_label);
+  merged.serving_size_g = serving.serving_size_g;
+  merged.serving_label = serving.serving_label;
+
+  return merged;
+}
+
 // ─── Dedup helper ────────────────────────────────────
 function dedup(existing: FoodSearchResult[], incoming: FoodSearchResult[]): FoodSearchResult[] {
-  const seen = new Set(existing.map(r => r.name.toLowerCase().trim()));
-  const merged = [...existing];
+  const byName = new Map<string, FoodSearchResult>();
+
+  for (const r of existing) {
+    const key = r.name.toLowerCase().trim();
+    const serving = resolveServing(r.name, r.serving_size_g, r.serving_label);
+    byName.set(key, { ...r, serving_size_g: serving.serving_size_g, serving_label: serving.serving_label });
+  }
+
   for (const r of incoming) {
     const key = r.name.toLowerCase().trim();
-    if (!seen.has(key)) {
-      seen.add(key);
-      merged.push(r);
+    const existingItem = byName.get(key);
+    if (!existingItem) {
+      const serving = resolveServing(r.name, r.serving_size_g, r.serving_label);
+      byName.set(key, { ...r, serving_size_g: serving.serving_size_g, serving_label: serving.serving_label });
+      continue;
     }
+    byName.set(key, mergeResults(existingItem, r));
   }
-  return merged;
+
+  return Array.from(byName.values());
 }
 
 // ─── Local DB search (products + ingredients in parallel) ─
 async function searchLocal(query: string, requireNutrition = false): Promise<FoodSearchResult[]> {
   let productsQuery = supabase
     .from("products")
-    .select("id, name, brand, barcode, image_url, calories_100g, macros_100g")
+    .select("id, name, brand, barcode, image_url, calories_100g, macros_100g, serving_size_g")
     .ilike("name", `%${query}%`)
     .limit(10);
   if (requireNutrition) {
@@ -87,34 +147,42 @@ async function searchLocal(query: string, requireNutrition = false): Promise<Foo
       .limit(10),
   ]);
 
-  const productResults: FoodSearchResult[] = (productsRes.data ?? []).map((p: any) => ({
-    source: "local" as const,
-    source_detail: "local" as const,
-    name: p.name,
-    brand: p.brand,
-    barcode: p.barcode,
-    image_url: p.image_url,
-    calories_100g: p.calories_100g,
-    protein_100g: p.macros_100g?.protein ?? p.macros_100g?.p ?? null,
-    carbs_100g: p.macros_100g?.carbs ?? p.macros_100g?.c ?? null,
-    fats_100g: p.macros_100g?.fats ?? p.macros_100g?.f ?? null,
-    local_product_id: p.id,
-  }));
+  const productResults: FoodSearchResult[] = (productsRes.data ?? []).map((p: any) => {
+    const serving = resolveServing(p.name, p.serving_size_g ?? null, null);
+    return {
+      source: "local" as const,
+      source_detail: "local" as const,
+      name: p.name,
+      brand: p.brand,
+      barcode: p.barcode,
+      image_url: p.image_url,
+      calories_100g: p.calories_100g,
+      protein_100g: p.macros_100g?.protein ?? p.macros_100g?.p ?? null,
+      carbs_100g: p.macros_100g?.carbs ?? p.macros_100g?.c ?? null,
+      fats_100g: p.macros_100g?.fats ?? p.macros_100g?.f ?? null,
+      local_product_id: p.id,
+      serving_size_g: serving.serving_size_g,
+      serving_label: serving.serving_label,
+    };
+  });
 
-  const ingredientResults: FoodSearchResult[] = (ingredientsRes.data ?? []).map((i: any) => ({
-    source: "local" as const,
-    source_detail: "local" as const,
-    name: i.name,
-    brand: null,
-    barcode: null,
-    image_url: null,
-    calories_100g: i.kcal_per_100g,
-    protein_100g: i.protein_per_100g,
-    carbs_100g: i.carbs_per_100g,
-    fats_100g: i.fat_per_100g,
-    serving_size_g: i.default_portion_g || null,
-    serving_label: i.default_portion_label || null,
-  }));
+  const ingredientResults: FoodSearchResult[] = (ingredientsRes.data ?? []).map((i: any) => {
+    const serving = resolveServing(i.name, i.default_portion_g || null, i.default_portion_label || null);
+    return {
+      source: "local" as const,
+      source_detail: "local" as const,
+      name: i.name,
+      brand: null,
+      barcode: null,
+      image_url: null,
+      calories_100g: i.kcal_per_100g,
+      protein_100g: i.protein_per_100g,
+      carbs_100g: i.carbs_per_100g,
+      fats_100g: i.fat_per_100g,
+      serving_size_g: serving.serving_size_g,
+      serving_label: serving.serving_label,
+    };
+  });
 
   return dedup(productResults, ingredientResults);
 }
