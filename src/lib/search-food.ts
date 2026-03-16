@@ -12,6 +12,8 @@ export interface FoodSearchResult {
   carbs_100g: number | null;
   fats_100g: number | null;
   local_product_id?: string;
+  serving_size_g?: number | null;
+  serving_label?: string | null;
 }
 
 export type SearchPhase = "local" | "off" | "usda" | "done";
