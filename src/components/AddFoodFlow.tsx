@@ -2202,37 +2202,60 @@ const AddFoodFlow = ({
                   </div>
                 )}
 
-                {/* ── Serving size slider (when unit=pezzi/porzioni and no grams) ── */}
-                {needsServingSize && (
-                  <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-3 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <HelpCircle className="h-4 w-4 text-amber-600" />
-                      <p className="text-xs font-semibold text-amber-800">Quanto pesa 1 {unit === "pezzi" ? "pezzo" : "porzione"}?</p>
-                    </div>
-                    <div className="flex gap-2">
-                      {[30, 80, 150].map((g) => (
-                        <button key={g} onClick={() => setServingSizeG(g)}
-                          className={`flex-1 rounded-xl py-2.5 text-sm font-semibold transition-colors ${
-                            servingSizeG === g ? "bg-primary text-primary-foreground" : "bg-card border border-border text-foreground"
-                          }`}>
-                          {g}g
-                        </button>
-                      ))}
-                    </div>
-                    <div className="space-y-1">
-                      <Slider
-                        value={[servingSizeG || 80]}
-                        onValueChange={([v]) => setServingSizeG(v)}
-                        min={10}
-                        max={500}
-                        step={5}
-                      />
-                      <div className="flex justify-between text-[10px] text-muted-foreground">
-                        <span>10g</span>
-                        <span className="font-semibold text-foreground">{servingSizeG || 80}g</span>
-                        <span>500g</span>
+                {/* ── Serving size (when unit=pezzi/porzioni) ── */}
+                {isUnitPieces && (
+                  <div className={`rounded-2xl border p-3 space-y-2.5 ${needsServingSize ? "border-amber-200 bg-amber-50/50" : "border-border bg-card"}`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <HelpCircle className={`h-4 w-4 ${needsServingSize ? "text-amber-600" : "text-muted-foreground"}`} />
+                        <p className={`text-xs font-semibold ${needsServingSize ? "text-amber-800" : "text-foreground"}`}>
+                          Peso per {unit === "pezzi" ? "pezzo" : "porzione"}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="number"
+                          inputMode="numeric"
+                          value={servingSizeG ?? ""}
+                          placeholder="g"
+                          onChange={(e) => setServingSizeG(e.target.value ? parseInt(e.target.value) : null)}
+                          onFocus={(e) => e.target.select()}
+                          className="w-16 h-7 text-center text-sm font-bold"
+                          min={1}
+                        />
+                        <span className="text-xs text-muted-foreground">g</span>
                       </div>
                     </div>
+                    {(() => {
+                      const guessed = guessServingWeight(name);
+                      const quickWeights = guessed
+                        ? [Math.round(guessed * 0.5), guessed, Math.round(guessed * 1.5), Math.round(guessed * 2)]
+                        : [30, 60, 100, 150];
+                      return (
+                        <div className="flex gap-1.5">
+                          {quickWeights.map((g) => (
+                            <button key={g} onClick={() => setServingSizeG(g)}
+                              className={`flex-1 rounded-lg py-1.5 text-[11px] font-medium transition-colors ${
+                                servingSizeG === g ? "bg-primary text-primary-foreground" : "bg-card border border-border text-foreground"
+                              }`}>
+                              {g}g
+                            </button>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                    <Slider
+                      value={[servingSizeG || 80]}
+                      onValueChange={([v]) => setServingSizeG(v)}
+                      min={5}
+                      max={500}
+                      step={5}
+                    />
+                    {servingSizeG && computed.calories != null && (
+                      <p className="text-[10px] text-center text-muted-foreground">
+                        {quantity} × {servingSizeG}g = <span className="font-semibold text-foreground">{quantity * servingSizeG}g</span> → {computed.calories} kcal
+                      </p>
+                    )}
                   </div>
                 )}
 
