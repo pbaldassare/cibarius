@@ -2073,8 +2073,14 @@ const AddFoodFlow = ({
                       </button>
                       <Input
                         type="number"
-                        value={quantity}
-                        onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 0))}
+                        inputMode="numeric"
+                        value={quantityInput}
+                        onChange={(e) => setQuantityInput(e.target.value)}
+                        onFocus={(e) => e.target.select()}
+                        onBlur={() => {
+                          const parsed = parseInt(quantityInput) || 1;
+                          setQuantity(Math.max(1, parsed));
+                        }}
                         className="text-center text-base font-bold flex-1 h-9"
                         min={1}
                       />
