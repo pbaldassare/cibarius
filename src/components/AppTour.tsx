@@ -3,8 +3,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useTour } from "./AppTourContext";
 import { X, Pause, Play } from "lucide-react";
 
-const AUTO_ADVANCE_MIN = 2500;
-const MS_PER_CHAR = 25;
+const AUTO_ADVANCE_MIN = 3500;
+const MS_PER_CHAR = 35;
 
 const AppTour = () => {
   const {
