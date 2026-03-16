@@ -114,6 +114,7 @@ const AddFoodFlow = ({
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [quantity, setQuantityRaw] = useState(100);
   const [quantityInput, setQuantityInput] = useState("100");
+  const setQuantity = (v: number) => { setQuantityRaw(v); setQuantityInput(String(v)); };
   const [unit, setUnit] = useState("g");
   const [calories100g, setCalories100g] = useState<number | null>(null);
   const [macros100g, setMacros100g] = useState<{ protein: number; carbs: number; fats: number } | null>(null);
