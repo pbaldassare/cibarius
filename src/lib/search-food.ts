@@ -12,6 +12,8 @@ export interface FoodSearchResult {
   carbs_100g: number | null;
   fats_100g: number | null;
   local_product_id?: string;
+  serving_size_g?: number | null;
+  serving_label?: string | null;
 }
 
 export type SearchPhase = "local" | "off" | "usda" | "done";
@@ -80,7 +82,7 @@ async function searchLocal(query: string, requireNutrition = false): Promise<Foo
     productsQuery,
     supabase
       .from("ingredients")
-      .select("id, name, kcal_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g")
+      .select("id, name, kcal_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g, default_portion_g, default_portion_label")
       .ilike("name", `%${query}%`)
       .limit(10),
   ]);
@@ -110,6 +112,8 @@ async function searchLocal(query: string, requireNutrition = false): Promise<Foo
     protein_100g: i.protein_per_100g,
     carbs_100g: i.carbs_per_100g,
     fats_100g: i.fat_per_100g,
+    serving_size_g: i.default_portion_g || null,
+    serving_label: i.default_portion_label || null,
   }));
 
   return dedup(productResults, ingredientResults);
