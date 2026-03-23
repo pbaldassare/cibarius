@@ -107,6 +107,7 @@ import UserMeasurementsPage from "./pages/UserMeasurementsPage";
 import ProClientMeasurementsPage from "./pages/pro/ProClientMeasurementsPage";
 import ProCouponPage from "./pages/pro/ProCouponPage";
 import MealRemindersPage from "./pages/MealRemindersPage";
+import UserFavoritesPage from "./pages/UserFavoritesPage";
 import AntiWastePage from "./pages/AntiWastePage";
 import SubscriptionPage from "./pages/SubscriptionPage";
 

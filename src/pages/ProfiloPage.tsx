@@ -461,7 +461,7 @@ const ProfiloPage = () => {
             { icon: Sparkles, label: "Abbonamenti clienti", path: "/pro/clients", badge: 0 },
           ] : [
             ...[{ icon: MessageCircle, label: "Messaggi", path: "/messages", badge: unreadMsgCount }],
-            { icon: Heart, label: "Preferiti", path: undefined, badge: 0 },
+            { icon: Heart, label: "Preferiti", path: "/favorites", badge: 0 },
             { icon: Sparkles, label: "Abbonamento Premium", path: "/subscription", badge: 0 },
             { icon: Bell, label: "Promemoria scadenze", path: "/reminders", badge: 0 },
             { icon: Bell, label: "Promemoria pasti", path: "/meal-reminders", badge: 0 },
