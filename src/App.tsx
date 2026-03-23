@@ -183,6 +183,7 @@ const App = () => (
                 <Route path="/measurements" element={<PlusGuard><UserMeasurementsPage /></PlusGuard>} />
                 <Route path="/progress" element={<UserProgressPage />} />
                 <Route path="/subscription" element={<SubscriptionPage />} />
+                <Route path="/favorites" element={<UserFavoritesPage />} />
               </Route>
 
               {/* ═══ RESTAURANT APP (RestaurantLayout) ═══ */}
