@@ -270,6 +270,44 @@ const PastiPage = () => {
     fetchMeals();
   };
 
+  // Save current meal as a favorite combo
+  const [savingFavMealId, setSavingFavMealId] = useState<string | null>(null);
+  const handleSaveMealAsFavorite = async (meal: Meal) => {
+    if (!user || meal.meal_items.length === 0) return;
+    setSavingFavMealId(meal.id);
+    try {
+      const title = `${meal.meal_type.charAt(0).toUpperCase() + meal.meal_type.slice(1)} ${new Date().toLocaleDateString("it-IT", { day: "numeric", month: "short" })}`;
+      const { data: favMeal, error: mealErr } = await supabase
+        .from("user_favorite_meals" as any)
+        .insert({ user_id: user.id, title } as any)
+        .select("id")
+        .single();
+      if (mealErr) throw mealErr;
+
+      const itemsToInsert = meal.meal_items.map((item) => {
+        const m = item.macros as any;
+        return {
+          favorite_meal_id: (favMeal as any).id,
+          ingredient_name: item.dish_name || item.custom_name || "Alimento",
+          grams: item.quantity ?? 100,
+          kcal: item.calories ?? 0,
+          protein_g: m?.protein ?? 0,
+          carbs_g: m?.carbs ?? 0,
+          fats_g: m?.fats ?? 0,
+        };
+      });
+
+      const { error } = await supabase.from("favorite_meal_items" as any).insert(itemsToInsert as any);
+      if (error) throw error;
+
+      toast({ title: "Pasto salvato nei preferiti! ❤️" });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Errore", description: e.message });
+    } finally {
+      setSavingFavMealId(null);
+    }
+  };
+
   const allowedMealTypes = mealTargets.length > 0
     ? mealTargets.map((t) => t.meal_type)
     : null;
