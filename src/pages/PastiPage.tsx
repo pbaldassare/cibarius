@@ -516,12 +516,23 @@ const PastiPage = () => {
                     );
                   })()}
 
-                  <button
-                    onClick={() => { setSheetMealType(meal.meal_type); setSheetOpen(true); }}
-                    className="flex items-center gap-1 text-xs font-medium text-primary pt-1"
-                  >
-                    <Plus size={14} /> Aggiungi alimento
-                  </button>
+                  <div className="flex items-center gap-3 pt-1">
+                    <button
+                      onClick={() => { setSheetMealType(meal.meal_type); setSheetOpen(true); }}
+                      className="flex items-center gap-1 text-xs font-medium text-primary"
+                    >
+                      <Plus size={14} /> Aggiungi alimento
+                    </button>
+                    {meal.meal_items.length > 0 && (
+                      <button
+                        onClick={() => handleSaveMealAsFavorite(meal)}
+                        disabled={savingFavMealId === meal.id}
+                        className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-destructive transition-colors disabled:opacity-50"
+                      >
+                        <Bookmark size={14} /> Salva preferito
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })}
