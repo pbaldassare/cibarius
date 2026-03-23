@@ -14,7 +14,7 @@ import { deductPantryFromMeal } from "@/lib/pantry-deduction";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useFavorites } from "@/hooks/useFavorites";
-import { Plus, UtensilsCrossed, Target, Trash2, Flame, Camera, Heart, ChefHat, Package, AlertTriangle } from "lucide-react";
+import { Plus, UtensilsCrossed, Target, Trash2, Flame, Camera, Heart, ChefHat, Package, AlertTriangle, Bookmark } from "lucide-react";
 import { WeightGoalBadge } from "@/components/WeightGoalMotivation";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
