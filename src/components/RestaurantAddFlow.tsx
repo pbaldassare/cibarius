@@ -303,6 +303,7 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
                 storageType: item.storage_hint,
                 lotNumber: item.lot_number || undefined,
                 chefLifeHours: item.chef_life_hours || undefined,
+                netWeightG: (item as any).netWeightG || undefined,
               });
             }
           }
