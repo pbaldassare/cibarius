@@ -209,6 +209,30 @@ const RestaurantLabel = ({ label, showActions = true }: { label: LabelData; show
             <Printer className="h-3.5 w-3.5" />
             Stampa etichetta
           </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button size="sm" variant="outline" className="gap-1.5">
+                <LayoutGrid className="h-3.5 w-3.5" />
+                Griglia A4
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-56 p-3" align="start">
+              <p className="text-xs font-medium mb-2">Copie per foglio A4 (max 21)</p>
+              <div className="flex items-center gap-2 mb-3">
+                <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => setGridCount(c => Math.max(1, c - 1))} disabled={gridCount <= 1}>
+                  <Minus className="h-3 w-3" />
+                </Button>
+                <span className="text-sm font-semibold w-8 text-center">{gridCount}</span>
+                <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => setGridCount(c => Math.min(21, c + 1))} disabled={gridCount >= 21}>
+                  <Plus className="h-3 w-3" />
+                </Button>
+              </div>
+              <Button size="sm" className="w-full gap-1.5" onClick={handlePrintGrid}>
+                <Printer className="h-3.5 w-3.5" />
+                Stampa {gridCount} etichette
+              </Button>
+            </PopoverContent>
+          </Popover>
         </div>
       )}
     </div>
