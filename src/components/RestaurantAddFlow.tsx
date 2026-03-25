@@ -271,6 +271,7 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
               chef_life_hours: item.chef_life_hours || null,
               production_date: item.production_date || null,
               ingredients: (item as any).ingredientsText || null,
+              net_weight_g: (item as any).netWeightG || null,
             }).select("id").single();
 
             if (iErr) throw iErr;
@@ -302,6 +303,7 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
                 storageType: item.storage_hint,
                 lotNumber: item.lot_number || undefined,
                 chefLifeHours: item.chef_life_hours || undefined,
+                netWeightG: (item as any).netWeightG || undefined,
               });
             }
           }
@@ -598,15 +600,27 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
                 </div>
               </div>
 
-              {/* Ingredients text */}
-              <div>
-                <label className="text-xs font-medium text-muted-foreground">Ingredienti (per etichetta)</label>
-                <Input
-                  value={(currentItem as any).ingredientsText || ""}
-                  onChange={(e) => updateEditItem("ingredientsText", e.target.value)}
-                  placeholder="Es: farina, acqua, sale, lievito..."
-                  className="mt-1"
-                />
+              {/* Net weight + Ingredients text */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Peso netto (g)</label>
+                  <Input
+                    type="number"
+                    value={(currentItem as any).netWeightG || ""}
+                    onChange={(e) => updateEditItem("netWeightG", e.target.value ? parseFloat(e.target.value) : null)}
+                    placeholder="Es: 500"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Ingredienti (etichetta)</label>
+                  <Input
+                    value={(currentItem as any).ingredientsText || ""}
+                    onChange={(e) => updateEditItem("ingredientsText", e.target.value)}
+                    placeholder="farina, acqua, sale..."
+                    className="mt-1"
+                  />
+                </div>
               </div>
 
               {/* Allergens */}

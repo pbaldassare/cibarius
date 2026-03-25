@@ -1531,6 +1531,7 @@ export type Database = {
           ingredients: string | null
           lot_number: string | null
           macros_total: Json | null
+          net_weight_g: number | null
           notes: string | null
           owner_user_id: string | null
           product_id: string
@@ -1549,6 +1550,7 @@ export type Database = {
           ingredients?: string | null
           lot_number?: string | null
           macros_total?: Json | null
+          net_weight_g?: number | null
           notes?: string | null
           owner_user_id?: string | null
           product_id: string
@@ -1567,6 +1569,7 @@ export type Database = {
           ingredients?: string | null
           lot_number?: string | null
           macros_total?: Json | null
+          net_weight_g?: number | null
           notes?: string | null
           owner_user_id?: string | null
           product_id?: string

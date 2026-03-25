@@ -171,6 +171,7 @@ const RestaurantItemPage = () => {
     storageType: storage,
     lotNumber: item.lot_number,
     chefLifeHours: item.chef_life_hours,
+    netWeightG: !isPrep ? item.net_weight_g : undefined,
   };
 
   return (
