@@ -1,13 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useRestaurant } from "@/hooks/useRestaurant";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import MobileHeader from "@/components/MobileHeader";
 import RestaurantLabel, { type LabelData } from "@/components/RestaurantLabel";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Package, ChefHat, Clock, Thermometer, Archive, Snowflake, Hash } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  ArrowLeft, Package, ChefHat, Clock, Thermometer, Archive,
+  Snowflake, Hash, ImagePlus, Loader2, ChevronLeft, ChevronRight, Trash2,
+} from "lucide-react";
 
 const storageIcons: Record<string, any> = { frigo: Thermometer, freezer: Snowflake, ambiente: Archive };
 const storageLabels: Record<string, string> = { frigo: "Frigo", freezer: "Congelatore", ambiente: "Dispensa" };
@@ -16,16 +21,21 @@ const RestaurantItemPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { restaurant, isLoading: rl } = useRestaurant();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [item, setItem] = useState<any>(null);
   const [type, setType] = useState<"inv" | "prep">("inv");
   const [allergens, setAllergens] = useState<string[]>([]);
+  const [photos, setPhotos] = useState<{ id: string; photo_url: string }[]>([]);
+  const [photoIdx, setPhotoIdx] = useState(0);
+  const [uploading, setUploading] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!id || !restaurant) return;
 
     const fetchItem = async () => {
-      // Parse id format: inv-{uuid} or prep-{uuid}
       const isPrep = id.startsWith("prep-");
       const realId = id.replace(/^(inv|prep)-/, "");
       setType(isPrep ? "prep" : "inv");
@@ -39,7 +49,6 @@ const RestaurantItemPage = () => {
           .maybeSingle();
         if (data) {
           setItem(data);
-          // Fetch allergens
           const { data: pa } = await supabase
             .from("preparation_allergens")
             .select("allergen:allergens(name)")
@@ -53,12 +62,69 @@ const RestaurantItemPage = () => {
           .eq("id", realId)
           .eq("restaurant_id", restaurant.id)
           .maybeSingle();
-        if (data) setItem(data);
+        if (data) {
+          setItem(data);
+          // Fetch allergens for inventory items
+          const { data: ia } = await supabase
+            .from("inventory_item_allergens")
+            .select("allergen:allergens(name)")
+            .eq("inventory_item_id", realId);
+          if (ia) setAllergens(ia.map((a: any) => a.allergen?.name).filter(Boolean));
+        }
       }
+
+      // Fetch photos
+      const { data: photoData } = await supabase
+        .from("inventory_item_photos")
+        .select("id, photo_url")
+        .eq("item_id", realId)
+        .eq("item_type", isPrep ? "preparation" : "inventory")
+        .order("uploaded_at", { ascending: true });
+      if (photoData) setPhotos(photoData);
+
       setLoading(false);
     };
     fetchItem();
   }, [id, restaurant]);
+
+  const handleUploadPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user || !item) return;
+    setUploading(true);
+    try {
+      const realId = id!.replace(/^(inv|prep)-/, "");
+      const ext = file.name.split(".").pop() ?? "jpg";
+      const filePath = `${restaurant!.id}/${realId}/${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("item-photos").upload(filePath, file, { cacheControl: "3600" });
+      if (upErr) throw upErr;
+      const { data: urlData } = supabase.storage.from("item-photos").getPublicUrl(filePath);
+      const photoUrl = urlData.publicUrl;
+      const { data: row, error: dbErr } = await supabase
+        .from("inventory_item_photos")
+        .insert({
+          item_id: realId,
+          item_type: type === "prep" ? "preparation" : "inventory",
+          photo_url: photoUrl,
+          uploaded_by: user.id,
+        })
+        .select("id, photo_url")
+        .single();
+      if (dbErr) throw dbErr;
+      if (row) setPhotos((p) => [...p, row]);
+      toast({ title: "Foto aggiunta ✓" });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Errore upload", description: err?.message });
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleDeletePhoto = async (photoId: string) => {
+    await supabase.from("inventory_item_photos").delete().eq("id", photoId);
+    setPhotos((p) => p.filter((ph) => ph.id !== photoId));
+    setPhotoIdx((i) => Math.max(0, Math.min(i, photos.length - 2)));
+  };
 
   if (rl || loading) {
     return (
@@ -97,7 +163,9 @@ const RestaurantItemPage = () => {
     id: item.id,
     type: isPrep ? "preparation" : "product",
     name,
-    ingredients: isPrep ? item.description : undefined,
+    ingredients: isPrep ? item.description : item.ingredients,
+    allergens,
+    restaurantName: restaurant?.name,
     productionDate: item.production_date,
     expiryDate,
     storageType: storage,
@@ -121,6 +189,70 @@ const RestaurantItemPage = () => {
             </Badge>
           </div>
         </div>
+
+        {/* Photo Gallery */}
+        {(photos.length > 0 || true) && (
+          <div className="rounded-xl bg-card shadow-card p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-semibold">Foto</h3>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="gap-1 text-xs"
+                disabled={uploading}
+                onClick={() => photoInputRef.current?.click()}
+              >
+                {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImagePlus className="h-3.5 w-3.5" />}
+                Aggiungi
+              </Button>
+              <input ref={photoInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleUploadPhoto} />
+            </div>
+            {photos.length > 0 ? (
+              <div className="relative">
+                <img
+                  src={photos[photoIdx]?.photo_url}
+                  alt={`Foto ${photoIdx + 1}`}
+                  className="w-full h-48 object-cover rounded-lg"
+                />
+                {photos.length > 1 && (
+                  <>
+                    <button
+                      onClick={() => setPhotoIdx((i) => (i - 1 + photos.length) % photos.length)}
+                      className="absolute left-1 top-1/2 -translate-y-1/2 bg-black/50 rounded-full p-1"
+                    >
+                      <ChevronLeft className="h-4 w-4 text-white" />
+                    </button>
+                    <button
+                      onClick={() => setPhotoIdx((i) => (i + 1) % photos.length)}
+                      className="absolute right-1 top-1/2 -translate-y-1/2 bg-black/50 rounded-full p-1"
+                    >
+                      <ChevronRight className="h-4 w-4 text-white" />
+                    </button>
+                  </>
+                )}
+                <div className="absolute bottom-2 right-2 flex gap-1">
+                  <button
+                    onClick={() => handleDeletePhoto(photos[photoIdx].id)}
+                    className="bg-black/50 rounded-full p-1.5"
+                  >
+                    <Trash2 className="h-3 w-3 text-white" />
+                  </button>
+                </div>
+                {photos.length > 1 && (
+                  <div className="flex justify-center gap-1 mt-2">
+                    {photos.map((_, i) => (
+                      <div key={i} className={`h-1.5 w-1.5 rounded-full ${i === photoIdx ? "bg-primary" : "bg-muted"}`} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="h-24 flex items-center justify-center text-muted-foreground text-sm">
+                Nessuna foto caricata
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Details card */}
         <div className="rounded-xl bg-card shadow-card p-4 space-y-3">

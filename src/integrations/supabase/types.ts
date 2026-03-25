@@ -1461,6 +1461,66 @@ export type Database = {
         }
         Relationships: []
       }
+      inventory_item_allergens: {
+        Row: {
+          allergen_id: string
+          id: string
+          inventory_item_id: string
+        }
+        Insert: {
+          allergen_id: string
+          id?: string
+          inventory_item_id: string
+        }
+        Update: {
+          allergen_id?: string
+          id?: string
+          inventory_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_item_allergens_allergen_id_fkey"
+            columns: ["allergen_id"]
+            isOneToOne: false
+            referencedRelation: "allergens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_item_allergens_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_item_photos: {
+        Row: {
+          id: string
+          item_id: string
+          item_type: string
+          photo_url: string
+          uploaded_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          id?: string
+          item_id: string
+          item_type?: string
+          photo_url: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          id?: string
+          item_id?: string
+          item_type?: string
+          photo_url?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
       inventory_items: {
         Row: {
           calories_total: number | null
@@ -1468,6 +1528,7 @@ export type Database = {
           created_at: string
           expiry_date: string | null
           id: string
+          ingredients: string | null
           lot_number: string | null
           macros_total: Json | null
           notes: string | null
@@ -1485,6 +1546,7 @@ export type Database = {
           created_at?: string
           expiry_date?: string | null
           id?: string
+          ingredients?: string | null
           lot_number?: string | null
           macros_total?: Json | null
           notes?: string | null
@@ -1502,6 +1564,7 @@ export type Database = {
           created_at?: string
           expiry_date?: string | null
           id?: string
+          ingredients?: string | null
           lot_number?: string | null
           macros_total?: Json | null
           notes?: string | null
