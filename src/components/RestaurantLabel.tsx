@@ -107,6 +107,8 @@ const RestaurantLabel = ({ label, showActions = true }: { label: LabelData; show
     ? highlightAllergens(label.ingredients, label.allergens || [])
     : "";
 
+  const [gridCount, setGridCount] = useState(21);
+
   const handlePrint = () => {
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
@@ -123,6 +125,31 @@ const RestaurantLabel = ({ label, showActions = true }: { label: LabelData; show
         </style>
       </head>
       <body>${buildLabelHtml(label, qrDataUrl)}</body>
+      </html>
+    `);
+    printWindow.document.close();
+    setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
+  };
+
+  const handlePrintGrid = () => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+
+    const labels = Array.from({ length: gridCount }, () => buildLabelHtml(label, qrDataUrl)).join("");
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Griglia etichette - ${label.name}</title>
+        <style>
+          @page { size: A4 portrait; margin: 4mm 12mm; }
+          body { margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0; align-content: flex-start; }
+          ${labelCss}
+          .label-box { height: 40mm; page-break-inside: avoid; }
+        </style>
+      </head>
+      <body>${labels}</body>
       </html>
     `);
     printWindow.document.close();
