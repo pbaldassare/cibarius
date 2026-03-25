@@ -1,42 +1,33 @@
 
 
-## Stampa multipla etichette su foglio A4
+## Aggiungere Peso Netto all'etichetta HACCP
 
 ### Cosa faremo
 
-Aggiungiamo un nuovo componente e una funzione di stampa che dispone automaticamente più copie dell'etichetta HACCP (62x40mm) in una griglia su foglio A4 (210x297mm). L'utente sceglie quante copie stampare e il sistema le organizza in righe da 3 colonne x 7 righe (max 21 etichette per foglio).
-
-### Calcolo griglia
-
-```text
-A4 = 210mm x 297mm
-Etichetta = 62mm x 40mm
-Colonne: floor(210 / 62) = 3 (186mm, margine laterale ~12mm)
-Righe:   floor(297 / 40) = 7 (280mm, margine verticale ~8.5mm)
-Max per foglio: 21 etichette
-```
+Aggiungiamo il campo "Peso netto" (obbligatorio per normativa EU 1169/2011) all'etichetta HACCP. Il dato verrà salvato in database, inserito durante il flusso di aggiunta prodotto, e visualizzato sull'etichetta stampata.
 
 ### Modifiche
 
-**1. `RestaurantLabel.tsx` — Aggiungere bottone "Stampa griglia A4"**
+**1. Database — nuova colonna `net_weight_g` su `inventory_items`**
+- Migrazione: `ALTER TABLE inventory_items ADD COLUMN net_weight_g numeric;`
+- Tipo numeric per gestire grammi con decimali (es. 250, 1500, 0.5)
 
-- Nuovo bottone accanto a "Stampa etichetta" con icona `Grid2x2` (o `LayoutGrid`)
-- Al click, apre un piccolo dialog/popover per scegliere il numero di copie (default 21, min 1, max 21)
-- Nuova funzione `handlePrintGrid` che:
-  - Apre `window.open` con `@page { size: A4; margin: 4mm; }`
-  - CSS griglia: `display: flex; flex-wrap: wrap; gap: 0;` con etichette 62x40mm
-  - Ripete `buildLabelHtml()` N volte
-  - Lancia `print()` dopo 500ms
+**2. `RestaurantLabel.tsx` — mostrare peso netto sull'etichetta**
+- Aggiungere `netWeightG?: number` a `LabelData`
+- In `buildLabelHtml`, aggiungere riga "PESO NETTO: Xg" (o kg se ≥1000g) nel footer, prima del lotto
+- Formattazione automatica: <1000g → "250 g", ≥1000g → "1,5 kg"
 
-**2. CSS stampa griglia**
+**3. `RestaurantAddFlow.tsx` — campo input peso netto**
+- Aggiungere campo numerico "Peso netto (g)" nel form di modifica prodotto (step "edit")
+- Salvare il valore in `net_weight_g` durante l'insert su `inventory_items`
+- Passare il valore a `LabelData` per l'anteprima etichetta
 
-```css
-@page { size: A4 portrait; margin: 4mm 12mm; }
-body { display: flex; flex-wrap: wrap; gap: 0; }
-.label-box { width: 62mm; height: 40mm; page-break-inside: avoid; }
-```
+**4. `RestaurantItemPage.tsx` — mostrare peso netto nel dettaglio**
+- Leggere `net_weight_g` dalla query e passarlo a `LabelData`
 
 ### File modificati
-
-- `src/components/RestaurantLabel.tsx` — aggiunta bottone + dialog quantita + funzione stampa griglia A4
+- `supabase/migrations/` — nuova migrazione per colonna `net_weight_g`
+- `src/components/RestaurantLabel.tsx`
+- `src/components/RestaurantAddFlow.tsx`
+- `src/pages/restaurant/RestaurantItemPage.tsx`
 
