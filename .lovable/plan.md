@@ -1,60 +1,42 @@
 
 
-## Etichetta HACCP Professionale con Galleria Foto e Export PDF
+## Stampa multipla etichette su foglio A4
 
 ### Cosa faremo
 
-Miglioriamo l'etichetta HACCP del ristorante per renderla simile a quella fisica nella foto: compatta, con tutti i dati HACCP obbligatori (nome, ingredienti, allergeni, date, lotto, conservazione, QR code). Il QR code punterà alla pagina di dettaglio che includerà anche una galleria di foto. Si potra visualizzare un'anteprima e stampare/scaricare come PDF.
+Aggiungiamo un nuovo componente e una funzione di stampa che dispone automaticamente più copie dell'etichetta HACCP (62x40mm) in una griglia su foglio A4 (210x297mm). L'utente sceglie quante copie stampare e il sistema le organizza in righe da 3 colonne x 7 righe (max 21 etichette per foglio).
 
-### Modifiche al Database
+### Calcolo griglia
 
-1. **Nuova tabella `inventory_item_photos`** — galleria immagini per prodotti e preparazioni:
-   - `id`, `item_id` (uuid), `item_type` (text: 'inventory' | 'preparation'), `photo_url` (text), `uploaded_at` (timestamptz), `uploaded_by` (uuid)
-   - RLS: accesso basato sul ristorante proprietario
+```text
+A4 = 210mm x 297mm
+Etichetta = 62mm x 40mm
+Colonne: floor(210 / 62) = 3 (186mm, margine laterale ~12mm)
+Righe:   floor(297 / 40) = 7 (280mm, margine verticale ~8.5mm)
+Max per foglio: 21 etichette
+```
 
-2. **Nuova tabella `inventory_item_allergens`** — allergeni per inventory_items (già esiste per preparations ma non per prodotti in inventario):
-   - `id`, `inventory_item_id` (uuid FK → inventory_items), `allergen_id` (uuid FK → allergens)
-   - RLS: stesse policy degli inventory_items
+### Modifiche
 
-3. **Colonna `ingredients` su `inventory_items`** — per salvare gli ingredienti testuali del prodotto
+**1. `RestaurantLabel.tsx` — Aggiungere bottone "Stampa griglia A4"**
 
-4. **Storage bucket `item-photos`** — per le foto caricate
+- Nuovo bottone accanto a "Stampa etichetta" con icona `Grid2x2` (o `LayoutGrid`)
+- Al click, apre un piccolo dialog/popover per scegliere il numero di copie (default 21, min 1, max 21)
+- Nuova funzione `handlePrintGrid` che:
+  - Apre `window.open` con `@page { size: A4; margin: 4mm; }`
+  - CSS griglia: `display: flex; flex-wrap: wrap; gap: 0;` con etichette 62x40mm
+  - Ripete `buildLabelHtml()` N volte
+  - Lancia `print()` dopo 500ms
 
-### Modifiche Frontend
+**2. CSS stampa griglia**
 
-**1. `RestaurantLabel.tsx` — Etichetta ridisegnata**
-- Layout simile alla foto: nome prodotto in alto a sinistra, nome ristorante in alto a destra
-- "INGREDIENTI:" sotto il nome
-- Allergeni in grassetto integrati negli ingredienti
-- DATA PRODUZIONE e DATA SCADENZA con formato gg/mm/aaaa
-- CONSERVAZIONE (Ambiente/Frigo/Congelatore)
-- Lotto in basso a destra vicino al QR
-- QR code più grande, in basso a destra
-- Aggiunta proprietà `allergens` e `restaurantName` a `LabelData`
-- Funzione "Stampa" che apre finestra con layout identico ottimizzato per stampa su etichette piccole
-- Nuovo bottone "Scarica PDF" che genera il PDF dell'etichetta
+```css
+@page { size: A4 portrait; margin: 4mm 12mm; }
+body { display: flex; flex-wrap: wrap; gap: 0; }
+.label-box { width: 62mm; height: 40mm; page-break-inside: avoid; }
+```
 
-**2. `RestaurantAddFlow.tsx` — Salvataggio allergeni per prodotti**
-- Quando si salva un prodotto (non solo preparazione), salvare anche gli allergeni nella nuova tabella `inventory_item_allergens`
-- Salvare gli ingredienti nel campo `ingredients`
-- Passare allergeni e ingredienti ai dati dell'etichetta
-- Aggiungere possibilità di caricare foto durante l'inserimento che vanno in `item-photos`
+### File modificati
 
-**3. `RestaurantItemPage.tsx` — Pagina dettaglio con galleria**
-- Caricare foto dalla tabella `inventory_item_photos` 
-- Mostrare galleria immagini scorrevole
-- Caricare allergeni anche per inventory_items (non solo preparations)
-- Bottone per aggiungere nuove foto
-- Anteprima etichetta migliorata con tutti i dati
-
-**4. Generazione PDF etichetta**
-- Utilizzo di `window.print()` con CSS `@page` ottimizzato per dimensioni etichetta (es. 62mm x 40mm, formato comune per etichettatrici)
-- Anteprima fedele in-app prima della stampa
-
-### Dettagli Tecnici
-
-- Le foto vengono caricate su Supabase Storage (bucket `item-photos`) e il URL pubblico salvato in `inventory_item_photos`
-- Il QR code nella pagina dettaglio punta a `/restaurant/item/{type}-{id}` che già esiste e mostrerà anche la galleria
-- L'etichetta stampata usa CSS print media queries per dimensioni fisiche precise (mm)
-- Gli allergeni vengono evidenziati in grassetto nell'elenco ingredienti come da normativa EU 1169/2011
+- `src/components/RestaurantLabel.tsx` — aggiunta bottone + dialog quantita + funzione stampa griglia A4
 
