@@ -271,6 +271,7 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
               chef_life_hours: item.chef_life_hours || null,
               production_date: item.production_date || null,
               ingredients: (item as any).ingredientsText || null,
+              net_weight_g: (item as any).netWeightG || null,
             }).select("id").single();
 
             if (iErr) throw iErr;
