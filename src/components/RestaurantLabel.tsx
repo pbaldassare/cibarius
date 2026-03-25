@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { Button } from "@/components/ui/button";
-import { Printer } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Printer, LayoutGrid, Minus, Plus } from "lucide-react";
 
 export interface LabelData {
   id: string;
@@ -106,6 +107,8 @@ const RestaurantLabel = ({ label, showActions = true }: { label: LabelData; show
     ? highlightAllergens(label.ingredients, label.allergens || [])
     : "";
 
+  const [gridCount, setGridCount] = useState(21);
+
   const handlePrint = () => {
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
@@ -122,6 +125,31 @@ const RestaurantLabel = ({ label, showActions = true }: { label: LabelData; show
         </style>
       </head>
       <body>${buildLabelHtml(label, qrDataUrl)}</body>
+      </html>
+    `);
+    printWindow.document.close();
+    setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
+  };
+
+  const handlePrintGrid = () => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+
+    const labels = Array.from({ length: gridCount }, () => buildLabelHtml(label, qrDataUrl)).join("");
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Griglia etichette - ${label.name}</title>
+        <style>
+          @page { size: A4 portrait; margin: 4mm 12mm; }
+          body { margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0; align-content: flex-start; }
+          ${labelCss}
+          .label-box { height: 40mm; page-break-inside: avoid; }
+        </style>
+      </head>
+      <body>${labels}</body>
       </html>
     `);
     printWindow.document.close();
@@ -181,6 +209,30 @@ const RestaurantLabel = ({ label, showActions = true }: { label: LabelData; show
             <Printer className="h-3.5 w-3.5" />
             Stampa etichetta
           </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button size="sm" variant="outline" className="gap-1.5">
+                <LayoutGrid className="h-3.5 w-3.5" />
+                Griglia A4
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-56 p-3" align="start">
+              <p className="text-xs font-medium mb-2">Copie per foglio A4 (max 21)</p>
+              <div className="flex items-center gap-2 mb-3">
+                <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => setGridCount(c => Math.max(1, c - 1))} disabled={gridCount <= 1}>
+                  <Minus className="h-3 w-3" />
+                </Button>
+                <span className="text-sm font-semibold w-8 text-center">{gridCount}</span>
+                <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => setGridCount(c => Math.min(21, c + 1))} disabled={gridCount >= 21}>
+                  <Plus className="h-3 w-3" />
+                </Button>
+              </div>
+              <Button size="sm" className="w-full gap-1.5" onClick={handlePrintGrid}>
+                <Printer className="h-3.5 w-3.5" />
+                Stampa {gridCount} etichette
+              </Button>
+            </PopoverContent>
+          </Popover>
         </div>
       )}
     </div>
