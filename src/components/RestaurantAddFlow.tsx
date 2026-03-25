@@ -598,6 +598,17 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
                 </div>
               </div>
 
+              {/* Ingredients text */}
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Ingredienti (per etichetta)</label>
+                <Input
+                  value={(currentItem as any).ingredientsText || ""}
+                  onChange={(e) => updateEditItem("ingredientsText", e.target.value)}
+                  placeholder="Es: farina, acqua, sale, lievito..."
+                  className="mt-1"
+                />
+              </div>
+
               {/* Allergens */}
               <div>
                 <label className="text-xs font-medium text-muted-foreground">Allergeni</label>
