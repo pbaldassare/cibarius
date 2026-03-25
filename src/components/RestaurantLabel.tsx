@@ -65,6 +65,7 @@ const buildLabelHtml = (label: LabelData, qrDataUrl: string) => {
       <div class="footer-row">
         <div class="footer-left">
           <div><span class="label-title">CONSERVAZIONE:</span> ${storageLabels[label.storageType || ""] || label.storageType || ""}</div>
+          ${label.netWeightG ? `<div><span class="label-title">PESO NETTO:</span> ${label.netWeightG >= 1000 ? (label.netWeightG / 1000).toLocaleString("it-IT") + " kg" : label.netWeightG + " g"}</div>` : ""}
           ${label.chefLifeHours ? `<div><span class="label-title">CHEF LIFE:</span> ${label.chefLifeHours}h</div>` : ""}
           ${label.lotNumber ? `<div><span class="label-title">LOTTO:</span> ${label.lotNumber}</div>` : ""}
         </div>
