@@ -1,37 +1,60 @@
 
 
-# Piano: Popolare 300 traduzioni + Prompt IA preciso + Logica DB-first
+## Etichetta HACCP Professionale con Galleria Foto e Export PDF
 
-## Stato attuale
-- `ingredient_translation` ha solo 23 righe (il seed iniziale)
-- L'edge function `analyze-meal-photo` usa un prompt generico e non ha logica "dishes cache first"
+### Cosa faremo
 
-## Cosa fare
+Miglioriamo l'etichetta HACCP del ristorante per renderla simile a quella fisica nella foto: compatta, con tutti i dati HACCP obbligatori (nome, ingredienti, allergeni, date, lotto, conservazione, QR code). Il QR code punterà alla pagina di dettaglio che includerà anche una galleria di foto. Si potra visualizzare un'anteprima e stampare/scaricare come PDF.
 
-### 1. Inserire ~260 nuove traduzioni in `ingredient_translation`
+### Modifiche al Database
 
-Useremo una migrazione SQL con `INSERT ... ON CONFLICT DO NOTHING` per aggiungere tutte le righe del CSV fornito senza duplicare quelle gia' presenti. La tabella ha `name_it` UNIQUE, quindi i conflitti vengono gestiti automaticamente.
+1. **Nuova tabella `inventory_item_photos`** — galleria immagini per prodotti e preparazioni:
+   - `id`, `item_id` (uuid), `item_type` (text: 'inventory' | 'preparation'), `photo_url` (text), `uploaded_at` (timestamptz), `uploaded_by` (uuid)
+   - RLS: accesso basato sul ristorante proprietario
 
-### 2. Aggiornare il prompt IA nell'edge function
+2. **Nuova tabella `inventory_item_allergens`** — allergeni per inventory_items (già esiste per preparations ma non per prodotti in inventario):
+   - `id`, `inventory_item_id` (uuid FK → inventory_items), `allergen_id` (uuid FK → allergens)
+   - RLS: stesse policy degli inventory_items
 
-Sostituire il `systemPrompt` attuale (generico) con il prompt dettagliato fornito dall'utente, che include:
-- Regole per pizza (base, salsa, mozzarella, olio, extra visibili)
-- Regole per pasta (tipo pasta, condimento, formaggio)
-- Regole per risotto (riso, soffritto, brodo, burro/parmigiano, ingrediente principale)
-- Output JSON obbligatorio con `name_it` e `notes`
+3. **Colonna `ingredients` su `inventory_items`** — per salvare gli ingredienti testuali del prodotto
 
-### 3. Aggiungere logica DB-first (dishes cache)
+4. **Storage bucket `item-photos`** — per le foto caricate
 
-Prima di chiamare l'IA, la funzione controllera' se un piatto simile esiste gia' in `dishes` + `dish_ingredients`:
-1. Se trovato → carica ingredienti dalla cache, calcola macro, restituisci subito (NO IA, NO USDA)
-2. Se non trovato → chiama IA vision → arricchisci con USDA → salva in `dishes`/`dish_ingredients` per le prossime volte
+### Modifiche Frontend
 
-Questo richiede una modifica strutturale all'handler principale dell'edge function, aggiungendo un blocco di cache lookup prima della chiamata AI e un blocco di cache write dopo l'analisi.
+**1. `RestaurantLabel.tsx` — Etichetta ridisegnata**
+- Layout simile alla foto: nome prodotto in alto a sinistra, nome ristorante in alto a destra
+- "INGREDIENTI:" sotto il nome
+- Allergeni in grassetto integrati negli ingredienti
+- DATA PRODUZIONE e DATA SCADENZA con formato gg/mm/aaaa
+- CONSERVAZIONE (Ambiente/Frigo/Congelatore)
+- Lotto in basso a destra vicino al QR
+- QR code più grande, in basso a destra
+- Aggiunta proprietà `allergens` e `restaurantName` a `LabelData`
+- Funzione "Stampa" che apre finestra con layout identico ottimizzato per stampa su etichette piccole
+- Nuovo bottone "Scarica PDF" che genera il PDF dell'etichetta
 
-## File coinvolti
+**2. `RestaurantAddFlow.tsx` — Salvataggio allergeni per prodotti**
+- Quando si salva un prodotto (non solo preparazione), salvare anche gli allergeni nella nuova tabella `inventory_item_allergens`
+- Salvare gli ingredienti nel campo `ingredients`
+- Passare allergeni e ingredienti ai dati dell'etichetta
+- Aggiungere possibilità di caricare foto durante l'inserimento che vanno in `item-photos`
 
-| File | Azione |
-|------|--------|
-| Migrazione SQL | INSERT ~260 righe in `ingredient_translation` |
-| `supabase/functions/analyze-meal-photo/index.ts` | Nuovo prompt + logica dishes cache |
+**3. `RestaurantItemPage.tsx` — Pagina dettaglio con galleria**
+- Caricare foto dalla tabella `inventory_item_photos` 
+- Mostrare galleria immagini scorrevole
+- Caricare allergeni anche per inventory_items (non solo preparations)
+- Bottone per aggiungere nuove foto
+- Anteprima etichetta migliorata con tutti i dati
+
+**4. Generazione PDF etichetta**
+- Utilizzo di `window.print()` con CSS `@page` ottimizzato per dimensioni etichetta (es. 62mm x 40mm, formato comune per etichettatrici)
+- Anteprima fedele in-app prima della stampa
+
+### Dettagli Tecnici
+
+- Le foto vengono caricate su Supabase Storage (bucket `item-photos`) e il URL pubblico salvato in `inventory_item_photos`
+- Il QR code nella pagina dettaglio punta a `/restaurant/item/{type}-{id}` che già esiste e mostrerà anche la galleria
+- L'etichetta stampata usa CSS print media queries per dimensioni fisiche precise (mm)
+- Gli allergeni vengono evidenziati in grassetto nell'elenco ingredienti come da normativa EU 1169/2011
 
