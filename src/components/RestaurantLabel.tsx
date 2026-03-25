@@ -16,6 +16,7 @@ export interface LabelData {
   storageType?: string;
   lotNumber?: string;
   chefLifeHours?: number;
+  netWeightG?: number;
 }
 
 const storageLabels: Record<string, string> = {
