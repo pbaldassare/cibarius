@@ -268,14 +268,33 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
               lot_number: item.lot_number || null,
               chef_life_hours: item.chef_life_hours || null,
               production_date: item.production_date || null,
+              ingredients: (item as any).ingredientsText || null,
             }).select("id").single();
 
             if (iErr) throw iErr;
             if (inv) {
+              // Save allergens for inventory items
+              if (item.allergens.length > 0) {
+                const allergenIds = allergensList
+                  .filter((a) => item.allergens.some((name) =>
+                    a.name.toLowerCase().includes(name.toLowerCase()) ||
+                    name.toLowerCase().includes(a.name.toLowerCase())
+                  ))
+                  .map((a) => a.id);
+
+                if (allergenIds.length > 0) {
+                  await supabase.from("inventory_item_allergens").insert(
+                    allergenIds.map((aid) => ({ inventory_item_id: inv.id, allergen_id: aid }))
+                  );
+                }
+              }
+
               labels.push({
                 id: inv.id,
                 type: "product",
                 name: item.name,
+                ingredients: (item as any).ingredientsText || undefined,
+                allergens: item.allergens.length > 0 ? item.allergens : undefined,
                 productionDate: item.production_date || format(new Date(), "yyyy-MM-dd"),
                 expiryDate: item.expiry_date || format(addDays(new Date(), 3), "yyyy-MM-dd"),
                 storageType: item.storage_hint,
