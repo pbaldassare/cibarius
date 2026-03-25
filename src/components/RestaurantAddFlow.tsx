@@ -241,6 +241,8 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
               id: prep.id,
               type: "preparation",
               name: item.name,
+              ingredients: item.brand || undefined,
+              allergens: item.allergens.length > 0 ? item.allergens : undefined,
               productionDate: item.production_date || format(new Date(), "yyyy-MM-dd"),
               expiryDate: item.expiry_date || format(addDays(new Date(), 3), "yyyy-MM-dd"),
               storageType: item.storage_hint,
