@@ -105,6 +105,7 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
   const { user } = useAuth();
   const { restaurant } = useRestaurant();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const [items, setItems] = useState<InventoryItemWithProduct[]>([]);
   const [loading, setLoading] = useState(true);
