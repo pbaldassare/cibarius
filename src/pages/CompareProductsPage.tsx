@@ -356,7 +356,7 @@ const CompareProductsPage = () => {
                     </div>
 
                     {/* Nutrition grid */}
-                    <div className="grid grid-cols-4 gap-2">
+                    <div className="grid grid-cols-5 gap-1.5">
                       <div className="rounded-lg bg-secondary/50 p-2 text-center">
                         <Flame className="h-3 w-3 mx-auto text-orange-500 mb-0.5" />
                         <p className="text-xs font-bold text-foreground">{p.calories_100g ?? "—"}</p>
@@ -371,6 +371,11 @@ const CompareProductsPage = () => {
                         <Wheat className="h-3 w-3 mx-auto text-amber-500 mb-0.5" />
                         <p className="text-xs font-bold text-foreground">{p.carbs_100g ?? "—"}</p>
                         <p className="text-[9px] text-muted-foreground">carb</p>
+                      </div>
+                      <div className="rounded-lg bg-secondary/50 p-2 text-center">
+                        <Candy className="h-3 w-3 mx-auto text-pink-500 mb-0.5" />
+                        <p className="text-xs font-bold text-foreground">{p.sugars_100g ?? "—"}</p>
+                        <p className="text-[9px] text-muted-foreground">zuccheri</p>
                       </div>
                       <div className="rounded-lg bg-secondary/50 p-2 text-center">
                         <Droplets className="h-3 w-3 mx-auto text-blue-500 mb-0.5" />
