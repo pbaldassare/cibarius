@@ -121,6 +121,7 @@ const CompareProductsPage = () => {
             calories_100g: result.nutrition?.calories_100g ?? null,
             protein_100g: result.nutrition?.protein_100g ?? null,
             carbs_100g: result.nutrition?.carbs_100g ?? null,
+            sugars_100g: result.nutrition?.sugars_100g ?? null,
             fats_100g: result.nutrition?.fats_100g ?? null,
             image_base64: photo.base64,
             saved: !!existingId,
