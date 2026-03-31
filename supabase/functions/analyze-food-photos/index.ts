@@ -163,6 +163,7 @@ Per quantity: se vedi un peso netto o volume sulla confezione, riportalo.`;
                       calories_100g: { type: ["number", "null"] },
                       protein_100g: { type: ["number", "null"] },
                       carbs_100g: { type: ["number", "null"] },
+                      sugars_100g: { type: ["number", "null"] },
                       fats_100g: { type: ["number", "null"] },
                       serving_size_g: { type: ["number", "null"] },
                       confidence: { type: "number" },
