@@ -1,9 +1,13 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import MobileHeader from "@/components/MobileHeader";
 import AddFoodFlow from "@/components/AddFoodFlow";
+import { Button } from "@/components/ui/button";
+import { ShoppingCart } from "lucide-react";
 
 const ScanPage = () => {
   const [open, setOpen] = useState(true);
+  const navigate = useNavigate();
 
   return (
     <div>
@@ -18,6 +22,20 @@ const ScanPage = () => {
         >
           Aggiungi alimento
         </button>
+
+        <div className="pt-4 border-t border-border">
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => navigate("/compare")}
+          >
+            <ShoppingCart className="h-4 w-4" />
+            Confronta prodotti
+          </Button>
+          <p className="text-xs text-muted-foreground mt-1.5">
+            Fotografa più prodotti e confronta i valori nutrizionali
+          </p>
+        </div>
       </main>
 
       <AddFoodFlow
