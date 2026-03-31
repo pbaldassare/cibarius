@@ -510,7 +510,7 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
               return (
                 <button
                   key={item.id}
-                  onClick={() => openEditDialog(item)}
+                  onClick={() => mode === "user" ? navigate(`/item/${item.id}`) : openEditDialog(item)}
                   className="flex w-full items-center gap-3 rounded-2xl border-2 border-accent bg-card p-3 text-left active:scale-[0.98] transition-transform"
                 >
                   {/* Image / placeholder */}
