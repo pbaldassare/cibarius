@@ -10,18 +10,19 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import {
   Camera, Loader2, ArrowLeft, Star, Plus, Save,
-  Flame, Beef, Wheat, Droplets, Trophy, Check,
+  Flame, Beef, Wheat, Droplets, Trophy, Check, Candy,
 } from "lucide-react";
 
 interface ComparedProduct {
-  id?: string; // product id if saved
+  id?: string;
   name: string;
   brand: string | null;
   calories_100g: number | null;
   protein_100g: number | null;
   carbs_100g: number | null;
+  sugars_100g: number | null;
   fats_100g: number | null;
-  image_base64: string; // for display
+  image_base64: string;
   saved: boolean;
   favorited: boolean;
 }
