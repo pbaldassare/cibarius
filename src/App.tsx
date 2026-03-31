@@ -185,6 +185,7 @@ const App = () => (
                 <Route path="/progress" element={<UserProgressPage />} />
                 <Route path="/subscription" element={<SubscriptionPage />} />
                 <Route path="/favorites" element={<UserFavoritesPage />} />
+                <Route path="/item/:itemId" element={<UserItemDetailPage />} />
               </Route>
 
               {/* ═══ RESTAURANT APP (RestaurantLayout) ═══ */}
