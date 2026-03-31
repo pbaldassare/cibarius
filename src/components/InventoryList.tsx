@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef, memo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useAuth } from "@/hooks/useAuth";
 import { useRestaurant } from "@/hooks/useRestaurant";
@@ -104,6 +105,7 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
   const { user } = useAuth();
   const { restaurant } = useRestaurant();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const [items, setItems] = useState<InventoryItemWithProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -508,7 +510,7 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
               return (
                 <button
                   key={item.id}
-                  onClick={() => openEditDialog(item)}
+                  onClick={() => mode === "user" ? navigate(`/item/${item.id}`) : openEditDialog(item)}
                   className="flex w-full items-center gap-3 rounded-2xl border-2 border-accent bg-card p-3 text-left active:scale-[0.98] transition-transform"
                 >
                   {/* Image / placeholder */}
