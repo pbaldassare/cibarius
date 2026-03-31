@@ -566,6 +566,9 @@ const Index = () => {
           </div>
         </section>
 
+        {/* ═══ AUTO-SUGGEST FAVORITE ═══ */}
+        <AutoSuggestFavBanner />
+
         {/* ═══ 3 — SUGGERIMENTO CIBARIUS ═══ */}
         {(aiSuggestion || counts.total > 0) && (
           <section>
