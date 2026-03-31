@@ -10,18 +10,19 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import {
   Camera, Loader2, ArrowLeft, Star, Plus, Save,
-  Flame, Beef, Wheat, Droplets, Trophy, Check,
+  Flame, Beef, Wheat, Droplets, Trophy, Check, Candy,
 } from "lucide-react";
 
 interface ComparedProduct {
-  id?: string; // product id if saved
+  id?: string;
   name: string;
   brand: string | null;
   calories_100g: number | null;
   protein_100g: number | null;
   carbs_100g: number | null;
+  sugars_100g: number | null;
   fats_100g: number | null;
-  image_base64: string; // for display
+  image_base64: string;
   saved: boolean;
   favorited: boolean;
 }
@@ -120,6 +121,7 @@ const CompareProductsPage = () => {
             calories_100g: result.nutrition?.calories_100g ?? null,
             protein_100g: result.nutrition?.protein_100g ?? null,
             carbs_100g: result.nutrition?.carbs_100g ?? null,
+            sugars_100g: result.nutrition?.sugars_100g ?? null,
             fats_100g: result.nutrition?.fats_100g ?? null,
             image_base64: photo.base64,
             saved: !!existingId,
@@ -354,7 +356,7 @@ const CompareProductsPage = () => {
                     </div>
 
                     {/* Nutrition grid */}
-                    <div className="grid grid-cols-4 gap-2">
+                    <div className="grid grid-cols-5 gap-1.5">
                       <div className="rounded-lg bg-secondary/50 p-2 text-center">
                         <Flame className="h-3 w-3 mx-auto text-orange-500 mb-0.5" />
                         <p className="text-xs font-bold text-foreground">{p.calories_100g ?? "—"}</p>
@@ -369,6 +371,11 @@ const CompareProductsPage = () => {
                         <Wheat className="h-3 w-3 mx-auto text-amber-500 mb-0.5" />
                         <p className="text-xs font-bold text-foreground">{p.carbs_100g ?? "—"}</p>
                         <p className="text-[9px] text-muted-foreground">carb</p>
+                      </div>
+                      <div className="rounded-lg bg-secondary/50 p-2 text-center">
+                        <Candy className="h-3 w-3 mx-auto text-pink-500 mb-0.5" />
+                        <p className="text-xs font-bold text-foreground">{p.sugars_100g ?? "—"}</p>
+                        <p className="text-[9px] text-muted-foreground">zuccheri</p>
                       </div>
                       <div className="rounded-lg bg-secondary/50 p-2 text-center">
                         <Droplets className="h-3 w-3 mx-auto text-blue-500 mb-0.5" />
