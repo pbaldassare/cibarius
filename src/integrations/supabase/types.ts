@@ -1496,25 +1496,31 @@ export type Database = {
       }
       inventory_item_photos: {
         Row: {
+          ai_analysis_pending: boolean
           id: string
           item_id: string
           item_type: string
+          photo_type: string
           photo_url: string
           uploaded_at: string
           uploaded_by: string | null
         }
         Insert: {
+          ai_analysis_pending?: boolean
           id?: string
           item_id: string
           item_type?: string
+          photo_type?: string
           photo_url: string
           uploaded_at?: string
           uploaded_by?: string | null
         }
         Update: {
+          ai_analysis_pending?: boolean
           id?: string
           item_id?: string
           item_type?: string
+          photo_type?: string
           photo_url?: string
           uploaded_at?: string
           uploaded_by?: string | null
@@ -1526,6 +1532,7 @@ export type Database = {
           calories_total: number | null
           chef_life_hours: number | null
           created_at: string
+          data_completeness: string
           expiry_date: string | null
           id: string
           ingredients: string | null
@@ -1545,6 +1552,7 @@ export type Database = {
           calories_total?: number | null
           chef_life_hours?: number | null
           created_at?: string
+          data_completeness?: string
           expiry_date?: string | null
           id?: string
           ingredients?: string | null
@@ -1564,6 +1572,7 @@ export type Database = {
           calories_total?: number | null
           chef_life_hours?: number | null
           created_at?: string
+          data_completeness?: string
           expiry_date?: string | null
           id?: string
           ingredients?: string | null
