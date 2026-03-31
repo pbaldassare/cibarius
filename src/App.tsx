@@ -187,6 +187,7 @@ const App = () => (
                 <Route path="/subscription" element={<SubscriptionPage />} />
                 <Route path="/favorites" element={<UserFavoritesPage />} />
                 <Route path="/item/:itemId" element={<UserItemDetailPage />} />
+                <Route path="/compare" element={<CompareProductsPage />} />
               </Route>
 
               {/* ═══ RESTAURANT APP (RestaurantLayout) ═══ */}
