@@ -105,13 +105,17 @@ const UserItemDetailPage = () => {
     setNotes(data.notes || "");
 
     // Macros from product
-    setCalories(p?.calories_100g != null ? String(p.calories_100g) : "");
+    const cal = p?.calories_100g;
     const m = p?.macros_100g as any;
+    setCalories(cal != null ? String(cal) : "");
     setProtein(m?.protein != null ? String(m.protein) : "");
     setCarbs(m?.carbs != null ? String(m.carbs) : "");
     setFats(m?.fats != null ? String(m.fats) : "");
 
-    if (calories || protein || carbs || fats) setMacrosOpen(true);
+    // Auto-open macros section if data exists
+    if (cal != null || m?.protein != null || m?.carbs != null || m?.fats != null) {
+      setMacrosOpen(true);
+    }
 
     // Photos
     const { data: photoData } = await supabase
