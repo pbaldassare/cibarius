@@ -110,6 +110,7 @@ import MealRemindersPage from "./pages/MealRemindersPage";
 import UserFavoritesPage from "./pages/UserFavoritesPage";
 import AntiWastePage from "./pages/AntiWastePage";
 import SubscriptionPage from "./pages/SubscriptionPage";
+import UserItemDetailPage from "./pages/UserItemDetailPage";
 
 // Supplier pages
 import SupplierPage from "./pages/supplier/SupplierPage";
