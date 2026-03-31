@@ -13,6 +13,7 @@ import { useIngredientCompatibility } from "@/hooks/useIngredientCompatibility";
 import MealReminderBanner from "@/components/MealReminderBanner";
 import { WeightGoalHomeBar } from "@/components/WeightGoalMotivation";
 import ResolveExpiryFlow from "@/components/ResolveExpiryFlow";
+import AutoSuggestFavBanner from "@/components/AutoSuggestFavBanner";
 import {
   Clock, Plus, Search, ChevronRight,
   SlidersHorizontal, X, Trash2,
