@@ -2474,6 +2474,35 @@ export type Database = {
         }
         Relationships: []
       }
+      product_usage_log: {
+        Row: {
+          id: string
+          product_id: string
+          used_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          product_id: string
+          used_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          product_id?: string
+          used_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_usage_log_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           barcode: string | null
@@ -3626,6 +3655,35 @@ export type Database = {
             columns: ["coupon_id"]
             isOneToOne: false
             referencedRelation: "nutritionist_coupons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_product_favorites: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_product_favorites_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
             referencedColumns: ["id"]
           },
         ]

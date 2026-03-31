@@ -111,6 +111,7 @@ import UserFavoritesPage from "./pages/UserFavoritesPage";
 import AntiWastePage from "./pages/AntiWastePage";
 import SubscriptionPage from "./pages/SubscriptionPage";
 import UserItemDetailPage from "./pages/UserItemDetailPage";
+import CompareProductsPage from "./pages/CompareProductsPage";
 
 // Supplier pages
 import SupplierPage from "./pages/supplier/SupplierPage";
@@ -186,6 +187,7 @@ const App = () => (
                 <Route path="/subscription" element={<SubscriptionPage />} />
                 <Route path="/favorites" element={<UserFavoritesPage />} />
                 <Route path="/item/:itemId" element={<UserItemDetailPage />} />
+                <Route path="/compare" element={<CompareProductsPage />} />
               </Route>
 
               {/* ═══ RESTAURANT APP (RestaurantLayout) ═══ */}

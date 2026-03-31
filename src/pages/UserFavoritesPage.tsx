@@ -3,9 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useFavorites, UserFavorite } from "@/hooks/useFavorites";
-import { ArrowLeft, Heart, Trash2, ChefHat, Package, Loader2, Plus, UtensilsCrossed } from "lucide-react";
+import { useProductFavorites } from "@/hooks/useProductFavorites";
+import { ArrowLeft, Heart, Trash2, ChefHat, Package, Loader2, Star, Flame, ShoppingCart } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { getFoodEmoji } from "@/lib/food-images";
 
 interface FavMealItem {
   id: string;
@@ -27,6 +31,7 @@ const UserFavoritesPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { favorites, loading: favsLoading, toggleFavorite } = useFavorites();
+  const { favorites: productFavs, loading: prodFavsLoading, toggleFavorite: toggleProductFav } = useProductFavorites();
   const [combos, setCombos] = useState<FavMeal[]>([]);
   const [combosLoading, setCombosLoading] = useState(true);
 
@@ -61,7 +66,6 @@ const UserFavoritesPage = () => {
 
   return (
     <main className="px-4 pt-4 pb-6 space-y-5">
-      {/* Header */}
       <div className="flex items-center gap-3">
         <button onClick={() => navigate(-1)} className="p-1.5 rounded-full hover:bg-secondary transition-colors">
           <ArrowLeft className="h-5 w-5 text-foreground" />
@@ -71,15 +75,77 @@ const UserFavoritesPage = () => {
         </h1>
       </div>
 
-      <Tabs defaultValue="items" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+      <Tabs defaultValue="products" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="products" className="text-xs">
+            <Star className="h-3.5 w-3.5 mr-1" /> Prodotti ({productFavs.length})
+          </TabsTrigger>
           <TabsTrigger value="items" className="text-xs">
-            <Package className="h-3.5 w-3.5 mr-1.5" /> Alimenti ({favorites.length})
+            <Package className="h-3.5 w-3.5 mr-1" /> Alimenti ({favorites.length})
           </TabsTrigger>
           <TabsTrigger value="combos" className="text-xs">
-            <ChefHat className="h-3.5 w-3.5 mr-1.5" /> Pasti ({combos.length})
+            <ChefHat className="h-3.5 w-3.5 mr-1" /> Pasti ({combos.length})
           </TabsTrigger>
         </TabsList>
+
+        {/* ═══ Prodotti preferiti ═══ */}
+        <TabsContent value="products" className="mt-4 space-y-3">
+          {prodFavsLoading ? (
+            <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+          ) : productFavs.length === 0 ? (
+            <div className="text-center py-12 space-y-2">
+              <Star className="h-10 w-10 mx-auto text-muted-foreground/30" />
+              <p className="text-sm text-muted-foreground">Nessun prodotto preferito.</p>
+              <p className="text-xs text-muted-foreground">Usa il confronto prodotti per salvare i tuoi preferiti.</p>
+              <Button variant="outline" size="sm" className="mt-2 gap-1.5" onClick={() => navigate("/compare")}>
+                <ShoppingCart className="h-3.5 w-3.5" /> Confronta prodotti
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {productFavs.map((fav) => {
+                const p = fav.product;
+                const mac = p.macros_100g as any;
+                return (
+                  <div key={fav.id} className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary overflow-hidden shrink-0">
+                      {p.image_url ? (
+                        <img src={p.image_url} alt={p.name} className="h-full w-full object-cover" />
+                      ) : (
+                        <span className="text-lg">{getFoodEmoji(p.category, p.name)}</span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground truncate">{p.name}</p>
+                      {p.brand && <p className="text-[10px] text-muted-foreground">{p.brand}</p>}
+                      <div className="flex gap-2 text-[10px] text-muted-foreground mt-0.5">
+                        {p.calories_100g != null && (
+                          <span className="flex items-center gap-0.5">
+                            <Flame className="h-2.5 w-2.5" /> {p.calories_100g} kcal
+                          </span>
+                        )}
+                        {mac?.protein != null && <span>P {mac.protein}g</span>}
+                        {mac?.carbs != null && <span>C {mac.carbs}g</span>}
+                        {mac?.fats != null && <span>G {mac.fats}g</span>}
+                      </div>
+                      {!p.nutrition_available && (
+                        <Badge variant="outline" className="text-[8px] px-1 py-0 mt-0.5 border-muted-foreground text-muted-foreground">
+                          ⚠️ No macro
+                        </Badge>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => toggleProductFav(fav.product_id)}
+                      className="p-2 text-amber-500 hover:bg-amber-500/10 rounded-lg transition-colors"
+                    >
+                      <Star className="h-4 w-4 fill-current" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </TabsContent>
 
         {/* ═══ Alimenti preferiti (cuoricini) ═══ */}
         <TabsContent value="items" className="mt-4 space-y-3">
@@ -139,7 +205,7 @@ const UserFavoritesPage = () => {
             <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
           ) : combos.length === 0 ? (
             <div className="text-center py-12 space-y-2">
-              <UtensilsCrossed className="h-10 w-10 mx-auto text-muted-foreground/30" />
+              <ChefHat className="h-10 w-10 mx-auto text-muted-foreground/30" />
               <p className="text-sm text-muted-foreground">Nessun pasto preferito salvato.</p>
               <p className="text-xs text-muted-foreground">Vai nella sezione Pasti per creare combinazioni che fai spesso.</p>
             </div>
