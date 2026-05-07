@@ -631,35 +631,37 @@ const Index = () => {
 
         {/* ═══ 4 — LA TUA DISPENSA ═══ */}
         <section className="space-y-2.5" data-tour="home-pantry">
-          <SectionHeader title="🏠 La tua dispensa" action="Apri dispensa" onAction={() => navigate("/products")} />
-          <div className="rounded-[18px] bg-card shadow-card p-4">
-            <div className="flex items-center gap-2.5">
-              {[
-                { n: counts.allItems, label: "Totale", color: "hsl(var(--primary))" },
-                { n: counts.total, label: "Da consumare", color: "hsl(37,90%,51%)" },
-                { n: items.filter(i => (i.quantity ?? 0) <= 1).length, label: "Quasi finiti", color: "hsl(1,76%,55%)" },
-              ].map(({ n, label, color }, idx) => (
-                <div key={label} className="flex items-center gap-2 flex-1">
-                  {idx > 0 && <div className="w-px h-8 bg-border" />}
-                  <div className={`${idx > 0 ? "pl-2.5" : ""} flex-1`}>
-                    <p className="text-[20px] font-bold leading-none" style={{ color }}>{n}</p>
-                    <p className="text-[9px] font-medium text-muted-foreground mt-0.5 uppercase tracking-wider">{label}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Waste savings inline */}
-            {wasteStats && wasteStats.count > 0 && (
-              <div className="mt-3 pt-3 border-t border-border flex items-center gap-2">
-                <Leaf className="h-4 w-4 text-success shrink-0" />
-                <p className="text-[11px] text-muted-foreground flex-1">
-                  Questo mese hai salvato <span className="font-bold text-success">{wasteStats.count}</span> alimenti · <span className="font-bold text-success">{wasteStats.weightKg} kg</span> · <span className="font-bold text-success">€{wasteStats.money.toFixed(0)}</span>
-                </p>
-              </div>
-            )}
+          <SectionHeader title="🏠 I tuoi alimenti" action="Vedi tutti" onAction={() => navigate("/products")} />
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { key: "frigo", label: "Frigo", icon: "🧊", path: "/products?storage=frigo" },
+              { key: "freezer", label: "Congelatore", icon: "❄️", path: "/freezer" },
+              { key: "ambiente", label: "Dispensa", icon: "🏠", path: "/pantry" },
+            ].map(({ key, label, icon, path }) => {
+              const count = items.filter(i => i.storage_type === key).length;
+              return (
+                <button
+                  key={key}
+                  onClick={() => navigate(path)}
+                  className="rounded-[14px] bg-card shadow-card p-3 flex flex-col items-center gap-1 active:scale-[0.97] transition-transform"
+                >
+                  <span className="text-xl leading-none">{icon}</span>
+                  <p className="text-[18px] font-bold text-foreground leading-none">{count}</p>
+                  <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{label}</p>
+                </button>
+              );
+            })}
           </div>
+          {wasteStats && wasteStats.count > 0 && (
+            <div className="rounded-[14px] bg-card shadow-card p-3 flex items-center gap-2">
+              <Leaf className="h-4 w-4 text-success shrink-0" />
+              <p className="text-[11px] text-muted-foreground flex-1">
+                Questo mese hai salvato <span className="font-bold text-success">{wasteStats.count}</span> alimenti · <span className="font-bold text-success">{wasteStats.weightKg} kg</span> · <span className="font-bold text-success">€{wasteStats.money.toFixed(0)}</span>
+              </p>
+            </div>
+          )}
         </section>
+
 
         {/* ═══ 5 — RICETTE ANTI-SPRECO ═══ */}
         <section className="space-y-2.5" data-tour="home-recipes">
