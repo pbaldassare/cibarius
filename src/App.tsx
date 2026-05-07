@@ -12,6 +12,7 @@ import RestaurantLayout from "./components/RestaurantLayout";
 import MobileLayout from "./components/MobileLayout";
 import AdminPwaGuard from "./components/AdminPwaGuard";
 import PlusGuard from "./components/PlusGuard";
+import PlanProgressGuard from "./components/PlanProgressGuard";
 
 // Auth pages
 import LoginPage from "./pages/auth/LoginPage";
@@ -169,7 +170,7 @@ const App = () => (
                 <Route path="/meals/targets" element={<MealsTargetsPage />} />
                 <Route path="/profile" element={<ProfiloPage />} />
                 <Route path="/diet" element={<UserDietPage />} />
-                <Route path="/plan" element={<UserActivePlanPage />} />
+                <Route path="/plan" element={<PlanProgressGuard><UserActivePlanPage /></PlanProgressGuard>} />
                 <Route path="/weekly-plan" element={<UserWeeklyPlanPage />} />
                 <Route path="/my-recipes" element={<UserPantryRecipesPage />} />
                 <Route path="/reminders" element={<RemindersPage />} />
@@ -183,7 +184,7 @@ const App = () => (
                 <Route path="/messages" element={<UserMessagesPage />} />
                 <Route path="/shopping-list" element={<ShoppingListPage />} />
                 <Route path="/measurements" element={<PlusGuard><UserMeasurementsPage /></PlusGuard>} />
-                <Route path="/progress" element={<UserProgressPage />} />
+                <Route path="/progress" element={<PlanProgressGuard><UserProgressPage /></PlanProgressGuard>} />
                 <Route path="/subscription" element={<SubscriptionPage />} />
                 <Route path="/favorites" element={<UserFavoritesPage />} />
                 <Route path="/item/:itemId" element={<UserItemDetailPage />} />

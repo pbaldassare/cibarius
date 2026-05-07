@@ -9,8 +9,8 @@ interface TabItem { to: string; icon: LucideIcon; label: string }
 const tabs: TabItem[] = [
   { to: "/", icon: Home, label: "Home" },
   { to: "/expiry", icon: AlertTriangle, label: "Scadenze" },
-  { to: "/plan", icon: ClipboardList, label: "Piano" },
   { to: "/meals", icon: UtensilsCrossed, label: "Pasti" },
+  { to: "/plan", icon: ClipboardList, label: "Piano" },
   { to: "/progress", icon: TrendingUp, label: "Progressi" },
   { to: "/profile", icon: User, label: "Profilo" },
 ];

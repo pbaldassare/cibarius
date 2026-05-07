@@ -1,42 +1,79 @@
-## 1. Conteggi card Home (Frigo / Congelatore / Dispensa)
+## 1. Riordino navbar utente (sposta "Pasti" accanto a "Scadenze")
 
-### Stato attuale
-- `Index.tsx` già fa `setItems(...)` dentro `fetchItems()` e i conteggi nelle 3 card (`items.filter(i => i.storage_type === key).length`) sono derivati da `items` via render diretto.
-- Aggiornamento attivo per due vie:
-  - `<AddFoodFlow ... onComplete={fetchItems} />` → al salvataggio richiama `fetchItems()`.
-  - Subscription Realtime su `inventory_items` filtrata per `owner_user_id` → richiama anch'essa `fetchItems()`.
+**File:** `src/components/UserBottomNav.tsx`
 
-### Conclusione
-La logica c'è già. I conteggi si aggiornano senza ricarica. Per renderlo visibile e robusto:
-- Aggiungere un piccolo `transition` sulle card per evidenziare il cambio numero (visivo).
-- Aggiungere un fallback: dopo il `onComplete` di `AddFoodFlow` chiamare `fetchItems()` con `await` (oggi non è awaited) — in pratica già funziona, ma garantisce che, in caso il realtime sia lento, l'utente veda subito il nuovo numero senza dover aspettare il debounce di Postgres changes.
+Nuovo ordine dei 6 tab:
+```
+Home · Scadenze · Pasti · Piano · Progressi · Profilo
+```
 
-Nessuna ulteriore modifica necessaria in DB o logica.
+Modifica solo l'array `tabs[]` (e relativo `tourIds`). Nessun altro impatto.
 
-## 2. Swipe per eliminare in /expiry (navbar Scadenze)
+## 2. Paywall Piano + Progressi (€2,99/mese · €29,90/anno · 7 gg gratis)
 
-### Problema
-La pagina `ExpiryPage.tsx` mostra ogni elemento come `<button>` (riga ~398-456). Non c'è gesto swipe. Solo il "selection mode" multi-select con bulk delete è disponibile.
+### Logica accesso
+Un utente vede `/plan` e `/progress` se **almeno una** è vera:
+- ha una `subscription` con `plan_type = 'user_plus'` e `status IN ('trial','active')`
+- ha un `manual_subscription_overrides` valido (admin-grant)
+- è collegato a un nutrizionista attivo (`user_nutritionist_links.is_active = true` come `client_user_id`)
 
-### Soluzione
-Riusare il pattern `SwipeableItem` già presente in `Index.tsx` (riga 75-115) estraendolo in un componente condiviso e applicandolo ai card item della lista in `ExpiryPage.tsx`.
+Altrimenti viene mostrato un **popup CTA** (modale a tutta pagina, non dismissibile) con:
+- titolo "Piani alimentari, controllo calorie e progressi"
+- elenco benefici
+- prezzo €2,99/mese o €29,90/anno
+- badge "7 giorni gratis"
+- bottone "Inizia 7 giorni gratis" → naviga a `/subscription`
+- bottone "Torna indietro"
 
-Passi:
-1. **Estrarre** `SwipeableItem` in `src/components/SwipeableItem.tsx` (touch + mouse pointer events per supportare anche desktop trackpad/click-drag).
-2. **Aggiornare** `Index.tsx` per importarlo dal nuovo file (rimuovere copia locale).
-3. **Avvolgere** in `ExpiryPage.tsx` ogni `<button>` item (riga 398-456) con `<SwipeableItem itemKey onDelete={...}>`. La `onDelete` chiama:
-   ```ts
-   await supabase.from("inventory_items").delete().eq("id", item.id);
-   toast({ title: "Eliminato ✓" });
-   fetchItems();
-   ```
-4. Disabilitare lo swipe quando `selectionMode === true` (passare prop `disabled`).
-5. Lo sfondo rosso con icona Trash2 viene già mostrato dal componente.
+### Implementazione
 
-### File modificati
-- `src/components/SwipeableItem.tsx` (nuovo)
-- `src/pages/Index.tsx` (importa, niente più copia inline)
-- `src/pages/ExpiryPage.tsx` (wrap items + handler delete)
+**Nuovo file** `src/components/PlanProgressGuard.tsx`
+- Usa `useSubscription("user_plus")` + nuovo hook leggero `useNutritionistLink()` che fa `select id from user_nutritionist_links where client_user_id=auth.uid() and is_active=true limit 1`.
+- Se uno dei due è attivo → render `children`.
+- Altrimenti → render `<UpgradeScreen planType="user_plus" />` (aggiornato).
 
-### Nessun cambio DB
-RLS già permette delete su `inventory_items` per `owner_user_id = auth.uid()`.
+**File** `src/App.tsx` — wrappare le due route:
+```tsx
+<Route path="/plan" element={<PlanProgressGuard><UserActivePlanPage /></PlanProgressGuard>} />
+<Route path="/progress" element={<PlanProgressGuard><UserProgressPage /></PlanProgressGuard>} />
+```
+
+Tutte le sotto-route attualmente PlusGuard (`/measurements`) restano col guard esistente. La pagina `/diet` (UserDietPage) già ha il check `plusActive` interno; rimane invariata.
+
+**File** `src/components/UpgradeScreen.tsx` — aggiornare blocco `user_plus`:
+- price: `Da €2,99/mese`
+- trial: `7 giorni gratis`
+- titolo: `Sblocca Piano e Progressi`
+- features: aggiungere "Monitoraggio progressi e misurazioni"
+
+## 3. Database — aggiornamento prezzi e trial
+
+Migration:
+```sql
+UPDATE public.subscription_plans
+SET local_price = 2.99, monthly_price = 2.99, trial_days = 7
+WHERE plan_name = 'User Plus Monthly';
+
+UPDATE public.subscription_plans
+SET local_price = 29.90, monthly_price = 29.90, trial_days = 7
+WHERE plan_name = 'User Plus Yearly';
+```
+
+Nessun nuovo schema: `subscriptions`, `subscription_payments`, `manual_subscription_overrides` esistono già. Lato admin `AdminSubscriptionsPage` continua a mostrare tutto (filtra per `plan_type = 'user_plus'` + restaurant) — nessuna modifica richiesta.
+
+## 4. Stripe
+
+Secret `STRIPE_SECRET_KEY` già presente. Edge function `create-checkout-session` e `stripe-webhook` già attive. Manca solo il `stripe_price_id` per il piano Yearly nel DB; lo lasciamo `NULL` per ora — quando l'utente avrà il Price ID lo aggiorneremo manualmente. Il flusso già supporta entrambi i casi (passa `plan_id` al checkout).
+
+## File modificati / creati
+- `src/components/UserBottomNav.tsx` (riordino tab)
+- `src/components/PlanProgressGuard.tsx` (nuovo)
+- `src/components/UpgradeScreen.tsx` (testi/prezzi)
+- `src/App.tsx` (wrap delle due route)
+- migration SQL su `subscription_plans`
+
+## Cosa NON cambia
+- Schema DB (tabelle già esistono).
+- Edge functions Stripe.
+- Admin pages.
+- Logica di `PlusGuard` esistente.
