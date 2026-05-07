@@ -106,11 +106,13 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
   const { restaurant } = useRestaurant();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const queryStorage = searchParams.get("storage");
 
   const [items, setItems] = useState<InventoryItemWithProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [storageFilter, setStorageFilter] = useState<string>(externalStorageFilter ?? "all");
+  const [storageFilter, setStorageFilter] = useState<string>(externalStorageFilter ?? queryStorage ?? "all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   // showFilters removed — filters are always visible as inline chips
   const [addOpen, setAddOpen] = useState(false);
