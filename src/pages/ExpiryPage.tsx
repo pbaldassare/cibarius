@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
 import SearchBar from "@/components/SearchBar";
 import AddFoodFlow from "@/components/AddFoodFlow";
+import SwipeableItem from "@/components/SwipeableItem";
 import {
   Package, Clock, AlertCircle, Check, Trash2, CalendarClock,
   Plus, ChefHat, CheckSquare, Flame, Refrigerator, Snowflake, Home,
