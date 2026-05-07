@@ -26,18 +26,18 @@ const configs = {
   },
   user_plus: {
     icon: Sparkles,
-    title: "Cibarius Plus richiesto",
-    message: "Per creare piani alimentari personalizzati è necessario attivare Cibarius Plus.",
+    title: "Sblocca Piano e Progressi",
+    message: "Piani alimentari personalizzati, controllo delle calorie e monitoraggio dei tuoi progressi. Provalo 7 giorni gratis.",
     features: [
       "Piano alimentare personalizzato",
-      "Impostazione macro nutrienti",
-      "Collegamento nutrizionista",
-      "Piano dal nutrizionista",
-      "Monitoraggio nutrizione avanzato",
+      "Controllo calorie e macro nutrienti",
+      "Monitoraggio progressi e misurazioni",
+      "Collegamento al tuo nutrizionista",
+      "Statistiche nutrizionali avanzate",
     ],
-    price: "Da €2,49/mese",
-    trial: null,
-    cta: "Scopri Plus",
+    price: "€2,99/mese · €29,90/anno",
+    trial: "7 giorni gratis",
+    cta: "Inizia 7 giorni gratis",
   },
 };
 
