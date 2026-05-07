@@ -72,7 +72,7 @@ const storageOptions = [
 ] as const;
 
 const ctaLabels: Record<AddFoodContext, string> = {
-  inventory: "Salva in magazzino",
+  inventory: "Salva nei prodotti",
   meal: "Aggiungi al pasto",
   recipe: "Aggiungi ingrediente",
   preparation: "Aggiungi alla preparazione",
@@ -1024,7 +1024,21 @@ const AddFoodFlow = ({
         const { data: invItem, error } = await supabase.from("inventory_items").insert(insertData).select("id").single();
         if (error) throw error;
         await saveAttachments(invItem.id, "inventory_item");
-        toast({ title: "Prodotto aggiunto al magazzino! ✓" });
+        {
+          const stLabel = storageOptions.find(s => s.key === storageType)?.label ?? "Prodotti";
+          const path = storageType === "freezer" ? "/freezer" : storageType === "ambiente" ? "/pantry" : "/products?storage=frigo";
+          toast({
+            title: `Aggiunto in ${stLabel}! ✓`,
+            action: (
+              <button
+                onClick={() => navigate(path)}
+                className="text-xs font-semibold px-2.5 py-1 rounded-md bg-primary text-primary-foreground"
+              >
+                Apri
+              </button>
+            ) as any,
+          });
+        }
 
       } else if (context === "meal") {
         const today = new Date().toISOString().slice(0, 10);
@@ -2274,7 +2288,7 @@ const AddFoodFlow = ({
                 {/* MEAL: toggle save to inventory */}
                 {context === "meal" && (
                   <div className="flex items-center justify-between rounded-xl border border-border bg-card px-3 py-2.5">
-                    <p className="text-xs font-medium text-foreground">Salva anche in Magazzino</p>
+                    <p className="text-xs font-medium text-foreground">Salva anche nei prodotti</p>
                     <Switch checked={saveToInventory} onCheckedChange={setSaveToInventory} />
                   </div>
                 )}
