@@ -392,9 +392,15 @@ const ExpiryPage = () => {
               const itemKey = `product-${item.id}`;
               const isSelected = selectedIds.has(itemKey);
 
+              const handleSwipeDelete = async () => {
+                await supabase.from("inventory_items").delete().eq("id", item.id);
+                toast({ title: "Eliminato ✓" });
+                fetchItems();
+              };
+
               return (
+                <SwipeableItem key={itemKey} itemKey={itemKey} onDelete={handleSwipeDelete} disabled={selectionMode}>
                 <button
-                  key={itemKey}
                   className={`flex w-full items-center gap-2.5 rounded-[16px] bg-card px-3 py-2.5 shadow-card text-left active:scale-[0.98] transition-all ${
                     isSelected ? "ring-2 ring-primary" : ""
                   }`}
