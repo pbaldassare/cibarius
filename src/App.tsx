@@ -184,7 +184,7 @@ const App = () => (
                 <Route path="/messages" element={<UserMessagesPage />} />
                 <Route path="/shopping-list" element={<ShoppingListPage />} />
                 <Route path="/measurements" element={<PlusGuard><UserMeasurementsPage /></PlusGuard>} />
-                <Route path="/progress" element={<UserProgressPage />} />
+                <Route path="/progress" element={<PlanProgressGuard><UserProgressPage /></PlanProgressGuard>} />
                 <Route path="/subscription" element={<SubscriptionPage />} />
                 <Route path="/favorites" element={<UserFavoritesPage />} />
                 <Route path="/item/:itemId" element={<UserItemDetailPage />} />
