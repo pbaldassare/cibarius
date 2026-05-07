@@ -1,0 +1,2 @@
+UPDATE public.subscription_plans SET local_price = 2.99, monthly_price = 2.99, trial_days = 7 WHERE plan_name = 'User Plus Monthly';
+UPDATE public.subscription_plans SET local_price = 29.90, monthly_price = 29.90, trial_days = 7 WHERE plan_name = 'User Plus Yearly';
