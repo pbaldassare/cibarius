@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import MobileHeader from "@/components/MobileHeader";
@@ -67,6 +68,8 @@ const statusTabs = [
 const ExpiryPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const openIdHandled = useRef(false);
   const [items, setItems] = useState<ExpiryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>("expiring");
@@ -171,6 +174,22 @@ const ExpiryPage = () => {
     initialTabSet.current = true;
     setActiveTab(tabCounts.expired > 0 ? "expired" : "expiring");
   }, [tabCounts, loading]);
+
+  // Auto-open action sheet from ?openId=<id> (e.g. from Home expiry shortcut)
+  useEffect(() => {
+    if (openIdHandled.current || loading) return;
+    const openId = searchParams.get("openId");
+    if (!openId) return;
+    const item = items.find((i) => i.id === openId);
+    if (!item) return;
+    openIdHandled.current = true;
+    setActionSheet(item);
+    setNewDate(item.expiry_date ?? "");
+    setActiveTab("all");
+    const next = new URLSearchParams(searchParams);
+    next.delete("openId");
+    setSearchParams(next, { replace: true });
+  }, [items, loading, searchParams, setSearchParams]);
 
   const handleChangeStorage = async (item: ExpiryItem, newStorage: string) => {
     if (item.storage_type === newStorage) return;
