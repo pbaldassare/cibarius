@@ -147,7 +147,8 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
 
   useEffect(() => {
     if (externalStorageFilter) setStorageFilter(externalStorageFilter);
-  }, [externalStorageFilter]);
+    else if (queryStorage) setStorageFilter(queryStorage);
+  }, [externalStorageFilter, queryStorage]);
 
   const fetchItems = async () => {
     if (!user) return;
