@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
 import SearchBar from "@/components/SearchBar";
 import AddFoodFlow from "@/components/AddFoodFlow";
+import SwipeableItem from "@/components/SwipeableItem";
 import {
   Package, Clock, AlertCircle, Check, Trash2, CalendarClock,
   Plus, ChefHat, CheckSquare, Flame, Refrigerator, Snowflake, Home,
@@ -392,9 +393,15 @@ const ExpiryPage = () => {
               const itemKey = `product-${item.id}`;
               const isSelected = selectedIds.has(itemKey);
 
+              const handleSwipeDelete = async () => {
+                await supabase.from("inventory_items").delete().eq("id", item.id);
+                toast({ title: "Eliminato ✓" });
+                fetchItems();
+              };
+
               return (
+                <SwipeableItem key={itemKey} itemKey={itemKey} onDelete={handleSwipeDelete} disabled={selectionMode}>
                 <button
-                  key={itemKey}
                   className={`flex w-full items-center gap-2.5 rounded-[16px] bg-card px-3 py-2.5 shadow-card text-left active:scale-[0.98] transition-all ${
                     isSelected ? "ring-2 ring-primary" : ""
                   }`}
@@ -454,6 +461,7 @@ const ExpiryPage = () => {
                     {cfg.label}
                   </span>
                 </button>
+                </SwipeableItem>
               );
             })}
           </div>
