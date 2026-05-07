@@ -68,6 +68,8 @@ const statusTabs = [
 const ExpiryPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const openIdHandled = useRef(false);
   const [items, setItems] = useState<ExpiryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>("expiring");
