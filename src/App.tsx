@@ -170,7 +170,7 @@ const App = () => (
                 <Route path="/meals/targets" element={<MealsTargetsPage />} />
                 <Route path="/profile" element={<ProfiloPage />} />
                 <Route path="/diet" element={<UserDietPage />} />
-                <Route path="/plan" element={<UserActivePlanPage />} />
+                <Route path="/plan" element={<PlanProgressGuard><UserActivePlanPage /></PlanProgressGuard>} />
                 <Route path="/weekly-plan" element={<UserWeeklyPlanPage />} />
                 <Route path="/my-recipes" element={<UserPantryRecipesPage />} />
                 <Route path="/reminders" element={<RemindersPage />} />
