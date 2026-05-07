@@ -460,6 +460,7 @@ const ExpiryPage = () => {
                     {cfg.label}
                   </span>
                 </button>
+                </SwipeableItem>
               );
             })}
           </div>
