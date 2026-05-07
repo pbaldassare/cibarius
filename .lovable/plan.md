@@ -1,51 +1,42 @@
-## Diagnosi
+## 1. Conteggi card Home (Frigo / Congelatore / Dispensa)
 
-I dati nel DB sono corretti: gli ultimi inserimenti hanno `storage_type` = `frigo` / `freezer` / `ambiente` come scelto, e `owner_user_id` valorizzato. Le pagine `/pantry` (Dispensa), `/freezer` (Congelatore) e `/products` (Tutti) usano `InventoryList` con il filtro corretto.
+### Stato attuale
+- `Index.tsx` già fa `setItems(...)` dentro `fetchItems()` e i conteggi nelle 3 card (`items.filter(i => i.storage_type === key).length`) sono derivati da `items` via render diretto.
+- Aggiornamento attivo per due vie:
+  - `<AddFoodFlow ... onComplete={fetchItems} />` → al salvataggio richiama `fetchItems()`.
+  - Subscription Realtime su `inventory_items` filtrata per `owner_user_id` → richiama anch'essa `fetchItems()`.
 
-**Il vero problema è che dalla Home non c'è un entry point chiaro alle tre sezioni.** La sezione "🏠 La tua dispensa" ha un solo link "Apri dispensa" che porta a `/products` (tutti i prodotti), senza scorciatoie per Frigo / Congelatore / Dispensa. L'utente salva un prodotto in "Frigo" e poi non sa dove cliccare per vedere "il frigo".
+### Conclusione
+La logica c'è già. I conteggi si aggiornano senza ricarica. Per renderlo visibile e robusto:
+- Aggiungere un piccolo `transition` sulle card per evidenziare il cambio numero (visivo).
+- Aggiungere un fallback: dopo il `onComplete` di `AddFoodFlow` chiamare `fetchItems()` con `await` (oggi non è awaited) — in pratica già funziona, ma garantisce che, in caso il realtime sia lento, l'utente veda subito il nuovo numero senza dover aspettare il debounce di Postgres changes.
 
-Inoltre nemmeno la `BottomNav` utente espone Frigo/Congelatore/Dispensa.
+Nessuna ulteriore modifica necessaria in DB o logica.
 
-## Modifiche
+## 2. Swipe per eliminare in /expiry (navbar Scadenze)
 
-**File: `src/pages/Index.tsx` — sezione "La tua dispensa" (riga 632-662)**
+### Problema
+La pagina `ExpiryPage.tsx` mostra ogni elemento come `<button>` (riga ~398-456). Non c'è gesto swipe. Solo il "selection mode" multi-select con bulk delete è disponibile.
 
-Sostituire la singola CTA "Apri dispensa" con una griglia di 3 card cliccabili che mostrano il conteggio per conservazione:
+### Soluzione
+Riusare il pattern `SwipeableItem` già presente in `Index.tsx` (riga 75-115) estraendolo in un componente condiviso e applicandolo ai card item della lista in `ExpiryPage.tsx`.
 
-```text
-┌──────────┬──────────┬──────────┐
-│  Frigo   │ Congel.  │ Dispensa │
-│   12     │    3     │    8     │
-└──────────┴──────────┴──────────┘
-       (vedi tutti i prodotti →)
-```
+Passi:
+1. **Estrarre** `SwipeableItem` in `src/components/SwipeableItem.tsx` (touch + mouse pointer events per supportare anche desktop trackpad/click-drag).
+2. **Aggiornare** `Index.tsx` per importarlo dal nuovo file (rimuovere copia locale).
+3. **Avvolgere** in `ExpiryPage.tsx` ogni `<button>` item (riga 398-456) con `<SwipeableItem itemKey onDelete={...}>`. La `onDelete` chiama:
+   ```ts
+   await supabase.from("inventory_items").delete().eq("id", item.id);
+   toast({ title: "Eliminato ✓" });
+   fetchItems();
+   ```
+4. Disabilitare lo swipe quando `selectionMode === true` (passare prop `disabled`).
+5. Lo sfondo rosso con icona Trash2 viene già mostrato dal componente.
 
-- Tap su "Frigo" → `/products?storage=frigo`
-- Tap su "Congelatore" → `/freezer`
-- Tap su "Dispensa" → `/pantry`
-- Footer "Vedi tutti" → `/products`
+### File modificati
+- `src/components/SwipeableItem.tsx` (nuovo)
+- `src/pages/Index.tsx` (importa, niente più copia inline)
+- `src/pages/ExpiryPage.tsx` (wrap items + handler delete)
 
-I conteggi vengono calcolati da `items` già caricato in Home (filter per `storage_type`).
-
-**File: `src/components/InventoryList.tsx`**
-
-Leggere `?storage=` da `useSearchParams` per pre-impostare `storageFilter` quando si arriva da Home con query param.
-
-**File: `src/components/AddFoodFlow.tsx` — toast post-salvataggio (riga 1027)**
-
-Mostrare la conservazione effettiva nel toast con CTA "Apri":
-- Da: `"Prodotto aggiunto al magazzino! ✓"`
-- A: `` `Aggiunto in ${storageLabel}! ✓` `` con action button che naviga alla rispettiva pagina (`/pantry` / `/freezer` / `/products?storage=frigo`).
-
-Sostituire anche "Magazzino" → "Prodotti" in:
-- `ctaLabels.inventory` (riga 75)
-- toggle "Salva anche in Magazzino" (riga ~2277)
-
-### Cosa NON cambia
-
-- Nessuna modifica DB, RLS o logica di salvataggio.
-- Filtri `InventoryList` invariati, solo aggiunto supporto query param.
-
-### Risultato
-
-Dopo aver salvato un prodotto in "Frigo", l'utente vede subito un toast "Aggiunto in Frigo!" con bottone "Apri", e dalla Home ha tre card dirette per Frigo / Congelatore / Dispensa con i numeri reali.
+### Nessun cambio DB
+RLS già permette delete su `inventory_items` per `owner_user_id = auth.uid()`.
