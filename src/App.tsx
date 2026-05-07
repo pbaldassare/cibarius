@@ -12,6 +12,7 @@ import RestaurantLayout from "./components/RestaurantLayout";
 import MobileLayout from "./components/MobileLayout";
 import AdminPwaGuard from "./components/AdminPwaGuard";
 import PlusGuard from "./components/PlusGuard";
+import PlanProgressGuard from "./components/PlanProgressGuard";
 
 // Auth pages
 import LoginPage from "./pages/auth/LoginPage";
