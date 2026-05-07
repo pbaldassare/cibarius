@@ -72,7 +72,7 @@ const storageOptions = [
 ] as const;
 
 const ctaLabels: Record<AddFoodContext, string> = {
-  inventory: "Salva in magazzino",
+  inventory: "Salva nei prodotti",
   meal: "Aggiungi al pasto",
   recipe: "Aggiungi ingrediente",
   preparation: "Aggiungi alla preparazione",
