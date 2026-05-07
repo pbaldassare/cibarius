@@ -498,7 +498,11 @@ const Index = () => {
                   const cfg = statusCfg[item.status];
                   return (
                     <SwipeableItem key={`${item.type}-${item.id}`} itemKey={`${item.type}-${item.id}`} onDelete={() => handleDeleteUrgent(item.id, item.type)}>
-                      <div className="flex items-center gap-2 rounded-[14px] bg-card pl-0 pr-3 py-2 shadow-card">
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/expiry?openId=${item.id}`)}
+                        className="w-full flex items-center gap-2 rounded-[14px] bg-card pl-0 pr-3 py-2 shadow-card text-left active:scale-[0.99] transition-transform"
+                      >
                         <div className={`w-[3px] self-stretch rounded-full ml-0 ${cfg.barColor}`} />
                         <FoodThumb imageUrl={item.image_url} category={item.category} name={item.name} />
                         <div className="flex-1 min-w-0 ml-0.5">
@@ -513,7 +517,7 @@ const Index = () => {
                         <span className="shrink-0 rounded-[6px] px-1.5 py-[2px] text-[8px] font-bold uppercase tracking-wider text-white" style={{ backgroundColor: cfg.color }}>
                           {cfg.label}
                         </span>
-                      </div>
+                      </button>
                     </SwipeableItem>
                   );
                 })}
