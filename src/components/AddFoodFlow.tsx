@@ -2288,7 +2288,7 @@ const AddFoodFlow = ({
                 {/* MEAL: toggle save to inventory */}
                 {context === "meal" && (
                   <div className="flex items-center justify-between rounded-xl border border-border bg-card px-3 py-2.5">
-                    <p className="text-xs font-medium text-foreground">Salva anche in Magazzino</p>
+                    <p className="text-xs font-medium text-foreground">Salva anche nei prodotti</p>
                     <Switch checked={saveToInventory} onCheckedChange={setSaveToInventory} />
                   </div>
                 )}
