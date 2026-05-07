@@ -175,6 +175,22 @@ const ExpiryPage = () => {
     setActiveTab(tabCounts.expired > 0 ? "expired" : "expiring");
   }, [tabCounts, loading]);
 
+  // Auto-open action sheet from ?openId=<id> (e.g. from Home expiry shortcut)
+  useEffect(() => {
+    if (openIdHandled.current || loading) return;
+    const openId = searchParams.get("openId");
+    if (!openId) return;
+    const item = items.find((i) => i.id === openId);
+    if (!item) return;
+    openIdHandled.current = true;
+    setActionSheet(item);
+    setNewDate(item.expiry_date ?? "");
+    setActiveTab("all");
+    const next = new URLSearchParams(searchParams);
+    next.delete("openId");
+    setSearchParams(next, { replace: true });
+  }, [items, loading, searchParams, setSearchParams]);
+
   const handleChangeStorage = async (item: ExpiryItem, newStorage: string) => {
     if (item.storage_type === newStorage) return;
     await supabase.from("inventory_items").update({ storage_type: newStorage }).eq("id", item.id);
