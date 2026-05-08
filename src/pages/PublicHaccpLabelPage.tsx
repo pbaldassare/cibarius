@@ -1,11 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, FileText, AlertTriangle, CheckCircle2, XCircle, Printer, Clock, Plus, Pencil, Ban, Copy, FileCheck, FileSignature } from "lucide-react";
+import { Loader2, FileText, AlertTriangle, CheckCircle2, XCircle, Printer, Clock, Plus, Pencil, Ban, Copy, FileCheck, FileSignature, Download } from "lucide-react";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
+import { toast } from "sonner";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
@@ -14,6 +17,8 @@ const PublicHaccpLabelPage = () => {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const pdfRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -54,13 +59,55 @@ const PublicHaccpLabelPage = () => {
     return <Badge className="bg-emerald-500 text-white gap-1"><CheckCircle2 className="h-3 w-3" /> Valido</Badge>;
   };
 
+  const downloadPdf = async () => {
+    if (!pdfRef.current) return;
+    setGenerating(true);
+    try {
+      const canvas = await html2canvas(pdfRef.current, {
+        scale: 2,
+        backgroundColor: "#ffffff",
+        useCORS: true,
+        logging: false,
+      });
+      const imgData = canvas.toDataURL("image/jpeg", 0.92);
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const margin = 10;
+      const usableW = pageW - margin * 2;
+      const imgH = (canvas.height * usableW) / canvas.width;
+      let heightLeft = imgH;
+      let position = margin;
+      pdf.addImage(imgData, "JPEG", margin, position, usableW, imgH);
+      heightLeft -= pageH - margin * 2;
+      while (heightLeft > 0) {
+        position = heightLeft - imgH + margin;
+        pdf.addPage();
+        pdf.addImage(imgData, "JPEG", margin, position, usableW, imgH);
+        heightLeft -= pageH - margin * 2;
+      }
+      const fname = `HACCP_${label.internal_lot_code || "etichetta"}_${label.preparation_name?.replace(/\s+/g, "_") || ""}.pdf`;
+      pdf.save(fname);
+      toast.success("PDF scaricato");
+    } catch (e: any) {
+      toast.error("Errore generazione PDF: " + (e?.message || ""));
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   return (
     <div className="haccp-public-page min-h-screen bg-muted/30 p-4 max-w-2xl mx-auto space-y-4 print:bg-white print:p-0 print:max-w-full">
-      <div className="flex justify-end print:hidden">
+      <div className="flex justify-end gap-2 print:hidden">
         <Button size="sm" variant="outline" onClick={() => window.print()} className="gap-2">
-          <Printer className="h-4 w-4" /> Stampa / Salva PDF
+          <Printer className="h-4 w-4" /> Stampa
+        </Button>
+        <Button size="sm" onClick={downloadPdf} disabled={generating} className="gap-2">
+          {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+          Scarica PDF
         </Button>
       </div>
+      <div ref={pdfRef} className="space-y-4">
       <Card className="haccp-section print:shadow-none print:border-0">
         <CardContent className="p-6 space-y-3 print:p-2">
           <div className="flex items-center justify-between gap-2">
@@ -150,6 +197,7 @@ const PublicHaccpLabelPage = () => {
       )}
 
       <p className="text-center text-xs text-muted-foreground py-4">Tracciabilità HACCP — Cibarius</p>
+      </div>
     </div>
   );
 };
