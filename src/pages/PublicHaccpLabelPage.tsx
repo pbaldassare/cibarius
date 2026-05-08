@@ -17,6 +17,8 @@ const PublicHaccpLabelPage = () => {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const pdfRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!token) return;
