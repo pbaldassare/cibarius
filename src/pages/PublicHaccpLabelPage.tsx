@@ -42,9 +42,14 @@ const PublicHaccpLabelPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-muted/30 p-4 max-w-2xl mx-auto space-y-4">
-      <Card>
-        <CardContent className="p-6 space-y-3">
+    <div className="min-h-screen bg-muted/30 p-4 max-w-2xl mx-auto space-y-4 print:bg-white print:p-0 print:max-w-full">
+      <div className="flex justify-end print:hidden">
+        <Button size="sm" variant="outline" onClick={() => window.print()} className="gap-2">
+          <Printer className="h-4 w-4" /> Stampa / Salva PDF
+        </Button>
+      </div>
+      <Card className="print:shadow-none print:border-0">
+        <CardContent className="p-6 space-y-3 print:p-2">
           <div className="flex items-center justify-between gap-2">
             <h1 className="text-xl font-bold">{label.preparation_name}</h1>
             {statusBadge()}
