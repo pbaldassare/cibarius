@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import MobileHeader from "@/components/MobileHeader";
 import { useAuth } from "@/hooks/useAuth";
 import { useRole } from "@/hooks/useRole";
@@ -120,7 +120,7 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
   const [storageTab, setStorageTab] = useState("all");
   const [storageSheet, setStorageSheet] = useState(false);
   const [filterSheet, setFilterSheet] = useState(false);
-  const [statusFilter, setStatusFilter] = useState("relevant");
+  const [statusFilter, setStatusFilter] = useState(isRestaurant ? "all" : "relevant");
 
   // Detail view
   const [detailOpen, setDetailOpen] = useState(false);
@@ -379,6 +379,23 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
       <MobileHeader title="Preparazioni" showBack={isRestaurant} />
       <main className="space-y-3 px-4 pt-1 pb-28">
 
+        {isRestaurant && (
+          <div className="grid grid-cols-2 gap-2">
+            <Link to="/restaurant/haccp-labels/new" className="block">
+              <Button className="w-full gap-2">
+                <Tag className="h-4 w-4" />
+                Nuova etichetta
+              </Button>
+            </Link>
+            <Link to="/restaurant/haccp-labels" className="block">
+              <Button variant="outline" className="w-full gap-2">
+                <ChevronRight className="h-4 w-4" />
+                Etichette stampa
+              </Button>
+            </Link>
+          </div>
+        )}
+
         {/* Storage chip + Search + Filter */}
         <div className="flex gap-2 items-center">
           <button onClick={() => setStorageSheet(true)}
@@ -408,7 +425,9 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
           <div className="flex flex-col items-center gap-1.5 rounded-2xl bg-white p-8 shadow-sm">
             <ChefHat className="h-7 w-7" style={{ color: "#9CA3AF" }} />
             <p className="text-[13px] font-medium" style={{ color: "#111827" }}>Nessuna preparazione</p>
-            <p className="text-[11px]" style={{ color: "#6B7280" }}>Premi + per aggiungere</p>
+            <p className="text-[11px]" style={{ color: "#6B7280" }}>
+              {isRestaurant ? "Usa + per una preparazione semplice oppure crea un'etichetta HACCP" : "Premi + per aggiungere"}
+            </p>
           </div>
         ) : (
           <div className="space-y-1.5">
@@ -466,9 +485,16 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
 
       {/* FAB */}
       <div className="fixed bottom-[calc(68px+env(safe-area-inset-bottom,0px)+0.75rem)] right-3.5 z-40">
-        <button onClick={() => { resetForm(); setCreateOpen(true); }}
+        <button onClick={() => {
+            if (isRestaurant) {
+              navigate("/restaurant/haccp-labels/new");
+              return;
+            }
+            resetForm();
+            setCreateOpen(true);
+          }}
           className="flex h-11 w-11 items-center justify-center rounded-full shadow-lg active:scale-95 transition-transform bg-primary"
-          aria-label="Aggiungi preparazione">
+          aria-label={isRestaurant ? "Crea etichetta HACCP" : "Aggiungi preparazione"}>
           <Plus className="h-5 w-5 text-white" />
         </button>
       </div>
