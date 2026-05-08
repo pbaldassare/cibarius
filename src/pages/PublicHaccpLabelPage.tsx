@@ -1,11 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, FileText, AlertTriangle, CheckCircle2, XCircle, Printer, Clock, Plus, Pencil, Ban, Copy, FileCheck, FileSignature } from "lucide-react";
+import { Loader2, FileText, AlertTriangle, CheckCircle2, XCircle, Printer, Clock, Plus, Pencil, Ban, Copy, FileCheck, FileSignature, Download } from "lucide-react";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
+import { toast } from "sonner";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
