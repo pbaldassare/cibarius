@@ -123,15 +123,15 @@ const PublicHaccpLabelPage = () => {
       )}
 
       {events.length > 0 && (
-        <Card className="print:shadow-none print:border-0 print:break-inside-avoid">
+        <Card className="print:shadow-none print:border-0">
           <CardContent className="p-4 space-y-3 print:p-2">
-            <h2 className="font-semibold flex items-center gap-2"><Clock className="h-4 w-4 text-primary" /> Cronologia tracciabilità</h2>
+            <h2 className="haccp-section-header font-semibold flex items-center gap-2"><Clock className="h-4 w-4 text-primary" /> Cronologia tracciabilità</h2>
             <ol className="relative border-l border-border ml-3 space-y-3 pl-4">
               {events.map((ev: any, idx: number) => {
                 const meta = eventMeta(ev.action);
                 const Icon = meta.icon;
                 return (
-                  <li key={idx} className="relative">
+                  <li key={idx} className="haccp-row relative">
                     <span className={`absolute -left-[27px] flex items-center justify-center w-6 h-6 rounded-full ${meta.color}`}>
                       <Icon className="h-3 w-3" />
                     </span>
