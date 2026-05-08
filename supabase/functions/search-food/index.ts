@@ -154,6 +154,25 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Auth: require valid JWT (prevents anonymous USDA quota exhaustion)
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const sbAuth = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const { data: { user } } = await sbAuth.auth.getUser();
+    if (!user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { query, sources } = await req.json();
     if (!query || typeof query !== "string" || query.trim().length < 2) {
       return new Response(JSON.stringify({ results: [] }), {

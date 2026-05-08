@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,6 +11,25 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // Auth: require valid JWT
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const sbAuth = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const { data: { user } } = await sbAuth.auth.getUser();
+    if (!user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const { qr_content, receipt_image } = await req.json();
     if (!qr_content && !receipt_image) {
       return new Response(JSON.stringify({ error: "qr_content or receipt_image is required" }), {
@@ -31,29 +51,9 @@ serve(async (req) => {
         { type: "image_url", image_url: { url: `data:${receipt_image.mime_type};base64,${receipt_image.base64}` } },
       ];
     } else if (qr_content) {
-      // Text input: URL or raw text
-      let textContent = qr_content;
-      if (qr_content.startsWith("http://") || qr_content.startsWith("https://")) {
-        try {
-          const pageResp = await fetch(qr_content, {
-            headers: { "User-Agent": "Cibarius/1.0" },
-            redirect: "follow",
-          });
-          if (pageResp.ok) {
-            const html = await pageResp.text();
-            textContent = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-              .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-              .replace(/<[^>]+>/g, " ")
-              .replace(/\s+/g, " ")
-              .trim()
-              .slice(0, 8000);
-          }
-        } catch (fetchErr) {
-          console.warn("Failed to fetch QR URL, using raw content:", fetchErr);
-          textContent = qr_content;
-        }
-      }
-      userContent = `Ecco il contenuto dello scontrino/lista:\n\n${textContent}`;
+      // SECURITY: never fetch arbitrary URLs from user input (SSRF). Pass raw text to AI.
+      const textContent = String(qr_content).slice(0, 8000);
+      userContent = `Ecco il contenuto dello scontrino/lista (QR/testo grezzo):\n\n${textContent}`;
     }
 
     const systemPrompt = `Sei un assistente che analizza scontrini e liste della spesa da supermercato.

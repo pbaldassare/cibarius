@@ -1,4 +1,15 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+
+const MAX_FILE_BYTES = 15 * 1024 * 1024; // 15 MB
+const ALLOWED_MIME = new Set([
+  "application/pdf",
+  "text/csv",
+  "text/plain",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -65,6 +76,25 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // Auth: require valid JWT
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const sbAuth = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const { data: { user } } = await sbAuth.auth.getUser();
+    if (!user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
@@ -72,7 +102,20 @@ serve(async (req) => {
     const file = formData.get("file") as File | null;
     if (!file) throw new Error("No file uploaded");
 
+    // Validate size & MIME (prevents abuse via large/unexpected uploads)
+    if (file.size > MAX_FILE_BYTES) {
+      return new Response(JSON.stringify({ error: "File too large (max 15 MB)" }), {
+        status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (file.type && !ALLOWED_MIME.has(file.type)) {
+      return new Response(JSON.stringify({ error: `Unsupported file type: ${file.type}` }), {
+        status: 415, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     console.log(`Processing file: ${file.name}, size: ${file.size}, type: ${file.type}`);
+
 
     let messages: any[];
 
