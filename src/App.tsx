@@ -274,6 +274,7 @@ const App = () => (
               <Route path="/admin/payments" element={<RG roles={["admin"]}><AdminPwaGuard><AdminPaymentsPage /></AdminPwaGuard></RG>} />
               <Route path="/admin/products-db" element={<RG roles={["admin"]}><AdminPwaGuard><AdminProductsDbPage /></AdminPwaGuard></RG>} />
               <Route path="/admin/api" element={<RG roles={["admin"]}><AdminPwaGuard><AdminApiPage /></AdminPwaGuard></RG>} />
+              <Route path="/admin/haccp-labels" element={<RG roles={["admin"]}><AdminPwaGuard><AdminHaccpLabelsPage /></AdminPwaGuard></RG>} />
 
               {/* Restaurant admin routes (no mobile layout) */}
               <Route path="/restaurant-admin" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><RestaurantAdminPage /></RestaurantGuard></RG>} />
