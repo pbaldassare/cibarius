@@ -36,10 +36,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    const [{ data: rest }, { data: ingredients }, { data: pdocs }] = await Promise.all([
+    const [{ data: rest }, { data: ingredients }, { data: pdocs }, { data: events }] = await Promise.all([
       supabase.from("restaurants").select("name, address").eq("id", label.restaurant_id).maybeSingle(),
       supabase.from("haccp_preparation_ingredients").select("ingredient_name, quantity_used, unit, source_lot_code, supplier_name, ingredient_expiration_date, origin_document_id").eq("preparation_label_id", label.id),
       supabase.from("haccp_preparation_documents").select("document_id").eq("preparation_label_id", label.id),
+      supabase.from("haccp_label_audit_log").select("action, user_name, reason, metadata, created_at").eq("preparation_label_id", label.id).order("created_at", { ascending: true }),
     ]);
 
     let documents: any[] = [];
@@ -64,6 +65,7 @@ Deno.serve(async (req) => {
         restaurant: rest,
         ingredients: ingredients || [],
         documents,
+        events: events || [],
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );

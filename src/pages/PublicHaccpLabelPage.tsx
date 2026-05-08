@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, FileText, AlertTriangle, CheckCircle2, XCircle, Printer } from "lucide-react";
+import { Loader2, FileText, AlertTriangle, CheckCircle2, XCircle, Printer, Clock, Plus, Pencil, Ban, Copy, FileCheck, FileSignature } from "lucide-react";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 
@@ -32,7 +32,20 @@ const PublicHaccpLabelPage = () => {
   if (error) return <div className="min-h-screen flex items-center justify-center p-4"><Card><CardContent className="p-8 text-center">{error}</CardContent></Card></div>;
   if (!data) return null;
 
-  const { label, restaurant, ingredients, documents } = data;
+  const { label, restaurant, ingredients, documents, events = [] } = data;
+
+  const eventMeta = (action: string) => {
+    switch (action) {
+      case "created": return { icon: Plus, label: "Etichetta creata", color: "text-blue-600 bg-blue-100" };
+      case "finalized": return { icon: FileCheck, label: "Etichetta finalizzata", color: "text-emerald-600 bg-emerald-100" };
+      case "printed": return { icon: Printer, label: "Stampata", color: "text-slate-600 bg-slate-100" };
+      case "reprinted": return { icon: Printer, label: "Ristampata", color: "text-slate-600 bg-slate-100" };
+      case "modified": return { icon: Pencil, label: "Modificata", color: "text-amber-600 bg-amber-100" };
+      case "cancelled": return { icon: Ban, label: "Annullata / ritirata", color: "text-destructive bg-destructive/10" };
+      case "duplicated": return { icon: Copy, label: "Duplicata", color: "text-purple-600 bg-purple-100" };
+      default: return { icon: FileSignature, label: action, color: "text-muted-foreground bg-muted" };
+    }
+  };
 
   const statusBadge = () => {
     if (label.computed_status === "ritirato") return <Badge variant="destructive" className="gap-1"><XCircle className="h-3 w-3" /> Ritirato</Badge>;
@@ -107,6 +120,33 @@ const PublicHaccpLabelPage = () => {
             </a>
           ))}
         </CardContent></Card>
+      )}
+
+      {events.length > 0 && (
+        <Card className="print:shadow-none print:border-0 print:break-inside-avoid">
+          <CardContent className="p-4 space-y-3 print:p-2">
+            <h2 className="font-semibold flex items-center gap-2"><Clock className="h-4 w-4 text-primary" /> Cronologia tracciabilità</h2>
+            <ol className="relative border-l border-border ml-3 space-y-3 pl-4">
+              {events.map((ev: any, idx: number) => {
+                const meta = eventMeta(ev.action);
+                const Icon = meta.icon;
+                return (
+                  <li key={idx} className="relative">
+                    <span className={`absolute -left-[27px] flex items-center justify-center w-6 h-6 rounded-full ${meta.color}`}>
+                      <Icon className="h-3 w-3" />
+                    </span>
+                    <div className="text-sm font-medium">{meta.label}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {format(new Date(ev.created_at), "dd MMM yyyy · HH:mm", { locale: it })}
+                      {ev.user_name && ` · ${ev.user_name}`}
+                    </div>
+                    {ev.reason && <div className="text-xs text-foreground/80 mt-1 italic">"{ev.reason}"</div>}
+                  </li>
+                );
+              })}
+            </ol>
+          </CardContent>
+        </Card>
       )}
 
       <p className="text-center text-xs text-muted-foreground py-4">Tracciabilità HACCP — Cibarius</p>
