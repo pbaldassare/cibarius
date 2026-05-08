@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useRestaurant } from "@/hooks/useRestaurant";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -42,6 +42,7 @@ const RestaurantHaccpLabelNewPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const today = new Date().toISOString().slice(0, 10);
   const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
@@ -62,6 +63,20 @@ const RestaurantHaccpLabelNewPage = () => {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [docPickerOpen, setDocPickerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const nameParam = searchParams.get("name");
+    const notesParam = searchParams.get("notes");
+    const conservationParam = searchParams.get("conservation");
+    const expirationParam = searchParams.get("expiration");
+    const quantityParam = searchParams.get("quantity");
+
+    if (nameParam) setName(nameParam);
+    if (notesParam) setNotes(notesParam);
+    if (conservationParam) setConservation(conservationParam);
+    if (expirationParam) setExpirationDate(expirationParam);
+    if (quantityParam) setQuantity(quantityParam);
+  }, [searchParams]);
 
   useEffect(() => {
     if (!restaurant) return;
