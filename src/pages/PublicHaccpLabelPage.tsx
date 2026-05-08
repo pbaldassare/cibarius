@@ -19,6 +19,8 @@ const PublicHaccpLabelPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const pdfDocRef = useRef<jsPDF | null>(null);
   const pdfRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
