@@ -122,6 +122,33 @@ const PublicHaccpLabelPage = () => {
         </CardContent></Card>
       )}
 
+      {events.length > 0 && (
+        <Card className="print:shadow-none print:border-0 print:break-inside-avoid">
+          <CardContent className="p-4 space-y-3 print:p-2">
+            <h2 className="font-semibold flex items-center gap-2"><Clock className="h-4 w-4 text-primary" /> Cronologia tracciabilità</h2>
+            <ol className="relative border-l border-border ml-3 space-y-3 pl-4">
+              {events.map((ev: any, idx: number) => {
+                const meta = eventMeta(ev.action);
+                const Icon = meta.icon;
+                return (
+                  <li key={idx} className="relative">
+                    <span className={`absolute -left-[27px] flex items-center justify-center w-6 h-6 rounded-full ${meta.color}`}>
+                      <Icon className="h-3 w-3" />
+                    </span>
+                    <div className="text-sm font-medium">{meta.label}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {format(new Date(ev.created_at), "dd MMM yyyy · HH:mm", { locale: it })}
+                      {ev.user_name && ` · ${ev.user_name}`}
+                    </div>
+                    {ev.reason && <div className="text-xs text-foreground/80 mt-1 italic">"{ev.reason}"</div>}
+                  </li>
+                );
+              })}
+            </ol>
+          </CardContent>
+        </Card>
+      )}
+
       <p className="text-center text-xs text-muted-foreground py-4">Tracciabilità HACCP — Cibarius</p>
     </div>
   );
