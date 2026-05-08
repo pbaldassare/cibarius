@@ -340,6 +340,17 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
     setCreateOpen(true);
   };
 
+  const createHaccpLabelFromPreparation = () => {
+    if (!detailPrep || !isRestaurant) return;
+    const params = new URLSearchParams();
+    params.set("name", detailPrep.name);
+    params.set("notes", detailPrep.notes ?? detailPrep.description ?? "");
+    params.set("conservation", detailPrep.storage_type);
+    params.set("expiration", detailPrep.use_by_date);
+    if (detailPrep.portions) params.set("quantity", String(detailPrep.portions));
+    navigate(`/restaurant/haccp-labels/new?${params.toString()}`);
+  };
+
   const handleDelete = async (id: string) => {
     await supabase.from("preparations").delete().eq("id", id);
     toast({ title: "Preparazione eliminata" });
@@ -753,13 +764,20 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex gap-2">
-                    <Button variant="outline" className="flex-1 gap-2" onClick={openEditForm}>
-                      <ChefHat className="h-4 w-4" /> Modifica
-                    </Button>
-                    <Button variant="destructive" className="flex-1 gap-2" onClick={() => handleDelete(detailPrep.id)}>
-                      <Trash2 className="h-4 w-4" /> Elimina
-                    </Button>
+                  <div className="flex flex-col gap-2">
+                    {isRestaurant && (
+                      <Button className="w-full gap-2" onClick={createHaccpLabelFromPreparation}>
+                        <Tag className="h-4 w-4" /> Crea etichetta HACCP
+                      </Button>
+                    )}
+                    <div className="flex gap-2">
+                      <Button variant="outline" className="flex-1 gap-2" onClick={openEditForm}>
+                        <ChefHat className="h-4 w-4" /> Modifica
+                      </Button>
+                      <Button variant="destructive" className="flex-1 gap-2" onClick={() => handleDelete(detailPrep.id)}>
+                        <Trash2 className="h-4 w-4" /> Elimina
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </>
