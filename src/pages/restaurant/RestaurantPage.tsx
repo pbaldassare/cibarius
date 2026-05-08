@@ -250,6 +250,43 @@ const RestaurantPage = () => {
               </div>
             ))}
           </div>
+
+          {/* Lista alimenti in scadenza */}
+          {urgentList.length > 0 && (
+            <div className="space-y-1.5 mb-3">
+              {urgentList.map((u) => {
+                const cfg = statusCfg[u.status];
+                const dateLabel = u.date
+                  ? isSameDay(new Date(u.date), today)
+                    ? "Oggi"
+                    : format(new Date(u.date), "d MMM", { locale: it })
+                  : "—";
+                return (
+                  <button
+                    key={`${u.type}-${u.id}`}
+                    onClick={() => navigate(u.type === "prep" ? "/restaurant/preparations" : `/restaurant/items/${u.id}`)}
+                    className="flex items-center gap-2 w-full rounded-[10px] bg-muted/40 px-3 py-2 text-left active:scale-[0.98] transition-transform"
+                  >
+                    <span className="text-lg shrink-0">{getFoodEmoji(u.name)}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-medium text-foreground truncate">{u.name}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {storageLabel[u.storage] ?? u.storage} · {dateLabel}
+                      </p>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] shrink-0"
+                      style={{ color: cfg.color, borderColor: `${cfg.color}33` }}
+                    >
+                      {cfg.label}
+                    </Badge>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           {counts.total > 0 && (
             <button
               onClick={() => setResolveOpen(true)}
