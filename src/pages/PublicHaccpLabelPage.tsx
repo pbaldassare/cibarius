@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, FileText, AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, FileText, AlertTriangle, CheckCircle2, XCircle, Printer } from "lucide-react";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 
