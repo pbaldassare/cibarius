@@ -230,6 +230,37 @@ const RestaurantPage = () => {
           </Link>
         </div>
 
+        {/* ═══ Expiry counters (moved up) ═══ */}
+        <div className="rounded-[14px] bg-card shadow-card p-3.5" data-tour="rest-expiry-card">
+          <div className="flex items-center justify-between mb-2.5">
+            <h3 className="text-[15px] font-semibold text-foreground">Scadenze</h3>
+            <button onClick={() => navigate("/restaurant/products")} className="text-[12px] font-medium text-primary flex items-center gap-0.5">
+              Apri <ChevronRight className="h-3 w-3" />
+            </button>
+          </div>
+          <div className="grid grid-cols-3 gap-2 mb-3">
+            {[
+              { n: counts.expired, label: "Scaduti", color: "hsl(1,76%,55%)", bg: "hsl(1,76%,55%,0.08)" },
+              { n: counts.expiring, label: "In scadenza", color: "hsl(37,90%,51%)", bg: "hsl(37,90%,51%,0.08)" },
+              { n: counts.nodate, label: "Senza data", color: "hsl(215,10%,62%)", bg: "hsl(215,10%,62%,0.08)" },
+            ].map(({ n, label, color, bg }) => (
+              <div key={label} className="rounded-[10px] px-2 py-2 text-center" style={{ backgroundColor: bg }}>
+                <p className="text-[22px] font-bold leading-none mb-0.5" style={{ color }}>{n}</p>
+                <p className="text-[10px] font-medium text-muted-foreground">{label}</p>
+              </div>
+            ))}
+          </div>
+          {counts.total > 0 && (
+            <button
+              onClick={() => setResolveOpen(true)}
+              className="flex w-full items-center justify-center gap-2 rounded-[10px] py-2.5 text-[14px] font-semibold text-primary-foreground bg-primary active:scale-[0.97] transition-all"
+            >
+              <Zap className="h-4 w-4" strokeWidth={2.2} />
+              Gestisci scadenze · {counts.total}
+            </button>
+          )}
+        </div>
+
         {/* ═══ HACCP TODAY ═══ */}
         <div className="rounded-[14px] bg-card shadow-card p-3.5" data-tour="rest-haccp-card">
           <div className="flex items-center justify-between mb-2.5">
@@ -333,37 +364,6 @@ const RestaurantPage = () => {
               <span className="text-[10px] font-medium text-foreground text-center leading-tight">{label}</span>
             </button>
           ))}
-        </div>
-
-        {/* ═══ Expiry counters ═══ */}
-        <div className="rounded-[14px] bg-card shadow-card p-3.5" data-tour="rest-expiry-card">
-          <div className="flex items-center justify-between mb-2.5">
-            <h3 className="text-[15px] font-semibold text-foreground">Scadenze</h3>
-            <button onClick={() => navigate("/restaurant/products")} className="text-[12px] font-medium text-primary flex items-center gap-0.5">
-              Apri <ChevronRight className="h-3 w-3" />
-            </button>
-          </div>
-          <div className="grid grid-cols-3 gap-2 mb-3">
-            {[
-              { n: counts.expired, label: "Scaduti", color: "hsl(1,76%,55%)", bg: "hsl(1,76%,55%,0.08)" },
-              { n: counts.expiring, label: "In scadenza", color: "hsl(37,90%,51%)", bg: "hsl(37,90%,51%,0.08)" },
-              { n: counts.nodate, label: "Senza data", color: "hsl(215,10%,62%)", bg: "hsl(215,10%,62%,0.08)" },
-            ].map(({ n, label, color, bg }) => (
-              <div key={label} className="rounded-[10px] px-2 py-2 text-center" style={{ backgroundColor: bg }}>
-                <p className="text-[22px] font-bold leading-none mb-0.5" style={{ color }}>{n}</p>
-                <p className="text-[10px] font-medium text-muted-foreground">{label}</p>
-              </div>
-            ))}
-          </div>
-          {counts.total > 0 && (
-            <button
-              onClick={() => setResolveOpen(true)}
-              className="flex w-full items-center justify-center gap-2 rounded-[10px] py-2.5 text-[14px] font-semibold text-primary-foreground bg-primary active:scale-[0.97] transition-all"
-            >
-              <Zap className="h-4 w-4" strokeWidth={2.2} />
-              Gestisci scadenze · {counts.total}
-            </button>
-          )}
         </div>
 
         {/* ═══ Quick rows: Produzione + Bolle ═══ */}
