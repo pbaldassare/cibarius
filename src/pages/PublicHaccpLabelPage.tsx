@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, FileText, AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, FileText, AlertTriangle, CheckCircle2, XCircle, Printer } from "lucide-react";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 
@@ -41,9 +42,14 @@ const PublicHaccpLabelPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-muted/30 p-4 max-w-2xl mx-auto space-y-4">
-      <Card>
-        <CardContent className="p-6 space-y-3">
+    <div className="min-h-screen bg-muted/30 p-4 max-w-2xl mx-auto space-y-4 print:bg-white print:p-0 print:max-w-full">
+      <div className="flex justify-end print:hidden">
+        <Button size="sm" variant="outline" onClick={() => window.print()} className="gap-2">
+          <Printer className="h-4 w-4" /> Stampa / Salva PDF
+        </Button>
+      </div>
+      <Card className="print:shadow-none print:border-0">
+        <CardContent className="p-6 space-y-3 print:p-2">
           <div className="flex items-center justify-between gap-2">
             <h1 className="text-xl font-bold">{label.preparation_name}</h1>
             {statusBadge()}
@@ -72,7 +78,7 @@ const PublicHaccpLabelPage = () => {
       </Card>
 
       {ingredients.length > 0 && (
-        <Card><CardContent className="p-4 space-y-2">
+        <Card className="print:shadow-none print:border-0 print:break-inside-avoid"><CardContent className="p-4 space-y-2 print:p-2">
           <h2 className="font-semibold">Tracciabilità ingredienti</h2>
           {ingredients.map((i: any, idx: number) => (
             <div key={idx} className="border-b border-border last:border-0 pb-2 text-sm">
@@ -88,7 +94,7 @@ const PublicHaccpLabelPage = () => {
       )}
 
       {documents.length > 0 && (
-        <Card><CardContent className="p-4 space-y-2">
+        <Card className="print:shadow-none print:border-0 print:break-inside-avoid"><CardContent className="p-4 space-y-2 print:p-2">
           <h2 className="font-semibold">Bolle / Documenti</h2>
           {documents.map((d: any) => (
             <a key={d.id} href={d.file_url || d.photo_url} target="_blank" rel="noopener noreferrer"
