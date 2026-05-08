@@ -126,11 +126,26 @@ const PublicHaccpLabelPage = () => {
         <Button size="sm" variant="outline" onClick={() => window.print()} className="gap-2">
           <Printer className="h-4 w-4" /> Stampa
         </Button>
-        <Button size="sm" onClick={downloadPdf} disabled={generating} className="gap-2">
-          {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-          Scarica PDF
+        <Button size="sm" onClick={previewPdf} disabled={generating} className="gap-2">
+          {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
+          Anteprima PDF
         </Button>
       </div>
+
+      <Dialog open={!!previewUrl} onOpenChange={(o) => { if (!o) closePreview(); }}>
+        <DialogContent className="max-w-5xl w-[95vw] h-[90vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="p-4 border-b">
+            <DialogTitle className="flex items-center gap-2"><Eye className="h-4 w-4" /> Anteprima PDF — {label.preparation_name}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 bg-muted overflow-hidden">
+            {previewUrl && <iframe src={previewUrl} title="Anteprima PDF" className="w-full h-full border-0" />}
+          </div>
+          <DialogFooter className="p-4 border-t flex-row justify-end gap-2">
+            <Button variant="outline" onClick={closePreview}>Annulla</Button>
+            <Button onClick={saveFromPreview} className="gap-2"><Download className="h-4 w-4" /> Scarica PDF</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <div ref={pdfRef} className="space-y-4">
       <Card className="haccp-section print:shadow-none print:border-0">
         <CardContent className="p-6 space-y-3 print:p-2">
