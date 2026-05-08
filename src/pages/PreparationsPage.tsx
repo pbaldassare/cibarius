@@ -173,7 +173,38 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
       query = query.eq("owner_user_id", user.id);
     }
     const { data } = await query;
-    if (data) setItems(data as unknown as Preparation[]);
+    let merged: Preparation[] = (data as unknown as Preparation[]) ?? [];
+
+    // Include HACCP preparation labels (restaurant only) as virtual entries
+    if (isRestaurant && restaurant) {
+      const { data: labels } = await supabase
+        .from("haccp_preparation_labels")
+        .select("id,preparation_name,expiration_date,production_date,conservation_type,quantity,unit,internal_lot_code,notes,status")
+        .eq("restaurant_id", restaurant.id)
+        .neq("status", "cancelled")
+        .order("expiration_date", { ascending: true });
+      if (labels) {
+        const mapStorage = (c: string): string =>
+          c === "frigo" || c === "freezer" || c === "ambiente" ? c : "ambiente";
+        const haccpItems: Preparation[] = labels.map((l: any) => ({
+          id: `haccp:${l.id}`,
+          name: l.preparation_name,
+          description: l.notes ?? null,
+          prepared_at: l.production_date,
+          storage_type: mapStorage(l.conservation_type),
+          use_by_date: l.expiration_date,
+          portions: null,
+          notes: l.notes ?? null,
+          image_url: null,
+          label_code: l.internal_lot_code ?? null,
+        }));
+        merged = [...merged, ...haccpItems].sort(
+          (a, b) => new Date(a.use_by_date).getTime() - new Date(b.use_by_date).getTime()
+        );
+      }
+    }
+
+    setItems(merged);
     setLoading(false);
   };
 
