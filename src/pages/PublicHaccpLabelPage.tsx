@@ -91,10 +91,10 @@ const PublicHaccpLabelPage = () => {
       </Card>
 
       {ingredients.length > 0 && (
-        <Card className="print:shadow-none print:border-0 print:break-inside-avoid"><CardContent className="p-4 space-y-2 print:p-2">
-          <h2 className="font-semibold">Tracciabilità ingredienti</h2>
+        <Card className="print:shadow-none print:border-0"><CardContent className="p-4 space-y-2 print:p-2">
+          <h2 className="haccp-section-header font-semibold">Tracciabilità ingredienti</h2>
           {ingredients.map((i: any, idx: number) => (
-            <div key={idx} className="border-b border-border last:border-0 pb-2 text-sm">
+            <div key={idx} className="haccp-row border-b border-border last:border-0 pb-2 text-sm">
               <div className="font-medium">{i.ingredient_name} {i.quantity_used && `· ${i.quantity_used} ${i.unit || ""}`}</div>
               <div className="text-xs text-muted-foreground">
                 {i.source_lot_code && `Lotto ${i.source_lot_code}`}
