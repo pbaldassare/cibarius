@@ -32,7 +32,20 @@ const PublicHaccpLabelPage = () => {
   if (error) return <div className="min-h-screen flex items-center justify-center p-4"><Card><CardContent className="p-8 text-center">{error}</CardContent></Card></div>;
   if (!data) return null;
 
-  const { label, restaurant, ingredients, documents } = data;
+  const { label, restaurant, ingredients, documents, events = [] } = data;
+
+  const eventMeta = (action: string) => {
+    switch (action) {
+      case "created": return { icon: Plus, label: "Etichetta creata", color: "text-blue-600 bg-blue-100" };
+      case "finalized": return { icon: FileCheck, label: "Etichetta finalizzata", color: "text-emerald-600 bg-emerald-100" };
+      case "printed": return { icon: Printer, label: "Stampata", color: "text-slate-600 bg-slate-100" };
+      case "reprinted": return { icon: Printer, label: "Ristampata", color: "text-slate-600 bg-slate-100" };
+      case "modified": return { icon: Pencil, label: "Modificata", color: "text-amber-600 bg-amber-100" };
+      case "cancelled": return { icon: Ban, label: "Annullata / ritirata", color: "text-destructive bg-destructive/10" };
+      case "duplicated": return { icon: Copy, label: "Duplicata", color: "text-purple-600 bg-purple-100" };
+      default: return { icon: FileSignature, label: action, color: "text-muted-foreground bg-muted" };
+    }
+  };
 
   const statusBadge = () => {
     if (label.computed_status === "ritirato") return <Badge variant="destructive" className="gap-1"><XCircle className="h-3 w-3" /> Ritirato</Badge>;
