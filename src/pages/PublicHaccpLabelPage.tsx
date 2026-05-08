@@ -62,41 +62,62 @@ const PublicHaccpLabelPage = () => {
     return <Badge className="bg-emerald-500 text-white gap-1"><CheckCircle2 className="h-3 w-3" /> Valido</Badge>;
   };
 
-  const downloadPdf = async () => {
-    if (!pdfRef.current) return;
-    setGenerating(true);
-    try {
-      const canvas = await html2canvas(pdfRef.current, {
-        scale: 2,
-        backgroundColor: "#ffffff",
-        useCORS: true,
-        logging: false,
-      });
-      const imgData = canvas.toDataURL("image/jpeg", 0.92);
-      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-      const pageW = pdf.internal.pageSize.getWidth();
-      const pageH = pdf.internal.pageSize.getHeight();
-      const margin = 10;
-      const usableW = pageW - margin * 2;
-      const imgH = (canvas.height * usableW) / canvas.width;
-      let heightLeft = imgH;
-      let position = margin;
+  const buildPdf = async (): Promise<jsPDF | null> => {
+    if (!pdfRef.current) return null;
+    const canvas = await html2canvas(pdfRef.current, {
+      scale: 2,
+      backgroundColor: "#ffffff",
+      useCORS: true,
+      logging: false,
+    });
+    const imgData = canvas.toDataURL("image/jpeg", 0.92);
+    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const margin = 10;
+    const usableW = pageW - margin * 2;
+    const imgH = (canvas.height * usableW) / canvas.width;
+    let heightLeft = imgH;
+    let position = margin;
+    pdf.addImage(imgData, "JPEG", margin, position, usableW, imgH);
+    heightLeft -= pageH - margin * 2;
+    while (heightLeft > 0) {
+      position = heightLeft - imgH + margin;
+      pdf.addPage();
       pdf.addImage(imgData, "JPEG", margin, position, usableW, imgH);
       heightLeft -= pageH - margin * 2;
-      while (heightLeft > 0) {
-        position = heightLeft - imgH + margin;
-        pdf.addPage();
-        pdf.addImage(imgData, "JPEG", margin, position, usableW, imgH);
-        heightLeft -= pageH - margin * 2;
-      }
-      const fname = `HACCP_${label.internal_lot_code || "etichetta"}_${label.preparation_name?.replace(/\s+/g, "_") || ""}.pdf`;
-      pdf.save(fname);
-      toast.success("PDF scaricato");
+    }
+    return pdf;
+  };
+
+  const pdfFilename = () =>
+    `HACCP_${label.internal_lot_code || "etichetta"}_${label.preparation_name?.replace(/\s+/g, "_") || ""}.pdf`;
+
+  const previewPdf = async () => {
+    setGenerating(true);
+    try {
+      const pdf = await buildPdf();
+      if (!pdf) return;
+      pdfDocRef.current = pdf;
+      const blobUrl = URL.createObjectURL(pdf.output("blob"));
+      setPreviewUrl(blobUrl);
     } catch (e: any) {
-      toast.error("Errore generazione PDF: " + (e?.message || ""));
+      toast.error("Errore anteprima PDF: " + (e?.message || ""));
     } finally {
       setGenerating(false);
     }
+  };
+
+  const closePreview = () => {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(null);
+    pdfDocRef.current = null;
+  };
+
+  const saveFromPreview = () => {
+    pdfDocRef.current?.save(pdfFilename());
+    toast.success("PDF scaricato");
+    closePreview();
   };
 
   return (
