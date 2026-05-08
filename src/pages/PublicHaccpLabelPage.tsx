@@ -197,6 +197,7 @@ const PublicHaccpLabelPage = () => {
       )}
 
       <p className="text-center text-xs text-muted-foreground py-4">Tracciabilità HACCP — Cibarius</p>
+      </div>
     </div>
   );
 };
