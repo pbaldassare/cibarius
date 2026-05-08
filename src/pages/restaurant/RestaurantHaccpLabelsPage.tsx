@@ -38,7 +38,15 @@ const RestaurantHaccpLabelsPage = () => {
       .select("id, preparation_name, internal_lot_code, production_date, expiration_date, conservation_type, status, created_at")
       .eq("restaurant_id", restaurant.id)
       .order("created_at", { ascending: false });
-    setLabels((data as Label[]) || []);
+    const nextLabels = (data as Label[]) || [];
+    setLabels(nextLabels);
+    if (nextLabels.length > 0) {
+      const hasFinalized = nextLabels.some((label) => label.status === "finalized");
+      const hasDraft = nextLabels.some((label) => label.status === "draft");
+      if (!hasFinalized && hasDraft) {
+        setTab("draft");
+      }
+    }
     setLoading(false);
   };
 
@@ -78,9 +86,9 @@ const RestaurantHaccpLabelsPage = () => {
 
       <Tabs value={tab} onValueChange={(v: any) => setTab(v)}>
         <TabsList className="grid grid-cols-3 w-full">
-          <TabsTrigger value="finalized">Attive</TabsTrigger>
-          <TabsTrigger value="draft">Bozze</TabsTrigger>
-          <TabsTrigger value="cancelled">Annullate</TabsTrigger>
+          <TabsTrigger value="finalized">Attive ({labels.filter(l => l.status === "finalized").length})</TabsTrigger>
+          <TabsTrigger value="draft">Bozze ({labels.filter(l => l.status === "draft").length})</TabsTrigger>
+          <TabsTrigger value="cancelled">Annullate ({labels.filter(l => l.status === "cancelled").length})</TabsTrigger>
         </TabsList>
       </Tabs>
 
