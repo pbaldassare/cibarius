@@ -1,4 +1,15 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+
+const MAX_FILE_BYTES = 15 * 1024 * 1024; // 15 MB
+const ALLOWED_MIME = new Set([
+  "application/pdf",
+  "text/csv",
+  "text/plain",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
