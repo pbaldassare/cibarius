@@ -94,7 +94,7 @@ const PublicHaccpLabelPage = () => {
       )}
 
       {documents.length > 0 && (
-        <Card><CardContent className="p-4 space-y-2">
+        <Card className="print:shadow-none print:border-0 print:break-inside-avoid"><CardContent className="p-4 space-y-2 print:p-2">
           <h2 className="font-semibold">Bolle / Documenti</h2>
           {documents.map((d: any) => (
             <a key={d.id} href={d.file_url || d.photo_url} target="_blank" rel="noopener noreferrer"
