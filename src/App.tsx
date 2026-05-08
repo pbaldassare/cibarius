@@ -67,6 +67,12 @@ import RestaurantItemPage from "./pages/restaurant/RestaurantItemPage";
 import RestaurantHaccpPage from "./pages/restaurant/RestaurantHaccpPage";
 import RestaurantHaccpSetupPage from "./pages/restaurant/RestaurantHaccpSetupPage";
 import RestaurantHaccpHistoryPage from "./pages/restaurant/RestaurantHaccpHistoryPage";
+import RestaurantHaccpLabelsPage from "./pages/restaurant/RestaurantHaccpLabelsPage";
+import RestaurantHaccpLabelNewPage from "./pages/restaurant/RestaurantHaccpLabelNewPage";
+import RestaurantHaccpLabelDetailPage from "./pages/restaurant/RestaurantHaccpLabelDetailPage";
+import RestaurantHaccpDocumentsPage from "./pages/restaurant/RestaurantHaccpDocumentsPage";
+import PublicHaccpLabelPage from "./pages/PublicHaccpLabelPage";
+import AdminHaccpLabelsPage from "./pages/admin/AdminHaccpLabelsPage";
 
 // Restaurant admin pages
 import RestaurantAdminPage from "./pages/restaurant-admin/RestaurantAdminPage";
