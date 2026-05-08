@@ -175,17 +175,23 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
     const { data } = await query;
     let merged: Preparation[] = (data as unknown as Preparation[]) ?? [];
 
-    // Include HACCP preparation labels (restaurant only) as virtual entries
+    // Include HACCP preparation labels (restaurant only). Labels linked to a preparation REPLACE
+    // the legacy entry so the user opens the editable HACCP label (ingredients + documents).
     if (isRestaurant && restaurant) {
       const { data: labels } = await supabase
         .from("haccp_preparation_labels")
-        .select("id,preparation_name,expiration_date,production_date,conservation_type,quantity,unit,internal_lot_code,notes,status")
+        .select("id,preparation_name,expiration_date,production_date,conservation_type,quantity,unit,internal_lot_code,notes,status,source_preparation_id")
         .eq("restaurant_id", restaurant.id)
         .neq("status", "cancelled")
         .order("expiration_date", { ascending: true });
       if (labels) {
         const mapStorage = (c: string): string =>
           c === "frigo" || c === "freezer" || c === "ambiente" ? c : "ambiente";
+        const linkedPrepIds = new Set(
+          labels.map((l: any) => l.source_preparation_id).filter(Boolean)
+        );
+        // Drop legacy preparations that already have an auto-generated HACCP label
+        merged = merged.filter((p) => !linkedPrepIds.has(p.id));
         const haccpItems: Preparation[] = labels.map((l: any) => ({
           id: `haccp:${l.id}`,
           name: l.preparation_name,

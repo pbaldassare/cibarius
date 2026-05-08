@@ -1302,6 +1302,7 @@ export type Database = {
           qr_token: string
           quantity: number | null
           restaurant_id: string
+          source_preparation_id: string | null
           status: string
           unit: string | null
           updated_at: string
@@ -1324,6 +1325,7 @@ export type Database = {
           qr_token?: string
           quantity?: number | null
           restaurant_id: string
+          source_preparation_id?: string | null
           status?: string
           unit?: string | null
           updated_at?: string
@@ -1346,6 +1348,7 @@ export type Database = {
           qr_token?: string
           quantity?: number | null
           restaurant_id?: string
+          source_preparation_id?: string | null
           status?: string
           unit?: string | null
           updated_at?: string
@@ -1356,6 +1359,13 @@ export type Database = {
             columns: ["restaurant_id"]
             isOneToOne: false
             referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "haccp_preparation_labels_source_preparation_id_fkey"
+            columns: ["source_preparation_id"]
+            isOneToOne: false
+            referencedRelation: "preparations"
             referencedColumns: ["id"]
           },
         ]
