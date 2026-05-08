@@ -78,7 +78,7 @@ const PublicHaccpLabelPage = () => {
       </Card>
 
       {ingredients.length > 0 && (
-        <Card><CardContent className="p-4 space-y-2">
+        <Card className="print:shadow-none print:border-0 print:break-inside-avoid"><CardContent className="p-4 space-y-2 print:p-2">
           <h2 className="font-semibold">Tracciabilità ingredienti</h2>
           {ingredients.map((i: any, idx: number) => (
             <div key={idx} className="border-b border-border last:border-0 pb-2 text-sm">
