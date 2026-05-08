@@ -215,6 +215,10 @@ const App = () => (
                 <Route path="/restaurant/haccp" element={<RestaurantHaccpPage />} />
                 <Route path="/restaurant/haccp/setup" element={<RestaurantHaccpSetupPage />} />
                 <Route path="/restaurant/haccp/history" element={<RestaurantHaccpHistoryPage />} />
+                <Route path="/restaurant/haccp-labels" element={<RestaurantHaccpLabelsPage />} />
+                <Route path="/restaurant/haccp-labels/new" element={<RestaurantHaccpLabelNewPage />} />
+                <Route path="/restaurant/haccp-labels/:id" element={<RestaurantHaccpLabelDetailPage />} />
+                <Route path="/restaurant/haccp-documents" element={<RestaurantHaccpDocumentsPage />} />
               </Route>
 
               {/* Supplier invite (restaurant context) */}
