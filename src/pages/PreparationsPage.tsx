@@ -173,7 +173,38 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
       query = query.eq("owner_user_id", user.id);
     }
     const { data } = await query;
-    if (data) setItems(data as unknown as Preparation[]);
+    let merged: Preparation[] = (data as unknown as Preparation[]) ?? [];
+
+    // Include HACCP preparation labels (restaurant only) as virtual entries
+    if (isRestaurant && restaurant) {
+      const { data: labels } = await supabase
+        .from("haccp_preparation_labels")
+        .select("id,preparation_name,expiration_date,production_date,conservation_type,quantity,unit,internal_lot_code,notes,status")
+        .eq("restaurant_id", restaurant.id)
+        .neq("status", "cancelled")
+        .order("expiration_date", { ascending: true });
+      if (labels) {
+        const mapStorage = (c: string): string =>
+          c === "frigo" || c === "freezer" || c === "ambiente" ? c : "ambiente";
+        const haccpItems: Preparation[] = labels.map((l: any) => ({
+          id: `haccp:${l.id}`,
+          name: l.preparation_name,
+          description: l.notes ?? null,
+          prepared_at: l.production_date,
+          storage_type: mapStorage(l.conservation_type),
+          use_by_date: l.expiration_date,
+          portions: null,
+          notes: l.notes ?? null,
+          image_url: null,
+          label_code: l.internal_lot_code ?? null,
+        }));
+        merged = [...merged, ...haccpItems].sort(
+          (a, b) => new Date(a.use_by_date).getTime() - new Date(b.use_by_date).getTime()
+        );
+      }
+    }
+
+    setItems(merged);
     setLoading(false);
   };
 
@@ -385,11 +416,19 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
               const status = getStatus(item.use_by_date);
               const cfg = statusCfg[status];
               return (
-              <button key={item.id} onClick={() => openDetail(item)} className="flex w-full items-center gap-2.5 rounded-xl bg-white px-2.5 py-2 shadow-sm overflow-hidden text-left"
+              <button key={item.id} onClick={() => {
+                  if (item.id.startsWith("haccp:")) {
+                    navigate(`/restaurant/haccp-labels/${item.id.slice(6)}`);
+                  } else {
+                    openDetail(item);
+                  }
+                }} className="flex w-full items-center gap-2.5 rounded-xl bg-white px-2.5 py-2 shadow-sm overflow-hidden text-left"
                   style={{ minHeight: 64 }}>
                   <div className={`w-1 self-stretch rounded-full ${cfg.barColor}`} />
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#F5F7FA]">
-                    <ChefHat className="h-4 w-4" style={{ color: "#9CA3AF" }} />
+                    {item.id.startsWith("haccp:")
+                      ? <Tag className="h-4 w-4" style={{ color: "#9CA3AF" }} />
+                      : <ChefHat className="h-4 w-4" style={{ color: "#9CA3AF" }} />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[13px] font-semibold truncate" style={{ color: "#111827" }}>{item.name}</p>
@@ -405,6 +444,11 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
                       {item.label_code && (
                         <span className="text-[9px] font-mono px-1 py-0.5 rounded bg-[#F3F4F6]" style={{ color: "#6B7280" }}>
                           {item.label_code}
+                        </span>
+                      )}
+                      {item.id.startsWith("haccp:") && (
+                        <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-primary/10 text-primary">
+                          HACCP
                         </span>
                       )}
                     </div>
