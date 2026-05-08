@@ -107,11 +107,11 @@ const PublicHaccpLabelPage = () => {
       )}
 
       {documents.length > 0 && (
-        <Card className="print:shadow-none print:border-0 print:break-inside-avoid"><CardContent className="p-4 space-y-2 print:p-2">
-          <h2 className="font-semibold">Bolle / Documenti</h2>
+        <Card className="print:shadow-none print:border-0"><CardContent className="p-4 space-y-2 print:p-2">
+          <h2 className="haccp-section-header font-semibold">Bolle / Documenti</h2>
           {documents.map((d: any) => (
             <a key={d.id} href={d.file_url || d.photo_url} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-2 border border-border rounded-lg p-2 hover:bg-muted">
+              className="haccp-row flex items-center gap-2 border border-border rounded-lg p-2 hover:bg-muted">
               <FileText className="h-4 w-4 text-primary" />
               <div className="flex-1 min-w-0">
                 <div className="font-medium capitalize text-sm">{d.document_type} {d.document_number}</div>
