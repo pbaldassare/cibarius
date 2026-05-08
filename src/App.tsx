@@ -159,6 +159,7 @@ const App = () => (
             <Route path="/auth/callback" element={<AuthCallbackPage />} />
             <Route path="/join/:code" element={<JoinReferralPage />} />
             <Route path="/n/:slug" element={<NutritionistPublicPage />} />
+            <Route path="/haccp/label/:token" element={<PublicHaccpLabelPage />} />
 
             {/* Protected routes */}
             <Route element={<ProtectedRoute />}>
