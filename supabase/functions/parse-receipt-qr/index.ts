@@ -31,29 +31,9 @@ serve(async (req) => {
         { type: "image_url", image_url: { url: `data:${receipt_image.mime_type};base64,${receipt_image.base64}` } },
       ];
     } else if (qr_content) {
-      // Text input: URL or raw text
-      let textContent = qr_content;
-      if (qr_content.startsWith("http://") || qr_content.startsWith("https://")) {
-        try {
-          const pageResp = await fetch(qr_content, {
-            headers: { "User-Agent": "Cibarius/1.0" },
-            redirect: "follow",
-          });
-          if (pageResp.ok) {
-            const html = await pageResp.text();
-            textContent = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-              .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-              .replace(/<[^>]+>/g, " ")
-              .replace(/\s+/g, " ")
-              .trim()
-              .slice(0, 8000);
-          }
-        } catch (fetchErr) {
-          console.warn("Failed to fetch QR URL, using raw content:", fetchErr);
-          textContent = qr_content;
-        }
-      }
-      userContent = `Ecco il contenuto dello scontrino/lista:\n\n${textContent}`;
+      // SECURITY: never fetch arbitrary URLs from user input (SSRF). Pass raw text to AI.
+      const textContent = String(qr_content).slice(0, 8000);
+      userContent = `Ecco il contenuto dello scontrino/lista (QR/testo grezzo):\n\n${textContent}`;
     }
 
     const systemPrompt = `Sei un assistente che analizza scontrini e liste della spesa da supermercato.
