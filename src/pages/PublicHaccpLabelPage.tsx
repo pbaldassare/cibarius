@@ -55,13 +55,13 @@ const PublicHaccpLabelPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-muted/30 p-4 max-w-2xl mx-auto space-y-4 print:bg-white print:p-0 print:max-w-full">
+    <div className="haccp-public-page min-h-screen bg-muted/30 p-4 max-w-2xl mx-auto space-y-4 print:bg-white print:p-0 print:max-w-full">
       <div className="flex justify-end print:hidden">
         <Button size="sm" variant="outline" onClick={() => window.print()} className="gap-2">
           <Printer className="h-4 w-4" /> Stampa / Salva PDF
         </Button>
       </div>
-      <Card className="print:shadow-none print:border-0">
+      <Card className="haccp-section print:shadow-none print:border-0">
         <CardContent className="p-6 space-y-3 print:p-2">
           <div className="flex items-center justify-between gap-2">
             <h1 className="text-xl font-bold">{label.preparation_name}</h1>
@@ -91,10 +91,10 @@ const PublicHaccpLabelPage = () => {
       </Card>
 
       {ingredients.length > 0 && (
-        <Card className="print:shadow-none print:border-0 print:break-inside-avoid"><CardContent className="p-4 space-y-2 print:p-2">
-          <h2 className="font-semibold">Tracciabilità ingredienti</h2>
+        <Card className="print:shadow-none print:border-0"><CardContent className="p-4 space-y-2 print:p-2">
+          <h2 className="haccp-section-header font-semibold">Tracciabilità ingredienti</h2>
           {ingredients.map((i: any, idx: number) => (
-            <div key={idx} className="border-b border-border last:border-0 pb-2 text-sm">
+            <div key={idx} className="haccp-row border-b border-border last:border-0 pb-2 text-sm">
               <div className="font-medium">{i.ingredient_name} {i.quantity_used && `· ${i.quantity_used} ${i.unit || ""}`}</div>
               <div className="text-xs text-muted-foreground">
                 {i.source_lot_code && `Lotto ${i.source_lot_code}`}
@@ -107,11 +107,11 @@ const PublicHaccpLabelPage = () => {
       )}
 
       {documents.length > 0 && (
-        <Card className="print:shadow-none print:border-0 print:break-inside-avoid"><CardContent className="p-4 space-y-2 print:p-2">
-          <h2 className="font-semibold">Bolle / Documenti</h2>
+        <Card className="print:shadow-none print:border-0"><CardContent className="p-4 space-y-2 print:p-2">
+          <h2 className="haccp-section-header font-semibold">Bolle / Documenti</h2>
           {documents.map((d: any) => (
             <a key={d.id} href={d.file_url || d.photo_url} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-2 border border-border rounded-lg p-2 hover:bg-muted">
+              className="haccp-row flex items-center gap-2 border border-border rounded-lg p-2 hover:bg-muted">
               <FileText className="h-4 w-4 text-primary" />
               <div className="flex-1 min-w-0">
                 <div className="font-medium capitalize text-sm">{d.document_type} {d.document_number}</div>
@@ -123,15 +123,15 @@ const PublicHaccpLabelPage = () => {
       )}
 
       {events.length > 0 && (
-        <Card className="print:shadow-none print:border-0 print:break-inside-avoid">
+        <Card className="print:shadow-none print:border-0">
           <CardContent className="p-4 space-y-3 print:p-2">
-            <h2 className="font-semibold flex items-center gap-2"><Clock className="h-4 w-4 text-primary" /> Cronologia tracciabilità</h2>
+            <h2 className="haccp-section-header font-semibold flex items-center gap-2"><Clock className="h-4 w-4 text-primary" /> Cronologia tracciabilità</h2>
             <ol className="relative border-l border-border ml-3 space-y-3 pl-4">
               {events.map((ev: any, idx: number) => {
                 const meta = eventMeta(ev.action);
                 const Icon = meta.icon;
                 return (
-                  <li key={idx} className="relative">
+                  <li key={idx} className="haccp-row relative">
                     <span className={`absolute -left-[27px] flex items-center justify-center w-6 h-6 rounded-full ${meta.color}`}>
                       <Icon className="h-3 w-3" />
                     </span>
