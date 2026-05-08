@@ -45,7 +45,7 @@ const HaccpLabelPrintView = ({ label, restaurantName, size, publicUrl }: Props) 
   return (
     <div className={`bg-white text-black border-2 border-black ${sizeClass} flex gap-2`}>
       <div className="flex-1 min-w-0 flex flex-col">
-        <div className="font-bold uppercase truncate" style={{ fontSize: size === "small" ? 10 : size === "medium" ? 13 : 18 }}>
+        <div className="font-bold uppercase break-words leading-tight" style={{ fontSize: size === "small" ? 10 : size === "medium" ? 13 : 18, wordBreak: "break-word" }}>
           {label.preparation_name}
         </div>
         <div className="text-[0.85em] opacity-70 truncate">{restaurantName}</div>
