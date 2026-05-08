@@ -13,7 +13,7 @@ import {
   Loader2, Clock, AlertCircle, Package, Plus, ChevronRight,
   ChefHat, FileText, Upload, User, Settings, Zap,
   ClipboardCheck, CheckCircle2, AlertTriangle, Circle,
-  Thermometer, Wind, Flame, Trash2, UtensilsCrossed,
+  Thermometer, Wind, Flame, Trash2, UtensilsCrossed, QrCode,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { getFoodEmoji } from "@/lib/food-images";
