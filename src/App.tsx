@@ -67,6 +67,12 @@ import RestaurantItemPage from "./pages/restaurant/RestaurantItemPage";
 import RestaurantHaccpPage from "./pages/restaurant/RestaurantHaccpPage";
 import RestaurantHaccpSetupPage from "./pages/restaurant/RestaurantHaccpSetupPage";
 import RestaurantHaccpHistoryPage from "./pages/restaurant/RestaurantHaccpHistoryPage";
+import RestaurantHaccpLabelsPage from "./pages/restaurant/RestaurantHaccpLabelsPage";
+import RestaurantHaccpLabelNewPage from "./pages/restaurant/RestaurantHaccpLabelNewPage";
+import RestaurantHaccpLabelDetailPage from "./pages/restaurant/RestaurantHaccpLabelDetailPage";
+import RestaurantHaccpDocumentsPage from "./pages/restaurant/RestaurantHaccpDocumentsPage";
+import PublicHaccpLabelPage from "./pages/PublicHaccpLabelPage";
+import AdminHaccpLabelsPage from "./pages/admin/AdminHaccpLabelsPage";
 
 // Restaurant admin pages
 import RestaurantAdminPage from "./pages/restaurant-admin/RestaurantAdminPage";
@@ -153,6 +159,7 @@ const App = () => (
             <Route path="/auth/callback" element={<AuthCallbackPage />} />
             <Route path="/join/:code" element={<JoinReferralPage />} />
             <Route path="/n/:slug" element={<NutritionistPublicPage />} />
+            <Route path="/haccp/label/:token" element={<PublicHaccpLabelPage />} />
 
             {/* Protected routes */}
             <Route element={<ProtectedRoute />}>
@@ -208,6 +215,10 @@ const App = () => (
                 <Route path="/restaurant/haccp" element={<RestaurantHaccpPage />} />
                 <Route path="/restaurant/haccp/setup" element={<RestaurantHaccpSetupPage />} />
                 <Route path="/restaurant/haccp/history" element={<RestaurantHaccpHistoryPage />} />
+                <Route path="/restaurant/haccp-labels" element={<RestaurantHaccpLabelsPage />} />
+                <Route path="/restaurant/haccp-labels/new" element={<RestaurantHaccpLabelNewPage />} />
+                <Route path="/restaurant/haccp-labels/:id" element={<RestaurantHaccpLabelDetailPage />} />
+                <Route path="/restaurant/haccp-documents" element={<RestaurantHaccpDocumentsPage />} />
               </Route>
 
               {/* Supplier invite (restaurant context) */}
@@ -263,6 +274,7 @@ const App = () => (
               <Route path="/admin/payments" element={<RG roles={["admin"]}><AdminPwaGuard><AdminPaymentsPage /></AdminPwaGuard></RG>} />
               <Route path="/admin/products-db" element={<RG roles={["admin"]}><AdminPwaGuard><AdminProductsDbPage /></AdminPwaGuard></RG>} />
               <Route path="/admin/api" element={<RG roles={["admin"]}><AdminPwaGuard><AdminApiPage /></AdminPwaGuard></RG>} />
+              <Route path="/admin/haccp-labels" element={<RG roles={["admin"]}><AdminPwaGuard><AdminHaccpLabelsPage /></AdminPwaGuard></RG>} />
 
               {/* Restaurant admin routes (no mobile layout) */}
               <Route path="/restaurant-admin" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><RestaurantAdminPage /></RestaurantGuard></RG>} />

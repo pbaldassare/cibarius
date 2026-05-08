@@ -56,3 +56,6 @@ verify_jwt = false
 
 [functions.seed-off-products]
 verify_jwt = false
+
+[functions.get-haccp-label]
+verify_jwt = false

@@ -13,7 +13,7 @@ import {
   Loader2, Clock, AlertCircle, Package, Plus, ChevronRight,
   ChefHat, FileText, Upload, User, Settings, Zap,
   ClipboardCheck, CheckCircle2, AlertTriangle, Circle,
-  Thermometer, Wind, Flame, Trash2, UtensilsCrossed,
+  Thermometer, Wind, Flame, Trash2, UtensilsCrossed, QrCode,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { getFoodEmoji } from "@/lib/food-images";
@@ -80,6 +80,7 @@ const QUICK_ACTIONS = [
   { label: "Forni", icon: Flame, to: "/restaurant/haccp", color: "text-orange-600", bg: "bg-orange-500/10" },
   { label: "Celle frigo", icon: Thermometer, to: "/restaurant/haccp", color: "text-sky-600", bg: "bg-sky-500/10" },
   { label: "Scadenze", icon: Clock, to: "/restaurant/products", color: "text-amber-600", bg: "bg-amber-500/10" },
+  { label: "Etichette HACCP", icon: QrCode, to: "/restaurant/haccp-labels", color: "text-emerald-600", bg: "bg-emerald-500/10" },
 ];
 
 const RestaurantPage = () => {

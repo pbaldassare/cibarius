@@ -995,6 +995,56 @@ export type Database = {
         }
         Relationships: []
       }
+      haccp_documents: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          document_date: string | null
+          document_number: string | null
+          document_type: string
+          file_url: string | null
+          id: string
+          notes: string | null
+          photo_url: string | null
+          restaurant_id: string
+          supplier_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          document_date?: string | null
+          document_number?: string | null
+          document_type?: string
+          file_url?: string | null
+          id?: string
+          notes?: string | null
+          photo_url?: string | null
+          restaurant_id: string
+          supplier_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          document_date?: string | null
+          document_number?: string | null
+          document_type?: string
+          file_url?: string | null
+          id?: string
+          notes?: string | null
+          photo_url?: string | null
+          restaurant_id?: string
+          supplier_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "haccp_documents_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       haccp_equipment: {
         Row: {
           count: number
@@ -1023,6 +1073,47 @@ export type Database = {
             columns: ["restaurant_id"]
             isOneToOne: false
             referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      haccp_label_audit_log: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          preparation_label_id: string
+          reason: string | null
+          user_id: string | null
+          user_name: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          preparation_label_id: string
+          reason?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          preparation_label_id?: string
+          reason?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "haccp_label_audit_log_preparation_label_id_fkey"
+            columns: ["preparation_label_id"]
+            isOneToOne: false
+            referencedRelation: "haccp_preparation_labels"
             referencedColumns: ["id"]
           },
         ]
@@ -1102,6 +1193,169 @@ export type Database = {
             columns: ["task_id"]
             isOneToOne: false
             referencedRelation: "haccp_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      haccp_preparation_documents: {
+        Row: {
+          created_at: string
+          document_id: string
+          id: string
+          preparation_label_id: string
+        }
+        Insert: {
+          created_at?: string
+          document_id: string
+          id?: string
+          preparation_label_id: string
+        }
+        Update: {
+          created_at?: string
+          document_id?: string
+          id?: string
+          preparation_label_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "haccp_preparation_documents_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "haccp_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "haccp_preparation_documents_preparation_label_id_fkey"
+            columns: ["preparation_label_id"]
+            isOneToOne: false
+            referencedRelation: "haccp_preparation_labels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      haccp_preparation_ingredients: {
+        Row: {
+          created_at: string
+          id: string
+          ingredient_expiration_date: string | null
+          ingredient_name: string
+          origin_document_id: string | null
+          pantry_item_id: string | null
+          preparation_label_id: string
+          quantity_used: number | null
+          source_lot_code: string | null
+          supplier_name: string | null
+          unit: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ingredient_expiration_date?: string | null
+          ingredient_name: string
+          origin_document_id?: string | null
+          pantry_item_id?: string | null
+          preparation_label_id: string
+          quantity_used?: number | null
+          source_lot_code?: string | null
+          supplier_name?: string | null
+          unit?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ingredient_expiration_date?: string | null
+          ingredient_name?: string
+          origin_document_id?: string | null
+          pantry_item_id?: string | null
+          preparation_label_id?: string
+          quantity_used?: number | null
+          source_lot_code?: string | null
+          supplier_name?: string | null
+          unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "haccp_preparation_ingredients_preparation_label_id_fkey"
+            columns: ["preparation_label_id"]
+            isOneToOne: false
+            referencedRelation: "haccp_preparation_labels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      haccp_preparation_labels: {
+        Row: {
+          allergens: string[] | null
+          cancel_reason: string | null
+          conservation_type: string
+          created_at: string
+          created_by: string | null
+          expiration_date: string
+          finalized_at: string | null
+          id: string
+          internal_lot_code: string
+          notes: string | null
+          operator_name: string | null
+          operator_user_id: string | null
+          preparation_name: string
+          production_date: string
+          qr_token: string
+          quantity: number | null
+          restaurant_id: string
+          status: string
+          unit: string | null
+          updated_at: string
+        }
+        Insert: {
+          allergens?: string[] | null
+          cancel_reason?: string | null
+          conservation_type?: string
+          created_at?: string
+          created_by?: string | null
+          expiration_date: string
+          finalized_at?: string | null
+          id?: string
+          internal_lot_code: string
+          notes?: string | null
+          operator_name?: string | null
+          operator_user_id?: string | null
+          preparation_name: string
+          production_date?: string
+          qr_token?: string
+          quantity?: number | null
+          restaurant_id: string
+          status?: string
+          unit?: string | null
+          updated_at?: string
+        }
+        Update: {
+          allergens?: string[] | null
+          cancel_reason?: string | null
+          conservation_type?: string
+          created_at?: string
+          created_by?: string | null
+          expiration_date?: string
+          finalized_at?: string | null
+          id?: string
+          internal_lot_code?: string
+          notes?: string | null
+          operator_name?: string | null
+          operator_user_id?: string | null
+          preparation_name?: string
+          production_date?: string
+          qr_token?: string
+          quantity?: number | null
+          restaurant_id?: string
+          status?: string
+          unit?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "haccp_preparation_labels_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
             referencedColumns: ["id"]
           },
         ]
@@ -3761,6 +4015,7 @@ export type Database = {
     Functions: {
       current_user_is_admin: { Args: never; Returns: boolean }
       get_user_role: { Args: { _user_id: string }; Returns: string }
+      haccp_label_accessible: { Args: { _label_id: string }; Returns: boolean }
       has_active_client_link: {
         Args: { _client_id: string; _pro_id: string }
         Returns: boolean

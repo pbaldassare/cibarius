@@ -14,6 +14,7 @@ const sidebarItems = [
   { to: "/admin/users", icon: Users, label: "Utenti" },
   { to: "/admin/restaurants", icon: Store, label: "Ristoranti" },
   { to: "/admin/haccp-templates", icon: ClipboardCheck, label: "Template HACCP" },
+  { to: "/admin/haccp-labels", icon: ClipboardCheck, label: "Etichette HACCP" },
   { to: "/admin/product-review", icon: Package, label: "Revisione Prodotti" },
   { to: "/admin/support", icon: MessageSquareWarning, label: "Segnalazioni" },
   { to: "/admin/payments", icon: CreditCard, label: "Pagamenti & Coupon" },
