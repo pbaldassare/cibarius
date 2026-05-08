@@ -65,6 +65,7 @@ Deno.serve(async (req) => {
         restaurant: rest,
         ingredients: ingredients || [],
         documents,
+        events: events || [],
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
