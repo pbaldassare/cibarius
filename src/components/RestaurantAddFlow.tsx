@@ -44,7 +44,8 @@ interface EditItem extends AiItem {
   itemType: "product" | "preparation";
 }
 
-type Step = "photo" | "results" | "edit" | "label";
+type Step = "choice" | "photo" | "results" | "edit" | "label";
+type ItemTypeChoice = "product" | "preparation";
 
 interface Props {
   open: boolean;
@@ -77,7 +78,8 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const [step, setStep] = useState<Step>("photo");
+  const [step, setStep] = useState<Step>("choice");
+  const [itemTypeChoice, setItemTypeChoice] = useState<ItemTypeChoice>("product");
   const [photos, setPhotos] = useState<ImageFile[]>([]);
   const [analyzing, setAnalyzing] = useState(false);
   const [aiResult, setAiResult] = useState<AiResult | null>(null);
@@ -101,7 +103,8 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
   useEffect(() => {
     if (!open) {
       setTimeout(() => {
-        setStep("photo");
+        setStep("choice");
+        setItemTypeChoice("product");
         setPhotos([]);
         setAiResult(null);
         setSelectedItems([]);
@@ -112,6 +115,33 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
       }, 300);
     }
   }, [open]);
+
+  const startManual = (type: ItemTypeChoice) => {
+    setItemTypeChoice(type);
+    const empty: EditItem = {
+      name: "",
+      brand: null,
+      quantity: 1,
+      unit: "pz",
+      lot_number: null,
+      expiry_date: format(addDays(new Date(), 3), "yyyy-MM-dd"),
+      production_date: format(new Date(), "yyyy-MM-dd"),
+      storage_hint: "frigo",
+      chef_life_hours: type === "preparation" ? 48 : null,
+      allergens: [],
+      category: null,
+      itemType: type,
+    };
+    setEditItems([empty]);
+    setEditIndex(0);
+    setSelectedAllergens([]);
+    setStep("edit");
+  };
+
+  const startAi = (type: ItemTypeChoice) => {
+    setItemTypeChoice(type);
+    setStep("photo");
+  };
 
   const handleAddPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -155,7 +185,7 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
       .filter((_, i) => selectedItems[i])
       .map((item) => ({
         ...item,
-        itemType: "product" as const,
+        itemType: itemTypeChoice,
       }));
     if (items.length === 0) {
       toast({ variant: "destructive", title: "Seleziona almeno un prodotto" });
@@ -328,9 +358,10 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
       <SheetContent side="bottom" className="h-[92vh] rounded-t-[20px] px-0 overflow-y-auto">
         <SheetHeader className="px-4 pb-2">
           <div className="flex items-center gap-2">
-            {step !== "photo" && step !== "label" && (
+            {step !== "choice" && step !== "label" && (
               <button onClick={() => {
-                if (step === "results") setStep("photo");
+                if (step === "photo") setStep("choice");
+                else if (step === "results") setStep("photo");
                 else if (step === "edit" && editIndex > 0) {
                   setEditItems((prev) => {
                     const copy = [...prev];
@@ -339,12 +370,17 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
                   });
                   setEditIndex(editIndex - 1);
                   setSelectedAllergens(editItems[editIndex - 1]?.allergens || []);
-                } else if (step === "edit") setStep("results");
+                } else if (step === "edit") {
+                  // Manual flow has no results; go back to choice
+                  if (aiResult) setStep("results");
+                  else setStep("choice");
+                }
               }}>
                 <ArrowLeft className="h-5 w-5 text-muted-foreground" />
               </button>
             )}
             <SheetTitle className="text-left flex-1">
+              {step === "choice" && "Cosa vuoi aggiungere?"}
               {step === "photo" && "Scatta foto"}
               {step === "results" && "Prodotti trovati"}
               {step === "edit" && `${editIndex + 1}/${editItems.length} — Dettagli`}
@@ -354,11 +390,82 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
         </SheetHeader>
 
         <div className="px-4 space-y-4 pb-8">
+          {/* ═══ STEP 0: CHOICE ═══ */}
+          {step === "choice" && (
+            <>
+              <p className="text-sm text-muted-foreground">
+                Scegli il tipo e come vuoi inserirlo.
+              </p>
+
+              {/* Type toggle */}
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setItemTypeChoice("product")}
+                  className={`rounded-xl p-4 flex flex-col items-center gap-2 transition-all ${
+                    itemTypeChoice === "product"
+                      ? "bg-primary text-primary-foreground shadow-md"
+                      : "bg-card shadow-card text-foreground"
+                  }`}
+                >
+                  <Package className="h-6 w-6" />
+                  <span className="text-sm font-semibold">Prodotto</span>
+                  <span className={`text-[10px] ${itemTypeChoice === "product" ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
+                    Acquistato / a magazzino
+                  </span>
+                </button>
+                <button
+                  onClick={() => setItemTypeChoice("preparation")}
+                  className={`rounded-xl p-4 flex flex-col items-center gap-2 transition-all ${
+                    itemTypeChoice === "preparation"
+                      ? "bg-accent text-accent-foreground shadow-md"
+                      : "bg-card shadow-card text-foreground"
+                  }`}
+                >
+                  <ChefHat className="h-6 w-6" />
+                  <span className="text-sm font-semibold">Preparato</span>
+                  <span className={`text-[10px] ${itemTypeChoice === "preparation" ? "text-accent-foreground/80" : "text-muted-foreground"}`}>
+                    Semilavorato in cucina
+                  </span>
+                </button>
+              </div>
+
+              {/* Mode buttons */}
+              <div className="space-y-2 pt-2">
+                <button
+                  onClick={() => startAi(itemTypeChoice)}
+                  className="w-full rounded-xl bg-primary text-primary-foreground p-4 flex items-center gap-3 active:scale-[0.98] transition-transform"
+                >
+                  <Camera className="h-5 w-5" />
+                  <div className="text-left flex-1">
+                    <p className="text-sm font-semibold">Scatta foto · AI</p>
+                    <p className="text-[11px] text-primary-foreground/80">
+                      Compila automaticamente da foto, DDT o etichetta
+                    </p>
+                  </div>
+                </button>
+                <button
+                  onClick={() => startManual(itemTypeChoice)}
+                  className="w-full rounded-xl bg-card shadow-card p-4 flex items-center gap-3 active:scale-[0.98] transition-transform"
+                >
+                  <Plus className="h-5 w-5 text-foreground" />
+                  <div className="text-left flex-1">
+                    <p className="text-sm font-semibold text-foreground">Inserimento manuale</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Compili tu i campi (potrai aggiungere foto dopo)
+                    </p>
+                  </div>
+                </button>
+              </div>
+            </>
+          )}
+
           {/* ═══ STEP 1: PHOTO ═══ */}
           {step === "photo" && (
             <>
               <p className="text-sm text-muted-foreground">
-                Scatta foto del prodotto, DDT o elenco prodotti (max 5 foto)
+                {itemTypeChoice === "preparation"
+                  ? "Scatta foto del preparato o dell'etichetta (max 5 foto)"
+                  : "Scatta foto del prodotto, DDT o elenco prodotti (max 5 foto)"}
               </p>
 
               <input

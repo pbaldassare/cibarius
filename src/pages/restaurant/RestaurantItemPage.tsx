@@ -12,7 +12,9 @@ import { Button } from "@/components/ui/button";
 import {
   ArrowLeft, Package, ChefHat, Clock, Thermometer, Archive,
   Snowflake, Hash, ImagePlus, Loader2, ChevronLeft, ChevronRight, Trash2,
+  FileText, Upload, ExternalLink,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const storageIcons: Record<string, any> = { frigo: Thermometer, freezer: Snowflake, ambiente: Archive };
 const storageLabels: Record<string, string> = { frigo: "Frigo", freezer: "Congelatore", ambiente: "Dispensa" };
@@ -31,6 +33,13 @@ const RestaurantItemPage = () => {
   const [photoIdx, setPhotoIdx] = useState(0);
   const [uploading, setUploading] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
+  const ddtInputRef = useRef<HTMLInputElement>(null);
+  const [sourceDoc, setSourceDoc] = useState<any>(null);
+  const [prepIngredients, setPrepIngredients] = useState<any[]>([]);
+  const [prepDocs, setPrepDocs] = useState<any[]>([]);
+  const [usedInPreps, setUsedInPreps] = useState<any[]>([]);
+  const [labelId, setLabelId] = useState<string | null>(null);
+  const [uploadingDdt, setUploadingDdt] = useState(false);
 
   useEffect(() => {
     if (!id || !restaurant) return;
@@ -82,10 +91,124 @@ const RestaurantItemPage = () => {
         .order("uploaded_at", { ascending: true });
       if (photoData) setPhotos(photoData);
 
+      // Traceability sections
+      if (isPrep) {
+        const { data: lbl } = await supabase
+          .from("haccp_preparation_labels")
+          .select("id")
+          .eq("source_preparation_id", realId)
+          .maybeSingle();
+        if (lbl) {
+          setLabelId(lbl.id);
+          const [{ data: ings }, { data: pdocs }] = await Promise.all([
+            supabase
+              .from("haccp_preparation_ingredients")
+              .select("id, ingredient_name, quantity_used, unit, source_lot_code, supplier_name, ingredient_expiration_date")
+              .eq("preparation_label_id", lbl.id),
+            supabase
+              .from("haccp_preparation_documents")
+              .select("document:haccp_documents(id, document_type, supplier_name, document_number, document_date, file_url, photo_url)")
+              .eq("preparation_label_id", lbl.id),
+          ]);
+          if (ings && ings.length > 0) setPrepIngredients(ings);
+          else {
+            const { data: legacyIngs } = await supabase
+              .from("preparation_ingredients")
+              .select("id, custom_name, quantity, unit, product:products(name)")
+              .eq("preparation_id", realId);
+            if (legacyIngs) setPrepIngredients(
+              legacyIngs.map((i: any) => ({
+                id: i.id,
+                ingredient_name: i.product?.name || i.custom_name,
+                quantity_used: i.quantity,
+                unit: i.unit,
+              }))
+            );
+          }
+          setPrepDocs((pdocs || []).map((d: any) => d.document).filter(Boolean));
+        } else {
+          const { data: legacyIngs } = await supabase
+            .from("preparation_ingredients")
+            .select("id, custom_name, quantity, unit, product:products(name)")
+            .eq("preparation_id", realId);
+          if (legacyIngs) setPrepIngredients(
+            legacyIngs.map((i: any) => ({
+              id: i.id,
+              ingredient_name: i.product?.name || i.custom_name,
+              quantity_used: i.quantity,
+              unit: i.unit,
+            }))
+          );
+        }
+      } else {
+        const { data: inv } = await supabase
+          .from("inventory_items")
+          .select("source_document_id")
+          .eq("id", realId)
+          .maybeSingle();
+        if (inv?.source_document_id) {
+          const { data: doc } = await supabase
+            .from("haccp_documents")
+            .select("id, document_type, supplier_name, document_number, document_date, file_url, photo_url")
+            .eq("id", inv.source_document_id)
+            .maybeSingle();
+          if (doc) setSourceDoc(doc);
+        }
+        const { data: usedIn } = await supabase
+          .from("haccp_preparation_ingredients")
+          .select("preparation_label_id, label:haccp_preparation_labels(id, preparation_name, source_preparation_id, production_date)")
+          .eq("pantry_item_id", realId);
+        if (usedIn) {
+          const seen = new Set<string>();
+          const list: any[] = [];
+          for (const u of usedIn as any[]) {
+            if (u.label && !seen.has(u.label.id)) {
+              seen.add(u.label.id);
+              list.push(u.label);
+            }
+          }
+          setUsedInPreps(list);
+        }
+      }
+
       setLoading(false);
     };
     fetchItem();
   }, [id, restaurant]);
+
+  const handleUploadDdt = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user || !restaurant) return;
+    const realId = id!.replace(/^(inv|prep)-/, "");
+    setUploadingDdt(true);
+    try {
+      const ext = file.name.split(".").pop() ?? "jpg";
+      const filePath = `${restaurant.id}/ddt/${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("haccp-documents").upload(filePath, file, { cacheControl: "3600" });
+      if (upErr) throw upErr;
+      const { data: urlData } = supabase.storage.from("haccp-documents").getPublicUrl(filePath);
+      const { data: doc, error: docErr } = await supabase
+        .from("haccp_documents")
+        .insert({
+          restaurant_id: restaurant.id,
+          document_type: "ddt",
+          photo_url: urlData.publicUrl,
+          document_date: new Date().toISOString().slice(0, 10),
+          created_by: user.id,
+        })
+        .select("id, document_type, supplier_name, document_number, document_date, file_url, photo_url")
+        .single();
+      if (docErr) throw docErr;
+      await supabase.from("inventory_items").update({ source_document_id: doc.id }).eq("id", realId);
+      setSourceDoc(doc);
+      toast({ title: "DDT collegato ✓" });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Errore upload DDT", description: err?.message });
+    } finally {
+      setUploadingDdt(false);
+      e.target.value = "";
+    }
+  };
 
   const handleUploadPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -302,7 +425,143 @@ const RestaurantItemPage = () => {
           </div>
         </div>
 
-        {/* Allergens */}
+        {/* ═══ TRACCIABILITÀ — solo prodotto ═══ */}
+        {!isPrep && (
+          <>
+            <div className="rounded-xl bg-card shadow-card p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-semibold flex items-center gap-1.5">
+                  <FileText className="h-4 w-4 text-success" /> DDT di origine
+                </h3>
+                {!sourceDoc && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="gap-1 text-xs"
+                    disabled={uploadingDdt}
+                    onClick={() => ddtInputRef.current?.click()}
+                  >
+                    {uploadingDdt ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                    Carica
+                  </Button>
+                )}
+                <input ref={ddtInputRef} type="file" accept="image/*,application/pdf" capture="environment" className="hidden" onChange={handleUploadDdt} />
+              </div>
+              {sourceDoc ? (
+                <div className="space-y-2">
+                  {sourceDoc.photo_url && (
+                    <img src={sourceDoc.photo_url} alt="DDT" className="w-full h-32 object-cover rounded-lg" />
+                  )}
+                  <div className="flex items-center justify-between text-xs">
+                    <div>
+                      {sourceDoc.supplier_name && <p className="font-medium">{sourceDoc.supplier_name}</p>}
+                      <p className="text-muted-foreground">
+                        {sourceDoc.document_number ? `N° ${sourceDoc.document_number} · ` : ""}
+                        {sourceDoc.document_date ? new Date(sourceDoc.document_date).toLocaleDateString("it-IT") : ""}
+                      </p>
+                    </div>
+                    {(sourceDoc.file_url || sourceDoc.photo_url) && (
+                      <a href={sourceDoc.file_url || sourceDoc.photo_url} target="_blank" rel="noopener" className="text-primary text-xs flex items-center gap-1">
+                        Apri <ExternalLink className="h-3 w-3" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">Nessun DDT collegato. Puoi caricare una foto della bolla.</p>
+              )}
+            </div>
+
+            {usedInPreps.length > 0 && (
+              <div className="rounded-xl bg-card shadow-card p-4">
+                <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+                  <ChefHat className="h-4 w-4 text-accent" /> Usato in {usedInPreps.length} preparazion{usedInPreps.length === 1 ? "e" : "i"}
+                </h3>
+                <div className="space-y-1.5">
+                  {usedInPreps.map((p: any) => (
+                    <Link
+                      key={p.id}
+                      to={p.source_preparation_id ? `/restaurant/items/prep-${p.source_preparation_id}` : `/restaurant/haccp-labels/${p.id}`}
+                      className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2 active:scale-[0.98] transition-transform"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{p.preparation_name}</p>
+                        {p.production_date && (
+                          <p className="text-[10px] text-muted-foreground">
+                            {new Date(p.production_date).toLocaleDateString("it-IT")}
+                          </p>
+                        )}
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ═══ TRACCIABILITÀ — solo preparato ═══ */}
+        {isPrep && (
+          <>
+            <div className="rounded-xl bg-card shadow-card p-4">
+              <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+                <Package className="h-4 w-4 text-primary" /> Ingredienti ({prepIngredients.length})
+              </h3>
+              {prepIngredients.length > 0 ? (
+                <div className="space-y-1.5">
+                  {prepIngredients.map((ing: any) => (
+                    <div key={ing.id} className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium truncate">{ing.ingredient_name}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {ing.quantity_used ? `${ing.quantity_used} ${ing.unit ?? ""}` : ""}
+                          {ing.source_lot_code ? ` · Lotto ${ing.source_lot_code}` : ""}
+                          {ing.supplier_name ? ` · ${ing.supplier_name}` : ""}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">Nessun ingrediente registrato.</p>
+              )}
+            </div>
+
+            <div className="rounded-xl bg-card shadow-card p-4">
+              <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+                <FileText className="h-4 w-4 text-success" /> DDT collegati ({prepDocs.length})
+              </h3>
+              {prepDocs.length > 0 ? (
+                <div className="space-y-1.5">
+                  {prepDocs.map((doc: any) => (
+                    <a
+                      key={doc.id}
+                      href={doc.file_url || doc.photo_url || "#"}
+                      target="_blank"
+                      rel="noopener"
+                      className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2 active:scale-[0.98] transition-transform"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium truncate">
+                          {doc.supplier_name || doc.document_type?.toUpperCase()}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {doc.document_number ? `N° ${doc.document_number} · ` : ""}
+                          {doc.document_date ? new Date(doc.document_date).toLocaleDateString("it-IT") : ""}
+                        </p>
+                      </div>
+                      <ExternalLink className="h-4 w-4 text-muted-foreground shrink-0" />
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">Nessun DDT collegato a questa preparazione.</p>
+              )}
+            </div>
+          </>
+        )}
+
         {allergens.length > 0 && (
           <div className="rounded-xl bg-card shadow-card p-4">
             <h3 className="text-sm font-semibold mb-2">Allergeni</h3>

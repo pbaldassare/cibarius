@@ -1,0 +1,2 @@
+ALTER TABLE public.inventory_items ADD COLUMN IF NOT EXISTS source_document_id uuid REFERENCES public.haccp_documents(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_inventory_items_source_document ON public.inventory_items(source_document_id);

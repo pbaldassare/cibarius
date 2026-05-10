@@ -1809,6 +1809,7 @@ export type Database = {
           production_date: string | null
           quantity: number | null
           restaurant_id: string | null
+          source_document_id: string | null
           storage_type: string
           unit: string | null
         }
@@ -1829,6 +1830,7 @@ export type Database = {
           production_date?: string | null
           quantity?: number | null
           restaurant_id?: string | null
+          source_document_id?: string | null
           storage_type?: string
           unit?: string | null
         }
@@ -1849,6 +1851,7 @@ export type Database = {
           production_date?: string | null
           quantity?: number | null
           restaurant_id?: string | null
+          source_document_id?: string | null
           storage_type?: string
           unit?: string | null
         }
@@ -1865,6 +1868,13 @@ export type Database = {
             columns: ["restaurant_id"]
             isOneToOne: false
             referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_items_source_document_id_fkey"
+            columns: ["source_document_id"]
+            isOneToOne: false
+            referencedRelation: "haccp_documents"
             referencedColumns: ["id"]
           },
         ]
