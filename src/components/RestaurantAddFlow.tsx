@@ -185,7 +185,7 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
       .filter((_, i) => selectedItems[i])
       .map((item) => ({
         ...item,
-        itemType: "product" as const,
+        itemType: itemTypeChoice,
       }));
     if (items.length === 0) {
       toast({ variant: "destructive", title: "Seleziona almeno un prodotto" });
