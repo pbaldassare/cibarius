@@ -425,7 +425,143 @@ const RestaurantItemPage = () => {
           </div>
         </div>
 
-        {/* Allergens */}
+        {/* ═══ TRACCIABILITÀ — solo prodotto ═══ */}
+        {!isPrep && (
+          <>
+            <div className="rounded-xl bg-card shadow-card p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-semibold flex items-center gap-1.5">
+                  <FileText className="h-4 w-4 text-success" /> DDT di origine
+                </h3>
+                {!sourceDoc && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="gap-1 text-xs"
+                    disabled={uploadingDdt}
+                    onClick={() => ddtInputRef.current?.click()}
+                  >
+                    {uploadingDdt ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                    Carica
+                  </Button>
+                )}
+                <input ref={ddtInputRef} type="file" accept="image/*,application/pdf" capture="environment" className="hidden" onChange={handleUploadDdt} />
+              </div>
+              {sourceDoc ? (
+                <div className="space-y-2">
+                  {sourceDoc.photo_url && (
+                    <img src={sourceDoc.photo_url} alt="DDT" className="w-full h-32 object-cover rounded-lg" />
+                  )}
+                  <div className="flex items-center justify-between text-xs">
+                    <div>
+                      {sourceDoc.supplier_name && <p className="font-medium">{sourceDoc.supplier_name}</p>}
+                      <p className="text-muted-foreground">
+                        {sourceDoc.document_number ? `N° ${sourceDoc.document_number} · ` : ""}
+                        {sourceDoc.document_date ? new Date(sourceDoc.document_date).toLocaleDateString("it-IT") : ""}
+                      </p>
+                    </div>
+                    {(sourceDoc.file_url || sourceDoc.photo_url) && (
+                      <a href={sourceDoc.file_url || sourceDoc.photo_url} target="_blank" rel="noopener" className="text-primary text-xs flex items-center gap-1">
+                        Apri <ExternalLink className="h-3 w-3" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">Nessun DDT collegato. Puoi caricare una foto della bolla.</p>
+              )}
+            </div>
+
+            {usedInPreps.length > 0 && (
+              <div className="rounded-xl bg-card shadow-card p-4">
+                <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+                  <ChefHat className="h-4 w-4 text-accent" /> Usato in {usedInPreps.length} preparazion{usedInPreps.length === 1 ? "e" : "i"}
+                </h3>
+                <div className="space-y-1.5">
+                  {usedInPreps.map((p: any) => (
+                    <Link
+                      key={p.id}
+                      to={p.source_preparation_id ? `/restaurant/items/prep-${p.source_preparation_id}` : `/restaurant/haccp-labels/${p.id}`}
+                      className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2 active:scale-[0.98] transition-transform"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{p.preparation_name}</p>
+                        {p.production_date && (
+                          <p className="text-[10px] text-muted-foreground">
+                            {new Date(p.production_date).toLocaleDateString("it-IT")}
+                          </p>
+                        )}
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ═══ TRACCIABILITÀ — solo preparato ═══ */}
+        {isPrep && (
+          <>
+            <div className="rounded-xl bg-card shadow-card p-4">
+              <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+                <Package className="h-4 w-4 text-primary" /> Ingredienti ({prepIngredients.length})
+              </h3>
+              {prepIngredients.length > 0 ? (
+                <div className="space-y-1.5">
+                  {prepIngredients.map((ing: any) => (
+                    <div key={ing.id} className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium truncate">{ing.ingredient_name}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {ing.quantity_used ? `${ing.quantity_used} ${ing.unit ?? ""}` : ""}
+                          {ing.source_lot_code ? ` · Lotto ${ing.source_lot_code}` : ""}
+                          {ing.supplier_name ? ` · ${ing.supplier_name}` : ""}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">Nessun ingrediente registrato.</p>
+              )}
+            </div>
+
+            <div className="rounded-xl bg-card shadow-card p-4">
+              <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+                <FileText className="h-4 w-4 text-success" /> DDT collegati ({prepDocs.length})
+              </h3>
+              {prepDocs.length > 0 ? (
+                <div className="space-y-1.5">
+                  {prepDocs.map((doc: any) => (
+                    <a
+                      key={doc.id}
+                      href={doc.file_url || doc.photo_url || "#"}
+                      target="_blank"
+                      rel="noopener"
+                      className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2 active:scale-[0.98] transition-transform"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium truncate">
+                          {doc.supplier_name || doc.document_type?.toUpperCase()}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {doc.document_number ? `N° ${doc.document_number} · ` : ""}
+                          {doc.document_date ? new Date(doc.document_date).toLocaleDateString("it-IT") : ""}
+                        </p>
+                      </div>
+                      <ExternalLink className="h-4 w-4 text-muted-foreground shrink-0" />
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">Nessun DDT collegato a questa preparazione.</p>
+              )}
+            </div>
+          </>
+        )}
+
         {allergens.length > 0 && (
           <div className="rounded-xl bg-card shadow-card p-4">
             <h3 className="text-sm font-semibold mb-2">Allergeni</h3>
