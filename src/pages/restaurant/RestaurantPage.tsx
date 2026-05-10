@@ -404,41 +404,34 @@ const RestaurantPage = () => {
           ))}
         </div>
 
-        {/* ═══ Quick rows: Produzione + Bolle ═══ */}
+        {/* ═══ Quick rows: Produzione + Bolle (solo navigazione) ═══ */}
         <div className="grid grid-cols-2 gap-2">
-          <div className="rounded-[14px] bg-card shadow-card p-3.5" data-tour="rest-production-card">
-            <div className="flex items-center gap-2 mb-2">
+          <button
+            onClick={() => navigate("/restaurant/preparations")}
+            className="rounded-[14px] bg-card shadow-card p-3.5 text-left active:scale-[0.98] transition-transform"
+            data-tour="rest-production-card"
+          >
+            <div className="flex items-center gap-2 mb-1">
               <div className="flex h-8 w-8 items-center justify-center rounded-[8px] bg-accent/10">
                 <ChefHat className="h-4 w-4 text-accent" />
               </div>
-              <div>
-                <p className="text-[13px] font-semibold text-foreground leading-tight">Produzione</p>
-              </div>
+              <p className="text-[13px] font-semibold text-foreground leading-tight">Produzione</p>
             </div>
-            <button
-              onClick={() => navigate("/restaurant/preparations")}
-              className="flex w-full items-center justify-center gap-1.5 rounded-[8px] py-2 text-[12px] font-semibold bg-accent/10 text-accent active:scale-[0.97] transition-all"
-            >
-              <Plus className="h-3.5 w-3.5" /> Preparazione
-            </button>
-          </div>
-          <div className="rounded-[14px] bg-card shadow-card p-3.5" data-tour="rest-invoices-card">
-            <div className="flex items-center gap-2 mb-2">
+            <p className="text-[11px] text-muted-foreground">Preparazioni e semilavorati</p>
+          </button>
+          <button
+            onClick={() => navigate("/restaurant/invoices")}
+            className="rounded-[14px] bg-card shadow-card p-3.5 text-left active:scale-[0.98] transition-transform"
+            data-tour="rest-invoices-card"
+          >
+            <div className="flex items-center gap-2 mb-1">
               <div className="flex h-8 w-8 items-center justify-center rounded-[8px] bg-success/10">
                 <FileText className="h-4 w-4 text-success" />
               </div>
-              <div>
-                <p className="text-[13px] font-semibold text-foreground leading-tight">Bolle</p>
-                <p className="text-[10px] text-muted-foreground">{docCount} documenti</p>
-              </div>
+              <p className="text-[13px] font-semibold text-foreground leading-tight">Bolle</p>
             </div>
-            <button
-              onClick={() => navigate("/restaurant/invoices")}
-              className="flex w-full items-center justify-center gap-1.5 rounded-[8px] py-2 text-[12px] font-semibold bg-success/10 text-success active:scale-[0.97] transition-all"
-            >
-              <Upload className="h-3.5 w-3.5" /> Carica bolla
-            </button>
-          </div>
+            <p className="text-[11px] text-muted-foreground">{docCount} documenti</p>
+          </button>
         </div>
 
         {/* ═══ Urgenti cucina — swipeable ═══ */}
