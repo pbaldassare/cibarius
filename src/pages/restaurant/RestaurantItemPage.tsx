@@ -91,10 +91,124 @@ const RestaurantItemPage = () => {
         .order("uploaded_at", { ascending: true });
       if (photoData) setPhotos(photoData);
 
+      // Traceability sections
+      if (isPrep) {
+        const { data: lbl } = await supabase
+          .from("haccp_preparation_labels")
+          .select("id")
+          .eq("source_preparation_id", realId)
+          .maybeSingle();
+        if (lbl) {
+          setLabelId(lbl.id);
+          const [{ data: ings }, { data: pdocs }] = await Promise.all([
+            supabase
+              .from("haccp_preparation_ingredients")
+              .select("id, ingredient_name, quantity_used, unit, source_lot_code, supplier_name, ingredient_expiration_date")
+              .eq("preparation_label_id", lbl.id),
+            supabase
+              .from("haccp_preparation_documents")
+              .select("document:haccp_documents(id, document_type, supplier_name, document_number, document_date, file_url, photo_url)")
+              .eq("preparation_label_id", lbl.id),
+          ]);
+          if (ings && ings.length > 0) setPrepIngredients(ings);
+          else {
+            const { data: legacyIngs } = await supabase
+              .from("preparation_ingredients")
+              .select("id, custom_name, quantity, unit, product:products(name)")
+              .eq("preparation_id", realId);
+            if (legacyIngs) setPrepIngredients(
+              legacyIngs.map((i: any) => ({
+                id: i.id,
+                ingredient_name: i.product?.name || i.custom_name,
+                quantity_used: i.quantity,
+                unit: i.unit,
+              }))
+            );
+          }
+          setPrepDocs((pdocs || []).map((d: any) => d.document).filter(Boolean));
+        } else {
+          const { data: legacyIngs } = await supabase
+            .from("preparation_ingredients")
+            .select("id, custom_name, quantity, unit, product:products(name)")
+            .eq("preparation_id", realId);
+          if (legacyIngs) setPrepIngredients(
+            legacyIngs.map((i: any) => ({
+              id: i.id,
+              ingredient_name: i.product?.name || i.custom_name,
+              quantity_used: i.quantity,
+              unit: i.unit,
+            }))
+          );
+        }
+      } else {
+        const { data: inv } = await supabase
+          .from("inventory_items")
+          .select("source_document_id")
+          .eq("id", realId)
+          .maybeSingle();
+        if (inv?.source_document_id) {
+          const { data: doc } = await supabase
+            .from("haccp_documents")
+            .select("id, document_type, supplier_name, document_number, document_date, file_url, photo_url")
+            .eq("id", inv.source_document_id)
+            .maybeSingle();
+          if (doc) setSourceDoc(doc);
+        }
+        const { data: usedIn } = await supabase
+          .from("haccp_preparation_ingredients")
+          .select("preparation_label_id, label:haccp_preparation_labels(id, preparation_name, source_preparation_id, production_date)")
+          .eq("pantry_item_id", realId);
+        if (usedIn) {
+          const seen = new Set<string>();
+          const list: any[] = [];
+          for (const u of usedIn as any[]) {
+            if (u.label && !seen.has(u.label.id)) {
+              seen.add(u.label.id);
+              list.push(u.label);
+            }
+          }
+          setUsedInPreps(list);
+        }
+      }
+
       setLoading(false);
     };
     fetchItem();
   }, [id, restaurant]);
+
+  const handleUploadDdt = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user || !restaurant) return;
+    const realId = id!.replace(/^(inv|prep)-/, "");
+    setUploadingDdt(true);
+    try {
+      const ext = file.name.split(".").pop() ?? "jpg";
+      const filePath = `${restaurant.id}/ddt/${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("haccp-documents").upload(filePath, file, { cacheControl: "3600" });
+      if (upErr) throw upErr;
+      const { data: urlData } = supabase.storage.from("haccp-documents").getPublicUrl(filePath);
+      const { data: doc, error: docErr } = await supabase
+        .from("haccp_documents")
+        .insert({
+          restaurant_id: restaurant.id,
+          document_type: "ddt",
+          photo_url: urlData.publicUrl,
+          document_date: new Date().toISOString().slice(0, 10),
+          created_by: user.id,
+        })
+        .select("id, document_type, supplier_name, document_number, document_date, file_url, photo_url")
+        .single();
+      if (docErr) throw docErr;
+      await supabase.from("inventory_items").update({ source_document_id: doc.id }).eq("id", realId);
+      setSourceDoc(doc);
+      toast({ title: "DDT collegato ✓" });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Errore upload DDT", description: err?.message });
+    } finally {
+      setUploadingDdt(false);
+      e.target.value = "";
+    }
+  };
 
   const handleUploadPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
