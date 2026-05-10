@@ -44,7 +44,8 @@ interface EditItem extends AiItem {
   itemType: "product" | "preparation";
 }
 
-type Step = "photo" | "results" | "edit" | "label";
+type Step = "choice" | "photo" | "results" | "edit" | "label";
+type ItemTypeChoice = "product" | "preparation";
 
 interface Props {
   open: boolean;
@@ -77,7 +78,8 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const [step, setStep] = useState<Step>("photo");
+  const [step, setStep] = useState<Step>("choice");
+  const [itemTypeChoice, setItemTypeChoice] = useState<ItemTypeChoice>("product");
   const [photos, setPhotos] = useState<ImageFile[]>([]);
   const [analyzing, setAnalyzing] = useState(false);
   const [aiResult, setAiResult] = useState<AiResult | null>(null);
@@ -101,7 +103,8 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
   useEffect(() => {
     if (!open) {
       setTimeout(() => {
-        setStep("photo");
+        setStep("choice");
+        setItemTypeChoice("product");
         setPhotos([]);
         setAiResult(null);
         setSelectedItems([]);
@@ -112,6 +115,33 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
       }, 300);
     }
   }, [open]);
+
+  const startManual = (type: ItemTypeChoice) => {
+    setItemTypeChoice(type);
+    const empty: EditItem = {
+      name: "",
+      brand: null,
+      quantity: 1,
+      unit: "pz",
+      lot_number: null,
+      expiry_date: format(addDays(new Date(), 3), "yyyy-MM-dd"),
+      production_date: format(new Date(), "yyyy-MM-dd"),
+      storage_hint: "frigo",
+      chef_life_hours: type === "preparation" ? 48 : null,
+      allergens: [],
+      category: null,
+      itemType: type,
+    };
+    setEditItems([empty]);
+    setEditIndex(0);
+    setSelectedAllergens([]);
+    setStep("edit");
+  };
+
+  const startAi = (type: ItemTypeChoice) => {
+    setItemTypeChoice(type);
+    setStep("photo");
+  };
 
   const handleAddPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
