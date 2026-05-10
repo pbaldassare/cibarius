@@ -12,7 +12,9 @@ import { Button } from "@/components/ui/button";
 import {
   ArrowLeft, Package, ChefHat, Clock, Thermometer, Archive,
   Snowflake, Hash, ImagePlus, Loader2, ChevronLeft, ChevronRight, Trash2,
+  FileText, Upload, ExternalLink,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const storageIcons: Record<string, any> = { frigo: Thermometer, freezer: Snowflake, ambiente: Archive };
 const storageLabels: Record<string, string> = { frigo: "Frigo", freezer: "Congelatore", ambiente: "Dispensa" };
