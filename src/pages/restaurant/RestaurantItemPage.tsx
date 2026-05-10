@@ -33,6 +33,13 @@ const RestaurantItemPage = () => {
   const [photoIdx, setPhotoIdx] = useState(0);
   const [uploading, setUploading] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
+  const ddtInputRef = useRef<HTMLInputElement>(null);
+  const [sourceDoc, setSourceDoc] = useState<any>(null);
+  const [prepIngredients, setPrepIngredients] = useState<any[]>([]);
+  const [prepDocs, setPrepDocs] = useState<any[]>([]);
+  const [usedInPreps, setUsedInPreps] = useState<any[]>([]);
+  const [labelId, setLabelId] = useState<string | null>(null);
+  const [uploadingDdt, setUploadingDdt] = useState(false);
 
   useEffect(() => {
     if (!id || !restaurant) return;
