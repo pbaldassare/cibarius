@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import MobileHeader from "@/components/MobileHeader";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,8 +11,8 @@ import ListSkeleton from "@/components/ListSkeleton";
 import EmptyState from "@/components/EmptyState";
 import { deductPantryFromMeal } from "@/lib/pantry-deduction";
 import {
-  Leaf, Clock, ChefHat, AlertTriangle, Check, X, Loader2,
-  Refrigerator, Package, Sparkles, Utensils, ChevronDown, ChevronUp,
+  Clock, ChefHat, AlertTriangle, Check, X, Loader2,
+  Package, Sparkles, Utensils, ChevronDown, ChevronUp,
 } from "lucide-react";
 
 /* ─── types ─── */
@@ -33,6 +33,7 @@ interface RecipeIngredient {
   name: string;
   available: boolean;
   expiring?: boolean;
+  role?: "core" | "minor" | "staple";
   qty: string;
   grams?: number;
   kcal?: number;
@@ -50,6 +51,8 @@ interface SuggestedRecipe {
   usesExpiringCount: number;
   reason?: string;
   source: "local" | "ai";
+  difficulty?: "facile" | "gourmet";
+  course?: "salato" | "dolce";
 }
 
 /* ─── local recipe DB with instructions & per-ingredient macros ─── */
@@ -228,17 +231,74 @@ const getDaysToExpiry = (date: string | null): number => {
   return Math.ceil((new Date(date).getTime() - today.getTime()) / 864e5);
 };
 
+/** Condimenti/aromi di supporto: ok se assenti dalla dispensa. */
+function isOptionalAromatic(name: string): boolean {
+  const n = name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+  if (n === "sale" || /\bsale\b/.test(n)) return true;
+  if (/\bpepe\b/.test(n) && !/peperon/.test(n)) return true;
+  if (/\bolio\b/.test(n) && !/sott/.test(n)) return true;
+  if (n === "acqua" || /\bacqua\b/.test(n)) return true;
+  if (/\baceto\b/.test(n)) return true;
+  if (/\bcipoll/.test(n)) return true;
+  if (/\baglio\b/.test(n)) return true;
+  if (/\bprezzemol/.test(n)) return true;
+  if (/\brosmarin/.test(n)) return true;
+  if (/\borigan/.test(n)) return true;
+  if (n === "timo" || /\btimo\b/.test(n)) return true;
+  if (/\bsalvia\b/.test(n)) return true;
+  if (/\blauro\b/.test(n) || /\balloro\b/.test(n)) return true;
+  if (/\bpeperoncin/.test(n)) return true;
+  if (/\bspezie\b/.test(n) || /\berbe\b/.test(n)) return true;
+  if (/\bbasilico\s+secco\b/.test(n)) return true;
+  if (/scorza/.test(n) || /\bzest\b/.test(n)) return true;
+  if (/\bburro\b/.test(n) && n.length < 20) return true;
+  return false;
+}
+
+function resolveRole(name: string, role?: "core" | "minor" | "staple"): "core" | "minor" | "staple" {
+  if (isOptionalAromatic(name)) return "staple";
+  if (role === "core" || role === "minor" || role === "staple") return role;
+  return "core";
+}
+
+function ingredientInPantry(name: string, pantryNames: string[]): boolean {
+  if (isOptionalAromatic(name)) return true;
+  const ingLower = name.toLowerCase();
+  return pantryNames.some(p => p.includes(ingLower) || ingLower.includes(p));
+}
+
+function missingBreakdown(ingredients: { name: string; available: boolean; role?: "core" | "minor" | "staple" }[]) {
+  let missingCore = 0;
+  let missingMinor = 0;
+  for (const i of ingredients) {
+    if (i.available || isOptionalAromatic(i.name)) continue;
+    const role = resolveRole(i.name, i.role);
+    if (role === "staple") continue;
+    if (role === "core") missingCore++;
+    else missingMinor++;
+  }
+  return { missingCore, missingMinor };
+}
+
 function matchScore(pantryNames: string[], recipeIngredients: { name: string }[], expiringNames: Set<string>) {
-  let matched = 0, expiringUsed = 0;
+  let matched = 0, expiringUsed = 0, missingNonStaple = 0;
   for (const ing of recipeIngredients) {
-    const ingLower = ing.name.toLowerCase();
-    const found = pantryNames.some(p => p.includes(ingLower) || ingLower.includes(p));
+    const found = ingredientInPantry(ing.name, pantryNames);
     if (found) {
       matched++;
-      if ([...expiringNames].some(e => e.includes(ingLower) || ingLower.includes(e))) expiringUsed++;
+      const ingLower = ing.name.toLowerCase();
+      if (!isOptionalAromatic(ing.name) && [...expiringNames].some(e => e.includes(ingLower) || ingLower.includes(e))) {
+        expiringUsed++;
+      }
+    } else if (!isOptionalAromatic(ing.name)) {
+      missingNonStaple++;
     }
   }
-  return { matched, total: recipeIngredients.length, expiringUsed };
+  return { matched, total: recipeIngredients.length, expiringUsed, missingNonStaple };
 }
 
 
@@ -247,11 +307,11 @@ const AntiWastePage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [pantry, setPantry] = useState<PantryItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [mode, setMode] = useState<"all" | "expiring">(searchParams.get("mode") === "expiring" ? "expiring" : "all");
+  const [soloExpiring, setSoloExpiring] = useState(searchParams.get("mode") === "expiring");
 
   // AI state
   const [aiSuggestions, setAiSuggestions] = useState<SuggestedRecipe[]>([]);
@@ -260,19 +320,42 @@ const AntiWastePage = () => {
   const [aiContext, setAiContext] = useState<{ pantry_count: number; expiring_count: number } | null>(null);
 
   const [cooking, setCooking] = useState<string | null>(null);
+  /** Titles already cooked this session — hide from both lists after success */
+  const [cookedKeys, setCookedKeys] = useState<Set<string>>(() => new Set());
+
+  const recipeDismissKey = (recipe: SuggestedRecipe) => `${recipe.source}:${recipe.title}`;
 
   useEffect(() => {
-    if (!user) return;
-    supabase
+    setSoloExpiring(searchParams.get("mode") === "expiring");
+  }, [searchParams]);
+
+  const toggleSoloExpiring = () => {
+    const next = !soloExpiring;
+    setSoloExpiring(next);
+    if (next) {
+      setSearchParams({ mode: "expiring" }, { replace: true });
+    } else {
+      setSearchParams({}, { replace: true });
+    }
+  };
+
+  const fetchPantry = useCallback(async (): Promise<PantryItem[]> => {
+    if (!user) return [];
+    const { data } = await supabase
       .from("inventory_items")
       .select("id, quantity, unit, storage_type, expiry_date, product:products(id, name, brand, image_url, category, calories_100g, macros_100g)")
       .eq("owner_user_id", user.id)
-      .order("expiry_date", { ascending: true, nullsFirst: false })
-      .then(({ data }) => {
-        setPantry((data as unknown as PantryItem[]) || []);
-        setLoading(false);
-      });
+      .order("expiry_date", { ascending: true, nullsFirst: false });
+    const items = (data as unknown as PantryItem[]) || [];
+    setPantry(items);
+    setLoading(false);
+    return items;
   }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    fetchPantry();
+  }, [user, fetchPantry]);
 
   const expiringItems = useMemo(() =>
     pantry.filter(i => { const d = getDaysToExpiry(i.expiry_date); return d >= 0 && d <= 5; }),
@@ -281,20 +364,25 @@ const AntiWastePage = () => {
   const pantryNames = useMemo(() => pantry.map(i => i.product.name.toLowerCase()), [pantry]);
   const expiringNames = useMemo(() => new Set(expiringItems.map(i => i.product.name.toLowerCase())), [expiringItems]);
 
-  // Local suggestions
+  // Local suggestions — prefer cookable; allow at most 1 missing non-staple so list isn't empty
   const localSuggestions = useMemo((): SuggestedRecipe[] => {
     if (pantry.length === 0) return [];
     const scored = RECIPE_DB.map(recipe => {
-      const { matched, total, expiringUsed } = matchScore(pantryNames, recipe.ingredients, expiringNames);
+      const { matched, total, expiringUsed, missingNonStaple } = matchScore(pantryNames, recipe.ingredients, expiringNames);
       if (matched === 0) return null;
+      // Drop absurd partials (e.g. pesto with only pasta: many cores missing)
+      if (missingNonStaple > 1) return null;
       const availabilityRatio = matched / total;
-      const score = availabilityRatio * 50 + expiringUsed * 30 + (matched >= total ? 20 : 0);
+      const score = availabilityRatio * 50 + expiringUsed * 30 + (missingNonStaple === 0 ? 25 : 5) + matched * 2;
       const ingredients: RecipeIngredient[] = recipe.ingredients.map(ing => {
+        const available = ingredientInPantry(ing.name, pantryNames);
         const ingLower = ing.name.toLowerCase();
         return {
           name: ing.name.charAt(0).toUpperCase() + ing.name.slice(1),
-          available: pantryNames.some(p => p.includes(ingLower) || ingLower.includes(p)),
-          expiring: [...expiringNames].some(e => e.includes(ingLower) || ingLower.includes(e)),
+          available,
+          role: isOptionalAromatic(ing.name) ? "staple" : "core",
+          expiring: available && !isOptionalAromatic(ing.name)
+            && [...expiringNames].some(e => e.includes(ingLower) || ingLower.includes(e)),
           qty: `${ing.grams}g`,
           grams: ing.grams,
           kcal: ing.kcal,
@@ -315,9 +403,63 @@ const AntiWastePage = () => {
       };
     }).filter(Boolean) as (SuggestedRecipe & { score: number })[];
 
-    const filtered = mode === "expiring" ? scored.filter(s => s.usesExpiringCount > 0) : scored;
+    let filtered = soloExpiring ? scored.filter(s => s.usesExpiringCount > 0) : scored;
+    filtered = filtered.filter(s => !cookedKeys.has(`local:${s.title}`));
     return filtered.sort((a, b) => b.score - a.score).slice(0, 6);
-  }, [pantryNames, expiringNames, mode, pantry]);
+  }, [pantryNames, expiringNames, soloExpiring, pantry, cookedKeys]);
+
+  const visibleAiSuggestions = useMemo(() => {
+    // Trust server filtering; only re-check availability for display and soft-rank
+    let list = aiSuggestions
+      .map(s => {
+        const ingredients = s.ingredients.map(i => {
+          const role = resolveRole(i.name, i.role);
+          const inPantry = pantryNames.some(p => {
+            const ingLower = i.name.toLowerCase();
+            return p.includes(ingLower) || ingLower.includes(p);
+          });
+          const available = role === "staple" || isOptionalAromatic(i.name) ? true : inPantry;
+          const ingLower = i.name.toLowerCase();
+          return {
+            ...i,
+            role,
+            available,
+            expiring: available && role !== "staple"
+              && [...expiringNames].some(e => e.includes(ingLower) || ingLower.includes(e)),
+          };
+        });
+        const { missingCore, missingMinor } = missingBreakdown(ingredients);
+        return {
+          ...s,
+          ingredients,
+          usesExpiringCount: ingredients.filter(i => i.expiring).length,
+          _missingCore: missingCore,
+          _missingMinor: missingMinor,
+        };
+      })
+      // Soft client guard: drop only absurd missing-core; keep ≤1 minor missing
+      .filter(s => s._missingCore === 0 && s._missingMinor <= 1)
+      .filter(s => !cookedKeys.has(`ai:${s.title}`));
+
+    // If soft guard emptied a non-empty AI response, show original ranked list (never blank after Genera)
+    if (list.length === 0 && aiSuggestions.length > 0) {
+      list = aiSuggestions
+        .filter(s => !cookedKeys.has(`ai:${s.title}`))
+        .map(s => ({ ...s, _missingCore: 0, _missingMinor: 0 }));
+    }
+
+    if (soloExpiring) {
+      const onlyExp = list.filter(s => s.usesExpiringCount > 0);
+      if (onlyExp.length > 0) list = onlyExp;
+    }
+    return list.sort((a, b) => {
+      const courseRank = (s: typeof a) => (s.course === "dolce" ? 2 : s.difficulty === "gourmet" ? 1 : 0);
+      const cr = courseRank(a) - courseRank(b);
+      if (cr !== 0) return cr;
+      if (a._missingMinor !== b._missingMinor) return a._missingMinor - b._missingMinor;
+      return b.usesExpiringCount - a.usesExpiringCount;
+    });
+  }, [aiSuggestions, soloExpiring, cookedKeys, pantryNames, expiringNames]);
 
   // AI suggest
   const handleAiSuggest = async () => {
@@ -328,28 +470,53 @@ const AntiWastePage = () => {
       const { data: result, error: fnErr } = await supabase.functions.invoke("suggest-meal");
       if (fnErr) throw fnErr;
       if (result?.error) throw new Error(result.error);
-      const mapped: SuggestedRecipe[] = (result.suggestions || []).map((s: any) => ({
-        title: s.title,
-        reason: s.reason,
-        instructions: s.instructions || s.reason,
-        estimatedKcal: s.estimated_kcal,
-        estimatedMacros: s.estimated_macros,
-        ingredients: s.ingredients.map((i: any) => ({
-          name: i.name, available: i.available, expiring: i.expiring, qty: i.quantity,
-          grams: parseFloat(i.quantity) || 100,
-          kcal: i.kcal || 0,
-          protein_g: i.protein_g || 0,
-          carbs_g: i.carbs_g || 0,
-          fats_g: i.fats_g || 0,
-        })),
-        usesExpiringCount: s.ingredients.filter((i: any) => i.expiring).length,
-        source: "ai" as const,
-      }));
+      const mapped: SuggestedRecipe[] = (result.suggestions || []).map((s: any) => {
+        const ingredients: RecipeIngredient[] = (s.ingredients || []).map((i: any) => {
+          const name = i.name || "";
+          const role = resolveRole(name, i.role);
+          const inPantry = pantryNames.some(p => {
+            const ingLower = name.toLowerCase();
+            return p.includes(ingLower) || ingLower.includes(p);
+          });
+          const available = role === "staple" || isOptionalAromatic(name) ? true : inPantry;
+          const ingLower = name.toLowerCase();
+          return {
+            name,
+            role,
+            available,
+            expiring: available && role !== "staple"
+              && [...expiringNames].some(e => e.includes(ingLower) || ingLower.includes(e)),
+            qty: i.quantity,
+            grams: parseFloat(i.quantity) || 100,
+            kcal: i.kcal || 0,
+            protein_g: i.protein_g || 0,
+            carbs_g: i.carbs_g || 0,
+            fats_g: i.fats_g || 0,
+          };
+        });
+        return {
+          title: s.title,
+          reason: s.reason,
+          instructions: s.instructions || s.reason,
+          estimatedKcal: s.estimated_kcal,
+          estimatedMacros: s.estimated_macros,
+          ingredients,
+          usesExpiringCount: ingredients.filter(i => i.expiring).length,
+          source: "ai" as const,
+          difficulty: s.difficulty === "gourmet" ? "gourmet" : "facile",
+          course: s.course === "dolce" || /dolce|dessert|torta|budino|mousse|tiramis|yogurt\s+con|macedonia|cioccolat/i.test(s.title || "")
+            ? "dolce"
+            : "salato",
+        };
+      });
       setAiSuggestions(mapped);
       setAiContext({
         pantry_count: result.pantry_count,
         expiring_count: result.expiring_count,
       });
+      if (mapped.length === 0 && (result.pantry_count ?? pantry.length) > 0) {
+        setAiError("Nessun suggerimento generato. Riprova tra poco.");
+      }
     } catch (e: any) {
       setAiError(e.message || "Errore AI");
       toast({ variant: "destructive", title: "Errore", description: e.message });
@@ -358,9 +525,10 @@ const AntiWastePage = () => {
     }
   };
 
-  const handleCook = async (recipe: SuggestedRecipe, key: string) => {
+  const handleCook = async (recipe: SuggestedRecipe) => {
     if (!user) return;
-    setCooking(key);
+    const dismissKey = recipeDismissKey(recipe);
+    setCooking(dismissKey);
     try {
       const pantryItems = recipe.ingredients.filter(i => i.available).map(i => ({
         custom_name: i.name, dish_name: i.name,
@@ -380,6 +548,23 @@ const AntiWastePage = () => {
         }
       }
 
+      // Remove card immediately; keep it hidden even if pantry still partially matches
+      setCookedKeys(prev => new Set(prev).add(dismissKey));
+      if (recipe.source === "ai") {
+        setAiSuggestions(prev => prev.filter(r => r.title !== recipe.title));
+      }
+
+      const fresh = await fetchPantry();
+      const freshExpiring = fresh.filter(i => {
+        const d = getDaysToExpiry(i.expiry_date);
+        return d >= 0 && d <= 5;
+      });
+      setAiContext(prev =>
+        prev
+          ? { pantry_count: fresh.length, expiring_count: freshExpiring.length }
+          : null,
+      );
+
       toast({ title: `"${recipe.title}" cucinata! ✅`, description: "Dispensa aggiornata" });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Errore", description: e.message });
@@ -389,11 +574,11 @@ const AntiWastePage = () => {
   };
 
   /* ─── Render recipe card ─── */
-  const RecipeCard = ({ recipe, idx }: { recipe: SuggestedRecipe; idx: number }) => {
+  const RecipeCard = ({ recipe }: { recipe: SuggestedRecipe }) => {
     const [open, setOpen] = useState(false);
-    const availableCount = recipe.ingredients.filter(i => i.available).length;
-    const missingCount = recipe.ingredients.length - availableCount;
-    const key = `${recipe.source}-${idx}`;
+    const { missingCore, missingMinor } = missingBreakdown(recipe.ingredients);
+    const missingCount = missingCore + missingMinor;
+    const key = recipeDismissKey(recipe);
 
     return (
       <div className="rounded-[18px] bg-card shadow-card overflow-hidden">
@@ -416,6 +601,16 @@ const AntiWastePage = () => {
 
           {/* Badges */}
           <div className="flex flex-wrap gap-1">
+            {recipe.course === "dolce" && (
+              <Badge variant="outline" className="text-[9px] border-pink-500/40 text-pink-600 h-5">
+                Dolce
+              </Badge>
+            )}
+            {recipe.difficulty === "gourmet" && (
+              <Badge variant="outline" className="text-[9px] border-primary/40 text-primary h-5">
+                Gourmet
+              </Badge>
+            )}
             {recipe.usesExpiringCount > 0 && (
               <Badge variant="outline" className="text-[9px] border-warning/40 text-warning h-5">
                 <Clock className="h-3 w-3 mr-0.5" /> Usa {recipe.usesExpiringCount} in scadenza
@@ -457,12 +652,14 @@ const AntiWastePage = () => {
                 <span className="w-10 text-right">C</span>
                 <span className="w-10 text-right">G</span>
               </div>
-              {recipe.ingredients.map((ing, i) => (
+              {recipe.ingredients.map((ing, i) => {
+                const shownAvailable = ing.available || isOptionalAromatic(ing.name);
+                return (
                 <div key={i} className={`flex items-center text-[11px] py-0.5 ${
-                  ing.expiring ? "text-warning" : ing.available ? "text-foreground" : "text-muted-foreground"
+                  ing.expiring ? "text-warning" : shownAvailable ? "text-foreground" : "text-muted-foreground"
                 }`}>
                   <span className="flex-1 flex items-center gap-1">
-                    {ing.expiring ? <Clock className="h-2.5 w-2.5 shrink-0" /> : ing.available ? <Check className="h-2.5 w-2.5 text-success shrink-0" /> : <X className="h-2.5 w-2.5 shrink-0" />}
+                    {ing.expiring ? <Clock className="h-2.5 w-2.5 shrink-0" /> : shownAvailable ? <Check className="h-2.5 w-2.5 text-success shrink-0" /> : <X className="h-2.5 w-2.5 shrink-0" />}
                     {ing.name}
                   </span>
                   <span className="w-12 text-right tabular-nums font-medium">{ing.grams || "-"}</span>
@@ -471,14 +668,15 @@ const AntiWastePage = () => {
                   <span className="w-10 text-right tabular-nums">{ing.carbs_g || "-"}</span>
                   <span className="w-10 text-right tabular-nums">{ing.fats_g || "-"}</span>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </CollapsibleContent>
         </Collapsible>
 
         {/* Cook button */}
         <div className="px-4 pb-4">
-          <Button size="sm" onClick={() => handleCook(recipe, key)} disabled={cooking !== null} className="w-full h-9 rounded-xl text-[12px] font-semibold">
+          <Button size="sm" onClick={() => handleCook(recipe)} disabled={cooking !== null} className="w-full h-9 rounded-xl text-[12px] font-semibold">
             {cooking === key ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Utensils className="h-3.5 w-3.5 mr-1.5" />}
             Ho cucinato — scala dispensa
           </Button>
@@ -512,29 +710,30 @@ const AntiWastePage = () => {
           </div>
         )}
 
-        {/* Mode toggle */}
-        <div className="flex gap-2">
-          <button onClick={() => setMode("all")}
-            className={`flex-1 rounded-xl py-2.5 text-[13px] font-semibold transition-colors ${mode === "all" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
-            <Leaf className="h-4 w-4 inline mr-1" /> Anti-spreco
-          </button>
-          <button onClick={() => setMode("expiring")}
-            className={`flex-1 rounded-xl py-2.5 text-[13px] font-semibold transition-colors ${mode === "expiring" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
-            <Refrigerator className="h-4 w-4 inline mr-1" /> Svuota frigo
-          </button>
-        </div>
+        <p className="text-[13px] text-muted-foreground leading-relaxed">
+          Cucina con quello che hai in casa — le ricette che usano ingredienti in scadenza vengono mostrate per prime.
+        </p>
 
-        {mode === "expiring" && expiringItems.length > 0 && (
-          <div className="rounded-xl bg-warning/5 border border-warning/20 p-3">
-            <p className="text-[13px] text-foreground">
-              🧊 <span className="font-semibold">Hai {expiringItems.length} alimenti che scadono presto.</span> Ecco cosa puoi cucinare.
-            </p>
+        {expiringItems.length > 0 && (
+          <div className="flex">
+            <button
+              type="button"
+              onClick={toggleSoloExpiring}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold transition-colors ${
+                soloExpiring
+                  ? "bg-warning/15 text-warning border border-warning/40"
+                  : "bg-secondary text-muted-foreground border border-transparent"
+              }`}
+            >
+              <Clock className="h-3.5 w-3.5" />
+              Solo in scadenza
+            </button>
           </div>
         )}
 
         {/* AI suggest button */}
         <div className="rounded-[18px] bg-card shadow-card overflow-hidden">
-          <div className="h-1 w-full" style={{ background: "linear-gradient(90deg, hsl(var(--primary)), hsl(262 83% 58%))" }} />
+          <div className="h-1 w-full bg-primary" />
           <div className="p-4 flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl shrink-0 bg-primary/10">
               <Sparkles className="h-5 w-5 text-primary" />
@@ -568,32 +767,49 @@ const AntiWastePage = () => {
         )}
 
         {/* AI suggestions */}
-        {aiSuggestions.length > 0 && (
+        {visibleAiSuggestions.length > 0 && (
           <div className="space-y-2">
             <h3 className="text-[13px] font-bold text-foreground flex items-center gap-1.5">
               <Sparkles className="h-4 w-4 text-primary" /> Suggeriti dall'AI
             </h3>
-            {aiSuggestions.map((recipe, idx) => (
-              <RecipeCard key={`ai-${idx}`} recipe={recipe} idx={idx} />
+            {visibleAiSuggestions.map((recipe) => (
+              <RecipeCard key={`ai-${recipe.title}`} recipe={recipe} />
             ))}
+          </div>
+        )}
+
+        {aiContext && !aiLoading && visibleAiSuggestions.length === 0 && !aiError && pantry.length > 0 && (
+          <div className="rounded-xl border border-border bg-card p-3 text-[12px] text-muted-foreground">
+            Nessun suggerimento AI mostrato. Tocca Genera di nuovo per nuove ricette dalla dispensa.
           </div>
         )}
 
         {/* Local suggestions */}
         {loading ? (
           <ListSkeleton count={3} variant="row" />
-        ) : localSuggestions.length === 0 && aiSuggestions.length === 0 ? (
+        ) : localSuggestions.length === 0 && visibleAiSuggestions.length === 0 ? (
           <EmptyState icon={ChefHat} title="Nessuna ricetta trovata"
-            description={pantry.length === 0 ? "Aggiungi prodotti nella dispensa per ricevere suggerimenti." : "Non abbiamo trovato ricette compatibili."}
-            actions={[{ label: "Vai alla dispensa", icon: Package, onClick: () => navigate("/products") }]}
+            description={
+              pantry.length === 0
+                ? "Aggiungi prodotti nella dispensa per ricevere suggerimenti."
+                : soloExpiring
+                  ? "Nessuna ricetta usa ingredienti in scadenza. Disattiva il filtro per vedere tutte le ricette."
+                  : "Prova Genera per ricette AI adattate a ciò che hai, oppure aggiungi altri prodotti."
+            }
+            actions={[
+              { label: "Vai alla dispensa", icon: Package, onClick: () => navigate("/products") },
+              ...(pantry.length > 0
+                ? [{ label: "Genera con AI", icon: Sparkles, onClick: () => { void handleAiSuggest(); } }]
+                : []),
+            ]}
           />
         ) : localSuggestions.length > 0 ? (
           <div className="space-y-2">
             <h3 className="text-[13px] font-bold text-foreground flex items-center gap-1.5">
               <ChefHat className="h-4 w-4 text-success" /> Ricette rapide
             </h3>
-            {localSuggestions.map((recipe, idx) => (
-              <RecipeCard key={`local-${idx}`} recipe={recipe} idx={idx} />
+            {localSuggestions.map((recipe) => (
+              <RecipeCard key={`local-${recipe.title}`} recipe={recipe} />
             ))}
           </div>
         ) : null}

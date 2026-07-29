@@ -493,8 +493,8 @@ const Index = () => {
               { icon: ScanLine, label: "Scansiona", color: "hsl(var(--primary))", bg: "bg-primary/10", onClick: () => navigate("/scan"), tourId: "home-action-scan" },
               { icon: Plus, label: "Aggiungi", color: "hsl(152,56%,46%)", bg: "bg-success/10", onClick: () => setAddFoodOpen(true), tourId: "home-action-add" },
               { icon: ShoppingCart, label: "Confronta", color: "hsl(280,70%,55%)", bg: "bg-accent/10", onClick: () => navigate("/compare"), tourId: "home-action-compare" },
-              { icon: Refrigerator, label: "Svuota frigo", color: "hsl(37,90%,51%)", bg: "bg-warning/10", onClick: () => navigate("/anti-waste?mode=expiring"), tourId: "home-action-fridge" },
-              { icon: Sparkles, label: "Cosa mangio?", color: "hsl(262,83%,58%)", bg: "bg-accent/10", onClick: () => navigate("/anti-waste"), tourId: "home-action-suggest" },
+              { icon: Refrigerator, label: "In scadenza", color: "hsl(37,90%,51%)", bg: "bg-warning/10", onClick: () => navigate("/anti-waste?mode=expiring"), tourId: "home-action-fridge" },
+              { icon: Sparkles, label: "Ricette", color: "hsl(152,56%,46%)", bg: "bg-success/10", onClick: () => navigate("/anti-waste"), tourId: "home-action-suggest" },
             ].map(({ icon: Icon, label, color, bg, onClick, tourId }) => (
               <button
                 key={label}
@@ -559,7 +559,7 @@ const Index = () => {
                       onClick={() => navigate("/anti-waste")}
                       className="shrink-0 h-8 px-3 rounded-lg text-[11px] font-semibold btn-brand active:scale-[0.97] transition-all"
                     >
-                      Anti-spreco
+                      Trova ricette
                     </button>
                   </>
                 )}
