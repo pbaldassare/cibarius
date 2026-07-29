@@ -96,7 +96,6 @@ const ProfiloPage = () => {
   // Email preferences
   const [emailPrefs, setEmailPrefs] = useState({ receive_verification: true, receive_password_reset: true, receive_expiry_alerts: true });
   const [savingEmailPrefs, setSavingEmailPrefs] = useState(false);
-  const [unreadMsgCount, setUnreadMsgCount] = useState(0);
 
   // Change password
   const [passwordOpen, setPasswordOpen] = useState(false);
@@ -114,11 +113,6 @@ const ProfiloPage = () => {
     // Load email preferences
     supabase.from("email_preferences").select("*").eq("user_id", user.id).single().then(({ data }) => {
       if (data) setEmailPrefs({ receive_verification: data.receive_verification, receive_password_reset: data.receive_password_reset, receive_expiry_alerts: data.receive_expiry_alerts });
-    });
-
-    // Load unread message count
-    supabase.from("messages").select("id", { count: "exact", head: true }).eq("receiver_id", user.id).is("read_at", null).then(({ count }) => {
-      setUnreadMsgCount(count ?? 0);
     });
 
     // Load professional's own profile
@@ -460,11 +454,9 @@ const ProfiloPage = () => {
           {(role === "professional" ? [
             { icon: Sparkles, label: "Abbonamenti clienti", path: "/pro/clients", badge: 0 },
           ] : [
-            ...[{ icon: MessageCircle, label: "Messaggi", path: "/messages", badge: unreadMsgCount }],
             { icon: Heart, label: "Preferiti", path: "/favorites", badge: 0 },
             { icon: Sparkles, label: "Abbonamento Premium", path: "/subscription", badge: 0 },
             { icon: Bell, label: "Promemoria scadenze", path: "/reminders", badge: 0 },
-            { icon: Bell, label: "Promemoria pasti", path: "/meal-reminders", badge: 0 },
           ]).map((item, i) => (
             <button
               key={item.label}

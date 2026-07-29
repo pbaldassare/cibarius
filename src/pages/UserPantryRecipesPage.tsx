@@ -11,9 +11,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { loadTemplates, getNutritionPer100g } from "@/lib/nutrition";
+import { deductPantryFromMeal } from "@/lib/pantry-deduction";
 import {
-  Loader2, Wand2, Package, Flame, AlertTriangle,
-  RefreshCw, ShoppingCart, ChefHat, Trophy, Target, Plus
+  Loader2, Package, Flame, AlertTriangle,
+  RefreshCw, ShoppingCart, ChefHat, Plus
 } from "lucide-react";
 
 const MEAL_LABELS: Record<string, string> = {
@@ -154,67 +155,28 @@ const UserPantryRecipesPage = () => {
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [storageFilter, setStorageFilter] = useState("all");
-  const [mealType, setMealType] = useState("pranzo");
-  const [goal, setGoal] = useState<GoalType>("balanced");
-  const [mealTarget, setMealTarget] = useState<MealTarget | null>(null);
-  const [allTargets, setAllTargets] = useState<any[]>([]);
   const [priorityExpiry, setPriorityExpiry] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [generating, setGenerating] = useState(false);
   const [recipes, setRecipes] = useState<GeneratedRecipe[]>([]);
   const [templates, setTemplates] = useState<Map<string, any>>(new Map());
-  const [targetSource, setTargetSource] = useState<"plan" | "personal" | "none">("none");
+  const [targetSource, setTargetSource] = useState<"none">("none");
 
   useEffect(() => {
     if (!user) return;
     const load = async () => {
-      // Fetch inventory + diet plan (from pro) + personal nutrition_targets in parallel
-      const [invRes, planRes, targetsRes] = await Promise.all([
-        supabase
-          .from("inventory_items")
-          .select("id, quantity, unit, storage_type, expiry_date, product:products(id, name, brand, calories_100g, macros_100g, template_id)")
-          .eq("owner_user_id", user.id)
-          .order("expiry_date", { ascending: true, nullsFirst: false }),
-        supabase
-          .from("diet_plans")
-          .select("id, kcal_day, protein_g_day, carbs_g_day, fats_g_day, diet_plan_meal_targets(*)")
-          .eq("client_user_id", user.id)
-          .eq("is_active", true)
-          .maybeSingle(),
-        supabase
-          .from("nutrition_targets")
-          .select("*")
-          .eq("user_id", user.id)
-          .maybeSingle(),
-      ]);
+      const { data } = await supabase
+        .from("inventory_items")
+        .select("id, quantity, unit, storage_type, expiry_date, product:products(id, name, brand, calories_100g, macros_100g, template_id)")
+        .eq("owner_user_id", user.id)
+        .order("expiry_date", { ascending: true, nullsFirst: false });
 
-      const loadedItems = (invRes.data as unknown as InventoryItem[]) ?? [];
+      const loadedItems = (data as unknown as InventoryItem[]) ?? [];
       setItems(loadedItems);
 
       const tmpl = await loadTemplates();
       setTemplates(tmpl);
 
-      // Prefer diet_plan meal targets from pro, fallback to personal nutrition_targets split evenly
-      if (planRes.data) {
-        const targets = (planRes.data as any).diet_plan_meal_targets ?? [];
-        if (targets.length > 0) {
-          setAllTargets(targets);
-          setTargetSource("plan");
-        } else {
-          // Plan exists but no per-meal targets — derive from daily
-          const p = planRes.data;
-          const derived = deriveMealTargets(p.kcal_day, p.protein_g_day, p.carbs_g_day, p.fats_g_day);
-          setAllTargets(derived);
-          setTargetSource("plan");
-        }
-      } else if (targetsRes.data) {
-        const t = targetsRes.data;
-        const derived = deriveMealTargets(t.kcal_day, t.protein_g ?? 120, t.carbs_g ?? 220, t.fats_g ?? 70);
-        setAllTargets(derived);
-        setTargetSource("personal");
-      }
-
-      // Auto-select non-expired items
       const now = new Date();
       const ids = new Set<string>();
       loadedItems.forEach((i) => {
@@ -226,25 +188,6 @@ const UserPantryRecipesPage = () => {
     };
     load();
   }, [user]);
-
-  // Derive approximate meal targets from daily totals
-  function deriveMealTargets(kcal: number, protein: number, carbs: number, fats: number) {
-    // Split: colazione 25%, pranzo 35%, cena 30%, spuntino 10%
-    const splits: Record<string, number> = { colazione: 0.25, pranzo: 0.35, cena: 0.30, spuntino: 0.10 };
-    return Object.entries(splits).map(([meal, pct]) => ({
-      id: meal,
-      meal_type: meal,
-      kcal_target: Math.round(kcal * pct),
-      protein_g: Math.round(protein * pct),
-      carbs_g: Math.round(carbs * pct),
-      fats_g: Math.round(fats * pct),
-    }));
-  }
-
-  useEffect(() => {
-    const mt = allTargets.find((t: any) => t.meal_type === mealType);
-    setMealTarget(mt || null);
-  }, [mealType, allTargets]);
 
   useEffect(() => {
     if (!priorityExpiry) return;
@@ -288,16 +231,11 @@ const UserPantryRecipesPage = () => {
   // ===== RECIPE GENERATION =====
   const generateRecipes = () => {
     const selectedItems = filtered.filter((i) => selectedIds.has(i.id));
-    if (!mealTarget || selectedItems.length === 0) {
-      toast({ variant: "destructive", title: "Errore", description: "Seleziona ingredienti e assicurati di avere un target nutrizionale." });
+    if (selectedItems.length === 0) {
+      toast({ variant: "destructive", title: "Errore", description: "Seleziona almeno un ingrediente." });
       return;
     }
     setGenerating(true);
-
-    const baseTarget = { ...mealTarget };
-    const effectiveTarget: MealTarget = { ...baseTarget };
-    if (goal === "deficit") effectiveTarget.kcal_target = Math.round(baseTarget.kcal_target * 0.9);
-    else if (goal === "surplus") effectiveTarget.kcal_target = Math.round(baseTarget.kcal_target * 1.1);
 
     const generated: GeneratedRecipe[] = [];
     const strategies = [
@@ -311,6 +249,7 @@ const UserPantryRecipesPage = () => {
       const ingredients: GeneratedRecipe["ingredients"] = [];
       let totalKcal = 0, totalP = 0, totalC = 0, totalF = 0;
       let partial = false;
+      let expiringCount = 0;
 
       const sorted = [...selectedItems].sort((a, b) => {
         const aNut = getNutritionPer100g(a.product, templates);
@@ -327,22 +266,15 @@ const UserPantryRecipesPage = () => {
       }
 
       const count = Math.min(strategy.maxIng, shuffled.length);
-      const perIngKcal = effectiveTarget.kcal_target / count;
 
       for (let i = 0; i < count; i++) {
         const item = shuffled[i];
         const p = item.product;
         const nut = getNutritionPer100g(p, templates);
 
-        let portionG: number;
-        if (nut.source !== "none" && nut.calories > 0) {
-          portionG = Math.round((perIngKcal / nut.calories) * 100);
-          const maxAvail = (item.quantity ?? 1) * (item.unit === "kg" ? 1000 : item.unit === "g" ? 1 : 150);
-          portionG = Math.max(20, Math.min(portionG, maxAvail, 500));
-        } else {
-          portionG = 80;
-          partial = true;
-        }
+        let portionG = 100;
+        const maxAvail = (item.quantity ?? 1) * (item.unit === "kg" ? 1000 : item.unit === "g" ? 1 : 150);
+        portionG = Math.max(20, Math.min(portionG, maxAvail, 300));
 
         const factor = portionG / 100;
         if (nut.source !== "none") {
@@ -350,34 +282,31 @@ const UserPantryRecipesPage = () => {
           totalP += nut.protein * factor;
           totalC += nut.carbs * factor;
           totalF += nut.fats * factor;
+        } else {
+          partial = true;
         }
         if (nut.source === "template") partial = true;
+        if (getExpiryStatus(item.expiry_date) === "expiring") expiringCount++;
 
         ingredients.push({ name: p.name, product_id: p.id, qty: portionG, unit: "g" });
       }
 
       const totals = { kcal: Math.round(totalKcal), protein: Math.round(totalP), carbs: Math.round(totalC), fats: Math.round(totalF) };
-      const fitScore = computeFitScore(totals, effectiveTarget, goal);
-      const goalNote = getGoalNotes(totals, effectiveTarget, goal);
-
-      const extraNotes: string[] = [];
-      if (partial) extraNotes.push("Stima parziale: alcuni valori da template.");
+      const fitScore = Math.min(100, 50 + expiringCount * 15 + (partial ? 0 : 20));
 
       const steps = ingredients.map((ing, idx) => `${idx + 1}. Prepara ${ing.qty}g di ${ing.name}`);
-      if (s === 0) steps.push(`${ingredients.length + 1}. Combina tutti gli ingredienti e servi.`);
-      else if (s === 1) steps.push(`${ingredients.length + 1}. Cuoci a fuoco medio per 10 minuti, condisci e servi.`);
-      else steps.push(`${ingredients.length + 1}. Mescola in una ciotola, condisci con olio e spezie a piacere.`);
+      steps.push(`${ingredients.length + 1}. Combina gli ingredienti e servi.`);
 
       generated.push({
-        title: `${strategy.name} — ${MEAL_LABELS[mealType]}`,
+        title: strategy.name,
         ingredients,
         instructions: steps.join("\n"),
         kcal_total: totals.kcal,
         macros: { protein: totals.protein, carbs: totals.carbs, fats: totals.fats },
         fit_score: fitScore,
-        notes: [goalNote, ...extraNotes].join(" · "),
+        notes: partial ? "Stima parziale: alcuni valori da template." : expiringCount > 0 ? `Usa ${expiringCount} ingredienti in scadenza.` : "",
         partial_estimate: partial,
-        goal,
+        goal: "balanced",
       });
     }
 
@@ -387,77 +316,19 @@ const UserPantryRecipesPage = () => {
   };
 
   // ===== ADD TO MEAL =====
-  const addToMeal = async (recipe: GeneratedRecipe) => {
+  const useFromPantry = async (recipe: GeneratedRecipe) => {
     if (!user) return;
-    const today = new Date().toISOString().slice(0, 10);
-
-    // Upsert meal_day
-    let { data: dayData } = await supabase
-      .from("meal_days")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("day_date", today)
-      .maybeSingle();
-
-    if (!dayData) {
-      const { data: newDay } = await supabase
-        .from("meal_days")
-        .insert({ user_id: user.id, day_date: today })
-        .select("id")
-        .single();
-      dayData = newDay;
-    }
-    if (!dayData) return;
-
-    // Upsert meal
-    let { data: mealData } = await supabase
-      .from("meals")
-      .select("id")
-      .eq("meal_day_id", dayData.id)
-      .eq("meal_type", mealType)
-      .maybeSingle();
-
-    if (!mealData) {
-      const { data: newMeal } = await supabase
-        .from("meals")
-        .insert({ meal_day_id: dayData.id, meal_type: mealType })
-        .select("id")
-        .single();
-      mealData = newMeal;
-    }
-    if (!mealData) return;
-
-    // Insert meal_items
-    const itemsToInsert = recipe.ingredients.map((ing) => {
-      const perFactor = ing.qty / 100;
-      const nut = ing.product_id
-        ? getNutritionPer100g(
-            items.find((i) => i.product.id === ing.product_id)?.product || {},
-            templates
-          )
-        : { calories: 0, protein: 0, carbs: 0, fats: 0, source: "none" as const };
-
-      return {
-        meal_id: mealData!.id,
-        product_id: ing.product_id || null,
-        source_type: "pantry" as string,
-        custom_name: ing.product_id ? null : ing.name,
-        quantity: ing.qty,
-        unit: ing.unit,
-        calories: Math.round(nut.calories * perFactor),
-        macros: {
-          protein: Math.round(nut.protein * perFactor),
-          carbs: Math.round(nut.carbs * perFactor),
-          fats: Math.round(nut.fats * perFactor),
-        },
-      };
-    });
-
-    const { error } = await supabase.from("meal_items").insert(itemsToInsert);
-    if (error) {
-      toast({ variant: "destructive", title: "Errore", description: error.message });
-    } else {
-      toast({ title: "Ricetta aggiunta al pasto! 🎉" });
+    const pantryItems = recipe.ingredients.map((ing) => ({
+      custom_name: ing.name,
+      dish_name: ing.name,
+      quantity: ing.qty,
+      unit: ing.unit || "g",
+    }));
+    try {
+      await deductPantryFromMeal(user.id, pantryItems);
+      toast({ title: "Dispensa aggiornata! ✅" });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Errore", description: e.message });
     }
   };
 
@@ -503,51 +374,15 @@ const UserPantryRecipesPage = () => {
   }
 
   const selectedCount = filtered.filter((i) => selectedIds.has(i.id)).length;
-  const activeGoal = GOALS.find((g) => g.value === goal)!;
 
   return (
     <div>
       <MobileHeader title="Le mie ricette smart" showBack />
       <main className="px-4 py-5 pb-28 space-y-4">
 
-        {/* Target source info */}
-        {targetSource === "plan" && (
-          <div className="rounded-lg bg-primary/5 border border-primary/20 p-2.5 flex items-center gap-2">
-            <Wand2 className="h-4 w-4 text-primary shrink-0" />
-            <p className="text-[11px] text-muted-foreground">
-              Target basati sul <span className="font-semibold text-foreground">piano del tuo nutrizionista</span>
-            </p>
-          </div>
-        )}
-        {targetSource === "personal" && (
-          <div className="rounded-lg bg-accent/10 border border-accent/20 p-2.5 flex items-center gap-2">
-            <Target className="h-4 w-4 text-accent-foreground shrink-0" />
-            <p className="text-[11px] text-muted-foreground">
-              Target basati sui tuoi <span className="font-semibold text-foreground">obiettivi personali</span>
-            </p>
-          </div>
-        )}
-        {targetSource === "none" && (
-          <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-2.5">
-            <p className="text-[11px] text-amber-700">
-              ⚠️ Nessun target nutrizionale impostato.{" "}
-              <button className="underline font-semibold" onClick={() => navigate("/meals/targets")}>Imposta obiettivi</button>
-            </p>
-          </div>
-        )}
-
-        {/* Selectors */}
         <div className="flex gap-2">
-          <Select value={mealType} onValueChange={setMealType}>
-            <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {Object.entries(MEAL_LABELS).map(([k, v]) => (
-                <SelectItem key={k} value={k}>{v}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
           <Select value={storageFilter} onValueChange={setStorageFilter}>
-            <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tutto</SelectItem>
               <SelectItem value="frigo">Frigo</SelectItem>
@@ -557,64 +392,11 @@ const UserPantryRecipesPage = () => {
           </Select>
         </div>
 
-        {/* Goal selector pills */}
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-            <Target className="h-3.5 w-3.5" /> Obiettivo ricetta
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {GOALS.map((g) => (
-              <button
-                key={g.value}
-                onClick={() => setGoal(g.value)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${
-                  goal === g.value
-                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                    : "bg-secondary/50 text-muted-foreground border-border hover:bg-secondary"
-                }`}
-              >
-                {g.emoji} {g.label}
-              </button>
-            ))}
-          </div>
-          <p className="text-[11px] text-muted-foreground pl-1">{activeGoal.description}</p>
-        </div>
-
         {/* Priority toggle */}
         <div className="flex items-center justify-between rounded-lg bg-secondary/50 p-3">
           <span className="text-sm font-medium text-foreground">🔥 Priorità scadenze</span>
           <Switch checked={priorityExpiry} onCheckedChange={setPriorityExpiry} />
         </div>
-
-        {/* Meal target */}
-        {mealTarget ? (
-          <div className="rounded-lg bg-primary/5 border border-primary/20 p-3">
-            <p className="text-xs font-semibold text-foreground mb-1">
-              Target {MEAL_LABELS[mealType]}
-              {(goal === "deficit" || goal === "surplus") && (
-                <span className="text-muted-foreground font-normal ml-1">
-                  ({goal === "deficit" ? "-10%" : "+10%"} kcal)
-                </span>
-              )}
-            </p>
-            <div className="flex gap-3 text-xs">
-              <span className="font-medium">
-                {goal === "deficit"
-                  ? Math.round(mealTarget.kcal_target * 0.9)
-                  : goal === "surplus"
-                  ? Math.round(mealTarget.kcal_target * 1.1)
-                  : mealTarget.kcal_target} kcal
-              </span>
-              <span>P: {mealTarget.protein_g}g</span>
-              <span>C: {mealTarget.carbs_g}g</span>
-              <span>G: {mealTarget.fats_g}g</span>
-            </div>
-          </div>
-        ) : targetSource !== "none" ? (
-          <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3">
-            <p className="text-xs text-destructive font-medium">⚠️ Nessun target per questo pasto.</p>
-          </div>
-        ) : null}
 
         {/* Ingredients list */}
         <div className="space-y-1.5">
@@ -666,10 +448,10 @@ const UserPantryRecipesPage = () => {
         <Button
           className="w-full gap-2 h-12 text-base"
           onClick={generateRecipes}
-          disabled={generating || selectedCount === 0 || !mealTarget}
+          disabled={generating || selectedCount === 0}
         >
           {generating ? <Loader2 className="h-5 w-5 animate-spin" /> : <ChefHat className="h-5 w-5" />}
-          Genera 3 ricette · {activeGoal.emoji} {activeGoal.label}
+          Genera 3 ricette dalla dispensa
         </Button>
 
         {/* Results */}
@@ -684,36 +466,17 @@ const UserPantryRecipesPage = () => {
 
             {recipes.map((recipe, idx) => {
               const shopping = getShoppingList(recipe);
-              const goalInfo = GOALS.find((g) => g.value === recipe.goal);
-              const effectiveKcal = goal === "deficit"
-                ? Math.round((mealTarget?.kcal_target ?? 0) * 0.9)
-                : goal === "surplus"
-                ? Math.round((mealTarget?.kcal_target ?? 0) * 1.1)
-                : mealTarget?.kcal_target ?? 0;
 
               return (
                 <Card key={idx} className="border-2 border-accent overflow-hidden">
                   <CardHeader className="pb-2 pt-3 px-4">
                     <div className="flex items-center justify-between gap-2">
                       <CardTitle className="text-sm flex-1">{recipe.title}</CardTitle>
-                      <Badge
-                        className={`gap-1 text-xs font-bold ${
-                          recipe.fit_score >= 80
-                            ? "bg-green-500/15 text-green-700 border-green-500/30"
-                            : recipe.fit_score >= 50
-                            ? "bg-amber-500/15 text-amber-700 border-amber-500/30"
-                            : "bg-red-500/15 text-red-700 border-red-500/30"
-                        }`}
-                      >
-                        <Trophy className="h-3 w-3" /> Fit {recipe.fit_score}%
+                      <Badge variant="outline" className="gap-1 text-xs font-bold">
+                        <Flame className="h-3 w-3" /> ~{recipe.kcal_total} kcal
                       </Badge>
                     </div>
                     <div className="flex items-center gap-1.5 mt-1">
-                      {goalInfo && (
-                        <Badge variant="outline" className="text-[9px] px-1.5 py-0 gap-0.5">
-                          {goalInfo.emoji} {GOAL_BADGE_LABELS[recipe.goal]}
-                        </Badge>
-                      )}
                       {recipe.partial_estimate && (
                         <Badge variant="secondary" className="gap-1 text-[9px] px-1 py-0">
                           <AlertTriangle className="h-3 w-3" /> Stima parziale
@@ -722,29 +485,13 @@ const UserPantryRecipesPage = () => {
                     </div>
                   </CardHeader>
                   <CardContent className="px-4 pb-4 space-y-3">
-                    {/* Macro comparison */}
-                    {mealTarget && (
-                      <div className="grid grid-cols-4 gap-1.5 text-center text-[10px]">
-                        <div className="rounded-md bg-primary/10 p-1.5">
-                          <p className="font-bold text-primary">{recipe.kcal_total}</p>
-                          <p className="text-muted-foreground">/{effectiveKcal} kcal</p>
-                        </div>
-                        <div className="rounded-md bg-blue-500/10 p-1.5">
-                          <p className="font-bold text-blue-600">{recipe.macros.protein}g</p>
-                          <p className="text-muted-foreground">/{mealTarget.protein_g}g P</p>
-                        </div>
-                        <div className="rounded-md bg-amber-500/10 p-1.5">
-                          <p className="font-bold text-amber-600">{recipe.macros.carbs}g</p>
-                          <p className="text-muted-foreground">/{mealTarget.carbs_g}g C</p>
-                        </div>
-                        <div className="rounded-md bg-red-500/10 p-1.5">
-                          <p className="font-bold text-red-600">{recipe.macros.fats}g</p>
-                          <p className="text-muted-foreground">/{mealTarget.fats_g}g G</p>
-                        </div>
-                      </div>
-                    )}
+                    <div className="flex gap-3 text-[11px]">
+                      <span className="px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-600 font-medium">P {recipe.macros.protein}g</span>
+                      <span className="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 font-medium">C {recipe.macros.carbs}g</span>
+                      <span className="px-2 py-0.5 rounded-md bg-rose-500/10 text-rose-600 font-medium">G {recipe.macros.fats}g</span>
+                    </div>
 
-                    <p className="text-[11px] text-muted-foreground italic">{recipe.notes}</p>
+                    {recipe.notes && <p className="text-[11px] text-muted-foreground italic">{recipe.notes}</p>}
 
                     {/* Ingredients */}
                     <div className="text-xs space-y-0.5">
@@ -774,13 +521,12 @@ const UserPantryRecipesPage = () => {
                       </details>
                     )}
 
-                    {/* Add to meal */}
                     <Button
                       className="w-full gap-2"
-                      onClick={() => addToMeal(recipe)}
+                      onClick={() => useFromPantry(recipe)}
                     >
                       <Plus className="h-4 w-4" />
-                      Aggiungi al pasto di oggi
+                      Ho cucinato — scala dispensa
                     </Button>
                   </CardContent>
                 </Card>

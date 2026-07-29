@@ -10,8 +10,6 @@ import { getFoodImage } from "@/lib/food-images";
 import AddFoodFlow from "@/components/AddFoodFlow";
 import { useTour } from "@/components/AppTourContext";
 import { useIngredientCompatibility } from "@/hooks/useIngredientCompatibility";
-import MealReminderBanner from "@/components/MealReminderBanner";
-import { WeightGoalHomeBar } from "@/components/WeightGoalMotivation";
 import ResolveExpiryFlow from "@/components/ResolveExpiryFlow";
 import AutoSuggestFavBanner from "@/components/AutoSuggestFavBanner";
 import {
@@ -19,7 +17,7 @@ import {
   SlidersHorizontal, X, Trash2,
   Sparkles, Leaf, ScanLine, Refrigerator,
   UtensilsCrossed, ShoppingCart, Package,
-  MessageSquare, ClipboardList, AlertTriangle,
+  AlertTriangle,
 } from "lucide-react";
 
 /* ─── types ─── */
@@ -157,13 +155,6 @@ const Index = () => {
     );
   }, [registerAddFoodControl]);
 
-  // Today's meals
-  const [todayMeals, setTodayMeals] = useState<{ type: string; count: number }[]>([]);
-
-  // Nutritionist link
-  const [hasNutritionist, setHasNutritionist] = useState(false);
-  const [unreadMessages, setUnreadMessages] = useState(0);
-
   // Waste stats
   const [wasteStats, setWasteStats] = useState<{ count: number; weightKg: number; money: number } | null>(null);
 
@@ -179,9 +170,8 @@ const Index = () => {
 
   const fetchItems = async () => {
     if (!user) return;
-    const today = new Date().toISOString().slice(0, 10);
 
-    const [invRes, prepRes, mealDayRes, linkRes, msgRes, wasteRes] = await Promise.all([
+    const [invRes, prepRes, wasteRes] = await Promise.all([
       supabase
         .from("inventory_items")
         .select("id, expiry_date, storage_type, quantity, unit, product:products(name, image_url, category)")
@@ -191,24 +181,6 @@ const Index = () => {
         .from("preparations")
         .select("id, name, use_by_date, image_url, storage_type")
         .eq("owner_user_id", user.id),
-      supabase
-        .from("meal_days")
-        .select("id, meals(meal_type, meal_items(id))")
-        .eq("user_id", user.id)
-        .eq("day_date", today)
-        .maybeSingle(),
-      supabase
-        .from("client_links")
-        .select("id, professional_id")
-        .eq("client_user_id", user.id)
-        .eq("status", "active")
-        .limit(1),
-      supabase
-        .from("messages")
-        .select("id")
-        .eq("receiver_id", user.id)
-        .is("read_at", null)
-        .limit(10),
       (() => {
         const startOfMonth = new Date();
         startOfMonth.setDate(1);
@@ -223,26 +195,6 @@ const Index = () => {
 
     if (invRes.data) setItems(invRes.data as unknown as InventoryItem[]);
     if (prepRes.data) setPrepItems(prepRes.data as any[]);
-
-    // Today's meals
-    if (mealDayRes.data) {
-      const meals = (mealDayRes.data as any).meals || [];
-      const mealTypes = ["colazione", "pranzo", "cena", "spuntino"];
-      setTodayMeals(mealTypes.map(t => ({
-        type: t,
-        count: meals.filter((m: any) => m.meal_type === t).reduce((acc: number, m: any) => acc + ((m.meal_items || []).length), 0),
-      })));
-    } else {
-      setTodayMeals([
-        { type: "colazione", count: 0 },
-        { type: "pranzo", count: 0 },
-        { type: "cena", count: 0 },
-      ]);
-    }
-
-    // Nutritionist
-    if (linkRes.data && linkRes.data.length > 0) setHasNutritionist(true);
-    if (msgRes.data) setUnreadMessages(msgRes.data.length);
 
     // Waste stats
     if (wasteRes.data && (wasteRes.data as any[]).length > 0) {
@@ -284,7 +236,6 @@ const Index = () => {
     if (!user) return;
     const channel = supabase.channel("home-live")
       .on("postgres_changes", { event: "*", schema: "public", table: "inventory_items", filter: `owner_user_id=eq.${user.id}` }, () => fetchItems())
-      .on("postgres_changes", { event: "*", schema: "public", table: "meal_days", filter: `user_id=eq.${user.id}` }, () => fetchItems())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [user]);
@@ -401,13 +352,6 @@ const Index = () => {
   }, []);
   const firstName = profile?.full_name?.split(" ")[0] ?? "";
 
-  const mealTypeLabel: Record<string, { label: string; emoji: string }> = {
-    colazione: { label: "Colazione", emoji: "☀️" },
-    pranzo: { label: "Pranzo", emoji: "🍝" },
-    cena: { label: "Cena", emoji: "🌙" },
-    spuntino: { label: "Spuntino", emoji: "🍎" },
-  };
-
   // Search
   const searchResults = useMemo(() => {
     if (!search) return [];
@@ -458,11 +402,6 @@ const Index = () => {
           </h2>
           <p className="text-[12px] text-muted-foreground mt-0.5">Ecco cosa serve oggi</p>
         </div>
-
-        <MealReminderBanner />
-
-        {/* Weight goal progress for Plus users */}
-        <WeightGoalHomeBar />
 
         {/* ═══ 1 — ATTENZIONE OGGI (Scadenze) ═══ */}
         <section className="space-y-2.5" data-tour="home-expiry">
@@ -709,74 +648,6 @@ const Index = () => {
             })()}
           </div>
         </section>
-
-        {/* ═══ 6 — I TUOI PASTI DI OGGI ═══ */}
-        <section className="space-y-2.5" data-tour="home-meals">
-          <SectionHeader title="🍽️ I tuoi pasti di oggi" action="Vai al diario" onAction={() => navigate("/meals")} />
-          <div className="rounded-[18px] bg-card shadow-card overflow-hidden divide-y divide-border">
-            {todayMeals.filter(m => m.type !== "spuntino" || m.count > 0).map(meal => {
-              const cfg = mealTypeLabel[meal.type] || { label: meal.type, emoji: "🍽️" };
-              return (
-                <button
-                  key={meal.type}
-                  onClick={() => navigate(meal.count > 0 ? "/meals" : `/meals?add=${meal.type}`)}
-                  className="flex items-center gap-3 w-full px-4 py-3 text-left active:bg-accent/30 transition-colors"
-                >
-                  <span className="text-lg shrink-0">{cfg.emoji}</span>
-                  <div className="flex-1">
-                    <p className="text-[13px] font-medium text-foreground">{cfg.label}</p>
-                    {meal.count > 0 ? (
-                      <p className="text-[11px] text-success mt-0.5">✓ {meal.count} aliment{meal.count === 1 ? "o" : "i"} registrat{meal.count === 1 ? "o" : "i"}</p>
-                    ) : (
-                      <p className="text-[11px] text-muted-foreground mt-0.5">Non ancora registrato</p>
-                    )}
-                  </div>
-                  {meal.count === 0 ? (
-                    <span className="text-[11px] font-semibold text-primary">+ Aggiungi</span>
-                  ) : (
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* ═══ 7 — NUTRIZIONISTA (se presente) ═══ */}
-        {hasNutritionist && (
-          <section className="space-y-2.5">
-            <SectionHeader title="👩‍⚕️ Dal tuo nutrizionista" />
-            <div className="rounded-[18px] bg-card shadow-card overflow-hidden divide-y divide-border">
-              <button
-                onClick={() => navigate("/messages")}
-                className="flex items-center gap-3 w-full px-4 py-3 text-left active:bg-accent/30 transition-colors"
-              >
-                <MessageSquare className="h-5 w-5 text-primary shrink-0" />
-                <div className="flex-1">
-                  <p className="text-[13px] font-medium text-foreground">Messaggi</p>
-                  {unreadMessages > 0 && (
-                    <p className="text-[11px] text-primary mt-0.5">{unreadMessages} non lett{unreadMessages === 1 ? "o" : "i"}</p>
-                  )}
-                </div>
-                {unreadMessages > 0 && (
-                  <span className="h-5 w-5 rounded-full bg-primary flex items-center justify-center text-[10px] font-bold text-primary-foreground">{unreadMessages}</span>
-                )}
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-              </button>
-              <button
-                onClick={() => navigate("/plan")}
-                className="flex items-center gap-3 w-full px-4 py-3 text-left active:bg-accent/30 transition-colors"
-              >
-                <ClipboardList className="h-5 w-5 text-primary shrink-0" />
-                <div className="flex-1">
-                  <p className="text-[13px] font-medium text-foreground">Piano alimentare</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">Consulta il tuo piano</p>
-                </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-              </button>
-            </div>
-          </section>
-        )}
 
       </main>
 

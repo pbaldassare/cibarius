@@ -128,7 +128,7 @@ export default function UserNotificationsBell() {
                       navigate("/pro/clients");
                     } else if (n.type === "link_approved") {
                       setOpen(false);
-                      navigate("/invite");
+                      navigate("/");
                     }
                   }}
                 >

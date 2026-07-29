@@ -30,12 +30,12 @@ const SLIDES_BY_ROLE: Record<string, Slide[]> = {
     {
       icon: <UtensilsCrossed className="h-10 w-10" />,
       title: "Traccia i pasti",
-      text: "Registra cosa mangi con foto o ricerca, e monitora calorie e macro giornaliere.",
+      text: "Le calorie sui prodotti sono solo informative: scansiona e organizza la dispensa.",
     },
     {
       icon: <BookOpen className="h-10 w-10" />,
       title: "Ricette su misura",
-      text: "Ricevi suggerimenti di ricette basate su cosa hai in dispensa e sul tuo piano alimentare.",
+      text: "Ricevi suggerimenti di ricette basate su cosa hai in dispensa e cosa sta per scadere.",
     },
   ],
   restaurant_owner: [

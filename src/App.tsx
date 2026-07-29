@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./hooks/useAuth";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RoleGuard from "./components/RoleGuard";
@@ -11,8 +11,6 @@ import UserLayout from "./components/UserLayout";
 import RestaurantLayout from "./components/RestaurantLayout";
 import MobileLayout from "./components/MobileLayout";
 import AdminPwaGuard from "./components/AdminPwaGuard";
-import PlusGuard from "./components/PlusGuard";
-import PlanProgressGuard from "./components/PlanProgressGuard";
 
 // Auth pages
 import LoginPage from "./pages/auth/LoginPage";
@@ -28,11 +26,7 @@ import ScanPage from "./pages/ScanPage";
 import UserProductsPage from "./pages/UserProductsPage";
 import UserFreezerPage from "./pages/UserFreezerPage";
 import UserPantryPage from "./pages/UserPantryPage";
-import PastiPage from "./pages/PastiPage";
-import MealPhotoPage from "./pages/MealPhotoPage";
-import MealsTargetsPage from "./pages/MealsTargetsPage";
 import ProfiloPage from "./pages/ProfiloPage";
-import InvitePage from "./pages/InvitePage";
 import PublicRecipesPage from "./pages/PublicRecipesPage";
 import RecipeDetailPage from "./pages/RecipeDetailPage";
 import RemindersPage from "./pages/RemindersPage";
@@ -102,20 +96,12 @@ import ProAppointmentsPage from "./pages/pro/ProAppointmentsPage";
 import ProClientPlanPdfPage from "./pages/pro/ProClientPlanPdfPage";
 import ProWeeklyPlanPage from "./pages/pro/ProWeeklyPlanPage";
 
-// User diet page
-import UserDietPage from "./pages/UserDietPage";
-import UserActivePlanPage from "./pages/UserActivePlanPage";
-import UserWeeklyPlanPage from "./pages/UserWeeklyPlanPage";
-import UserProgressPage from "./pages/UserProgressPage";
-import UserPantryRecipesPage from "./pages/UserPantryRecipesPage";
-import UserMessagesPage from "./pages/UserMessagesPage";
-import ShoppingListPage from "./pages/ShoppingListPage";
-import UserMeasurementsPage from "./pages/UserMeasurementsPage";
 import ProClientMeasurementsPage from "./pages/pro/ProClientMeasurementsPage";
 import ProCouponPage from "./pages/pro/ProCouponPage";
-import MealRemindersPage from "./pages/MealRemindersPage";
-import UserFavoritesPage from "./pages/UserFavoritesPage";
+import UserPantryRecipesPage from "./pages/UserPantryRecipesPage";
+import ShoppingListPage from "./pages/ShoppingListPage";
 import AntiWastePage from "./pages/AntiWastePage";
+import UserFavoritesPage from "./pages/UserFavoritesPage";
 import SubscriptionPage from "./pages/SubscriptionPage";
 import UserItemDetailPage from "./pages/UserItemDetailPage";
 import CompareProductsPage from "./pages/CompareProductsPage";
@@ -127,8 +113,6 @@ import SupplierCatalogPage from "./pages/supplier/SupplierCatalogPage";
 import SupplierReportsPage from "./pages/supplier/SupplierReportsPage";
 import SupplierInvitePage from "./pages/supplier/SupplierInvitePage";
 
-import JoinReferralPage from "./pages/JoinReferralPage";
-import NutritionistPublicPage from "./pages/NutritionistPublicPage";
 import NotFound from "./pages/NotFound";
 import PwaInstallBanner from "./components/PwaInstallBanner";
 import { PwaInstallProvider } from "./hooks/usePwaInstall";
@@ -157,8 +141,8 @@ const App = () => (
             <Route path="/auth/forgot" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/auth/callback" element={<AuthCallbackPage />} />
-            <Route path="/join/:code" element={<JoinReferralPage />} />
-            <Route path="/n/:slug" element={<NutritionistPublicPage />} />
+            <Route path="/join/:code" element={<Navigate to="/" replace />} />
+            <Route path="/n/:slug" element={<Navigate to="/" replace />} />
             <Route path="/haccp/label/:token" element={<PublicHaccpLabelPage />} />
 
             {/* Protected routes */}
@@ -172,30 +156,30 @@ const App = () => (
                 <Route path="/products" element={<UserProductsPage />} />
                 <Route path="/freezer" element={<UserFreezerPage />} />
                 <Route path="/pantry" element={<UserPantryPage />} />
-                <Route path="/meals" element={<PastiPage />} />
-                <Route path="/meals/photo" element={<MealPhotoPage />} />
-                <Route path="/meals/targets" element={<MealsTargetsPage />} />
                 <Route path="/profile" element={<ProfiloPage />} />
-                <Route path="/diet" element={<UserDietPage />} />
-                <Route path="/plan" element={<PlanProgressGuard><UserActivePlanPage /></PlanProgressGuard>} />
-                <Route path="/weekly-plan" element={<UserWeeklyPlanPage />} />
                 <Route path="/my-recipes" element={<UserPantryRecipesPage />} />
                 <Route path="/reminders" element={<RemindersPage />} />
-                <Route path="/meal-reminders" element={<MealRemindersPage />} />
                 <Route path="/anti-waste" element={<AntiWastePage />} />
                 <Route path="/suggest-meal" element={<AntiWastePage />} />
-                <Route path="/invite" element={<InvitePage />} />
                 <Route path="/recipes" element={<PublicRecipesPage />} />
                 <Route path="/recipes/:recipeId" element={<RecipeDetailPage />} />
                 <Route path="/preparations" element={<PreparationsPage />} />
-                <Route path="/messages" element={<UserMessagesPage />} />
                 <Route path="/shopping-list" element={<ShoppingListPage />} />
-                <Route path="/measurements" element={<PlusGuard><UserMeasurementsPage /></PlusGuard>} />
-                <Route path="/progress" element={<PlanProgressGuard><UserProgressPage /></PlanProgressGuard>} />
                 <Route path="/subscription" element={<SubscriptionPage />} />
                 <Route path="/favorites" element={<UserFavoritesPage />} />
                 <Route path="/item/:itemId" element={<UserItemDetailPage />} />
                 <Route path="/compare" element={<CompareProductsPage />} />
+                {/* Legacy routes — redirect to home */}
+                <Route path="/meals" element={<Navigate to="/" replace />} />
+                <Route path="/meals/*" element={<Navigate to="/" replace />} />
+                <Route path="/diet" element={<Navigate to="/" replace />} />
+                <Route path="/plan" element={<Navigate to="/" replace />} />
+                <Route path="/weekly-plan" element={<Navigate to="/" replace />} />
+                <Route path="/progress" element={<Navigate to="/" replace />} />
+                <Route path="/invite" element={<Navigate to="/" replace />} />
+                <Route path="/messages" element={<Navigate to="/" replace />} />
+                <Route path="/measurements" element={<Navigate to="/" replace />} />
+                <Route path="/meal-reminders" element={<Navigate to="/reminders" replace />} />
               </Route>
 
               {/* ═══ RESTAURANT APP (RestaurantLayout) ═══ */}

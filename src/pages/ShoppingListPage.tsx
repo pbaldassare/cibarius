@@ -144,7 +144,7 @@ const ShoppingListPage = () => {
         <MobileHeader title="Lista della spesa" />
         <main className="px-4 py-10 text-center space-y-4">
           <ShoppingCart className="h-12 w-12 text-muted-foreground mx-auto" />
-          <p className="text-muted-foreground">Nessuna ricetta suggerita dal tuo nutrizionista ancora.</p>
+          <p className="text-muted-foreground">Nessuna ricetta suggerita ancora. Prova le ricette anti-spreco dalla dispensa.</p>
           <p className="text-xs text-muted-foreground">La lista si genera automaticamente dalle ricette del tuo piano.</p>
         </main>
       </div>

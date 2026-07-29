@@ -4,7 +4,8 @@ import { useAuth } from "@/hooks/useAuth";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2, Sprout, Trash2, Download } from "lucide-react";
+import { Loader2, Sprout, Trash2, Download, User } from "lucide-react";
+import { seedFrancescaBiazzi } from "@/lib/seed-francesca";
 
 const DEMO = "[DEMO]";
 
@@ -64,7 +65,7 @@ const AdminSeedPage = () => {
   const { user } = useAuth();
   const [running, setRunning] = useState(false);
   const [cleaning, setCleaning] = useState(false);
-  const [importing, setImporting] = useState(false);
+  const [seedingFrancesca, setSeedingFrancesca] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
   const logRef = useRef<HTMLDivElement>(null);
 
@@ -404,6 +405,36 @@ const AdminSeedPage = () => {
     setCleaning(false);
   };
 
+  const handleSeedFrancesca = async () => {
+    if (!user) return;
+    setSeedingFrancesca(true);
+    setLogs([]);
+    try {
+      const { data: rpcMsg, error: rpcErr } = await supabase.rpc("seed_francesca_biazzi");
+      if (!rpcErr && rpcMsg) {
+        log(`✅ ${rpcMsg}`);
+        setSeedingFrancesca(false);
+        return;
+      }
+      if (rpcErr) log(`ℹ️ RPC: ${rpcErr.message} — provo seed client…`);
+
+      const result = await seedFrancescaBiazzi(supabase, log);
+      if (result.ok) {
+        setSeedingFrancesca(false);
+        return;
+      }
+
+      log("ℹ️ Provo edge function…");
+      const { data, error } = await supabase.functions.invoke("seed-francesca");
+      if (error) log(`❌ Edge function: ${error.message}`);
+      else if (data?.error) log(`❌ ${data.error}`);
+      else if (data?.ok) log(`✅ ${data.message ?? "OK"} — ${data.inventory} prodotti in dispensa`);
+    } catch (err: any) {
+      log(`❌ Errore: ${err.message}`);
+    }
+    setSeedingFrancesca(false);
+  };
+
   const handleImportOFF = async () => {
     setImporting(true);
     setLogs([]);
@@ -431,20 +462,33 @@ const AdminSeedPage = () => {
           <p className="text-sm text-muted-foreground">Popola dati demo o importa prodotti reali da OpenFoodFacts</p>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Dati Demo</CardTitle>
               <CardDescription>Genera o pulisci dati fittizi per testare la piattaforma</CardDescription>
             </CardHeader>
             <CardContent className="flex gap-3">
-              <Button onClick={handleSeed} disabled={running || cleaning || importing} className="gap-2">
+              <Button onClick={handleSeed} disabled={running || cleaning || importing || seedingFrancesca} className="gap-2">
                 {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sprout className="h-4 w-4" />}
                 Genera
               </Button>
-              <Button variant="destructive" onClick={handleClean} disabled={running || cleaning || importing} className="gap-2">
+              <Button variant="destructive" onClick={handleClean} disabled={running || cleaning || importing || seedingFrancesca} className="gap-2">
                 {cleaning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                 Pulisci
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Francesca Biazzi (test)</CardTitle>
+              <CardDescription>Dispensa realistica: frigo, dispensa, freezer, scadenze e preparazioni</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button onClick={handleSeedFrancesca} disabled={running || cleaning || importing || seedingFrancesca} className="gap-2" variant="secondary">
+                {seedingFrancesca ? <Loader2 className="h-4 w-4 animate-spin" /> : <User className="h-4 w-4" />}
+                Popola Francesca Biazzi
               </Button>
             </CardContent>
           </Card>
@@ -455,7 +499,7 @@ const AdminSeedPage = () => {
               <CardDescription>Importa i top ~5000 prodotti italiani più scansionati. Operazione una tantum (~2 min).</CardDescription>
             </CardHeader>
             <CardContent>
-              <Button onClick={handleImportOFF} disabled={running || cleaning || importing} className="gap-2">
+              <Button onClick={handleImportOFF} disabled={running || cleaning || importing || seedingFrancesca} className="gap-2">
                 {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                 {importing ? "Importazione in corso..." : "Importa prodotti IT"}
               </Button>

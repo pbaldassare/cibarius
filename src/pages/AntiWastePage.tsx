@@ -7,14 +7,12 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import ListSkeleton from "@/components/ListSkeleton";
 import EmptyState from "@/components/EmptyState";
 import { deductPantryFromMeal } from "@/lib/pantry-deduction";
 import {
   Leaf, Clock, ChefHat, AlertTriangle, Check, X, Loader2,
   Refrigerator, Package, Sparkles, Utensils, ChevronDown, ChevronUp,
-  Sun, Coffee, Moon, Apple,
 } from "lucide-react";
 
 /* ─── types ─── */
@@ -243,12 +241,6 @@ function matchScore(pantryNames: string[], recipeIngredients: { name: string }[]
   return { matched, total: recipeIngredients.length, expiringUsed };
 }
 
-const MEAL_TYPES = [
-  { value: "colazione", label: "Colazione", icon: Coffee },
-  { value: "pranzo", label: "Pranzo", icon: Sun },
-  { value: "cena", label: "Cena", icon: Moon },
-  { value: "spuntino", label: "Spuntino", icon: Apple },
-] as const;
 
 /* ═══ COMPONENT ═══ */
 const AntiWastePage = () => {
@@ -265,13 +257,9 @@ const AntiWastePage = () => {
   const [aiSuggestions, setAiSuggestions] = useState<SuggestedRecipe[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
-  const [aiContext, setAiContext] = useState<{ pantry_count: number; expiring_count: number; kcalToday: number } | null>(null);
+  const [aiContext, setAiContext] = useState<{ pantry_count: number; expiring_count: number } | null>(null);
 
   const [cooking, setCooking] = useState<string | null>(null);
-
-  // Meal type picker
-  const [mealPickerOpen, setMealPickerOpen] = useState(false);
-  const [pendingRecipe, setPendingRecipe] = useState<{ recipe: SuggestedRecipe; key: string } | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -361,7 +349,6 @@ const AntiWastePage = () => {
       setAiContext({
         pantry_count: result.pantry_count,
         expiring_count: result.expiring_count,
-        kcalToday: Math.round(result.consumed_today?.totalKcal || 0),
       });
     } catch (e: any) {
       setAiError(e.message || "Errore AI");
@@ -371,52 +358,10 @@ const AntiWastePage = () => {
     }
   };
 
-  // Open meal picker
-  const handleCookClick = (recipe: SuggestedRecipe, key: string) => {
-    setPendingRecipe({ recipe, key });
-    setMealPickerOpen(true);
-  };
-
-  // Cook & log with chosen meal type
-  const handleCook = async (mealType: string) => {
-    if (!user || !pendingRecipe) return;
-    const { recipe, key } = pendingRecipe;
-    setMealPickerOpen(false);
+  const handleCook = async (recipe: SuggestedRecipe, key: string) => {
+    if (!user) return;
     setCooking(key);
     try {
-      const today = new Date().toISOString().slice(0, 10);
-
-      let { data: dayData } = await supabase.from("meal_days").select("id").eq("user_id", user.id).eq("day_date", today).maybeSingle();
-      if (!dayData) {
-        const { data: nd, error: de } = await supabase.from("meal_days").insert({ user_id: user.id, day_date: today }).select("id").single();
-        if (de) throw de;
-        dayData = nd;
-      }
-      let { data: mealData } = await supabase.from("meals").select("id").eq("meal_day_id", dayData!.id).eq("meal_type", mealType).maybeSingle();
-      if (!mealData) {
-        const { data: nm, error: me } = await supabase.from("meals").insert({ meal_day_id: dayData!.id, meal_type: mealType }).select("id").single();
-        if (me) throw me;
-        mealData = nm;
-      }
-
-      await supabase.from("meal_items").insert({
-        meal_id: mealData!.id, source_type: "custom", custom_name: recipe.title, dish_name: recipe.title,
-        calories: recipe.estimatedKcal, quantity: 1, unit: "porzione", macros: recipe.estimatedMacros,
-      });
-
-      // Also log in meal_logs for daily progress tracking
-      await supabase.from("meal_logs").insert({
-        user_id: user.id,
-        meal_type: mealType,
-        dish_name: recipe.title,
-        kcal: recipe.estimatedKcal,
-        protein_g: recipe.estimatedMacros.protein,
-        carbs_g: recipe.estimatedMacros.carbs,
-        fat_g: recipe.estimatedMacros.fats,
-        portion_g: recipe.ingredients.reduce((s, i) => s + (i.grams || 0), 0),
-      });
-
-      // Deduct pantry
       const pantryItems = recipe.ingredients.filter(i => i.available).map(i => ({
         custom_name: i.name, dish_name: i.name,
         quantity: i.grams || parseFloat(i.qty) || 100,
@@ -424,7 +369,6 @@ const AntiWastePage = () => {
       }));
       if (pantryItems.length > 0) await deductPantryFromMeal(user.id, pantryItems);
 
-      // Track waste savings
       for (const ing of recipe.ingredients) {
         if (ing.available && ing.expiring) {
           await supabase.from("waste_savings" as any).insert({
@@ -436,13 +380,11 @@ const AntiWastePage = () => {
         }
       }
 
-      const mealLabel = MEAL_TYPES.find(m => m.value === mealType)?.label || mealType;
-      toast({ title: `"${recipe.title}" aggiunto a ${mealLabel}! ✅`, description: "Pasto e dispensa aggiornati" });
+      toast({ title: `"${recipe.title}" cucinata! ✅`, description: "Dispensa aggiornata" });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Errore", description: e.message });
     } finally {
       setCooking(null);
-      setPendingRecipe(null);
     }
   };
 
@@ -536,9 +478,9 @@ const AntiWastePage = () => {
 
         {/* Cook button */}
         <div className="px-4 pb-4">
-          <Button size="sm" onClick={() => handleCookClick(recipe, key)} disabled={cooking !== null} className="w-full h-9 rounded-xl text-[12px] font-semibold">
+          <Button size="sm" onClick={() => handleCook(recipe, key)} disabled={cooking !== null} className="w-full h-9 rounded-xl text-[12px] font-semibold">
             {cooking === key ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Utensils className="h-3.5 w-3.5 mr-1.5" />}
-            Cucina e registra
+            Ho cucinato — scala dispensa
           </Button>
         </div>
       </div>
@@ -547,7 +489,7 @@ const AntiWastePage = () => {
 
   return (
     <div>
-      <MobileHeader title="Cosa mangio oggi?" />
+      <MobileHeader title="Ricette anti-spreco" />
       <main className="space-y-4 px-4 py-5 pb-28">
 
         {/* Expiring items summary */}
@@ -599,7 +541,7 @@ const AntiWastePage = () => {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-[13px] font-semibold text-foreground">Suggerimenti AI personalizzati</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Analizza dispensa, scadenze e pasti di oggi</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Analizza dispensa e scadenze</p>
             </div>
             <Button size="sm" onClick={handleAiSuggest} disabled={aiLoading} className="shrink-0 h-8 rounded-lg text-[11px] font-semibold px-3">
               {aiLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Sparkles className="h-3.5 w-3.5 mr-1" /> Genera</>}
@@ -616,7 +558,6 @@ const AntiWastePage = () => {
             {[
               { n: aiContext.pantry_count, label: "In dispensa", color: "text-foreground" },
               { n: aiContext.expiring_count, label: "In scadenza", color: "text-warning" },
-              { n: aiContext.kcalToday, label: "Kcal oggi", color: "text-primary" },
             ].map(({ n, label, color }) => (
               <div key={label} className="flex-1 rounded-xl bg-card shadow-card p-2.5 text-center">
                 <p className={`text-base font-bold ${color}`}>{n}</p>
@@ -657,30 +598,6 @@ const AntiWastePage = () => {
           </div>
         ) : null}
       </main>
-
-      {/* ─── Meal type picker dialog ─── */}
-      <Dialog open={mealPickerOpen} onOpenChange={setMealPickerOpen}>
-        <DialogContent className="max-w-[340px] rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-base">In quale pasto?</DialogTitle>
-          </DialogHeader>
-          <p className="text-[12px] text-muted-foreground -mt-2">
-            Scegli dove registrare <span className="font-semibold text-foreground">{pendingRecipe?.recipe.title}</span>
-          </p>
-          <div className="grid grid-cols-2 gap-2 mt-2">
-            {MEAL_TYPES.map(({ value, label, icon: Icon }) => (
-              <button
-                key={value}
-                onClick={() => handleCook(value)}
-                className="flex flex-col items-center gap-1.5 rounded-xl border border-border bg-card p-4 hover:border-primary hover:bg-primary/5 transition-colors"
-              >
-                <Icon className="h-6 w-6 text-primary" />
-                <span className="text-[13px] font-semibold text-foreground">{label}</span>
-              </button>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

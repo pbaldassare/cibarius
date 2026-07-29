@@ -45,7 +45,7 @@ export const useTour = () => {
 
 /* ═══════════════ USER TOUR ═══════════════ */
 export const USER_TOUR_STEPS: TourStep[] = [
-  { selector: "home-greeting", title: "Benvenuto su Cibarius! 🎉", description: "Questa è la tua home. Qui trovi tutto a colpo d'occhio: scadenze, dispensa, pasti e suggerimenti personalizzati.", page: "/" },
+  { selector: "home-greeting", title: "Benvenuto su Cibarius! 🎉", description: "Questa è la tua home. Qui trovi scadenze, dispensa e suggerimenti anti-spreco a colpo d'occhio.", page: "/" },
   { selector: "home-search", title: "Cerca prodotti 🔍", description: "Cerca rapidamente tra tutti i tuoi prodotti in dispensa, frigo o congelatore.", page: "/" },
   { selector: "home-expiry", title: "Attenzione oggi ⚠️", description: "Qui vedi i prodotti in scadenza o già scaduti. Non sprecare nulla! Puoi gestirli direttamente da qui.", page: "/" },
   { selector: "home-action-scan", title: "Scansiona barcode 📷", description: "Scansiona il barcode di un prodotto per aggiungerlo automaticamente con tutte le info nutrizionali.", page: "/" },
@@ -62,18 +62,13 @@ export const USER_TOUR_STEPS: TourStep[] = [
   { selector: "add-close-tour", title: "Chiudiamo il modale ✓", description: "Perfetto! Ora conosci tutti i modi per aggiungere prodotti. Chiudiamo e continuiamo il tour.", action: { type: "close-add-food", delay: 400 } },
   { selector: "home-pantry", title: "La tua dispensa 🏠", description: "Panoramica completa di tutti i tuoi prodotti: quanti ne hai, quanti in scadenza, quanti quasi finiti.", page: "/", action: { type: "scroll", target: "home-pantry" } },
   { selector: "home-recipes", title: "Ricette anti-spreco 🍳", description: "Ricette suggerite automaticamente in base a ciò che hai in casa. Cucina senza sprecare!", page: "/", action: { type: "scroll", target: "home-recipes" } },
-  { selector: "home-meals", title: "I tuoi pasti di oggi 🍽️", description: "Registra colazione, pranzo e cena per monitorare la tua alimentazione giornaliera.", page: "/", action: { type: "scroll", target: "home-meals" } },
   { selector: "nav-expiry", title: "Scadenze 📅", description: "Vai alla lista completa delle scadenze. Filtra per stato, tipo di conservazione e gestisci tutto.", page: "/" },
-  { selector: "nav-plan", title: "Piano alimentare 📋", description: "Il tuo piano alimentare personalizzato dal nutrizionista. Segui i target giornalieri di calorie e macronutrienti.", page: "/" },
-  { selector: "nav-meals", title: "Diario pasti 🍴", description: "Il diario alimentare completo: registra pasti con foto, monitora calorie e macro giornalieri.", page: "/" },
-  { selector: "nav-progress", title: "Progressi 📈", description: "Monitora peso, misurazioni corporee e aderenza al piano alimentare nel tempo.", page: "/" },
-  { selector: "nav-profile", title: "Profilo ⚙️", description: "Impostazioni, collegamento con il nutrizionista, notifiche e supporto.", page: "/" },
+  { selector: "nav-recipes", title: "Ricette anti-spreco 🍳", description: "Trova cosa cucinare con gli ingredienti che hai, soprattutto quelli in scadenza.", page: "/" },
+  { selector: "nav-profile", title: "Profilo ⚙️", description: "Impostazioni, notifiche scadenze e assistenza.", page: "/" },
   { selector: "expiry-page-header", title: "Pagina Scadenze 📅", description: "Qui puoi filtrare per scaduti/in scadenza, per tipo di conservazione (frigo, freezer, dispensa), cercare e gestire tutti i prodotti.", page: "/expiry", action: { type: "navigate", target: "/expiry", delay: 500 } },
-  { selector: "meals-page-header", title: "Diario Pasti 🍴", description: "Registra tutti i pasti della giornata. Vedi le calorie consumate, i macro e il confronto con gli obiettivi del piano alimentare.", page: "/meals", action: { type: "navigate", target: "/meals", delay: 500 } },
-  { selector: "profile-page-header", title: "Il tuo Profilo ⚙️", description: "Modifica nome, foto, gestisci le notifiche email, collega il nutrizionista e accedi al supporto. Qui puoi anche rivedere questo tour!", page: "/profile", action: { type: "navigate", target: "/profile", delay: 500 } },
+  { selector: "profile-page-header", title: "Il tuo Profilo ⚙️", description: "Modifica nome, foto, gestisci le notifiche email e accedi al supporto. Qui puoi anche rivedere questo tour!", page: "/profile", action: { type: "navigate", target: "/profile", delay: 500 } },
   { selector: "nav-profile", title: "Condividi Cibarius con gli amici 🤝", description: "Ti piace Cibarius? Dal profilo puoi condividere l'app con amici e famiglia!", page: "/", action: { type: "navigate", target: "/", delay: 400 } },
-  { selector: "nav-plan", title: "Fatti seguire da un nutrizionista 👨‍⚕️", description: "Collega il tuo account a un nutrizionista professionista per ricevere piani alimentari personalizzati e monitoraggio dedicato.", page: "/" },
-  { selector: "home-greeting", title: "Grazie per la tua attenzione! 🎊", description: "Ora conosci tutte le funzionalità di Cibarius. Inizia aggiungendo i tuoi primi prodotti e scopri quanto è facile mangiare meglio. Buon appetito! 🍽️", page: "/", action: { type: "navigate", target: "/", delay: 400 } },
+  { selector: "home-greeting", title: "Grazie per la tua attenzione! 🎊", description: "Ora conosci le funzionalità di Cibarius. Inizia aggiungendo i tuoi primi prodotti e riduci gli sprechi. Buon appetito! 🍽️", page: "/", action: { type: "navigate", target: "/", delay: 400 } },
 ];
 
 /* ═══════════════ RESTAURANT TOUR ═══════════════ */

@@ -111,11 +111,10 @@ const SubscriptionPage = () => {
   const activeSub = activeTab === "user_plus" ? userPlusSub : restaurantSub;
 
   const userPlusFeatures = [
-    "Piano alimentare personalizzato",
-    "Impostazione macro nutrienti",
-    "Collegamento nutrizionista",
-    "Piano dal nutrizionista",
-    "Monitoraggio nutrizione avanzato",
+    "Funzionalità premium in arrivo",
+    "Anti-spreco avanzato",
+    "Priorità su nuove feature",
+    "Supporto dedicato",
   ];
 
   const restaurantFeatures = [
