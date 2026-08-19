@@ -4064,6 +4064,7 @@ export type Database = {
       owns_nutrition_plan: { Args: { _plan_id: string }; Returns: boolean }
       owns_recipe_restaurant: { Args: { _recipe_id: string }; Returns: boolean }
       owns_supplier: { Args: { _supplier_id: string }; Returns: boolean }
+      seed_francesca_biazzi: { Args: never; Returns: string }
     }
     Enums: {
       [_ in never]: never
