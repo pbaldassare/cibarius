@@ -83,7 +83,7 @@ const RestaurantInvoicesPage = () => {
     try {
       const isImage = doc.file_path.match(/\.(jpg|jpeg|png|gif|webp)$/i);
 
-      let body: any = { document_id: doc.id };
+      const body: any = { document_id: doc.id };
 
       if (isImage && doc.public_url) {
         // For images, send the URL directly

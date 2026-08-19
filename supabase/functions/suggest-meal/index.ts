@@ -664,7 +664,7 @@ serve(async (req) => {
       .eq("day_date", today)
       .maybeSingle();
 
-    let mealItems: any[] = [];
+    const mealItems: any[] = [];
     if (mealDay) {
       const { data: meals } = await supabase
         .from("meals")
@@ -836,7 +836,7 @@ Inventa ${targetCount} ricette diverse cucinabili ORA (difficulty + course obbli
       raw = [];
     }
 
-    let scored = raw.map((s) => reconcileSuggestion(s, pantryNames, expiringNames));
+    const scored = raw.map((s) => reconcileSuggestion(s, pantryNames, expiringNames));
     let suggestions = filterCookable(scored);
 
     // Second pass: force pantry-only adaptation if filter emptied / too few

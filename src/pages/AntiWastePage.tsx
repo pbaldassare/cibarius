@@ -410,7 +410,9 @@ const AntiWastePage = () => {
 
   const visibleAiSuggestions = useMemo(() => {
     // Trust server filtering; only re-check availability for display and soft-rank
-    let list = aiSuggestions
+    // Annotato esplicitamente: il ramo di fallback sotto riusa aiSuggestions "grezzi",
+    // dove role/expiring restano opzionali come in RecipeIngredient.
+    let list: (SuggestedRecipe & { _missingCore: number; _missingMinor: number })[] = aiSuggestions
       .map(s => {
         const ingredients = s.ingredients.map(i => {
           const role = resolveRole(i.name, i.role);

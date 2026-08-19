@@ -83,7 +83,7 @@ export function useMealReminders() {
     if (!user) return;
     if (!("Notification" in window) || Notification.permission !== "granted") return;
 
-    let timers: ReturnType<typeof setTimeout>[] = [];
+    const timers: ReturnType<typeof setTimeout>[] = [];
 
     const checkMealLoggedFactory = (mealType: string) => async (): Promise<boolean> => {
       const today = new Date().toISOString().slice(0, 10);

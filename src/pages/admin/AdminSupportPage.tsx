@@ -47,7 +47,7 @@ const AdminSupportPage = () => {
 
     // Fetch user emails
     const userIds = [...new Set((data as any[]).map((r: any) => r.user_id))];
-    let profileMap: Record<string, { email: string; full_name: string | null }> = {};
+    const profileMap: Record<string, { email: string; full_name: string | null }> = {};
     if (userIds.length > 0) {
       const { data: profiles } = await supabase.from("profiles").select("id, email, full_name").in("id", userIds);
       if (profiles) {

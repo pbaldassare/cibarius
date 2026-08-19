@@ -66,6 +66,7 @@ const AdminSeedPage = () => {
   const [running, setRunning] = useState(false);
   const [cleaning, setCleaning] = useState(false);
   const [seedingFrancesca, setSeedingFrancesca] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
   const logRef = useRef<HTMLDivElement>(null);
 
@@ -101,7 +102,7 @@ const AdminSeedPage = () => {
 
       // ── A) Allergens ──
       const { data: existingAllergens } = await supabase.from("allergens").select("id, code");
-      let allergenMap: Record<string, string> = {};
+      const allergenMap: Record<string, string> = {};
       if (!existingAllergens || existingAllergens.length === 0) {
         const { data: inserted } = await supabase.from("allergens").insert(ALLERGENS).select("id, code");
         if (inserted) {

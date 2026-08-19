@@ -7,8 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Loader2, FileText, AlertTriangle, CheckCircle2, XCircle, Printer, Clock, Plus, Pencil, Ban, Copy, FileCheck, FileSignature, Download, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
-import html2canvas from "html2canvas";
-import { jsPDF } from "jspdf";
+import type { jsPDF } from "jspdf";
 import { toast } from "sonner";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -64,6 +63,11 @@ const PublicHaccpLabelPage = () => {
 
   const buildPdf = async (): Promise<jsPDF | null> => {
     if (!pdfRef.current) return null;
+    // html2canvas + jspdf pesano ~600 kB: caricali solo quando si genera il PDF
+    const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+      import("html2canvas"),
+      import("jspdf"),
+    ]);
     const canvas = await html2canvas(pdfRef.current, {
       scale: 2,
       backgroundColor: "#ffffff",

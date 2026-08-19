@@ -188,7 +188,7 @@ export async function fuseWithOFF(aiResult: AIFoodResult): Promise<FusedFoodData
   const barcode = off?.barcode ?? ai.product.barcode ?? null;
 
   // Nutrition: prefer OFF if available, else AI
-  let calories_100g = off?.calories_100g ?? ai.nutrition?.calories_100g ?? null;
+  const calories_100g = off?.calories_100g ?? ai.nutrition?.calories_100g ?? null;
   let macros_100g = off?.macros_100g ?? null;
   if (!macros_100g && ai.nutrition) {
     const { protein_100g, carbs_100g, fats_100g } = ai.nutrition;

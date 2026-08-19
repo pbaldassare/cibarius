@@ -239,7 +239,7 @@ const UserActivePlanPage = () => {
       const today = new Date().toISOString().slice(0, 10);
 
       // Get or create meal_day
-      let { data: dayData } = await supabase
+      const { data: dayData } = await supabase
         .from("meal_days")
         .select("id")
         .eq("user_id", user.id)
@@ -260,7 +260,7 @@ const UserActivePlanPage = () => {
       }
 
       // Get or create meal
-      let { data: mealData } = await supabase
+      const { data: mealData } = await supabase
         .from("meals")
         .select("id")
         .eq("meal_day_id", dayId)

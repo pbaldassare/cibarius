@@ -1,3 +1,5 @@
+import { lazy, Suspense } from "react";
+import { Loader2 } from "lucide-react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,107 +15,107 @@ import MobileLayout from "./components/MobileLayout";
 import AdminPwaGuard from "./components/AdminPwaGuard";
 
 // Auth pages
-import LoginPage from "./pages/auth/LoginPage";
-import SignupPage from "./pages/auth/SignupPage";
-import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
-import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
-import AuthCallbackPage from "./pages/auth/AuthCallbackPage";
+const LoginPage = lazy(() => import("./pages/auth/LoginPage"));
+const SignupPage = lazy(() => import("./pages/auth/SignupPage"));
+const ForgotPasswordPage = lazy(() => import("./pages/auth/ForgotPasswordPage"));
+const ResetPasswordPage = lazy(() => import("./pages/auth/ResetPasswordPage"));
+const AuthCallbackPage = lazy(() => import("./pages/auth/AuthCallbackPage"));
 
 // User pages
-import Index from "./pages/Index";
-import ExpiryPage from "./pages/ExpiryPage";
-import ScanPage from "./pages/ScanPage";
-import UserProductsPage from "./pages/UserProductsPage";
-import UserFreezerPage from "./pages/UserFreezerPage";
-import UserPantryPage from "./pages/UserPantryPage";
-import ProfiloPage from "./pages/ProfiloPage";
-import PublicRecipesPage from "./pages/PublicRecipesPage";
-import RecipeDetailPage from "./pages/RecipeDetailPage";
-import RemindersPage from "./pages/RemindersPage";
-import PreparationsPage from "./pages/PreparationsPage";
+const Index = lazy(() => import("./pages/Index"));
+const ExpiryPage = lazy(() => import("./pages/ExpiryPage"));
+const ScanPage = lazy(() => import("./pages/ScanPage"));
+const UserProductsPage = lazy(() => import("./pages/UserProductsPage"));
+const UserFreezerPage = lazy(() => import("./pages/UserFreezerPage"));
+const UserPantryPage = lazy(() => import("./pages/UserPantryPage"));
+const ProfiloPage = lazy(() => import("./pages/ProfiloPage"));
+const PublicRecipesPage = lazy(() => import("./pages/PublicRecipesPage"));
+const RecipeDetailPage = lazy(() => import("./pages/RecipeDetailPage"));
+const RemindersPage = lazy(() => import("./pages/RemindersPage"));
+const PreparationsPage = lazy(() => import("./pages/PreparationsPage"));
 
 // Admin pages
-import AdminPage from "./pages/admin/AdminPage";
-import AdminUsersPage from "./pages/admin/AdminUsersPage";
-import AdminSettingsPage from "./pages/admin/AdminSettingsPage";
-import AdminSeedPage from "./pages/admin/AdminSeedPage";
-import AdminProductReviewPage from "./pages/admin/AdminProductReviewPage";
-import AdminSupportPage from "./pages/admin/AdminSupportPage";
+const AdminPage = lazy(() => import("./pages/admin/AdminPage"));
+const AdminUsersPage = lazy(() => import("./pages/admin/AdminUsersPage"));
+const AdminSettingsPage = lazy(() => import("./pages/admin/AdminSettingsPage"));
+const AdminSeedPage = lazy(() => import("./pages/admin/AdminSeedPage"));
+const AdminProductReviewPage = lazy(() => import("./pages/admin/AdminProductReviewPage"));
+const AdminSupportPage = lazy(() => import("./pages/admin/AdminSupportPage"));
 // AdminCouponsPage merged into AdminPaymentsPage
-import AdminRestaurantsPage from "./pages/admin/AdminRestaurantsPage";
-import AdminStatsPage from "./pages/admin/AdminStatsPage";
-import AdminHaccpTemplatesPage from "./pages/admin/AdminHaccpTemplatesPage";
-import AdminSubscriptionsPage from "./pages/admin/AdminSubscriptionsPage";
-import AdminPaymentsPage from "./pages/admin/AdminPaymentsPage";
-import AdminProductsDbPage from "./pages/admin/AdminProductsDbPage";
-import AdminApiPage from "./pages/admin/AdminApiPage";
+const AdminRestaurantsPage = lazy(() => import("./pages/admin/AdminRestaurantsPage"));
+const AdminStatsPage = lazy(() => import("./pages/admin/AdminStatsPage"));
+const AdminHaccpTemplatesPage = lazy(() => import("./pages/admin/AdminHaccpTemplatesPage"));
+const AdminSubscriptionsPage = lazy(() => import("./pages/admin/AdminSubscriptionsPage"));
+const AdminPaymentsPage = lazy(() => import("./pages/admin/AdminPaymentsPage"));
+const AdminProductsDbPage = lazy(() => import("./pages/admin/AdminProductsDbPage"));
+const AdminApiPage = lazy(() => import("./pages/admin/AdminApiPage"));
 
 // Restaurant app pages
-import RestaurantOnboardingPage from "./pages/restaurant/RestaurantOnboardingPage";
-import RestaurantPage from "./pages/restaurant/RestaurantPage";
-import RestaurantProductsPage from "./pages/restaurant/RestaurantProductsPage";
-import RestaurantExpiryPage from "./pages/restaurant/RestaurantExpiryPage";
-import RestaurantRecipesPage from "./pages/restaurant/RestaurantRecipesPage";
-import RestaurantSettingsPage from "./pages/restaurant/RestaurantSettingsPage";
-import RestaurantInvoicesPage from "./pages/restaurant/RestaurantInvoicesPage";
-import RestaurantPreparationsPage from "./pages/restaurant/RestaurantPreparationsPage";
-import RestaurantItemPage from "./pages/restaurant/RestaurantItemPage";
-import RestaurantHaccpPage from "./pages/restaurant/RestaurantHaccpPage";
-import RestaurantHaccpSetupPage from "./pages/restaurant/RestaurantHaccpSetupPage";
-import RestaurantHaccpHistoryPage from "./pages/restaurant/RestaurantHaccpHistoryPage";
-import RestaurantHaccpLabelsPage from "./pages/restaurant/RestaurantHaccpLabelsPage";
-import RestaurantHaccpLabelNewPage from "./pages/restaurant/RestaurantHaccpLabelNewPage";
-import RestaurantHaccpLabelDetailPage from "./pages/restaurant/RestaurantHaccpLabelDetailPage";
-import RestaurantHaccpDocumentsPage from "./pages/restaurant/RestaurantHaccpDocumentsPage";
-import PublicHaccpLabelPage from "./pages/PublicHaccpLabelPage";
-import AdminHaccpLabelsPage from "./pages/admin/AdminHaccpLabelsPage";
+const RestaurantOnboardingPage = lazy(() => import("./pages/restaurant/RestaurantOnboardingPage"));
+const RestaurantPage = lazy(() => import("./pages/restaurant/RestaurantPage"));
+const RestaurantProductsPage = lazy(() => import("./pages/restaurant/RestaurantProductsPage"));
+const RestaurantExpiryPage = lazy(() => import("./pages/restaurant/RestaurantExpiryPage"));
+const RestaurantRecipesPage = lazy(() => import("./pages/restaurant/RestaurantRecipesPage"));
+const RestaurantSettingsPage = lazy(() => import("./pages/restaurant/RestaurantSettingsPage"));
+const RestaurantInvoicesPage = lazy(() => import("./pages/restaurant/RestaurantInvoicesPage"));
+const RestaurantPreparationsPage = lazy(() => import("./pages/restaurant/RestaurantPreparationsPage"));
+const RestaurantItemPage = lazy(() => import("./pages/restaurant/RestaurantItemPage"));
+const RestaurantHaccpPage = lazy(() => import("./pages/restaurant/RestaurantHaccpPage"));
+const RestaurantHaccpSetupPage = lazy(() => import("./pages/restaurant/RestaurantHaccpSetupPage"));
+const RestaurantHaccpHistoryPage = lazy(() => import("./pages/restaurant/RestaurantHaccpHistoryPage"));
+const RestaurantHaccpLabelsPage = lazy(() => import("./pages/restaurant/RestaurantHaccpLabelsPage"));
+const RestaurantHaccpLabelNewPage = lazy(() => import("./pages/restaurant/RestaurantHaccpLabelNewPage"));
+const RestaurantHaccpLabelDetailPage = lazy(() => import("./pages/restaurant/RestaurantHaccpLabelDetailPage"));
+const RestaurantHaccpDocumentsPage = lazy(() => import("./pages/restaurant/RestaurantHaccpDocumentsPage"));
+const PublicHaccpLabelPage = lazy(() => import("./pages/PublicHaccpLabelPage"));
+const AdminHaccpLabelsPage = lazy(() => import("./pages/admin/AdminHaccpLabelsPage"));
 
 // Restaurant admin pages
-import RestaurantAdminPage from "./pages/restaurant-admin/RestaurantAdminPage";
-import RestaurantAdminSettingsPage from "./pages/restaurant-admin/RestaurantAdminSettingsPage";
-import RestaurantAdminStaffPage from "./pages/restaurant-admin/RestaurantAdminStaffPage";
-import RestaurantAdminReportsPage from "./pages/restaurant-admin/RestaurantAdminReportsPage";
-import RestaurantHaccpControlPage from "./pages/restaurant-admin/RestaurantHaccpControlPage";
-import RestaurantTemperaturesPage from "./pages/restaurant-admin/RestaurantTemperaturesPage";
+const RestaurantAdminPage = lazy(() => import("./pages/restaurant-admin/RestaurantAdminPage"));
+const RestaurantAdminSettingsPage = lazy(() => import("./pages/restaurant-admin/RestaurantAdminSettingsPage"));
+const RestaurantAdminStaffPage = lazy(() => import("./pages/restaurant-admin/RestaurantAdminStaffPage"));
+const RestaurantAdminReportsPage = lazy(() => import("./pages/restaurant-admin/RestaurantAdminReportsPage"));
+const RestaurantHaccpControlPage = lazy(() => import("./pages/restaurant-admin/RestaurantHaccpControlPage"));
+const RestaurantTemperaturesPage = lazy(() => import("./pages/restaurant-admin/RestaurantTemperaturesPage"));
 
 // Pro pages
-import ProPage from "./pages/pro/ProPage";
-import ProClientsPage from "./pages/pro/ProClientsPage";
-import ProClientDetailPage from "./pages/pro/ProClientDetailPage";
-import ProClientPlanPage from "./pages/pro/ProClientPlanPage";
-import ProClientMonitorPage from "./pages/pro/ProClientMonitorPage";
-import ProClientSuggestPage from "./pages/pro/ProClientSuggestPage";
-import ProClientPantryPage from "./pages/pro/ProClientPantryPage";
-import ProClientPantryRecipesPage from "./pages/pro/ProClientPantryRecipesPage";
-import ProReportsPage from "./pages/pro/ProReportsPage";
-import ProNotesPage from "./pages/pro/ProNotesPage";
-import ProClientPlanHistoryPage from "./pages/pro/ProClientPlanHistoryPage";
-import ProTemplatesPage from "./pages/pro/ProTemplatesPage";
-import ProTemplateEditorPage from "./pages/pro/ProTemplateEditorPage";
-import ProWeeklyReportPage from "./pages/pro/ProWeeklyReportPage";
-import ProClientMessagesPage from "./pages/pro/ProClientMessagesPage";
-import ProAppointmentsPage from "./pages/pro/ProAppointmentsPage";
-import ProClientPlanPdfPage from "./pages/pro/ProClientPlanPdfPage";
-import ProWeeklyPlanPage from "./pages/pro/ProWeeklyPlanPage";
+const ProPage = lazy(() => import("./pages/pro/ProPage"));
+const ProClientsPage = lazy(() => import("./pages/pro/ProClientsPage"));
+const ProClientDetailPage = lazy(() => import("./pages/pro/ProClientDetailPage"));
+const ProClientPlanPage = lazy(() => import("./pages/pro/ProClientPlanPage"));
+const ProClientMonitorPage = lazy(() => import("./pages/pro/ProClientMonitorPage"));
+const ProClientSuggestPage = lazy(() => import("./pages/pro/ProClientSuggestPage"));
+const ProClientPantryPage = lazy(() => import("./pages/pro/ProClientPantryPage"));
+const ProClientPantryRecipesPage = lazy(() => import("./pages/pro/ProClientPantryRecipesPage"));
+const ProReportsPage = lazy(() => import("./pages/pro/ProReportsPage"));
+const ProNotesPage = lazy(() => import("./pages/pro/ProNotesPage"));
+const ProClientPlanHistoryPage = lazy(() => import("./pages/pro/ProClientPlanHistoryPage"));
+const ProTemplatesPage = lazy(() => import("./pages/pro/ProTemplatesPage"));
+const ProTemplateEditorPage = lazy(() => import("./pages/pro/ProTemplateEditorPage"));
+const ProWeeklyReportPage = lazy(() => import("./pages/pro/ProWeeklyReportPage"));
+const ProClientMessagesPage = lazy(() => import("./pages/pro/ProClientMessagesPage"));
+const ProAppointmentsPage = lazy(() => import("./pages/pro/ProAppointmentsPage"));
+const ProClientPlanPdfPage = lazy(() => import("./pages/pro/ProClientPlanPdfPage"));
+const ProWeeklyPlanPage = lazy(() => import("./pages/pro/ProWeeklyPlanPage"));
 
-import ProClientMeasurementsPage from "./pages/pro/ProClientMeasurementsPage";
-import ProCouponPage from "./pages/pro/ProCouponPage";
-import UserPantryRecipesPage from "./pages/UserPantryRecipesPage";
-import ShoppingListPage from "./pages/ShoppingListPage";
-import AntiWastePage from "./pages/AntiWastePage";
-import UserFavoritesPage from "./pages/UserFavoritesPage";
-import SubscriptionPage from "./pages/SubscriptionPage";
-import UserItemDetailPage from "./pages/UserItemDetailPage";
-import CompareProductsPage from "./pages/CompareProductsPage";
+const ProClientMeasurementsPage = lazy(() => import("./pages/pro/ProClientMeasurementsPage"));
+const ProCouponPage = lazy(() => import("./pages/pro/ProCouponPage"));
+const UserPantryRecipesPage = lazy(() => import("./pages/UserPantryRecipesPage"));
+const ShoppingListPage = lazy(() => import("./pages/ShoppingListPage"));
+const AntiWastePage = lazy(() => import("./pages/AntiWastePage"));
+const UserFavoritesPage = lazy(() => import("./pages/UserFavoritesPage"));
+const SubscriptionPage = lazy(() => import("./pages/SubscriptionPage"));
+const UserItemDetailPage = lazy(() => import("./pages/UserItemDetailPage"));
+const CompareProductsPage = lazy(() => import("./pages/CompareProductsPage"));
 
 // Supplier pages
-import SupplierPage from "./pages/supplier/SupplierPage";
-import SupplierRestaurantsPage from "./pages/supplier/SupplierRestaurantsPage";
-import SupplierCatalogPage from "./pages/supplier/SupplierCatalogPage";
-import SupplierReportsPage from "./pages/supplier/SupplierReportsPage";
-import SupplierInvitePage from "./pages/supplier/SupplierInvitePage";
+const SupplierPage = lazy(() => import("./pages/supplier/SupplierPage"));
+const SupplierRestaurantsPage = lazy(() => import("./pages/supplier/SupplierRestaurantsPage"));
+const SupplierCatalogPage = lazy(() => import("./pages/supplier/SupplierCatalogPage"));
+const SupplierReportsPage = lazy(() => import("./pages/supplier/SupplierReportsPage"));
+const SupplierInvitePage = lazy(() => import("./pages/supplier/SupplierInvitePage"));
 
-import NotFound from "./pages/NotFound";
+const NotFound = lazy(() => import("./pages/NotFound"));
 import PwaInstallBanner from "./components/PwaInstallBanner";
 import { PwaInstallProvider } from "./hooks/usePwaInstall";
 import { TourProvider } from "./components/AppTourContext";
@@ -134,6 +136,13 @@ const App = () => (
       <PwaInstallBanner />
       <BrowserRouter>
         <AuthProvider>
+          <Suspense
+            fallback={
+              <div className="flex h-screen items-center justify-center bg-background">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            }
+          >
           <Routes>
             {/* Public auth routes */}
             <Route path="/auth/login" element={<LoginPage />} />
@@ -271,6 +280,7 @@ const App = () => (
 
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
