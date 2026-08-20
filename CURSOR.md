@@ -49,8 +49,7 @@ src/
   components/
     ui/                      # shadcn primitives (non modificare la libreria, estendi)
     UserLayout.tsx, RestaurantLayout.tsx, MobileLayout.tsx, AdminLayout.tsx
-    RoleGuard.tsx, ProtectedRoute.tsx, RestaurantGuard.tsx,
-    PlusGuard.tsx, PlanProgressGuard.tsx, AdminPwaGuard.tsx
+    RoleGuard.tsx, ProtectedRoute.tsx, RestaurantGuard.tsx, AdminPwaGuard.tsx
     HaccpLabelPrintView.tsx, RestaurantAddFlow.tsx, AddFoodFlow.tsx, ...
   pages/
     auth/                    # login, signup, callback, reset
@@ -59,10 +58,10 @@ src/
     restaurant-admin/        # backoffice ristorante (staff, report, HACCP control)
     pro/                     # suite nutrizionista
     supplier/                # portale fornitore
-    (root)                   # user app: Index, ExpiryPage, PastiPage, ...
+    (root)                   # user app: Index, ExpiryPage, ScanPage, ...
   hooks/
     useAuth.tsx, useRole.ts, useRestaurant.ts, useSubscription.ts,
-    usePwaInstall.tsx, useOfflineSync.ts, useMealReminders.ts, ...
+    usePwaInstall.tsx, useDebounce.ts, ...
   integrations/supabase/
     client.ts                # istanza supabase (usa anon key)
     types.ts                 # AUTOGENERATO — NON MODIFICARE
@@ -87,8 +86,6 @@ Guard disponibili:
 - **`ProtectedRoute`** — richiede sessione Supabase valida.
 - **`RoleGuard allowedRoles={[...]}`** (alias `<RG>`) — filtra per ruolo.
 - **`RestaurantGuard`** — richiede che l'utente abbia un ristorante configurato, altrimenti redirect a `/restaurant/onboarding`.
-- **`PlusGuard`** — richiede subscription attiva `user_plus`, altrimenti mostra `UpgradeScreen`.
-- **`PlanProgressGuard`** — richiede piano nutrizionale attivo.
 - **`AdminPwaGuard`** — blocca le route `/admin/*` quando l'app gira come PWA installata (backoffice desktop only).
 
 Layout per contesto:
@@ -174,8 +171,8 @@ Prima di introdurre un colore nuovo: aggiungilo come token in `index.css` (varia
 - **Diario pasti**: `meal_logs` deduce dalla dispensa (`pantry-deduction.ts`), calcola macro vs `nutrition_targets`, suggerisce ricette che completano il budget rimanente.
 - **Anti-waste**: `/anti-waste` propone ricette da ingredienti in scadenza usando `ingredient_compatibility_matrix`.
 - **Referral nutrizionista**: cookie 30gg su `/n/:slug`, auto-link post-signup, commission tracking.
-- **Offline sync**: IndexedDB queue via `useOfflineSync` + `safeSupabaseOp` in `lib/offline-sync.ts`.
-- **Subscription**: piani `user_plus`, `restaurant_pro`, `professional_pro`. Guardrail `PlusGuard` / `PlanProgressGuard` in UI, verifica server via `subscriptions` table.
+- **Offline sync**: IndexedDB queue via `safeSupabaseOp` in `lib/offline-sync.ts`, inizializzata in `main.tsx`.
+- **Subscription**: piani `user_plus`, `restaurant_pro`, `professional_pro`. Verifica server via `subscriptions` table (i guard UI `PlusGuard`/`PlanProgressGuard` sono stati rimossi perche' non piu' referenziati).
 
 ---
 
