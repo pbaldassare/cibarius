@@ -185,10 +185,16 @@ Per i numeri/prezzi, usa valori numerici senza simboli di valuta.`,
         Deno.env.get("SUPABASE_URL")!,
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
       );
-      await serviceClient.from("restaurant_documents").update({
+      // Il numero documento e' il riferimento DDT che finisce in etichetta:
+      // va salvato in colonna, non solo dentro extracted_data.
+      const isIsoDate = (v: unknown) =>
+        typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
+
+      await serviceClient.from("haccp_documents").update({
         extracted_data: extracted,
         supplier_name: extracted.supplier_name || undefined,
-        doc_date: extracted.document_date || undefined,
+        document_number: extracted.document_number || undefined,
+        document_date: isIsoDate(extracted.document_date) ? extracted.document_date : undefined,
       }).eq("id", document_id);
     }
 

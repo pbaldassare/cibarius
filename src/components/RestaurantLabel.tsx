@@ -17,6 +17,11 @@ export interface LabelData {
   lotNumber?: string;
   chefLifeHours?: number;
   netWeightG?: number;
+  /** Documento di provenienza (DDT/bolla/fattura) — tracciabilita' del lotto */
+  ddtType?: string;
+  ddtNumber?: string;
+  ddtDate?: string;
+  ddtSupplier?: string;
 }
 
 const storageLabels: Record<string, string> = {
@@ -42,10 +47,25 @@ const highlightAllergens = (ingredients: string, allergens: string[]): string =>
   return result;
 };
 
+/**
+ * Riga di tracciabilita': "DDT n. 123 del 01/01/2026 — Fornitore".
+ * Restituisce null se non c'e' nessun dato del documento di provenienza.
+ */
+const buildDdtText = (label: LabelData): string | null => {
+  const kind = (label.ddtType || "ddt").toUpperCase();
+  const parts: string[] = [];
+  if (label.ddtNumber) parts.push(`n. ${label.ddtNumber}`);
+  if (label.ddtDate) parts.push(`del ${fmtDate(label.ddtDate)}`);
+  if (!parts.length && !label.ddtSupplier) return null;
+  const head = parts.length ? `${kind} ${parts.join(" ")}` : kind;
+  return label.ddtSupplier ? `${head} — ${label.ddtSupplier}` : head;
+};
+
 const buildLabelHtml = (label: LabelData, qrDataUrl: string) => {
   const ingredientsHtml = label.ingredients
     ? highlightAllergens(label.ingredients, label.allergens || [])
     : "";
+  const ddtText = buildDdtText(label);
   const allergensLine = label.allergens?.length
     ? `<div class="allergens"><b>ALLERGENI: ${label.allergens.join(", ")}</b></div>`
     : "";
@@ -68,6 +88,7 @@ const buildLabelHtml = (label: LabelData, qrDataUrl: string) => {
           ${label.netWeightG ? `<div><span class="label-title">PESO NETTO:</span> ${label.netWeightG >= 1000 ? (label.netWeightG / 1000).toLocaleString("it-IT") + " kg" : label.netWeightG + " g"}</div>` : ""}
           ${label.chefLifeHours ? `<div><span class="label-title">CHEF LIFE:</span> ${label.chefLifeHours}h</div>` : ""}
           ${label.lotNumber ? `<div><span class="label-title">LOTTO:</span> ${label.lotNumber}</div>` : ""}
+          ${ddtText ? `<div><span class="label-title">DOC. PROVENIENZA:</span> ${ddtText}</div>` : ""}
         </div>
         <div class="qr"><img src="${qrDataUrl}" /></div>
       </div>
@@ -109,6 +130,7 @@ const RestaurantLabel = ({ label, showActions = true }: { label: LabelData; show
     ? highlightAllergens(label.ingredients, label.allergens || [])
     : "";
 
+  const ddtText = buildDdtText(label);
   const [gridCount, setGridCount] = useState(21);
 
   const handlePrint = () => {
@@ -200,6 +222,9 @@ const RestaurantLabel = ({ label, showActions = true }: { label: LabelData; show
             )}
             {label.lotNumber && (
               <p><span className="font-bold text-[7px] uppercase">Lotto:</span> {label.lotNumber}</p>
+            )}
+            {ddtText && (
+              <p><span className="font-bold text-[7px] uppercase">Doc. provenienza:</span> {ddtText}</p>
             )}
           </div>
           {qrDataUrl && (

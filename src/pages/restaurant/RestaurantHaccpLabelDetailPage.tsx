@@ -142,6 +142,7 @@ const RestaurantHaccpLabelDetailPage = () => {
           restaurantName={restaurant?.name || ""}
           size={printSize}
           publicUrl={publicUrl}
+          sourceDocs={docs}
         />
       </div>
 
@@ -179,6 +180,7 @@ const RestaurantHaccpLabelDetailPage = () => {
               restaurantName={restaurant?.name || ""}
               size="medium"
               publicUrl={publicUrl}
+              sourceDocs={docs}
             />
           </div>
         </CardContent></Card>
@@ -263,7 +265,7 @@ const RestaurantHaccpLabelDetailPage = () => {
               </Select>
             </div>
             <div className="flex justify-center">
-              <HaccpLabelPrintView label={label} restaurantName={restaurant?.name || ""} size={printSize} publicUrl={publicUrl} />
+              <HaccpLabelPrintView label={label} restaurantName={restaurant?.name || ""} size={printSize} publicUrl={publicUrl} sourceDocs={docs} />
             </div>
             <Button onClick={() => { setPrintOpen(false); handlePrint(audit.some(a => a.action === "printed")); }} className="w-full">
               <Printer className="h-4 w-4 mr-1" /> Stampa

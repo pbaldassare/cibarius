@@ -66,7 +66,6 @@ const RestaurantHaccpHistoryPage = lazy(() => import("./pages/restaurant/Restaur
 const RestaurantHaccpLabelsPage = lazy(() => import("./pages/restaurant/RestaurantHaccpLabelsPage"));
 const RestaurantHaccpLabelNewPage = lazy(() => import("./pages/restaurant/RestaurantHaccpLabelNewPage"));
 const RestaurantHaccpLabelDetailPage = lazy(() => import("./pages/restaurant/RestaurantHaccpLabelDetailPage"));
-const RestaurantHaccpDocumentsPage = lazy(() => import("./pages/restaurant/RestaurantHaccpDocumentsPage"));
 const PublicHaccpLabelPage = lazy(() => import("./pages/PublicHaccpLabelPage"));
 const AdminHaccpLabelsPage = lazy(() => import("./pages/admin/AdminHaccpLabelsPage"));
 
@@ -211,7 +210,8 @@ const App = () => (
                 <Route path="/restaurant/haccp-labels" element={<RestaurantHaccpLabelsPage />} />
                 <Route path="/restaurant/haccp-labels/new" element={<RestaurantHaccpLabelNewPage />} />
                 <Route path="/restaurant/haccp-labels/:id" element={<RestaurantHaccpLabelDetailPage />} />
-                <Route path="/restaurant/haccp-documents" element={<RestaurantHaccpDocumentsPage />} />
+                {/* Archivio documenti unico: stessa pagina di /restaurant/invoices */}
+                <Route path="/restaurant/haccp-documents" element={<RestaurantInvoicesPage />} />
               </Route>
 
               {/* Supplier invite (restaurant context) */}

@@ -115,7 +115,7 @@ const RestaurantPage = () => {
         .eq("restaurant_id", restaurant.id)
         .order("use_by_date", { ascending: true }),
       supabase
-        .from("restaurant_documents")
+        .from("haccp_documents")
         .select("id", { count: "exact", head: true })
         .eq("restaurant_id", restaurant.id),
       supabase
@@ -265,7 +265,7 @@ const RestaurantPage = () => {
                 return (
                   <button
                     key={`${u.type}-${u.id}`}
-                    onClick={() => navigate(u.type === "prep" ? "/restaurant/preparations" : `/restaurant/items/${u.id}`)}
+                    onClick={() => navigate(u.type === "prep" ? "/restaurant/preparations" : `/restaurant/item/${u.id}`)}
                     className="flex items-center gap-2 w-full rounded-[10px] bg-muted/40 px-3 py-2 text-left active:scale-[0.98] transition-transform"
                   >
                     <span className="text-lg shrink-0">{getFoodEmoji(u.name)}</span>

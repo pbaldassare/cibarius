@@ -14,18 +14,37 @@ interface LabelData {
   qr_token: string;
 }
 
+/** Documento di provenienza (bolla / DDT / fattura) collegato alla preparazione */
+export interface LabelSourceDoc {
+  document_type?: string | null;
+  document_number?: string | null;
+  document_date?: string | null;
+  supplier_name?: string | null;
+}
+
 interface Props {
   label: LabelData;
   restaurantName: string;
   size: "small" | "medium" | "a4";
   publicUrl: string;
+  /** Documenti di provenienza degli ingredienti, stampati per la tracciabilita' */
+  sourceDocs?: LabelSourceDoc[];
 }
 
 const fmt = (d: string) => {
   try { return format(new Date(d), "dd/MM/yyyy"); } catch { return d; }
 };
 
-const HaccpLabelPrintView = ({ label, restaurantName, size, publicUrl }: Props) => {
+/** "DDT n. 123 del 01/01/2026 — Fornitore", saltando le parti mancanti. */
+const ddtText = (doc: LabelSourceDoc): string => {
+  const parts = [(doc.document_type || "doc").toUpperCase()];
+  if (doc.document_number) parts.push(`n. ${doc.document_number}`);
+  if (doc.document_date) parts.push(`del ${fmt(doc.document_date)}`);
+  const head = parts.join(" ");
+  return doc.supplier_name ? `${head} — ${doc.supplier_name}` : head;
+};
+
+const HaccpLabelPrintView = ({ label, restaurantName, size, publicUrl, sourceDocs = [] }: Props) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -57,6 +76,11 @@ const HaccpLabelPrintView = ({ label, restaurantName, size, publicUrl }: Props) 
           {label.quantity != null && <div><b>Qtà:</b> {label.quantity} {label.unit || ""}</div>}
           {label.allergens && label.allergens.length > 0 && (
             <div className="truncate"><b>Allergeni:</b> {label.allergens.join(", ")}</div>
+          )}
+          {sourceDocs.length > 0 && (
+            <div className={size === "small" ? "truncate" : ""}>
+              <b>Provenienza:</b> {sourceDocs.map(ddtText).join(" · ")}
+            </div>
           )}
         </div>
       </div>

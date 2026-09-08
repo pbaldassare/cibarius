@@ -9,12 +9,24 @@ import RestaurantLabel, { type LabelData } from "@/components/RestaurantLabel";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   ArrowLeft, Package, ChefHat, Clock, Thermometer, Archive,
   Snowflake, Hash, ImagePlus, Loader2, ChevronLeft, ChevronRight, Trash2,
-  FileText, Upload, ExternalLink,
+  FileText, Upload, ExternalLink, Link2,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+
+/** Documento di provenienza (bolla / DDT / fattura) collegato a un lotto */
+interface SourceDoc {
+  id: string;
+  document_type: string;
+  supplier_name: string | null;
+  document_number: string | null;
+  document_date: string | null;
+  file_url: string | null;
+  photo_url: string | null;
+}
 
 const storageIcons: Record<string, any> = { frigo: Thermometer, freezer: Snowflake, ambiente: Archive };
 const storageLabels: Record<string, string> = { frigo: "Frigo", freezer: "Congelatore", ambiente: "Dispensa" };
@@ -35,6 +47,8 @@ const RestaurantItemPage = () => {
   const photoInputRef = useRef<HTMLInputElement>(null);
   const ddtInputRef = useRef<HTMLInputElement>(null);
   const [sourceDoc, setSourceDoc] = useState<any>(null);
+  const [docPickerOpen, setDocPickerOpen] = useState(false);
+  const [availableDocs, setAvailableDocs] = useState<SourceDoc[]>([]);
   const [prepIngredients, setPrepIngredients] = useState<any[]>([]);
   const [prepDocs, setPrepDocs] = useState<any[]>([]);
   const [usedInPreps, setUsedInPreps] = useState<any[]>([]);
@@ -176,6 +190,33 @@ const RestaurantItemPage = () => {
     fetchItem();
   }, [id, restaurant]);
 
+  const openDocPicker = async () => {
+    if (!restaurant) return;
+    setDocPickerOpen(true);
+    const { data } = await supabase
+      .from("haccp_documents")
+      .select("id, document_type, supplier_name, document_number, document_date, file_url, photo_url")
+      .eq("restaurant_id", restaurant.id)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    setAvailableDocs(data || []);
+  };
+
+  const linkExistingDoc = async (doc: SourceDoc) => {
+    const realId = id!.replace(/^(inv|prep)-/, "");
+    const { error } = await supabase
+      .from("inventory_items")
+      .update({ source_document_id: doc.id })
+      .eq("id", realId);
+    if (error) {
+      toast({ variant: "destructive", title: "Errore", description: error.message });
+      return;
+    }
+    setSourceDoc(doc);
+    setDocPickerOpen(false);
+    toast({ title: "Documento collegato ✓" });
+  };
+
   const handleUploadDdt = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user || !restaurant) return;
@@ -193,6 +234,8 @@ const RestaurantItemPage = () => {
           restaurant_id: restaurant.id,
           document_type: "ddt",
           photo_url: urlData.publicUrl,
+          file_path: filePath,
+          storage_bucket: "haccp-documents",
           document_date: new Date().toISOString().slice(0, 10),
           created_by: user.id,
         })
@@ -295,6 +338,11 @@ const RestaurantItemPage = () => {
     lotNumber: item.lot_number,
     chefLifeHours: item.chef_life_hours,
     netWeightG: !isPrep ? item.net_weight_g : undefined,
+    // Tracciabilita': documento di provenienza collegato al lotto
+    ddtType: sourceDoc?.document_type,
+    ddtNumber: sourceDoc?.document_number ?? undefined,
+    ddtDate: sourceDoc?.document_date ?? undefined,
+    ddtSupplier: sourceDoc?.supplier_name ?? undefined,
   };
 
   return (
@@ -433,18 +481,24 @@ const RestaurantItemPage = () => {
                 <h3 className="text-sm font-semibold flex items-center gap-1.5">
                   <FileText className="h-4 w-4 text-success" /> DDT di origine
                 </h3>
-                {!sourceDoc && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="gap-1 text-xs"
-                    disabled={uploadingDdt}
-                    onClick={() => ddtInputRef.current?.click()}
-                  >
-                    {uploadingDdt ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
-                    Carica
+                <div className="flex items-center gap-1">
+                  <Button size="sm" variant="ghost" className="gap-1 text-xs" onClick={openDocPicker}>
+                    <Link2 className="h-3.5 w-3.5" />
+                    {sourceDoc ? "Cambia" : "Collega"}
                   </Button>
-                )}
+                  {!sourceDoc && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="gap-1 text-xs"
+                      disabled={uploadingDdt}
+                      onClick={() => ddtInputRef.current?.click()}
+                    >
+                      {uploadingDdt ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                      Carica
+                    </Button>
+                  )}
+                </div>
                 <input ref={ddtInputRef} type="file" accept="image/*,application/pdf" capture="environment" className="hidden" onChange={handleUploadDdt} />
               </div>
               {sourceDoc ? (
@@ -468,7 +522,9 @@ const RestaurantItemPage = () => {
                   </div>
                 </div>
               ) : (
-                <p className="text-xs text-muted-foreground">Nessun DDT collegato. Puoi caricare una foto della bolla.</p>
+                <p className="text-xs text-muted-foreground">
+                  Nessun DDT collegato. Collega una bolla gia' in archivio o caricane una nuova.
+                </p>
               )}
             </div>
 
@@ -481,7 +537,7 @@ const RestaurantItemPage = () => {
                   {usedInPreps.map((p: any) => (
                     <Link
                       key={p.id}
-                      to={p.source_preparation_id ? `/restaurant/items/prep-${p.source_preparation_id}` : `/restaurant/haccp-labels/${p.id}`}
+                      to={p.source_preparation_id ? `/restaurant/item/prep-${p.source_preparation_id}` : `/restaurant/haccp-labels/${p.id}`}
                       className="flex items-center justify-between rounded-lg bg-muted/40 px-3 py-2 active:scale-[0.98] transition-transform"
                     >
                       <div className="min-w-0">
@@ -579,6 +635,39 @@ const RestaurantItemPage = () => {
           <RestaurantLabel label={labelData} />
         </div>
       </main>
+
+      {/* Picker: collega un documento gia' in archivio (bolle, DDT, fatture) */}
+      <Sheet open={docPickerOpen} onOpenChange={setDocPickerOpen}>
+        <SheetContent side="bottom" className="h-[70vh] rounded-t-2xl overflow-y-auto">
+          <SheetHeader><SheetTitle>Collega documento di provenienza</SheetTitle></SheetHeader>
+          <div className="space-y-2 py-4">
+            {availableDocs.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                Nessun documento in archivio. Caricane uno da “Bolle”.
+              </p>
+            ) : (
+              availableDocs.map((doc) => (
+                <button
+                  key={doc.id}
+                  onClick={() => linkExistingDoc(doc)}
+                  className={`w-full text-left rounded-xl border p-3 active:scale-[0.99] transition-transform ${
+                    sourceDoc?.id === doc.id ? "border-primary bg-primary/5" : "border-border"
+                  }`}
+                >
+                  <p className="text-sm font-medium capitalize">
+                    {doc.document_type}
+                    {doc.document_number ? ` n. ${doc.document_number}` : ""}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {doc.supplier_name || "Fornitore non indicato"}
+                    {doc.document_date ? ` · ${new Date(doc.document_date).toLocaleDateString("it-IT")}` : ""}
+                  </p>
+                </button>
+              ))
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };

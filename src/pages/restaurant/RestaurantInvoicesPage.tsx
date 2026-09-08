@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useRestaurant } from "@/hooks/useRestaurant";
+import { useAuth } from "@/hooks/useAuth";
 import MobileHeader from "@/components/MobileHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -32,23 +33,31 @@ interface ExtractedData {
 interface RestaurantDocument {
   id: string;
   restaurant_id: string;
-  doc_type: string;
+  document_type: string;
+  document_number: string | null;
   supplier_name: string | null;
-  doc_date: string | null;
-  file_path: string;
-  public_url: string | null;
+  document_date: string | null;
+  file_path: string | null;
+  storage_bucket: string;
+  file_url: string | null;
   created_at: string;
   extracted_data: ExtractedData | null;
 }
 
 const DOC_TYPES = [
   { value: "bolla", label: "Bolla" },
+  { value: "ddt", label: "DDT" },
   { value: "fattura", label: "Fattura" },
   { value: "altro", label: "Altro" },
 ];
 
+const DOC_BUCKET = "haccp-documents";
+
+const isImagePath = (path?: string | null) => !!path?.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+
 const RestaurantInvoicesPage = () => {
   const { restaurant, isLoading: restLoading } = useRestaurant();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [docs, setDocs] = useState<RestaurantDocument[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,11 +71,12 @@ const RestaurantInvoicesPage = () => {
   const [docType, setDocType] = useState("bolla");
   const [supplierName, setSupplierName] = useState("");
   const [docDate, setDocDate] = useState("");
+  const [docNumber, setDocNumber] = useState("");
 
   const fetchDocs = async () => {
     if (!restaurant) return;
     const { data } = await supabase
-      .from("restaurant_documents")
+      .from("haccp_documents")
       .select("*")
       .eq("restaurant_id", restaurant.id)
       .order("created_at", { ascending: false });
@@ -81,17 +91,17 @@ const RestaurantInvoicesPage = () => {
   const extractInvoiceData = async (doc: RestaurantDocument) => {
     setExtracting(true);
     try {
-      const isImage = doc.file_path.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+      const isImage = isImagePath(doc.file_path);
 
       const body: any = { document_id: doc.id };
 
-      if (isImage && doc.public_url) {
+      if (isImage && doc.file_url) {
         // For images, send the URL directly
-        body.public_url = doc.public_url;
+        body.public_url = doc.file_url;
         body.mime_type = "image/jpeg";
-      } else if (isImage) {
+      } else if (isImage && doc.file_path) {
         // Download and convert to base64
-        const { data: fileData } = await supabase.storage.from("media").download(doc.file_path);
+        const { data: fileData } = await supabase.storage.from(doc.storage_bucket).download(doc.file_path);
         if (!fileData) throw new Error("Impossibile scaricare il file");
         const buffer = await fileData.arrayBuffer();
         const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
@@ -99,7 +109,7 @@ const RestaurantInvoicesPage = () => {
         body.mime_type = fileData.type;
       } else {
         // PDF - send URL
-        body.public_url = doc.public_url;
+        body.public_url = doc.file_url;
         body.mime_type = "application/pdf";
       }
 
@@ -109,8 +119,16 @@ const RestaurantInvoicesPage = () => {
       if (response?.error) throw new Error(response.error);
 
       if (response?.extracted) {
-        // Update local state
-        const updated = { ...doc, extracted_data: response.extracted };
+        // Update local state — la edge function ha gia' scritto anche
+        // supplier_name / document_number / document_date in colonna.
+        const ex = response.extracted as ExtractedData;
+        const updated: RestaurantDocument = {
+          ...doc,
+          extracted_data: ex,
+          supplier_name: ex.supplier_name || doc.supplier_name,
+          document_number: ex.document_number || doc.document_number,
+          document_date: ex.document_date || doc.document_date,
+        };
         setDetailDoc(updated);
         setDocs(prev => prev.map(d => d.id === doc.id ? updated : d));
         toast({ title: "Dati estratti con successo ✓" });
@@ -130,24 +148,27 @@ const RestaurantInvoicesPage = () => {
 
     const ts = Date.now();
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const filePath = `restaurants/${restaurant.id}/bolle/${ts}-${safeName}`;
+    const filePath = `${restaurant.id}/bolle/${ts}-${safeName}`;
 
-    const { error: storageError } = await supabase.storage.from("media").upload(filePath, file);
+    const { error: storageError } = await supabase.storage.from(DOC_BUCKET).upload(filePath, file);
     if (storageError) {
       toast({ variant: "destructive", title: "Errore upload", description: storageError.message });
       setUploading(false);
       return;
     }
 
-    const { data: urlData } = supabase.storage.from("media").getPublicUrl(filePath);
+    const { data: urlData } = supabase.storage.from(DOC_BUCKET).getPublicUrl(filePath);
 
-    const { data: newDoc, error: dbError } = await supabase.from("restaurant_documents").insert({
+    const { data: newDoc, error: dbError } = await supabase.from("haccp_documents").insert({
       restaurant_id: restaurant.id,
-      doc_type: docType,
+      document_type: docType,
       supplier_name: supplierName || null,
-      doc_date: docDate || null,
+      document_date: docDate || null,
+      document_number: docNumber || null,
       file_path: filePath,
-      public_url: urlData.publicUrl,
+      storage_bucket: DOC_BUCKET,
+      file_url: urlData.publicUrl,
+      created_by: user?.id ?? null,
     }).select("*").single();
 
     setUploading(false);
@@ -160,10 +181,11 @@ const RestaurantInvoicesPage = () => {
       setDocType("bolla");
       setSupplierName("");
       setDocDate("");
+      setDocNumber("");
       fetchDocs();
 
       // Auto-extract for images
-      if (newDoc && filePath.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+      if (newDoc && isImagePath(filePath)) {
         const docTyped = newDoc as unknown as RestaurantDocument;
         setDetailDoc(docTyped);
         extractInvoiceData(docTyped);
@@ -172,8 +194,8 @@ const RestaurantInvoicesPage = () => {
   };
 
   const handleDelete = async (doc: RestaurantDocument) => {
-    await supabase.storage.from("media").remove([doc.file_path]);
-    await supabase.from("restaurant_documents").delete().eq("id", doc.id);
+    if (doc.file_path) await supabase.storage.from(doc.storage_bucket).remove([doc.file_path]);
+    await supabase.from("haccp_documents").delete().eq("id", doc.id);
     toast({ title: "Documento eliminato" });
     fetchDocs();
   };
@@ -216,12 +238,13 @@ const RestaurantInvoicesPage = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold truncate" style={{ color: "#111827" }}>
-                        {doc.doc_type.charAt(0).toUpperCase() + doc.doc_type.slice(1)}
+                        {doc.document_type.charAt(0).toUpperCase() + doc.document_type.slice(1)}
+                        {doc.document_number ? ` n. ${doc.document_number}` : ""}
                         {doc.supplier_name ? ` — ${doc.supplier_name}` : ""}
                       </p>
                       <div className="flex items-center gap-1.5">
                         <p className="text-xs text-muted-foreground">
-                          {doc.doc_date ? new Date(doc.doc_date).toLocaleDateString("it-IT") : "Senza data"}
+                          {doc.document_date ? new Date(doc.document_date).toLocaleDateString("it-IT") : "Senza data"}
                         </p>
                         {doc.extracted_data && (
                           <span className="flex items-center gap-0.5 text-[10px] font-medium text-primary">
@@ -258,6 +281,10 @@ const RestaurantInvoicesPage = () => {
               <Input value={supplierName} onChange={(e) => setSupplierName(e.target.value)} placeholder="Nome fornitore" />
             </div>
             <div className="space-y-1.5">
+              <Label>N° documento / DDT (opzionale — l'AI lo rileverà)</Label>
+              <Input value={docNumber} onChange={(e) => setDocNumber(e.target.value)} placeholder="es. 2026/1245" />
+            </div>
+            <div className="space-y-1.5">
               <Label>Data documento (opzionale — l'AI la rileverà)</Label>
               <Input type="date" value={docDate} onChange={(e) => setDocDate(e.target.value)} />
             </div>
@@ -277,31 +304,31 @@ const RestaurantInvoicesPage = () => {
       <Sheet open={!!detailDoc} onOpenChange={(open) => { if (!open) setDetailDoc(null); }}>
         <SheetContent side="bottom" className="h-[90vh] rounded-t-2xl overflow-y-auto">
           {detailDoc && (() => {
-            const isImage = detailDoc.file_path.match(/\.(jpg|jpeg|png|gif|webp)$/i);
-            const isPdf = detailDoc.file_path.match(/\.pdf$/i);
+            const isImage = isImagePath(detailDoc.file_path);
+            const isPdf = !!detailDoc.file_path?.match(/\.pdf$/i);
             return (
               <>
                 <SheetHeader>
                   <SheetTitle className="flex items-center gap-2">
                     <FileText className="h-5 w-5 text-primary" />
-                    {detailDoc.doc_type.charAt(0).toUpperCase() + detailDoc.doc_type.slice(1)}
+                    {detailDoc.document_type.charAt(0).toUpperCase() + detailDoc.document_type.slice(1)}
                     {(ed?.supplier_name || detailDoc.supplier_name) ? ` — ${ed?.supplier_name || detailDoc.supplier_name}` : ""}
                   </SheetTitle>
                 </SheetHeader>
                 <div className="space-y-4 py-4">
 
                   {/* Document preview — always visible at top */}
-                  {detailDoc.public_url && isImage && (
+                  {detailDoc.file_url && isImage && (
                     <div className="rounded-xl overflow-hidden border">
-                      <img src={detailDoc.public_url} alt="Documento" className="w-full object-contain max-h-[50vh]" />
+                      <img src={detailDoc.file_url} alt="Documento" className="w-full object-contain max-h-[50vh]" />
                     </div>
                   )}
-                  {detailDoc.public_url && isPdf && (
+                  {detailDoc.file_url && isPdf && (
                     <div className="rounded-xl overflow-hidden border" style={{ height: "50vh" }}>
-                      <iframe src={detailDoc.public_url} className="h-full w-full" title="Preview PDF" />
+                      <iframe src={detailDoc.file_url} className="h-full w-full" title="Preview PDF" />
                     </div>
                   )}
-                  {!detailDoc.public_url && (
+                  {!detailDoc.file_url && (
                     <div className="rounded-xl border border-dashed border-muted-foreground/30 bg-muted/50 flex flex-col items-center justify-center gap-2 py-10">
                       <FileText className="h-10 w-10 text-muted-foreground/40" />
                       <p className="text-xs text-muted-foreground">Nessun file allegato</p>
@@ -436,14 +463,14 @@ const RestaurantInvoicesPage = () => {
 
                   {/* Actions */}
                   <div className="flex gap-2">
-                    {detailDoc.public_url && (
+                    {detailDoc.file_url && (
                       <>
-                        <a href={detailDoc.public_url} target="_blank" rel="noopener noreferrer" className="flex-1">
+                        <a href={detailDoc.file_url} target="_blank" rel="noopener noreferrer" className="flex-1">
                           <Button variant="outline" className="w-full gap-2 text-xs">
                             <ExternalLink className="h-3.5 w-3.5" /> Apri
                           </Button>
                         </a>
-                        <a href={detailDoc.public_url} download className="flex-1">
+                        <a href={detailDoc.file_url} download className="flex-1">
                           <Button className="w-full gap-2 text-xs">
                             <Download className="h-3.5 w-3.5" /> Scarica
                           </Button>

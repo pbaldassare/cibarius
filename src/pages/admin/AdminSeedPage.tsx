@@ -310,14 +310,16 @@ const AdminSeedPage = () => {
           { supplier: "Bevande Italia", daysAgo: 18, type: "bolla" },
           { supplier: "Panificio Centrale", daysAgo: 25, type: "bolla" },
         ];
-        const { data: docsIns } = await supabase.from("restaurant_documents").insert(
-          docs.map(d => ({
+        const { data: docsIns } = await supabase.from("haccp_documents").insert(
+          docs.map((d, i) => ({
             restaurant_id: restaurantId!,
-            doc_type: d.type,
+            document_type: d.type,
+            document_number: `DEMO-${1000 + i}`,
             supplier_name: `${DEMO} ${d.supplier}`,
-            doc_date: daysAgo(d.daysAgo),
-            file_path: `restaurants/${restaurantId}/bolle/demo-${d.daysAgo}.pdf`,
-            public_url: null,
+            document_date: daysAgo(d.daysAgo),
+            file_path: `${restaurantId}/bolle/demo-${d.daysAgo}.pdf`,
+            storage_bucket: "haccp-documents",
+            file_url: null,
           }))
         ).select("id");
         log(`📄 Documenti ristorante: ${docsIns?.length ?? 0} creati`);
@@ -379,8 +381,8 @@ const AdminSeedPage = () => {
       const { data: delRecipes } = await supabase.from("recipes").delete().like("title", `${DEMO}%`).select("id");
       log(`🗑️ Ricette: ${delRecipes?.length ?? 0} eliminate`);
 
-      // 5) Demo restaurant_documents
-      const { data: delDocs } = await supabase.from("restaurant_documents").delete().like("supplier_name", `${DEMO}%`).select("id");
+      // 5) Demo haccp_documents
+      const { data: delDocs } = await supabase.from("haccp_documents").delete().like("supplier_name", `${DEMO}%`).select("id");
       log(`🗑️ Documenti: ${delDocs?.length ?? 0} eliminati`);
 
       // 6) Demo inventory_items
