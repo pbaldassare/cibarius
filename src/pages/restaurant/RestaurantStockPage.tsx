@@ -8,12 +8,15 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   Loader2, Search, Package, TrendingDown, Trash2, ArrowDownToLine,
-  ArrowUpFromLine, SlidersHorizontal, Clock, AlertTriangle,
+  ArrowUpFromLine, SlidersHorizontal, Clock, AlertTriangle, Plus,
 } from "lucide-react";
 import {
-  forecastFromMovements, fmtQty, MOVEMENT_LABELS,
+  forecastFromMovements, fmtQty, MOVEMENT_LABELS, consumeFromItem, recordMovement,
   type Movement, type MovementType,
 } from "@/lib/inventory-movements";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 
 interface Lot {
   id: string;
@@ -64,10 +67,22 @@ const RestaurantStockPage = () => {
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState("giacenze");
   const [detail, setDetail] = useState<StockRow | null>(null);
+  const [caricoOpen, setCaricoOpen] = useState(false);
+  const [scaricoLot, setScaricoLot] = useState<Lot | null>(null);
+  const [qty, setQty] = useState("");
+  const [busy, setBusy] = useState(false);
+  // Carico rapido: nome libero, cosi' si registra merce non ancora a catalogo
+  const [cNome, setCNome] = useState("");
+  const [cQta, setCQta] = useState("");
+  const [cUnita, setCUnita] = useState("kg");
+  const [cLotto, setCLotto] = useState("");
+  const [cScad, setCScad] = useState("");
+  const [cStorage, setCStorage] = useState("frigo");
+  const { toast } = useToast();
 
-  useEffect(() => {
+  const fetchAll = async () => {
     if (!restaurant) return;
-    (async () => {
+    {
       const [lotsRes, movRes] = await Promise.all([
         supabase
           .from("inventory_items")
@@ -83,8 +98,86 @@ const RestaurantStockPage = () => {
       setLots((lotsRes.data ?? []) as unknown as Lot[]);
       setMovements((movRes.data ?? []) as unknown as Movement[]);
       setLoading(false);
-    })();
-  }, [restaurant]);
+    }
+  };
+
+  useEffect(() => { fetchAll(); }, [restaurant]);
+
+  /** Carico manuale: crea il prodotto, il lotto e il movimento in entrata. */
+  const handleCarico = async () => {
+    if (!restaurant) return;
+    const q = Number(cQta.replace(",", "."));
+    if (!cNome.trim() || !Number.isFinite(q) || q <= 0) {
+      toast({ variant: "destructive", title: "Servono nome e quantità" });
+      return;
+    }
+    setBusy(true);
+    try {
+      const { data: product, error: pErr } = await supabase
+        .from("products").insert({ name: cNome.trim(), unit: cUnita }).select("id").single();
+      if (pErr || !product) throw new Error(pErr?.message ?? "Prodotto non creato");
+
+      const { data: inv, error: iErr } = await supabase.from("inventory_items").insert({
+        product_id: product.id,
+        restaurant_id: restaurant.id,
+        storage_type: cStorage,
+        quantity: q,
+        unit: cUnita,
+        lot_number: cLotto || null,
+        expiry_date: cScad || null,
+      }).select("id").single();
+      if (iErr || !inv) throw new Error(iErr?.message ?? "Lotto non creato");
+
+      await recordMovement({
+        restaurantId: restaurant.id,
+        inventoryItemId: inv.id,
+        productId: product.id,
+        productName: cNome.trim(),
+        movementType: "carico",
+        quantity: q,
+        unit: cUnita,
+        lotNumber: cLotto || null,
+        expiryDate: cScad || null,
+      });
+
+      toast({ title: `Caricato ${fmtQty(q, cUnita)} di ${cNome.trim()} ✓` });
+      setCaricoOpen(false);
+      setCNome(""); setCQta(""); setCLotto(""); setCScad("");
+      await fetchAll();
+    } catch (e) {
+      toast({ variant: "destructive", title: "Errore", description: (e as Error).message });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /** Scarico di un singolo lotto, come consumo o come spreco. */
+  const handleScarico = async (type: "consumo" | "spreco") => {
+    if (!restaurant || !scaricoLot) return;
+    const q = qty.trim() ? Number(qty.replace(",", ".")) : undefined;
+    if (q != null && (!Number.isFinite(q) || q <= 0)) {
+      toast({ variant: "destructive", title: "Quantità non valida" });
+      return;
+    }
+    setBusy(true);
+    const { error, remaining } = await consumeFromItem(
+      { ...scaricoLot, restaurant_id: restaurant.id },
+      scaricoLot.product?.name ?? "Prodotto",
+      type,
+      q,
+    );
+    setBusy(false);
+    if (error) {
+      toast({ variant: "destructive", title: "Errore", description: error });
+      return;
+    }
+    toast({
+      title: type === "consumo" ? "Scaricato ✓" : "Registrato come spreco 🗑",
+      description: remaining > 0 ? `Restano ${fmtQty(remaining, scaricoLot.unit)}` : "Lotto esaurito",
+    });
+    setScaricoLot(null); setQty(""); setDetail(null);
+    await fetchAll();
+  };
 
   /** Giacenza per prodotto + stima di esaurimento dai movimenti in uscita. */
   const rows = useMemo<StockRow[]>(() => {
@@ -145,6 +238,10 @@ const RestaurantStockPage = () => {
     <div className="min-h-screen" style={{ backgroundColor: "#F5F7FA" }} data-tour="rest-stock-page">
       <MobileHeader title="Magazzino" showBack />
       <main className="px-4 py-4 pb-28 space-y-3">
+        <Button onClick={() => setCaricoOpen(true)} className="w-full gap-2 h-11">
+          <Plus className="h-4 w-4" /> Carico merce
+        </Button>
+
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -263,7 +360,7 @@ const RestaurantStockPage = () => {
                   </p>
                   <div className="space-y-1.5">
                     {detail.lots.map((l) => (
-                      <div key={l.id} className="rounded-xl border p-2.5 text-xs">
+                      <div key={l.id} className="rounded-xl border p-2.5 text-xs space-y-2">
                         <div className="flex justify-between gap-2">
                           <span className="font-medium">
                             {l.lot_number ? `Lotto ${l.lot_number}` : "Senza lotto"}
@@ -274,6 +371,14 @@ const RestaurantStockPage = () => {
                           {l.storage_type}
                           {l.expiry_date ? ` · scade ${new Date(l.expiry_date).toLocaleDateString("it-IT")}` : " · senza scadenza"}
                         </p>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="w-full gap-1.5 h-8 text-xs"
+                          onClick={() => { setScaricoLot(l); setQty(""); }}
+                        >
+                          <ArrowUpFromLine className="h-3.5 w-3.5" /> Scarica questo lotto
+                        </Button>
                       </div>
                     ))}
                   </div>
@@ -293,6 +398,103 @@ const RestaurantStockPage = () => {
                 </div>
               </div>
             </>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* Carico merce */}
+      <Sheet open={caricoOpen} onOpenChange={setCaricoOpen}>
+        <SheetContent side="bottom" className="rounded-t-2xl max-h-[90vh] overflow-y-auto">
+          <SheetHeader><SheetTitle>Carico merce</SheetTitle></SheetHeader>
+          <p className="text-xs text-muted-foreground pt-1">
+            Registra merce in entrata. Per caricare un'intera bolla in un colpo solo,
+            aprila da <b>Bolle</b> e usa "Carica articoli in magazzino".
+          </p>
+          <div className="space-y-3 py-4">
+            <div className="space-y-1.5">
+              <Label>Prodotto *</Label>
+              <Input value={cNome} onChange={(e) => setCNome(e.target.value)} placeholder="es. Pomodori pelati" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1.5">
+                <Label>Quantità *</Label>
+                <Input type="number" inputMode="decimal" min="0" step="any"
+                  value={cQta} onChange={(e) => setCQta(e.target.value)} placeholder="0" />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Unità</Label>
+                <select
+                  value={cUnita}
+                  onChange={(e) => setCUnita(e.target.value)}
+                  className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  {["kg", "g", "l", "ml", "pz", "cf"].map((u) => <option key={u} value={u}>{u}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1.5">
+                <Label>Lotto</Label>
+                <Input value={cLotto} onChange={(e) => setCLotto(e.target.value)} placeholder="es. L-1180-A" />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Scadenza</Label>
+                <Input type="date" value={cScad} onChange={(e) => setCScad(e.target.value)} />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Conservazione</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {[["frigo", "Frigo"], ["freezer", "Congelatore"], ["ambiente", "Dispensa"]].map(([k, l]) => (
+                  <button
+                    key={k}
+                    onClick={() => setCStorage(k)}
+                    className={`h-10 rounded-lg text-xs font-medium transition-colors ${
+                      cStorage === k ? "bg-primary text-primary-foreground" : "bg-card border border-border"
+                    }`}
+                  >{l}</button>
+                ))}
+              </div>
+            </div>
+            <Button onClick={handleCarico} disabled={busy} className="w-full gap-2">
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowDownToLine className="h-4 w-4" />}
+              Registra carico
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Scarico di un lotto */}
+      <Sheet open={!!scaricoLot} onOpenChange={(o) => { if (!o) { setScaricoLot(null); setQty(""); } }}>
+        <SheetContent side="bottom" className="rounded-t-2xl">
+          <SheetHeader>
+            <SheetTitle>Scarico — {scaricoLot?.product?.name ?? "Prodotto"}</SheetTitle>
+          </SheetHeader>
+          {scaricoLot && (
+            <div className="space-y-3 py-4">
+              <p className="text-xs text-muted-foreground">
+                {scaricoLot.lot_number ? `Lotto ${scaricoLot.lot_number} · ` : ""}
+                disponibili <b>{fmtQty(Number(scaricoLot.quantity ?? 0), scaricoLot.unit)}</b>
+              </p>
+              <div className="space-y-1.5">
+                <Label>Quantità da scaricare</Label>
+                <Input type="number" inputMode="decimal" min="0" step="any"
+                  value={qty} onChange={(e) => setQty(e.target.value)} placeholder="Tutto il lotto" />
+                <p className="text-[10px] text-muted-foreground">
+                  Lascia vuoto per scaricare l'intero lotto.
+                </p>
+              </div>
+              <Button onClick={() => handleScarico("consumo")} disabled={busy} className="w-full gap-2">
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUpFromLine className="h-4 w-4" />}
+                Consumato in cucina
+              </Button>
+              <Button onClick={() => handleScarico("spreco")} disabled={busy} variant="outline" className="w-full gap-2">
+                <Trash2 className="h-4 w-4 text-destructive" /> Buttato / spreco
+              </Button>
+              <p className="text-[10px] text-muted-foreground text-center">
+                Consumo e spreco finiscono entrambi a registro, ma restano distinti nei report.
+              </p>
+            </div>
           )}
         </SheetContent>
       </Sheet>

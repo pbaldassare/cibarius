@@ -1,13 +1,14 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, Clock, ChefHat, BookOpen, FileText, ClipboardCheck } from "lucide-react";
+import { LayoutDashboard, Clock, ChefHat, FileText, ClipboardCheck, Boxes } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
 interface TabItem { to: string; icon: LucideIcon; label: string; tourId: string }
 
 const tabs: TabItem[] = [
   { to: "/restaurant", icon: LayoutDashboard, label: "Home", tourId: "rest-nav-home" },
-  { to: "/restaurant/haccp", icon: ClipboardCheck, label: "HACCP", tourId: "rest-nav-haccp" },
+  { to: "/restaurant/stock", icon: Boxes, label: "Magazzino", tourId: "rest-nav-stock" },
   { to: "/restaurant/products", icon: Clock, label: "Scadenze", tourId: "rest-nav-products" },
+  { to: "/restaurant/haccp", icon: ClipboardCheck, label: "HACCP", tourId: "rest-nav-haccp" },
   { to: "/restaurant/preparations", icon: ChefHat, label: "Preparaz.", tourId: "rest-nav-preparations" },
   { to: "/restaurant/invoices", icon: FileText, label: "Bolle", tourId: "rest-nav-invoices" },
 ];
@@ -30,7 +31,7 @@ const RestaurantBottomNav = () => {
               key={to}
               to={to}
               data-tour={tourId}
-              className="flex flex-col items-center gap-0.5 px-2 py-1 relative"
+              className="flex flex-col items-center gap-0.5 px-1 py-1 relative min-w-0"
             >
               <Icon
                 size={20}
@@ -38,7 +39,7 @@ const RestaurantBottomNav = () => {
                 className={`transition-colors ${isActive ? "text-primary" : "text-white/50"}`}
               />
               <span
-                className={`text-[10px] tracking-wide transition-colors ${
+                className={`text-[9px] tracking-tight truncate max-w-[52px] transition-colors ${
                   isActive ? "text-primary font-bold" : "text-white/50 font-medium"
                 }`}
               >
