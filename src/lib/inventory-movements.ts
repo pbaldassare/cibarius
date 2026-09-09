@@ -155,8 +155,11 @@ export const consumeFromPreparation = async (
 ): Promise<{ error: string | null; remaining: number }> => {
   const available = Number(prep.quantity ?? 0);
   const total = available > 0 ? available : 1;
-  const requested = quantity != null && quantity > 0 ? Math.min(quantity, total) : total;
-  const remaining = Number((total - requested).toFixed(3));
+  // `preparations.portions` e' un intero: una richiesta frazionaria verrebbe
+  // rifiutata dal database, quindi si scarica a porzioni intere (minimo una).
+  const asked = quantity != null && quantity > 0 ? Math.max(1, Math.round(quantity)) : total;
+  const requested = Math.min(asked, total);
+  const remaining = total - requested;
 
   const { error: movErr } = await recordMovement({
     restaurantId: prep.restaurant_id,
