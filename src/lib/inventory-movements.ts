@@ -134,6 +134,49 @@ export const consumeFromItem = async (
   return { error: stockErr?.message ?? null, remaining };
 };
 
+/**
+ * Scarica una preparazione interna: scala le porzioni e registra il movimento.
+ *
+ * Stessa semantica dei lotti — la preparazione si elimina solo quando arriva a
+ * zero. Senza questo, uno scarico parziale cancellerebbe l'intera teglia.
+ */
+export const consumeFromPreparation = async (
+  prep: {
+    id: string;
+    restaurant_id: string;
+    quantity?: number | null;
+    unit?: string | null;
+    lot_number?: string | null;
+    expiry_date?: string | null;
+  },
+  name: string,
+  movementType: Extract<MovementType, "consumo" | "spreco">,
+  quantity?: number,
+): Promise<{ error: string | null; remaining: number }> => {
+  const available = Number(prep.quantity ?? 0);
+  const total = available > 0 ? available : 1;
+  const requested = quantity != null && quantity > 0 ? Math.min(quantity, total) : total;
+  const remaining = Number((total - requested).toFixed(3));
+
+  const { error: movErr } = await recordMovement({
+    restaurantId: prep.restaurant_id,
+    productName: name,
+    movementType,
+    quantity: requested,
+    unit: prep.unit ?? "porzioni",
+    lotNumber: prep.lot_number,
+    expiryDate: prep.expiry_date,
+    notes: "Preparazione",
+  });
+  if (movErr) return { error: movErr.message, remaining: total };
+
+  const { error: stockErr } = remaining > 0
+    ? await supabase.from("preparations").update({ portions: remaining }).eq("id", prep.id)
+    : await supabase.from("preparations").delete().eq("id", prep.id);
+
+  return { error: stockErr?.message ?? null, remaining };
+};
+
 /** Consumo medio giornaliero e giorni residui stimati, per prodotto. */
 export interface StockForecast {
   /** Quantita' media consumata al giorno nella finestra osservata. */

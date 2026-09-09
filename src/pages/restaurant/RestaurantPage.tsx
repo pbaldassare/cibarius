@@ -5,7 +5,7 @@ import { useRestaurant } from "@/hooks/useRestaurant";
 import { useAuth } from "@/hooks/useAuth";
 import MobileHeader from "@/components/MobileHeader";
 import { supabase } from "@/integrations/supabase/client";
-import { consumeFromItem, recordMovement, fmtQty } from "@/lib/inventory-movements";
+import { consumeFromItem, consumeFromPreparation } from "@/lib/inventory-movements";
 import { Skeleton } from "@/components/ui/skeleton";
 import RestaurantAddFlow from "@/components/RestaurantAddFlow";
 import ResolveExpiryFlow from "@/components/ResolveExpiryFlow";
@@ -207,17 +207,22 @@ const RestaurantPage = () => {
         return;
       }
     } else {
-      await recordMovement({
-        restaurantId: restaurant.id,
-        productName: item.name,
+      const { error } = await consumeFromPreparation(
+        {
+          id: item.id,
+          restaurant_id: restaurant.id,
+          quantity: item.quantity,
+          unit: item.unit,
+          lot_number: item.lot_number,
+          expiry_date: item.date,
+        },
+        item.name,
         movementType,
-        quantity: Number(item.quantity ?? 1),
-        unit: item.unit,
-        lotNumber: item.lot_number,
-        expiryDate: item.date,
-        notes: "Preparazione",
-      });
-      await supabase.from("preparations").delete().eq("id", item.id);
+      );
+      if (error) {
+        toast({ variant: "destructive", title: "Errore", description: error });
+        return;
+      }
     }
 
     toast({ title: movementType === "consumo" ? "Segnato come utilizzato ✓" : "Segnato come buttato 🗑" });

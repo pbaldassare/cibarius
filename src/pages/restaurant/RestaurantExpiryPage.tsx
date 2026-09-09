@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRestaurant } from "@/hooks/useRestaurant";
 import { supabase } from "@/integrations/supabase/client";
-import { consumeFromItem, recordMovement, fmtQty } from "@/lib/inventory-movements";
+import { consumeFromItem, consumeFromPreparation, fmtQty } from "@/lib/inventory-movements";
 import MobileHeader from "@/components/MobileHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -182,20 +182,20 @@ const RestaurantExpiryPage = () => {
         description: remaining > 0 ? `Restano ${fmtQty(remaining, item.unit)}` : "Lotto esaurito",
       });
     } else {
-      // Le preparazioni non hanno lotti in inventory_items: si registra il
-      // movimento per lo storico e si elimina la preparazione.
-      await recordMovement({
-        restaurantId: restaurant.id,
-        productName: item.name,
+      const { error, remaining } = await consumeFromPreparation(
+        { ...item, restaurant_id: restaurant.id },
+        item.name,
         movementType,
-        quantity: qty ?? Number(item.quantity ?? 1),
-        unit: item.unit,
-        lotNumber: item.lot_number,
-        expiryDate: item.expiry_date,
-        notes: "Preparazione",
+        qty,
+      );
+      if (error) {
+        toast({ variant: "destructive", title: "Errore", description: error });
+        return;
+      }
+      toast({
+        title: movementType === "consumo" ? "Scaricata ✓" : "Segnata come buttata 🗑",
+        description: remaining > 0 ? `Restano ${fmtQty(remaining, item.unit)}` : "Preparazione esaurita",
       });
-      await supabase.from("preparations").delete().eq("id", item.id);
-      toast({ title: movementType === "consumo" ? "Scaricata ✓" : "Segnata come buttata 🗑" });
     }
 
     setScaricoQty("");
