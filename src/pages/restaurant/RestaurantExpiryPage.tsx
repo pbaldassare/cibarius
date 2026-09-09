@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRestaurant } from "@/hooks/useRestaurant";
 import { supabase } from "@/integrations/supabase/client";
+import { consumeFromItem, recordMovement, fmtQty } from "@/lib/inventory-movements";
 import MobileHeader from "@/components/MobileHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ import { Input } from "@/components/ui/input";
 interface ExpiryItem {
   id: string;
   type: "product" | "preparation";
+  product_id: string | null;
   name: string;
   image_url: string | null;
   expiry_date: string | null;
@@ -69,6 +71,7 @@ const RestaurantExpiryPage = () => {
   const [activeTab, setActiveTab] = useState<string>("expired");
   const [storageFilter, setStorageFilter] = useState("all");
   const [actionSheet, setActionSheet] = useState<ExpiryItem | null>(null);
+  const [scaricoQty, setScaricoQty] = useState("");
   const [newDate, setNewDate] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [resolveOpen, setResolveOpen] = useState(false);
@@ -85,7 +88,7 @@ const RestaurantExpiryPage = () => {
     const [invRes, prepRes] = await Promise.all([
       supabase
         .from("inventory_items")
-        .select("id, expiry_date, storage_type, quantity, unit, lot_number, product:products(name, image_url)")
+        .select("id, product_id, expiry_date, storage_type, quantity, unit, lot_number, product:products(name, image_url)")
         .eq("restaurant_id", restaurant.id)
         .order("expiry_date", { ascending: true, nullsFirst: false }),
       supabase
@@ -99,6 +102,7 @@ const RestaurantExpiryPage = () => {
       for (const i of invRes.data as any[]) {
         result.push({
           id: i.id, type: "product",
+          product_id: i.product_id ?? null,
           name: i.product?.name ?? "Prodotto",
           image_url: i.product?.image_url ?? null,
           expiry_date: i.expiry_date,
@@ -112,6 +116,7 @@ const RestaurantExpiryPage = () => {
       for (const p of prepRes.data as any[]) {
         result.push({
           id: p.id, type: "preparation",
+          product_id: null,
           name: p.name,
           image_url: p.image_url ?? null,
           expiry_date: p.use_by_date,
@@ -145,27 +150,61 @@ const RestaurantExpiryPage = () => {
     });
   }, [items, activeTab, storageFilter, searchQuery]);
 
-  const handleConsume = async (item: ExpiryItem) => {
-    if (item.type === "product") {
-      await supabase.from("inventory_items").delete().eq("id", item.id);
-    } else {
-      await supabase.from("preparations").delete().eq("id", item.id);
+  /**
+   * Scarico di magazzino. Prima "utilizzato" e "buttato" facevano entrambi la
+   * stessa DELETE: nessuna distinzione, nessuno storico, niente scarichi
+   * parziali. Ora la quantita' scende e il movimento resta a registro.
+   */
+  const handleScarico = async (
+    item: ExpiryItem,
+    movementType: "consumo" | "spreco",
+  ) => {
+    if (!restaurant) return;
+    const qty = scaricoQty.trim() ? Number(scaricoQty.replace(",", ".")) : undefined;
+    if (qty != null && (!Number.isFinite(qty) || qty <= 0)) {
+      toast({ variant: "destructive", title: "Quantità non valida" });
+      return;
     }
-    toast({ title: "Segnato come utilizzato ✓" });
+
+    if (item.type === "product") {
+      const { error, remaining } = await consumeFromItem(
+        { ...item, restaurant_id: restaurant.id },
+        item.name,
+        movementType,
+        qty,
+      );
+      if (error) {
+        toast({ variant: "destructive", title: "Errore", description: error });
+        return;
+      }
+      toast({
+        title: movementType === "consumo" ? "Scaricato ✓" : "Segnato come buttato 🗑",
+        description: remaining > 0 ? `Restano ${fmtQty(remaining, item.unit)}` : "Lotto esaurito",
+      });
+    } else {
+      // Le preparazioni non hanno lotti in inventory_items: si registra il
+      // movimento per lo storico e si elimina la preparazione.
+      await recordMovement({
+        restaurantId: restaurant.id,
+        productName: item.name,
+        movementType,
+        quantity: qty ?? Number(item.quantity ?? 1),
+        unit: item.unit,
+        lotNumber: item.lot_number,
+        expiryDate: item.expiry_date,
+        notes: "Preparazione",
+      });
+      await supabase.from("preparations").delete().eq("id", item.id);
+      toast({ title: movementType === "consumo" ? "Scaricata ✓" : "Segnata come buttata 🗑" });
+    }
+
+    setScaricoQty("");
     setActionSheet(null);
     fetchItems();
   };
 
-  const handleTrash = async (item: ExpiryItem) => {
-    if (item.type === "product") {
-      await supabase.from("inventory_items").delete().eq("id", item.id);
-    } else {
-      await supabase.from("preparations").delete().eq("id", item.id);
-    }
-    toast({ title: "Segnato come buttato 🗑" });
-    setActionSheet(null);
-    fetchItems();
-  };
+  const handleConsume = (item: ExpiryItem) => handleScarico(item, "consumo");
+  const handleTrash = (item: ExpiryItem) => handleScarico(item, "spreco");
 
   const handleUpdateDate = async (item: ExpiryItem) => {
     if (!newDate) return;
@@ -425,7 +464,7 @@ const RestaurantExpiryPage = () => {
       </Dialog>
 
       {/* Action sheet — smart actions per item */}
-      <Sheet open={!!actionSheet} onOpenChange={(o) => { if (!o) setActionSheet(null); }}>
+      <Sheet open={!!actionSheet} onOpenChange={(o) => { if (!o) { setActionSheet(null); setScaricoQty(""); } }}>
         <SheetContent side="bottom" className="rounded-t-3xl">
           <SheetHeader>
             <SheetTitle className="text-foreground">{actionSheet?.name}</SheetTitle>
@@ -482,6 +521,26 @@ const RestaurantExpiryPage = () => {
             <Button className="w-full justify-start gap-3 h-12 rounded-xl" variant="outline" onClick={() => actionSheet && handleTrash(actionSheet)}>
               <Trash2 className="h-4 w-4 text-destructive" /> Buttato / Eliminato
             </Button>
+
+            {/* Scarico parziale: vuoto = scarica tutto il residuo */}
+            <div className="rounded-xl bg-muted/40 p-3 space-y-1.5">
+              <label className="text-[11px] font-medium text-muted-foreground">
+                Quantità da scaricare{actionSheet?.quantity ? ` — disponibili ${fmtQty(Number(actionSheet.quantity), actionSheet.unit)}` : ""}
+              </label>
+              <Input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="any"
+                value={scaricoQty}
+                onChange={(e) => setScaricoQty(e.target.value)}
+                placeholder="Tutto"
+                className="h-10 rounded-lg"
+              />
+              <p className="text-[10px] text-muted-foreground">
+                Lascia vuoto per scaricare l'intero lotto.
+              </p>
+            </div>
             <div className="flex gap-2">
               <Input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} className="flex-1 h-12 rounded-xl" />
               <Button className="h-12 rounded-xl" onClick={() => actionSheet && handleUpdateDate(actionSheet)}>

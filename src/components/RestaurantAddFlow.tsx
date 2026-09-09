@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import RestaurantLabel, { type LabelData } from "@/components/RestaurantLabel";
+import { recordMovement } from "@/lib/inventory-movements";
 import { format, addDays } from "date-fns";
 import {
   ArrowLeft, Camera, Loader2, Plus, X, ImagePlus, Check,
@@ -306,6 +307,20 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
 
             if (iErr) throw iErr;
             if (inv) {
+              // Carico a registro: senza questa riga la merce entrerebbe in
+              // giacenza senza lasciare traccia e il consumo medio sarebbe falsato.
+              await recordMovement({
+                restaurantId,
+                inventoryItemId: inv.id,
+                productId: product.id,
+                productName: item.name,
+                movementType: "carico",
+                quantity: item.quantity || 1,
+                unit: item.unit || "pz",
+                lotNumber: item.lot_number || null,
+                expiryDate: item.expiry_date || null,
+              });
+
               // Save allergens for inventory items
               if (item.allergens.length > 0) {
                 const allergenIds = allergensList

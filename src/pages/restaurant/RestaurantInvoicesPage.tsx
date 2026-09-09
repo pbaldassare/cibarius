@@ -8,10 +8,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Upload, FileText, Download, Trash2, Plus, ExternalLink, ChevronRight, Sparkles, RefreshCw } from "lucide-react";
+import { Loader2, Upload, FileText, Download, Trash2, Plus, ExternalLink, ChevronRight, Sparkles, RefreshCw, PackagePlus } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { recordMovement } from "@/lib/inventory-movements";
 
 interface ExtractedData {
   supplier_name?: string | null;
@@ -65,6 +66,7 @@ const RestaurantInvoicesPage = () => {
   const [uploading, setUploading] = useState(false);
   const [detailDoc, setDetailDoc] = useState<RestaurantDocument | null>(null);
   const [extracting, setExtracting] = useState(false);
+  const [loadingStock, setLoadingStock] = useState(false);
 
   // Upload form state
   const [file, setFile] = useState<File | null>(null);
@@ -139,6 +141,74 @@ const RestaurantInvoicesPage = () => {
       toast({ variant: "destructive", title: "Errore estrazione", description: err.message });
     } finally {
       setExtracting(false);
+    }
+  };
+
+  /**
+   * Porta in magazzino gli articoli letti dalla bolla.
+   *
+   * Finora l'OCR si fermava a `extracted_data`: i dati restavano nel JSON e
+   * il carico andava rifatto a mano articolo per articolo. Ogni riga crea un
+   * prodotto, un lotto e il relativo movimento di carico, con il documento di
+   * provenienza gia' collegato per la tracciabilita'.
+   */
+  const handleLoadIntoStock = async (doc: RestaurantDocument) => {
+    const items = doc.extracted_data?.items ?? [];
+    if (!restaurant || items.length === 0) return;
+    setLoadingStock(true);
+    let created = 0;
+
+    try {
+      for (const line of items) {
+        const { data: product, error: pErr } = await supabase
+          .from("products")
+          .insert({ name: line.name })
+          .select("id")
+          .single();
+        if (pErr || !product) continue;
+
+        const quantity = line.quantity != null && line.quantity > 0 ? line.quantity : 1;
+        const { data: inv, error: iErr } = await supabase
+          .from("inventory_items")
+          .insert({
+            product_id: product.id,
+            restaurant_id: restaurant.id,
+            storage_type: "frigo",
+            quantity,
+            unit: line.unit || "pz",
+            lot_number: doc.document_number || null,
+            source_document_id: doc.id,
+          })
+          .select("id")
+          .single();
+        if (iErr || !inv) continue;
+
+        await recordMovement({
+          restaurantId: restaurant.id,
+          inventoryItemId: inv.id,
+          productId: product.id,
+          productName: line.name,
+          movementType: "carico",
+          quantity,
+          unit: line.unit || "pz",
+          lotNumber: doc.document_number || null,
+          sourceDocumentId: doc.id,
+          notes: doc.supplier_name ? `Da ${doc.document_type} ${doc.supplier_name}` : `Da ${doc.document_type}`,
+        });
+        created++;
+      }
+
+      if (created === items.length) {
+        toast({ title: `${created} articoli caricati in magazzino ✓` });
+      } else {
+        toast({
+          variant: created === 0 ? "destructive" : "default",
+          title: `Caricati ${created} di ${items.length} articoli`,
+          description: created === 0 ? "Nessun articolo e' stato caricato." : "Alcune righe non sono state importate.",
+        });
+      }
+    } finally {
+      setLoadingStock(false);
     }
   };
 
@@ -423,6 +493,16 @@ const RestaurantInvoicesPage = () => {
                               </div>
                             ))}
                           </div>
+                          <Button
+                            className="w-full gap-2 mt-2"
+                            onClick={() => handleLoadIntoStock(detailDoc)}
+                            disabled={loadingStock}
+                          >
+                            {loadingStock
+                              ? <Loader2 className="h-4 w-4 animate-spin" />
+                              : <PackagePlus className="h-4 w-4" />}
+                            Carica {ed.items.length} articoli in magazzino
+                          </Button>
                         </div>
                       )}
 

@@ -58,6 +58,7 @@ const RestaurantExpiryPage = lazy(() => import("./pages/restaurant/RestaurantExp
 const RestaurantRecipesPage = lazy(() => import("./pages/restaurant/RestaurantRecipesPage"));
 const RestaurantSettingsPage = lazy(() => import("./pages/restaurant/RestaurantSettingsPage"));
 const RestaurantInvoicesPage = lazy(() => import("./pages/restaurant/RestaurantInvoicesPage"));
+const RestaurantStockPage = lazy(() => import("./pages/restaurant/RestaurantStockPage"));
 const RestaurantPreparationsPage = lazy(() => import("./pages/restaurant/RestaurantPreparationsPage"));
 const RestaurantItemPage = lazy(() => import("./pages/restaurant/RestaurantItemPage"));
 const RestaurantHaccpPage = lazy(() => import("./pages/restaurant/RestaurantHaccpPage"));
@@ -198,6 +199,7 @@ const App = () => (
               <Route element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><RestaurantLayout /></RestaurantGuard></RG>}>
                 <Route path="/restaurant" element={<RestaurantPage />} />
                 <Route path="/restaurant/products" element={<RestaurantExpiryPage />} />
+                <Route path="/restaurant/stock" element={<RestaurantStockPage />} />
                 <Route path="/restaurant/recipes" element={<RestaurantRecipesPage />} />
                 <Route path="/restaurant/settings" element={<RestaurantSettingsPage />} />
                 <Route path="/restaurant/invoices" element={<RestaurantInvoicesPage />} />

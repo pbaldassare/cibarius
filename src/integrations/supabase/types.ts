@@ -1889,6 +1889,89 @@ export type Database = {
           },
         ]
       }
+      inventory_movements: {
+        Row: {
+          created_at: string
+          expiry_date: string | null
+          id: string
+          inventory_item_id: string | null
+          lot_number: string | null
+          movement_type: string
+          notes: string | null
+          product_id: string | null
+          product_name: string
+          quantity_delta: number
+          restaurant_id: string
+          source_document_id: string | null
+          unit: string | null
+          user_id: string | null
+          user_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          expiry_date?: string | null
+          id?: string
+          inventory_item_id?: string | null
+          lot_number?: string | null
+          movement_type: string
+          notes?: string | null
+          product_id?: string | null
+          product_name: string
+          quantity_delta: number
+          restaurant_id: string
+          source_document_id?: string | null
+          unit?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          expiry_date?: string | null
+          id?: string
+          inventory_item_id?: string | null
+          lot_number?: string | null
+          movement_type?: string
+          notes?: string | null
+          product_id?: string | null
+          product_name?: string
+          quantity_delta?: number
+          restaurant_id?: string
+          source_document_id?: string | null
+          unit?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_movements_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_source_document_id_fkey"
+            columns: ["source_document_id"]
+            isOneToOne: false
+            referencedRelation: "haccp_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       manual_subscription_overrides: {
         Row: {
           created_at: string

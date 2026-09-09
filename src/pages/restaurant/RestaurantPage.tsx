@@ -5,6 +5,7 @@ import { useRestaurant } from "@/hooks/useRestaurant";
 import { useAuth } from "@/hooks/useAuth";
 import MobileHeader from "@/components/MobileHeader";
 import { supabase } from "@/integrations/supabase/client";
+import { consumeFromItem, recordMovement, fmtQty } from "@/lib/inventory-movements";
 import { Skeleton } from "@/components/ui/skeleton";
 import RestaurantAddFlow from "@/components/RestaurantAddFlow";
 import ResolveExpiryFlow from "@/components/ResolveExpiryFlow";
@@ -23,10 +24,12 @@ import { it } from "date-fns/locale";
 /* ─── types ─── */
 interface InventoryItem {
   id: string;
+  product_id: string | null;
   expiry_date: string | null;
   storage_type: string;
   quantity: number | null;
   unit: string | null;
+  lot_number: string | null;
   product: { name: string; image_url: string | null };
 }
 
@@ -80,6 +83,7 @@ const QUICK_ACTIONS = [
   { label: "Forni", icon: Flame, to: "/restaurant/haccp", color: "text-orange-600", bg: "bg-orange-500/10" },
   { label: "Celle frigo", icon: Thermometer, to: "/restaurant/haccp", color: "text-sky-600", bg: "bg-sky-500/10" },
   { label: "Scadenze", icon: Clock, to: "/restaurant/products", color: "text-amber-600", bg: "bg-amber-500/10" },
+  { label: "Magazzino", icon: Package, to: "/restaurant/stock", color: "text-indigo-600", bg: "bg-indigo-500/10" },
   { label: "Etichette HACCP", icon: QrCode, to: "/restaurant/haccp-labels", color: "text-emerald-600", bg: "bg-emerald-500/10" },
 ];
 
@@ -106,7 +110,7 @@ const RestaurantPage = () => {
     const [invRes, prepRes, docRes, tasksRes, logsRes] = await Promise.all([
       supabase
         .from("inventory_items")
-        .select("id, expiry_date, storage_type, quantity, unit, product:products(name, image_url)")
+        .select("id, product_id, expiry_date, storage_type, quantity, unit, lot_number, product:products(name, image_url)")
         .eq("restaurant_id", restaurant.id)
         .order("expiry_date", { ascending: true, nullsFirst: false }),
       supabase
@@ -172,18 +176,69 @@ const RestaurantPage = () => {
   }, [items, preps]);
 
   // Urgent list
+  /**
+   * Lo swipe scarica l'intero lotto, ma ora "utilizzato" e "buttato" sono due
+   * movimenti distinti a registro invece della stessa DELETE indistinta.
+   * Per scaricare solo una parte si passa dalla scheda scadenze.
+   */
+  const handleScarico = async (
+    item: { id: string; name: string; type: "inv" | "prep"; product_id?: string | null;
+            quantity?: number | null; unit?: string | null; lot_number?: string | null; date: string | null },
+    movementType: "consumo" | "spreco",
+  ) => {
+    if (!restaurant) return;
+
+    if (item.type === "inv") {
+      const { error } = await consumeFromItem(
+        {
+          id: item.id,
+          restaurant_id: restaurant.id,
+          product_id: item.product_id,
+          quantity: item.quantity,
+          unit: item.unit,
+          lot_number: item.lot_number,
+          expiry_date: item.date,
+        },
+        item.name,
+        movementType,
+      );
+      if (error) {
+        toast({ variant: "destructive", title: "Errore", description: error });
+        return;
+      }
+    } else {
+      await recordMovement({
+        restaurantId: restaurant.id,
+        productName: item.name,
+        movementType,
+        quantity: Number(item.quantity ?? 1),
+        unit: item.unit,
+        lotNumber: item.lot_number,
+        expiryDate: item.date,
+        notes: "Preparazione",
+      });
+      await supabase.from("preparations").delete().eq("id", item.id);
+    }
+
+    toast({ title: movementType === "consumo" ? "Segnato come utilizzato ✓" : "Segnato come buttato 🗑" });
+    fetchData();
+  };
+
   const urgentList = useMemo(() => {
-    type U = { id: string; name: string; image_url: string | null; date: string | null; storage: string; status: ExpiryStatus; type: "inv" | "prep" };
+    type U = { id: string; name: string; image_url: string | null; date: string | null; storage: string; status: ExpiryStatus; type: "inv" | "prep";
+               product_id?: string | null; quantity?: number | null; unit?: string | null; lot_number?: string | null };
     const list: U[] = [];
     items.forEach((i) => {
       const s = getStatus(i.expiry_date);
       if (s === "expired" || s === "expiring")
-        list.push({ id: i.id, name: i.product.name, image_url: i.product.image_url, date: i.expiry_date, storage: i.storage_type, status: s, type: "inv" });
+        list.push({ id: i.id, name: i.product.name, image_url: i.product.image_url, date: i.expiry_date, storage: i.storage_type, status: s, type: "inv",
+                    product_id: i.product_id, quantity: i.quantity, unit: i.unit, lot_number: i.lot_number });
     });
     preps.forEach((p) => {
       const s = getStatus(p.use_by_date);
       if (s === "expired" || s === "expiring")
-        list.push({ id: p.id, name: p.name, image_url: null, date: p.use_by_date, storage: p.storage_type, status: s, type: "prep" });
+        list.push({ id: p.id, name: p.name, image_url: null, date: p.use_by_date, storage: p.storage_type, status: s, type: "prep",
+                    quantity: p.portions, unit: "porzioni" });
     });
     list.sort((a, b) => {
       if (a.status !== b.status) return a.status === "expired" ? -1 : 1;
@@ -449,18 +504,8 @@ const RestaurantPage = () => {
                 <SwipeableUrgentItem
                   key={`${item.type}-${item.id}`}
                   item={item}
-                  onConsumed={async () => {
-                    if (item.type === "inv") await supabase.from("inventory_items").delete().eq("id", item.id);
-                    else await supabase.from("preparations").delete().eq("id", item.id);
-                    toast({ title: "Segnato come utilizzato ✓" });
-                    fetchData();
-                  }}
-                  onDiscarded={async () => {
-                    if (item.type === "inv") await supabase.from("inventory_items").delete().eq("id", item.id);
-                    else await supabase.from("preparations").delete().eq("id", item.id);
-                    toast({ title: "Segnato come buttato 🗑" });
-                    fetchData();
-                  }}
+                  onConsumed={() => handleScarico(item, "consumo")}
+                  onDiscarded={() => handleScarico(item, "spreco")}
                 />
               ))}
             </div>
