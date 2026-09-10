@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useRestaurant } from "@/hooks/useRestaurant";
+import { frequencyLabel } from "@/lib/haccp-schedule";
 import { supabase } from "@/integrations/supabase/client";
 import MobileHeader from "@/components/MobileHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -98,6 +99,8 @@ const RestaurantHaccpSetupPage = () => {
   const [newName, setNewName] = useState("");
   const [newCat, setNewCat] = useState("pulizia");
   const [newFreq, setNewFreq] = useState("giornaliera");
+  // Ogni quanti giorni, quando la frequenza e' personalizzata
+  const [newInterval, setNewInterval] = useState("7");
 
   // Template state
   const [templates, setTemplates] = useState<HaccpTemplate[]>([]);
@@ -183,10 +186,20 @@ const RestaurantHaccpSetupPage = () => {
   const handleAddTask = async () => {
     if (!restaurant || !newName.trim()) return;
     setSaving(true);
+    // L'intervallo si salva solo per la frequenza personalizzata: finora non
+    // veniva mai scritto, quindi quelle attivita' ricadevano su "ogni giorno".
+    const interval = Math.round(Number(newInterval));
+    if (newFreq === "personalizzata" && (!Number.isFinite(interval) || interval < 1)) {
+      setSaving(false);
+      toast({ variant: "destructive", title: "Intervallo non valido", description: "Indica ogni quanti giorni ripetere il controllo." });
+      return;
+    }
+
     const { error } = await supabase.from("haccp_tasks").insert({
       name: newName.trim(),
       category: newCat,
       frequency: newFreq,
+      custom_interval_days: newFreq === "personalizzata" ? interval : null,
       restaurant_id: restaurant.id,
       sort_order: tasks.length,
     } as any);
@@ -411,7 +424,7 @@ const RestaurantHaccpSetupPage = () => {
                   />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{task.name}</p>
-                    <p className="text-xs text-muted-foreground capitalize">{task.frequency} · {task.category.replace(/_/g, " ")}</p>
+                    <p className="text-xs text-muted-foreground capitalize">{frequencyLabel(task)} · {task.category.replace(/_/g, " ")}</p>
                   </div>
                   <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeleteTask(task.id)}>
                     <Trash2 className="h-4 w-4" />
@@ -457,6 +470,21 @@ const RestaurantHaccpSetupPage = () => {
                 </SelectContent>
               </Select>
             </div>
+            {newFreq === "personalizzata" && (
+              <div className="space-y-1.5">
+                <Label>Ogni quanti giorni</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={newInterval}
+                  onChange={e => setNewInterval(e.target.value)}
+                  placeholder="es. 7"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Il controllo ricompare a questo intervallo a partire da oggi.
+                </p>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddOpen(false)}>Annulla</Button>

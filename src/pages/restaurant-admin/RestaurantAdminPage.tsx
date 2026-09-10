@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Users, Store, Loader2, ClipboardCheck, Settings2, FileText,
-  Package, AlertTriangle, CheckCircle2, Clock, ShieldCheck,
+  Package, AlertTriangle, CheckCircle2, Clock, ShieldCheck, Thermometer,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
@@ -147,7 +147,21 @@ const RestaurantAdminPage = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">Gestisci il team</p>
+              <p className="text-sm text-muted-foreground">
+                Gestisci il team · implementazione a breve
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link to="/restaurant-admin/temperatures">
+          <Card className="transition-shadow hover:shadow-md">
+            <CardHeader className="flex flex-row items-center gap-3 pb-2">
+              <Thermometer className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base">Registro Temperature</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">Rilevazioni e anomalie</p>
             </CardContent>
           </Card>
         </Link>

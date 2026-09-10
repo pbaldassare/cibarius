@@ -53,7 +53,6 @@ const AdminApiPage = lazy(() => import("./pages/admin/AdminApiPage"));
 // Restaurant app pages
 const RestaurantOnboardingPage = lazy(() => import("./pages/restaurant/RestaurantOnboardingPage"));
 const RestaurantPage = lazy(() => import("./pages/restaurant/RestaurantPage"));
-const RestaurantProductsPage = lazy(() => import("./pages/restaurant/RestaurantProductsPage"));
 const RestaurantExpiryPage = lazy(() => import("./pages/restaurant/RestaurantExpiryPage"));
 const RestaurantRecipesPage = lazy(() => import("./pages/restaurant/RestaurantRecipesPage"));
 const RestaurantSettingsPage = lazy(() => import("./pages/restaurant/RestaurantSettingsPage"));

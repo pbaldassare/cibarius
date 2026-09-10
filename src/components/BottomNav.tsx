@@ -1,5 +1,6 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { useRole } from "@/hooks/useRole";
+import { RESTAURANT_TABS } from "@/lib/restaurant-tabs";
 import {
   Home, User, UtensilsCrossed,
   BookOpen, LayoutDashboard, Users, FileText,
@@ -22,13 +23,8 @@ const tabsByRole: Record<string, TabItem[]> = {
     { to: "/meals", icon: UtensilsCrossed, label: "Pasti", tourId: "nav-meals" },
     { to: "/profile", icon: User, label: "Profilo", tourId: "nav-profile" },
   ],
-  restaurant_owner: [
-    { to: "/restaurant", icon: LayoutDashboard, label: "Dashboard" },
-    { to: "/restaurant/products", icon: Clock, label: "Scadenze" },
-    { to: "/restaurant/preparations", icon: ChefHat, label: "Preparaz." },
-    { to: "/restaurant/recipes", icon: BookOpen, label: "Ricette" },
-    { to: "/restaurant/invoices", icon: FileText, label: "Bolle" },
-  ],
+  // Stessa lista della barra operativa: una sola definizione, nessuna deriva.
+  restaurant_owner: RESTAURANT_TABS,
   professional: [
     { to: "/pro", icon: LayoutDashboard, label: "Dashboard", tourId: "pro-nav-dashboard" },
     { to: "/pro/clients", icon: Users, label: "Clienti", tourId: "pro-nav-clients" },

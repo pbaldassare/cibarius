@@ -14,6 +14,8 @@ import {
   forecastFromMovements, fmtQty, MOVEMENT_LABELS, consumeFromItem, recordMovement,
   type Movement, type MovementType,
 } from "@/lib/inventory-movements";
+import { loadProductIndex, resolveProduct } from "@/lib/restaurant-products";
+import { fetchAllRows } from "@/lib/supabase-paging";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
@@ -82,28 +84,37 @@ const RestaurantStockPage = () => {
 
   const fetchAll = async () => {
     if (!restaurant) return;
-    {
-      const [lotsRes, movRes] = await Promise.all([
+    // I lotti si leggono a pagine: oltre le mille righe PostgREST tronca in
+    // silenzio e le giacenze risulterebbero piu' basse del vero.
+    const [lotsRes, movRes] = await Promise.all([
+      fetchAllRows<Lot>((from, to) =>
         supabase
           .from("inventory_items")
           .select("id, product_id, quantity, unit, expiry_date, lot_number, storage_type, product:products(name)")
-          .eq("restaurant_id", restaurant.id),
-        supabase
-          .from("inventory_movements")
-          .select("id, inventory_item_id, product_id, product_name, movement_type, quantity_delta, unit, lot_number, expiry_date, notes, user_name, created_at")
           .eq("restaurant_id", restaurant.id)
-          .order("created_at", { ascending: false })
-          .limit(500),
-      ]);
-      setLots((lotsRes.data ?? []) as unknown as Lot[]);
-      setMovements((movRes.data ?? []) as unknown as Movement[]);
-      setLoading(false);
-    }
+          .range(from, to) as unknown as PromiseLike<{ data: Lot[] | null; error: { message: string } | null }>,
+      ),
+      supabase
+        .from("inventory_movements")
+        .select("id, inventory_item_id, product_id, product_name, movement_type, quantity_delta, unit, lot_number, expiry_date, notes, user_name, created_at")
+        .eq("restaurant_id", restaurant.id)
+        .order("created_at", { ascending: false })
+        .limit(500),
+    ]);
+    setLots(lotsRes.data);
+    setMovements((movRes.data ?? []) as unknown as Movement[]);
+    setLoading(false);
   };
 
   useEffect(() => { fetchAll(); }, [restaurant]);
 
-  /** Carico manuale: crea il prodotto, il lotto e il movimento in entrata. */
+  /**
+   * Carico manuale: riusa il prodotto se il ristorante lo ha gia' avuto,
+   * poi crea il lotto e il movimento in entrata.
+   *
+   * Prima creava sempre un prodotto nuovo, quindi lo stesso articolo caricato
+   * due volte finiva in due righe distinte di Giacenze.
+   */
   const handleCarico = async () => {
     if (!restaurant) return;
     const q = Number(cQta.replace(",", "."));
@@ -113,12 +124,12 @@ const RestaurantStockPage = () => {
     }
     setBusy(true);
     try {
-      const { data: product, error: pErr } = await supabase
-        .from("products").insert({ name: cNome.trim(), unit: cUnita }).select("id").single();
-      if (pErr || !product) throw new Error(pErr?.message ?? "Prodotto non creato");
+      const index = await loadProductIndex(restaurant.id);
+      const { productId, error: pErr } = await resolveProduct(index, cNome.trim(), cUnita);
+      if (pErr || !productId) throw new Error(pErr ?? "Prodotto non creato");
 
       const { data: inv, error: iErr } = await supabase.from("inventory_items").insert({
-        product_id: product.id,
+        product_id: productId,
         restaurant_id: restaurant.id,
         storage_type: cStorage,
         quantity: q,
@@ -131,7 +142,7 @@ const RestaurantStockPage = () => {
       await recordMovement({
         restaurantId: restaurant.id,
         inventoryItemId: inv.id,
-        productId: product.id,
+        productId,
         productName: cNome.trim(),
         movementType: "carico",
         quantity: q,
@@ -235,7 +246,7 @@ const RestaurantStockPage = () => {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "#F5F7FA" }} data-tour="rest-stock-page">
+    <div className="min-h-screen bg-background" data-tour="rest-stock-page">
       <MobileHeader title="Magazzino" showBack />
       <main className="px-4 py-4 pb-28 space-y-3">
         <Button onClick={() => setCaricoOpen(true)} className="w-full gap-2 h-11">
@@ -248,7 +259,7 @@ const RestaurantStockPage = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Cerca prodotto…"
-            className="pl-9 bg-white"
+            className="pl-9 bg-card"
           />
         </div>
 
@@ -272,15 +283,15 @@ const RestaurantStockPage = () => {
                 const expDays = row.nextExpiry ? daysUntil(row.nextExpiry) : null;
                 return (
                   <button key={row.productId} onClick={() => setDetail(row)} className="w-full text-left">
-                    <div className="rounded-2xl bg-white p-3 shadow-sm">
+                    <div className="rounded-[18px] bg-card p-3 shadow-card">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-semibold truncate" style={{ color: "#111827" }}>{row.name}</p>
+                          <p className="text-sm font-semibold truncate text-foreground">{row.name}</p>
                           <p className="text-xs text-muted-foreground">
                             {row.lots.length} lott{row.lots.length === 1 ? "o" : "i"}
                           </p>
                         </div>
-                        <p className="text-base font-bold shrink-0" style={{ color: "#111827" }}>
+                        <p className="text-base font-bold shrink-0 text-foreground">
                           {fmtQty(row.totalQty, row.unit)}
                         </p>
                       </div>
@@ -510,9 +521,9 @@ const Stat = ({ label, value }: { label: string; value: string }) => (
 );
 
 const EmptyState = ({ icon: Icon, title, hint }: { icon: typeof Package; title: string; hint: string }) => (
-  <div className="flex flex-col items-center gap-2 rounded-2xl bg-white p-10 shadow-sm">
+  <div className="flex flex-col items-center gap-2 rounded-[18px] bg-card p-10 shadow-card">
     <Icon className="h-8 w-8 text-muted-foreground" />
-    <p className="text-sm font-medium" style={{ color: "#111827" }}>{title}</p>
+    <p className="text-sm font-medium text-foreground">{title}</p>
     <p className="text-xs text-muted-foreground text-center">{hint}</p>
   </div>
 );
@@ -521,12 +532,12 @@ const MovementRow = ({ m }: { m: Movement }) => {
   const Icon = movementIcon[m.movement_type] ?? SlidersHorizontal;
   const delta = Number(m.quantity_delta);
   return (
-    <div className="flex items-center gap-3 rounded-xl bg-white p-3 shadow-sm">
+    <div className="flex items-center gap-3 rounded-xl bg-card p-3 shadow-card">
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
         <Icon className={`h-4 w-4 ${movementColor[m.movement_type] ?? ""}`} />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium truncate" style={{ color: "#111827" }}>{m.product_name}</p>
+        <p className="text-sm font-medium truncate text-foreground">{m.product_name}</p>
         <p className="text-[11px] text-muted-foreground truncate">
           {MOVEMENT_LABELS[m.movement_type] ?? m.movement_type}
           {m.lot_number ? ` · lotto ${m.lot_number}` : ""}

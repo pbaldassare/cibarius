@@ -6,6 +6,8 @@ import { useAuth } from "@/hooks/useAuth";
 import MobileHeader from "@/components/MobileHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { consumeFromItem, consumeFromPreparation } from "@/lib/inventory-movements";
+import { buildAgenda } from "@/lib/haccp-schedule";
+import { fetchAllRows } from "@/lib/supabase-paging";
 import { Skeleton } from "@/components/ui/skeleton";
 import RestaurantAddFlow from "@/components/RestaurantAddFlow";
 import ResolveExpiryFlow from "@/components/ResolveExpiryFlow";
@@ -14,12 +16,11 @@ import {
   Loader2, Clock, AlertCircle, Package, Plus, ChevronRight,
   ChefHat, FileText, Upload, User, Settings, Zap,
   ClipboardCheck, CheckCircle2, AlertTriangle, Circle,
-  Thermometer, Wind, Flame, Trash2, UtensilsCrossed, QrCode,
+  Thermometer, Wind, Flame, Trash2, UtensilsCrossed, QrCode, BookOpen,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { getFoodEmoji } from "@/lib/food-images";
-import { format, isSameDay } from "date-fns";
-import { it } from "date-fns/locale";
+import { format } from "date-fns";
 
 /* ─── types ─── */
 interface InventoryItem {
@@ -46,6 +47,8 @@ interface HaccpTask {
   name: string;
   category: string;
   frequency: string;
+  custom_interval_days: number | null;
+  created_at: string;
 }
 
 interface HaccpLog {
@@ -54,6 +57,11 @@ interface HaccpLog {
   log_date: string;
   status: string;
 }
+
+/** Giorni di arretrato mostrati sul cruscotto. */
+const HACCP_LOOKBACK_DAYS = 14;
+
+const TEMP_CATEGORIES = ["celle_frigo", "frigoriferi", "freezer", "controllo_temperatura", "temperature"];
 
 type ExpiryStatus = "expired" | "expiring" | "ok" | "nodate";
 
@@ -77,14 +85,23 @@ const storageLabel: Record<string, string> = {
   frigo: "Frigo", freezer: "Congelatore", ambiente: "Dispensa",
 };
 
+/**
+ * Scorciatoie del cruscotto.
+ *
+ * Cappe, Forni e Celle frigo puntavano tutte e tre alla stessa lista HACCP
+ * senza filtro, e le prime due a categorie che non esistono in nessun
+ * template. Ora ogni voce porta davvero dove promette: i gruppi HACCP
+ * arrivano alla pagina controlli gia' filtrata.
+ */
 const QUICK_ACTIONS = [
   { label: "Controlli oggi", icon: ClipboardCheck, to: "/restaurant/haccp", color: "text-primary", bg: "bg-primary/10" },
-  { label: "Cappe", icon: Wind, to: "/restaurant/haccp", color: "text-violet-600", bg: "bg-violet-500/10" },
-  { label: "Forni", icon: Flame, to: "/restaurant/haccp", color: "text-orange-600", bg: "bg-orange-500/10" },
-  { label: "Celle frigo", icon: Thermometer, to: "/restaurant/haccp", color: "text-sky-600", bg: "bg-sky-500/10" },
+  { label: "Temperature", icon: Thermometer, to: "/restaurant/haccp?gruppo=temperature", color: "text-sky-600", bg: "bg-sky-500/10" },
+  { label: "Pulizie", icon: Wind, to: "/restaurant/haccp?gruppo=pulizie", color: "text-violet-600", bg: "bg-violet-500/10" },
+  { label: "Attrezzature", icon: Flame, to: "/restaurant/haccp?gruppo=attrezzature", color: "text-orange-600", bg: "bg-orange-500/10" },
   { label: "Scadenze", icon: Clock, to: "/restaurant/products", color: "text-amber-600", bg: "bg-amber-500/10" },
   { label: "Magazzino", icon: Package, to: "/restaurant/stock", color: "text-indigo-600", bg: "bg-indigo-500/10" },
   { label: "Etichette HACCP", icon: QrCode, to: "/restaurant/haccp-labels", color: "text-emerald-600", bg: "bg-emerald-500/10" },
+  { label: "Ricette", icon: BookOpen, to: "/restaurant/recipes", color: "text-rose-600", bg: "bg-rose-500/10" },
 ];
 
 const RestaurantPage = () => {
@@ -107,12 +124,19 @@ const RestaurantPage = () => {
 
   const fetchData = async () => {
     if (!restaurant) return;
+    const lookbackFrom = format(new Date(Date.now() - HACCP_LOOKBACK_DAYS * 86400000), "yyyy-MM-dd");
+
     const [invRes, prepRes, docRes, tasksRes, logsRes] = await Promise.all([
-      supabase
-        .from("inventory_items")
-        .select("id, product_id, expiry_date, storage_type, quantity, unit, lot_number, product:products(name, image_url)")
-        .eq("restaurant_id", restaurant.id)
-        .order("expiry_date", { ascending: true, nullsFirst: false }),
+      // A pagine: oltre i mille lotti PostgREST tronca senza segnalarlo e i
+      // contatori delle scadenze risulterebbero piu' bassi del vero.
+      fetchAllRows<InventoryItem>((from, to) =>
+        supabase
+          .from("inventory_items")
+          .select("id, product_id, expiry_date, storage_type, quantity, unit, lot_number, product:products(name, image_url)")
+          .eq("restaurant_id", restaurant.id)
+          .order("expiry_date", { ascending: true, nullsFirst: false })
+          .range(from, to) as unknown as PromiseLike<{ data: InventoryItem[] | null; error: { message: string } | null }>,
+      ),
       supabase
         .from("preparations")
         .select("id, name, use_by_date, storage_type, portions")
@@ -124,7 +148,7 @@ const RestaurantPage = () => {
         .eq("restaurant_id", restaurant.id),
       supabase
         .from("haccp_tasks")
-        .select("id, name, category, frequency")
+        .select("id, name, category, frequency, custom_interval_days, created_at")
         .eq("restaurant_id", restaurant.id)
         .eq("is_active", true)
         .order("sort_order"),
@@ -132,9 +156,9 @@ const RestaurantPage = () => {
         .from("haccp_logs")
         .select("id, task_id, log_date, status")
         .eq("restaurant_id", restaurant.id)
-        .eq("log_date", todayStr),
+        .gte("log_date", lookbackFrom),
     ]);
-    if (invRes.data) setItems(invRes.data as unknown as InventoryItem[]);
+    setItems(invRes.data);
     if (prepRes.data) setPreps(prepRes.data as unknown as PrepItem[]);
     if (tasksRes.data) setHaccpTasks(tasksRes.data as HaccpTask[]);
     if (logsRes.data) setHaccpLogs(logsRes.data as HaccpLog[]);
@@ -144,19 +168,22 @@ const RestaurantPage = () => {
 
   useEffect(() => { if (restaurant) fetchData(); }, [restaurant]);
 
-  // HACCP today stats
-  const haccpToday = useMemo(() => {
-    const todayTasks = haccpTasks.filter(t => {
-      if (t.frequency === "giornaliera") return true;
-      if (t.frequency === "settimanale") return today.getDay() === 1;
-      if (t.frequency === "mensile") return today.getDate() === 1;
-      return true;
-    });
-    const completedIds = new Set(haccpLogs.filter(l => l.status === "completata").map(l => l.task_id));
-    const completed = todayTasks.filter(t => completedIds.has(t.id));
-    const pending = todayTasks.filter(t => !completedIds.has(t.id));
-    return { total: todayTasks.length, completed, pending };
-  }, [haccpTasks, haccpLogs]);
+  /**
+   * Controlli di oggi piu' quelli rimasti indietro.
+   *
+   * Prima si guardava solo la giornata corrente, quindi un controllo
+   * settimanale saltato il lunedi' spariva dal cruscotto il martedi'.
+   */
+  const agenda = useMemo(
+    () => buildAgenda(haccpTasks, haccpLogs, today, HACCP_LOOKBACK_DAYS),
+    [haccpTasks, haccpLogs, todayStr],
+  );
+
+  const tempPendingCount = useMemo(
+    () => [...agenda.todayPending, ...agenda.overdue]
+      .filter(({ task }) => TEMP_CATEGORIES.includes(task.category)).length,
+    [agenda],
+  );
 
   // Inventory counts
   const counts = useMemo(() => {
@@ -312,42 +339,6 @@ const RestaurantPage = () => {
             ))}
           </div>
 
-          {/* Lista alimenti in scadenza */}
-          {urgentList.length > 0 && (
-            <div className="space-y-1.5 mb-3">
-              {urgentList.map((u) => {
-                const cfg = statusCfg[u.status];
-                const dateLabel = u.date
-                  ? isSameDay(new Date(u.date), today)
-                    ? "Oggi"
-                    : format(new Date(u.date), "d MMM", { locale: it })
-                  : "—";
-                return (
-                  <button
-                    key={`${u.type}-${u.id}`}
-                    onClick={() => navigate(u.type === "prep" ? "/restaurant/preparations" : `/restaurant/item/${u.id}`)}
-                    className="flex items-center gap-2 w-full rounded-[10px] bg-muted/40 px-3 py-2 text-left active:scale-[0.98] transition-transform"
-                  >
-                    <span className="text-lg shrink-0">{getFoodEmoji(u.name)}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-medium text-foreground truncate">{u.name}</p>
-                      <p className="text-[11px] text-muted-foreground">
-                        {storageLabel[u.storage] ?? u.storage} · {dateLabel}
-                      </p>
-                    </div>
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] shrink-0"
-                      style={{ color: cfg.color, borderColor: `${cfg.color}33` }}
-                    >
-                      {cfg.label}
-                    </Badge>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
           {counts.total > 0 && (
             <button
               onClick={() => setResolveOpen(true)}
@@ -371,7 +362,10 @@ const RestaurantPage = () => {
             </button>
           </div>
 
-          {haccpToday.total === 0 ? (
+          {/* Distinguere "non configurato" da "oggi non c'e' nulla in scadenza":
+              con soli controlli settimanali, un martedi' senza arretrati non
+              significa che l'HACCP non sia impostato. */}
+          {haccpTasks.length === 0 ? (
             <div className="text-center py-4">
               <p className="text-sm text-muted-foreground mb-2">Nessuna attività configurata</p>
               <Link to="/restaurant/haccp/setup">
@@ -380,23 +374,25 @@ const RestaurantPage = () => {
             </div>
           ) : (
             <>
-              {/* Progress */}
-              <div className="flex items-center gap-3 mb-3">
-                <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-primary transition-all duration-500"
-                    style={{ width: `${(haccpToday.completed.length / haccpToday.total) * 100}%` }}
-                  />
+              {/* Avanzamento di oggi */}
+              {agenda.todayTotal > 0 && (
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-primary transition-all duration-500"
+                      style={{ width: `${(agenda.todayDone / agenda.todayTotal) * 100}%` }}
+                    />
+                  </div>
+                  <span className="text-sm font-bold text-foreground">
+                    {agenda.todayDone}/{agenda.todayTotal}
+                  </span>
                 </div>
-                <span className="text-sm font-bold text-foreground">
-                  {haccpToday.completed.length}/{haccpToday.total}
-                </span>
-              </div>
+              )}
 
-              {/* Pending tasks */}
-              {haccpToday.pending.length > 0 && (
+              {/* Controlli di oggi ancora aperti */}
+              {agenda.todayPending.length > 0 && (
                 <div className="space-y-1.5 mb-2">
-                  {haccpToday.pending.slice(0, 5).map(task => (
+                  {agenda.todayPending.slice(0, 5).map(({ task }) => (
                     <button
                       key={task.id}
                       onClick={() => navigate("/restaurant/haccp")}
@@ -409,36 +405,53 @@ const RestaurantPage = () => {
                       </Badge>
                     </button>
                   ))}
-                  {haccpToday.pending.length > 5 && (
+                  {agenda.todayPending.length > 5 && (
                     <p className="text-xs text-muted-foreground text-center">
-                      +{haccpToday.pending.length - 5} altri controlli
+                      +{agenda.todayPending.length - 5} altri controlli
                     </p>
                   )}
                 </div>
               )}
 
-              {/* HACCP Alerts */}
-              {haccpToday.pending.length > 0 && (
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2 rounded-[12px] bg-amber-500/10 border border-amber-200/50 px-3 py-2.5">
-                    <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
-                    <span className="text-[13px] font-medium text-foreground">
-                      Hai {haccpToday.pending.length} controlli HACCP da completare oggi
-                    </span>
-                  </div>
-                  {haccpToday.pending.some(t => ["celle_frigo", "frigoriferi", "freezer", "controllo_temperatura", "temperature"].includes(t.category)) && (
-                    <div className="flex items-center gap-2 rounded-[12px] bg-sky-500/10 border border-sky-200/50 px-3 py-2.5">
-                      <Thermometer className="h-4 w-4 text-sky-600 shrink-0" />
-                      <span className="text-[13px] font-medium text-foreground">
-                        {haccpToday.pending.filter(t => ["celle_frigo", "frigoriferi", "freezer", "controllo_temperatura", "temperature"].includes(t.category)).length} controlli temperatura da completare
-                      </span>
-                    </div>
+              {/* Arretrati: restano visibili finche' non vengono registrati */}
+              {agenda.overdue.length > 0 && (
+                <div className="space-y-1.5 mb-2">
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                    Arretrati
+                  </p>
+                  {agenda.overdue.slice(0, 4).map(({ task, daysLate }) => (
+                    <button
+                      key={task.id}
+                      onClick={() => navigate("/restaurant/haccp")}
+                      className="flex items-center gap-2 w-full rounded-[10px] bg-warning/10 border border-warning/20 px-3 py-2 text-left active:scale-[0.98] transition-transform"
+                    >
+                      <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
+                      <span className="text-[13px] font-medium text-foreground truncate">{task.name}</span>
+                      <Badge variant="outline" className="ml-auto text-[10px] shrink-0">
+                        {daysLate === 1 ? "ieri" : `${daysLate} giorni fa`}
+                      </Badge>
+                    </button>
+                  ))}
+                  {agenda.overdue.length > 4 && (
+                    <p className="text-xs text-muted-foreground text-center">
+                      +{agenda.overdue.length - 4} altri arretrati
+                    </p>
                   )}
                 </div>
               )}
 
-              {/* All done */}
-              {haccpToday.pending.length === 0 && (
+              {/* Riepilogo temperature ancora da rilevare */}
+              {tempPendingCount > 0 && (
+                <div className="flex items-center gap-2 rounded-[12px] bg-sky-500/10 border border-sky-200/50 px-3 py-2.5">
+                  <Thermometer className="h-4 w-4 text-sky-600 shrink-0" />
+                  <span className="text-[13px] font-medium text-foreground">
+                    {tempPendingCount} controlli temperatura da completare
+                  </span>
+                </div>
+              )}
+
+              {/* Tutto in regola */}
+              {agenda.todayPending.length === 0 && agenda.overdue.length === 0 && (
                 <div className="flex items-center gap-2 rounded-[10px] bg-primary/5 border border-primary/10 px-3 py-3">
                   <CheckCircle2 className="h-5 w-5 text-primary" />
                   <span className="text-sm font-medium text-foreground">Tutti i controlli completati!</span>

@@ -17,7 +17,10 @@ import {
 } from "lucide-react";
 import { format, startOfWeek, addDays, isSameDay } from "date-fns";
 import { it } from "date-fns/locale";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import {
+  isTaskDueOn, frequencyLabel, CATEGORY_GROUPS, groupCategories,
+} from "@/lib/haccp-schedule";
 
 interface HaccpTask {
   id: string;
@@ -25,6 +28,8 @@ interface HaccpTask {
   category: string;
   frequency: string;
   custom_interval_days: number | null;
+  // Ancora per le ricorrenze personalizzate: l'intervallo si conta da qui.
+  created_at: string;
   is_active: boolean;
   sort_order: number;
 }
@@ -51,19 +56,15 @@ const TEMP_THRESHOLDS: Record<string, { max: number; label: string; eqType: stri
   controllo_temperatura: { max: 4, label: "Controllo temperatura", eqType: "fridge" },
 };
 
-const shouldShowOnDay = (task: HaccpTask, dayIndex: number, date?: Date): boolean => {
-  if (task.frequency === "giornaliera") return true;
-  if (task.frequency === "settimanale") return dayIndex === 0; // Monday
-  if (task.frequency === "mensile") return date ? date.getDate() === 1 : dayIndex === 0;
-  return true;
-};
-
 const isTemperatureTask = (category: string): boolean => TEMP_CATEGORIES.includes(category);
 
 const RestaurantHaccpPage = () => {
   const { restaurant } = useRestaurant();
   const { user } = useAuth();
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
+  // Gruppo di categorie arrivato dalle scorciatoie del cruscotto
+  const group = searchParams.get("gruppo");
   const [tasks, setTasks] = useState<HaccpTask[]>([]);
   const [logs, setLogs] = useState<HaccpLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -101,6 +102,19 @@ const RestaurantHaccpPage = () => {
   };
 
   useEffect(() => { fetchData(); }, [restaurant, weekOffset]);
+
+  /** Attivita' mostrate: tutte, oppure solo quelle del gruppo richiesto. */
+  const visibleTasks = useMemo(() => {
+    const categories = groupCategories(group);
+    if (categories.length === 0) return tasks;
+    return tasks.filter((t) => categories.includes(t.category));
+  }, [tasks, group]);
+
+  const clearGroup = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete("gruppo");
+    setSearchParams(next, { replace: true });
+  };
 
   const getLogForCell = (taskId: string, date: Date): HaccpLog | undefined => {
     const dateStr = format(date, "yyyy-MM-dd");
@@ -209,7 +223,7 @@ const RestaurantHaccpPage = () => {
   const isCurrentWeek = weekOffset === 0;
 
   const getCellIcon = (task: HaccpTask, date: Date) => {
-    if (!shouldShowOnDay(task, (date.getDay() + 6) % 7, date)) return null;
+    if (!isTaskDueOn(task, date)) return null;
     const log = getLogForCell(task.id, date);
     if (log) return <CheckCircle2 className="h-5 w-5 text-emerald-500" />;
     const isPast = date < today && !isSameDay(date, today);
@@ -239,6 +253,21 @@ const RestaurantHaccpPage = () => {
         </Button>
       </div>
 
+      {/* Filtro attivo, arrivando da una scorciatoia del cruscotto */}
+      {group && CATEGORY_GROUPS[group] && (
+        <div className="flex items-center gap-2 rounded-[12px] bg-primary/5 border border-primary/15 px-3 py-2">
+          <span className="text-[13px] font-medium text-foreground">
+            Filtro: {CATEGORY_GROUPS[group].label}
+          </span>
+          <span className="text-[12px] text-muted-foreground">
+            {visibleTasks.length} attività
+          </span>
+          <Button variant="ghost" size="sm" className="ml-auto h-7 gap-1 px-2" onClick={clearGroup}>
+            <X className="h-3.5 w-3.5" /> Mostra tutte
+          </Button>
+        </div>
+      )}
+
       {/* Config link */}
       <div className="flex justify-end gap-2">
         <Link to="/restaurant/haccp/setup">
@@ -253,13 +282,24 @@ const RestaurantHaccpPage = () => {
 
       {loading ? (
         <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
-      ) : tasks.length === 0 ? (
+      ) : visibleTasks.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground mb-3">Nessuna attività HACCP configurata</p>
-            <Link to="/restaurant/haccp/setup">
-              <Button>Configura attività</Button>
-            </Link>
+            {tasks.length > 0 && group ? (
+              <>
+                <p className="text-muted-foreground mb-3">
+                  Nessuna attività in questo gruppo
+                </p>
+                <Button variant="outline" onClick={clearGroup}>Mostra tutte le attività</Button>
+              </>
+            ) : (
+              <>
+                <p className="text-muted-foreground mb-3">Nessuna attività HACCP configurata</p>
+                <Link to="/restaurant/haccp/setup">
+                  <Button>Configura attività</Button>
+                </Link>
+              </>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -280,18 +320,17 @@ const RestaurantHaccpPage = () => {
               </tr>
             </thead>
             <tbody>
-              {tasks.map(task => (
+              {visibleTasks.map(task => (
                 <tr key={task.id} className="border-t border-border/50">
                   <td className="p-2">
                     <div className="flex items-center gap-1">
                       {isTemperatureTask(task.category) && <Thermometer className="h-3 w-3 text-sky-500 shrink-0" />}
                       <p className="text-sm font-medium text-foreground leading-tight">{task.name}</p>
                     </div>
-                    <p className="text-[10px] text-muted-foreground capitalize">{task.frequency}</p>
+                    <p className="text-[10px] text-muted-foreground capitalize">{frequencyLabel(task)}</p>
                   </td>
                   {weekDays.map((d, i) => {
-                    const dayIdx = (d.getDay() + 6) % 7;
-                    const show = shouldShowOnDay(task, dayIdx, d);
+                    const show = isTaskDueOn(task, d);
                     const log = getLogForCell(task.id, d);
                     const canComplete = show && !log && (isSameDay(d, today) || d < today);
 

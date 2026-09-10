@@ -126,6 +126,62 @@ function expiryAlertEmail(name: string, products: ExpiryProduct[], appUrl: strin
   };
 }
 
+/**
+ * Avviso scadenze per il ristorante.
+ *
+ * Il template consumer parla di "dispensa" e si rivolge alla persona: in
+ * cucina serve il nome del locale, il riferimento al lotto e il rimando al
+ * magazzino, non alla home dell'app.
+ */
+function restaurantExpiryAlertEmail(
+  restaurantName: string,
+  products: ExpiryProduct[],
+  appUrl: string,
+): { subject: string; html: string; text: string } {
+  const badges: Record<string, { label: string; color: string }> = {
+    oggi: { label: "Scade oggi", color: "#EF4444" },
+    domani: { label: "Scade domani", color: "#F59E0B" },
+    "3_giorni": { label: "Scade tra 3 giorni", color: "#3B82F6" },
+  };
+
+  const rows = products
+    .map((p) => {
+      const b = badges[p.urgency];
+      return `<tr>
+        <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;font-size:14px;color:${TEXT_DARK};">${p.name}</td>
+        <td style="padding:10px 12px;border-bottom:1px solid #f0f0f0;text-align:right;">
+          <span style="display:inline-block;background:${b.color};color:#fff;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;">${b.label}</span>
+        </td>
+      </tr>`;
+    })
+    .join("");
+
+  const stockUrl = `${appUrl.replace(/\/$/, "")}/restaurant/products`;
+
+  return {
+    subject: `${restaurantName}: ${products.length} prodotti in scadenza`,
+    html: baseHtml("Avviso scadenze cucina", `
+      <h1 style="font-size:22px;color:${TEXT_DARK};margin:0 0 8px;font-family:'Fredoka',Arial,sans-serif;">${restaurantName}</h1>
+      <p style="font-size:15px;color:${TEXT_DARK};line-height:1.6;margin:0 0 20px;">
+        Ci sono <strong>${products.length}</strong> prodott${products.length === 1 ? "o" : "i"} in scadenza in cucina.
+      </p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;margin-bottom:24px;">
+        <tr style="background:#f9fafb;">
+          <th style="padding:10px 12px;text-align:left;font-size:13px;color:${TEXT_MUTED};font-weight:600;">Prodotto</th>
+          <th style="padding:10px 12px;text-align:right;font-size:13px;color:${TEXT_MUTED};font-weight:600;">Stato</th>
+        </tr>
+        ${rows}
+      </table>
+      <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
+        <a href="${stockUrl}" style="display:inline-block;background:${PRIMARY};color:#ffffff;padding:14px 32px;border-radius:12px;font-size:16px;font-weight:600;text-decoration:none;margin-right:8px;">
+          Apri le scadenze
+        </a>
+      </td></tr></table>
+    `),
+    text: `${restaurantName}: ${products.length} prodotti in scadenza in cucina. Apri Cibarius: ${stockUrl}`,
+  };
+}
+
 async function sendWithResend(apiKey: string, to: string, emailData: { subject: string; html: string; text: string }) {
   const res = await fetch(RESEND_API_URL, {
     method: "POST",
@@ -162,7 +218,7 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { type, email, name, link, products, app_url, user_id } = await req.json();
+    const { type, email, name, link, products, app_url, user_id, restaurant_name } = await req.json();
 
     let emailData: { subject: string; html: string; text: string };
 
@@ -175,6 +231,13 @@ Deno.serve(async (req) => {
         break;
       case "expiry_alert":
         emailData = expiryAlertEmail(name || "utente", products || [], app_url || "https://simple-blue-frame.lovable.app");
+        break;
+      case "expiry_alert_restaurant":
+        emailData = restaurantExpiryAlertEmail(
+          restaurant_name || name || "Il tuo ristorante",
+          products || [],
+          app_url || "https://simple-blue-frame.lovable.app",
+        );
         break;
       default:
         throw new Error(`Unknown email type: ${type}`);
@@ -198,7 +261,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error("send-email error:", error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ success: false, error: (error as Error).message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

@@ -8,11 +8,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Upload, FileText, Download, Trash2, Plus, ExternalLink, ChevronRight, Sparkles, RefreshCw, PackagePlus } from "lucide-react";
+import { Loader2, Upload, FileText, Download, Trash2, Plus, ExternalLink, ChevronRight, Sparkles, RefreshCw, PackagePlus, CheckCircle2 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { recordMovement } from "@/lib/inventory-movements";
+import {
+  loadProductIndex, resolveProduct, documentAlreadyImported, loadImportedDocumentIds,
+} from "@/lib/restaurant-products";
 
 interface ExtractedData {
   supplier_name?: string | null;
@@ -67,6 +70,8 @@ const RestaurantInvoicesPage = () => {
   const [detailDoc, setDetailDoc] = useState<RestaurantDocument | null>(null);
   const [extracting, setExtracting] = useState(false);
   const [loadingStock, setLoadingStock] = useState(false);
+  // Bolle gia' portate in magazzino: il pulsante di carico va disabilitato.
+  const [importedDocIds, setImportedDocIds] = useState<Set<string>>(new Set());
 
   // Upload form state
   const [file, setFile] = useState<File | null>(null);
@@ -83,6 +88,7 @@ const RestaurantInvoicesPage = () => {
       .eq("restaurant_id", restaurant.id)
       .order("created_at", { ascending: false });
     if (data) setDocs(data as unknown as RestaurantDocument[]);
+    setImportedDocIds(await loadImportedDocumentIds(restaurant.id));
     setLoading(false);
   };
 
@@ -149,8 +155,14 @@ const RestaurantInvoicesPage = () => {
    *
    * Finora l'OCR si fermava a `extracted_data`: i dati restavano nel JSON e
    * il carico andava rifatto a mano articolo per articolo. Ogni riga crea un
-   * prodotto, un lotto e il relativo movimento di carico, con il documento di
-   * provenienza gia' collegato per la tracciabilita'.
+   * lotto e il relativo movimento di carico, con il documento di provenienza
+   * gia' collegato per la tracciabilita'.
+   *
+   * Due protezioni che prima mancavano:
+   *   - il prodotto viene riusato se il ristorante lo ha gia' avuto, invece di
+   *     crearne uno nuovo a ogni bolla;
+   *   - un secondo clic non ricarica niente, perche' i movimenti generati dal
+   *     documento vengono cercati prima di iniziare.
    */
   const handleLoadIntoStock = async (doc: RestaurantDocument) => {
     const items = doc.extracted_data?.items ?? [];
@@ -159,23 +171,32 @@ const RestaurantInvoicesPage = () => {
     let created = 0;
 
     try {
+      if (await documentAlreadyImported(doc.id)) {
+        setImportedDocIds((prev) => new Set(prev).add(doc.id));
+        toast({
+          variant: "destructive",
+          title: "Documento già caricato",
+          description: "Gli articoli di questa bolla sono già a magazzino.",
+        });
+        return;
+      }
+
+      const index = await loadProductIndex(restaurant.id);
+
       for (const line of items) {
-        const { data: product, error: pErr } = await supabase
-          .from("products")
-          .insert({ name: line.name })
-          .select("id")
-          .single();
-        if (pErr || !product) continue;
+        const unit = line.unit || "pz";
+        const { productId } = await resolveProduct(index, line.name, unit);
+        if (!productId) continue;
 
         const quantity = line.quantity != null && line.quantity > 0 ? line.quantity : 1;
         const { data: inv, error: iErr } = await supabase
           .from("inventory_items")
           .insert({
-            product_id: product.id,
+            product_id: productId,
             restaurant_id: restaurant.id,
             storage_type: "frigo",
             quantity,
-            unit: line.unit || "pz",
+            unit,
             lot_number: doc.document_number || null,
             source_document_id: doc.id,
           })
@@ -186,17 +207,19 @@ const RestaurantInvoicesPage = () => {
         await recordMovement({
           restaurantId: restaurant.id,
           inventoryItemId: inv.id,
-          productId: product.id,
+          productId,
           productName: line.name,
           movementType: "carico",
           quantity,
-          unit: line.unit || "pz",
+          unit,
           lotNumber: doc.document_number || null,
           sourceDocumentId: doc.id,
           notes: doc.supplier_name ? `Da ${doc.document_type} ${doc.supplier_name}` : `Da ${doc.document_type}`,
         });
         created++;
       }
+
+      if (created > 0) setImportedDocIds((prev) => new Set(prev).add(doc.id));
 
       if (created === items.length) {
         toast({ title: `${created} articoli caricati in magazzino ✓` });
@@ -284,7 +307,7 @@ const RestaurantInvoicesPage = () => {
   const ed = detailDoc?.extracted_data;
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "#F5F7FA" }} data-tour="rest-invoices-page">
+    <div className="min-h-screen bg-background" data-tour="rest-invoices-page">
       <MobileHeader title="Bolle e Documenti" showBack />
       <main className="px-4 py-4 pb-28 space-y-3">
         <Button onClick={() => setUploadOpen(true)} className="w-full">
@@ -292,9 +315,9 @@ const RestaurantInvoicesPage = () => {
         </Button>
 
         {docs.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 rounded-2xl bg-white p-10 shadow-sm">
+          <div className="flex flex-col items-center gap-2 rounded-[18px] bg-card p-10 shadow-card">
             <FileText className="h-8 w-8 text-muted-foreground" />
-            <p className="text-sm font-medium" style={{ color: "#111827" }}>Nessun documento</p>
+            <p className="text-sm font-medium text-foreground">Nessun documento</p>
             <p className="text-xs text-muted-foreground">Carica la tua prima bolla</p>
           </div>
         ) : (
@@ -303,11 +326,11 @@ const RestaurantInvoicesPage = () => {
               <button key={doc.id} onClick={() => setDetailDoc(doc)} className="w-full text-left">
                 <Card className="shadow-sm hover:shadow-md transition-shadow">
                   <CardContent className="flex items-center gap-3 p-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: "#22B6F215" }}>
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
                       <FileText className="h-5 w-5 text-primary" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold truncate" style={{ color: "#111827" }}>
+                      <p className="text-sm font-semibold truncate text-foreground">
                         {doc.document_type.charAt(0).toUpperCase() + doc.document_type.slice(1)}
                         {doc.document_number ? ` n. ${doc.document_number}` : ""}
                         {doc.supplier_name ? ` — ${doc.supplier_name}` : ""}
@@ -319,6 +342,11 @@ const RestaurantInvoicesPage = () => {
                         {doc.extracted_data && (
                           <span className="flex items-center gap-0.5 text-[10px] font-medium text-primary">
                             <Sparkles className="h-2.5 w-2.5" /> AI
+                          </span>
+                        )}
+                        {importedDocIds.has(doc.id) && (
+                          <span className="flex items-center gap-0.5 text-[10px] font-medium text-success">
+                            <CheckCircle2 className="h-2.5 w-2.5" /> In magazzino
                           </span>
                         )}
                       </div>
@@ -493,16 +521,23 @@ const RestaurantInvoicesPage = () => {
                               </div>
                             ))}
                           </div>
-                          <Button
-                            className="w-full gap-2 mt-2"
-                            onClick={() => handleLoadIntoStock(detailDoc)}
-                            disabled={loadingStock}
-                          >
-                            {loadingStock
-                              ? <Loader2 className="h-4 w-4 animate-spin" />
-                              : <PackagePlus className="h-4 w-4" />}
-                            Carica {ed.items.length} articoli in magazzino
-                          </Button>
+                          {importedDocIds.has(detailDoc.id) ? (
+                            <div className="mt-2 flex items-center justify-center gap-2 rounded-xl bg-success/10 border border-success/20 py-2.5 text-xs font-medium text-success">
+                              <CheckCircle2 className="h-4 w-4" />
+                              Articoli già caricati in magazzino
+                            </div>
+                          ) : (
+                            <Button
+                              className="w-full gap-2 mt-2"
+                              onClick={() => handleLoadIntoStock(detailDoc)}
+                              disabled={loadingStock}
+                            >
+                              {loadingStock
+                                ? <Loader2 className="h-4 w-4 animate-spin" />
+                                : <PackagePlus className="h-4 w-4" />}
+                              Carica {ed.items.length} articoli in magazzino
+                            </Button>
+                          )}
                         </div>
                       )}
 

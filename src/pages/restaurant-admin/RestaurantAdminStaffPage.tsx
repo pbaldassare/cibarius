@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, UserPlus, Trash2 } from "lucide-react";
+import { Loader2, UserPlus, Trash2, Clock, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface MemberWithProfile {
@@ -121,14 +121,32 @@ const RestaurantAdminStaffPage = () => {
 
   return (
     <RestaurantAdminLayout>
-      <h1 className="mb-6 text-2xl font-bold text-foreground">Staff</h1>
+      <div className="mb-6 flex flex-wrap items-center gap-3">
+        <h1 className="text-2xl font-bold text-foreground">Staff</h1>
+        <Badge variant="secondary" className="gap-1.5">
+          <Clock className="h-3 w-3" /> Implementazione a breve
+        </Badge>
+      </div>
 
-      {/* Add member */}
+      {/*
+        L'accesso dei collaboratori non e' ancora operativo: `useRestaurant`
+        risolve il ristorante solo per proprietario, quindi un membro aggiunto
+        qui verrebbe comunque rimandato all'onboarding. Il modulo resta
+        disabilitato finche' il percorso non e' completo, invece di aggiungere
+        righe che non producono nessun accesso.
+      */}
       <Card className="mb-6 max-w-lg border-2 border-accent">
         <CardHeader>
           <CardTitle className="text-base">Aggiungi membro</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
+          <div className="flex items-start gap-2 rounded-xl bg-muted/60 p-3">
+            <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">
+              La gestione dei collaboratori è in arrivo. Per ora l'accesso all'app
+              del ristorante è riservato al titolare.
+            </p>
+          </div>
           <form onSubmit={handleAdd} className="flex gap-2">
             <Input
               type="email"
@@ -136,9 +154,10 @@ const RestaurantAdminStaffPage = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              disabled
               className="flex-1"
             />
-            <Button type="submit" disabled={adding}>
+            <Button type="submit" disabled>
               {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
             </Button>
           </form>
