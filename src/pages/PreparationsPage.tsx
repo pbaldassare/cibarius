@@ -423,7 +423,7 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
           </button>
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2" style={{ color: "#9CA3AF" }} />
-            <Input placeholder="Cerca..." className="h-9 rounded-xl border-0 bg-white pl-8 text-[13px] shadow-sm"
+            <Input placeholder="Cerca..." aria-label="Cerca preparazione" className="h-9 rounded-xl border-0 bg-white pl-8 text-[13px] shadow-sm"
               value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
           <button onClick={() => setFilterSheet(true)}

@@ -147,3 +147,99 @@ export const loadImportedDocumentIds = async (restaurantId: string): Promise<Set
       .filter((id): id is string => !!id),
   );
 };
+
+/* ─────────── duplicati gia' a magazzino ─────────── */
+
+/**
+ * Quanto due nomi sembrano lo stesso articolo, fra 0 e 1.
+ *
+ * Si misura il contenimento e non la sovrapposizione simmetrica: "Pomodori
+ * pelati" e "[DEMO] Pomodori pelati" sono lo stesso prodotto anche se uno ha
+ * una parola in piu'. Le parole corte si scartano perche' unita' di misura e
+ * pezzature ("kg", "1l") non dicono nulla sull'identita' del prodotto.
+ *
+ * Il peso e' la lunghezza della parola, non il semplice conteggio: condividere
+ * "mozzarella" dice molto piu' che condividere "olio". Contando le parole,
+ * "[DEMO] Mozzarella" e "Mozzarella fiordilatte" restavano sotto soglia
+ * perche' il prefisso diluiva il punteggio, mentre "Olio EVO" e "Olio di
+ * semi" ci finivano sopra.
+ */
+export const nameSimilarity = (a: string, b: string): number => {
+  const words = (s: string) => productKey(s).split(" ").filter((w) => w.length >= 3);
+  const wa = words(a);
+  const wb = words(b);
+  if (wa.length === 0 || wb.length === 0) return 0;
+
+  const peso = (list: string[]) => list.reduce((sum, w) => sum + w.length, 0);
+  const setB = new Set(wb);
+  const condivise = wa.filter((w) => setB.has(w));
+
+  return peso(condivise) / Math.min(peso(wa), peso(wb));
+};
+
+/** Soglia oltre la quale due nomi vengono proposti come duplicati. */
+export const DUPLICATE_THRESHOLD = 0.6;
+
+export interface DuplicatePair<T> {
+  a: T;
+  b: T;
+  score: number;
+}
+
+/**
+ * Coppie di righe di magazzino che sembrano lo stesso prodotto.
+ *
+ * E' un suggerimento, non una fusione automatica: "Farina 00" e "Farina 0"
+ * si somigliano moltissimo e sono due articoli diversi. Decide chi guarda.
+ */
+export const findDuplicatePairs = <T extends { productId: string; name: string }>(
+  rows: T[],
+): DuplicatePair<T>[] => {
+  const pairs: DuplicatePair<T>[] = [];
+  for (let i = 0; i < rows.length; i++) {
+    for (let j = i + 1; j < rows.length; j++) {
+      const score = nameSimilarity(rows[i].name, rows[j].name);
+      if (score >= DUPLICATE_THRESHOLD) pairs.push({ a: rows[i], b: rows[j], score });
+    }
+  }
+  return pairs.sort((x, y) => y.score - x.score);
+};
+
+export interface MergeOutcome {
+  lots_moved: number;
+  movements_moved: number;
+  source_deleted: boolean;
+  target_name: string;
+}
+
+/**
+ * Unisce due prodotti nel magazzino del ristorante.
+ *
+ * Il lavoro lo fa la funzione SQL `merge_restaurant_products`: sposta lotti e
+ * movimenti e cancella il prodotto di origine solo se non lo usa piu' nessuno.
+ * Non si puo' fare dal client perche' `products` non ha policy di DELETE e
+ * `inventory_items` cancella a cascata: una DELETE diretta farebbe sparire le
+ * giacenze di chiunque condivida quel prodotto a catalogo.
+ *
+ * Il cast serve perche' `types.ts` e' rigenerato dall'API e non conosce
+ * ancora questa funzione.
+ */
+export const mergeProducts = async (
+  restaurantId: string,
+  targetProductId: string,
+  sourceProductId: string,
+): Promise<{ data: MergeOutcome | null; error: string | null }> => {
+  const { data, error } = await (supabase.rpc as unknown as (
+    fn: string,
+    args: Record<string, string>,
+  ) => Promise<{ data: MergeOutcome | null; error: { message: string } | null }>)(
+    "merge_restaurant_products",
+    {
+      p_restaurant_id: restaurantId,
+      p_target_product: targetProductId,
+      p_source_product: sourceProductId,
+    },
+  );
+
+  return { data, error: error?.message ?? null };
+};

@@ -16,6 +16,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useRestaurant } from "@/hooks/useRestaurant";
 import { useToast } from "@/hooks/use-toast";
 import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   BookOpen, Plus, Loader2, Search, Pencil, Trash2, Save,
   Clock, ChefHat, X, Eye, EyeOff, Flame, AlertTriangle,
 } from "lucide-react";
@@ -59,6 +63,8 @@ const RestaurantRecipesPage = () => {
   const { toast } = useToast();
 
   const [recipes, setRecipes] = useState<Recipe[]>([]);
+  /** Ricetta in attesa di conferma per l'eliminazione. */
+  const [daEliminare, setDaEliminare] = useState<Recipe | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState<string>("all");
@@ -249,6 +255,7 @@ const RestaurantRecipesPage = () => {
     loadRecipes();
   };
 
+  /** L'eliminazione e' definitiva: passa sempre da una conferma. */
   const handleDelete = async (id: string) => {
     await supabase.from("recipes").delete().eq("id", id);
     toast({ title: "Ricetta eliminata" });
@@ -329,7 +336,7 @@ const RestaurantRecipesPage = () => {
             <CardContent className="py-4 space-y-3">
               <h3 className="text-sm font-semibold text-foreground">Ingredienti</h3>
               <div className="flex gap-2">
-                <Input placeholder="Cerca prodotto…" value={ingSearch} onChange={(e) => searchIngredients(e.target.value)} className="flex-1" />
+                <Input placeholder="Cerca prodotto…" aria-label="Cerca ingrediente" value={ingSearch} onChange={(e) => searchIngredients(e.target.value)} className="flex-1" />
                 <Input placeholder="Qtà" type="number" value={ingQty} onChange={(e) => setIngQty(e.target.value)} className="w-16" />
                 <Select value={ingUnit} onValueChange={setIngUnit}>
                   <SelectTrigger className="w-16"><SelectValue /></SelectTrigger>
@@ -420,7 +427,7 @@ const RestaurantRecipesPage = () => {
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Cerca ricetta…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+            <Input placeholder="Cerca ricetta…" aria-label="Cerca ricetta" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
           </div>
           <Button className="gap-2" onClick={() => openEditor()}>
             <Plus className="h-4 w-4" /> Nuova
@@ -473,12 +480,23 @@ const RestaurantRecipesPage = () => {
                     )}
                   </div>
                 </div>
-                <div className="flex gap-0.5 shrink-0">
-                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEditor(r)}>
-                    <Pencil className="h-3.5 w-3.5" />
+                {/* Bersagli da 40px e nomi accessibili: erano due icone da
+                    32px senza etichetta, con l'eliminazione appiccicata alla
+                    modifica e nessuna conferma. */}
+                <div className="flex gap-1.5 shrink-0">
+                  <Button
+                    size="icon" variant="ghost" className="h-10 w-10"
+                    aria-label={`Modifica ${r.title}`}
+                    onClick={() => openEditor(r)}
+                  >
+                    <Pencil className="h-4 w-4" />
                   </Button>
-                  <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleDelete(r.id)}>
-                    <Trash2 className="h-3.5 w-3.5" />
+                  <Button
+                    size="icon" variant="ghost" className="h-10 w-10 text-destructive"
+                    aria-label={`Elimina ${r.title}`}
+                    onClick={() => setDaEliminare(r)}
+                  >
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
@@ -486,6 +504,29 @@ const RestaurantRecipesPage = () => {
           </div>
         )}
       </main>
+
+      <AlertDialog open={!!daEliminare} onOpenChange={(o) => { if (!o) setDaEliminare(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminare «{daEliminare?.title}»?</AlertDialogTitle>
+            <AlertDialogDescription>
+              La ricetta viene rimossa insieme ai suoi ingredienti. Non si può annullare.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annulla</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const r = daEliminare;
+                setDaEliminare(null);
+                if (r) handleDelete(r.id);
+              }}
+            >
+              Elimina
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

@@ -91,7 +91,7 @@ export default function UserNotificationsBell() {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <button className="relative p-2">
+        <button className="relative flex h-11 w-11 items-center justify-center" aria-label="Notifiche">
           <Bell className="h-5 w-5 text-foreground" />
           {unreadCount > 0 && (
             <span className="absolute -top-0.5 -right-0.5 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center">

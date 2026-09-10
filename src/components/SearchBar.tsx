@@ -13,6 +13,7 @@ const SearchBar = ({ placeholder = "Cerca un prodotto...", value, onChange }: Se
       <input
         type="text"
         placeholder={placeholder}
+        aria-label={placeholder}
         value={value}
         onChange={(e) => onChange?.(e.target.value)}
         className="h-10 w-full rounded-lg bg-secondary pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30 transition-shadow"

@@ -375,8 +375,9 @@ const RestaurantHaccpSetupPage = () => {
                 const label = EQUIPMENT_TYPES.find(t => t.value === eq.equipment_type)?.label ?? eq.equipment_type;
                 return (
                   <div key={eq.equipment_type} className="flex items-center justify-between">
-                    <Label className="text-sm">{label}</Label>
+                    <Label className="text-sm" htmlFor={`eq-${eq.equipment_type}`}>{label}</Label>
                     <Input
+                      id={`eq-${eq.equipment_type}`}
                       type="number"
                       min={0}
                       max={20}
@@ -426,7 +427,12 @@ const RestaurantHaccpSetupPage = () => {
                     <p className="text-sm font-medium truncate">{task.name}</p>
                     <p className="text-xs text-muted-foreground first-letter:uppercase">{frequencyLabel(task)} · {task.category.replace(/_/g, " ")}</p>
                   </div>
-                  <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeleteTask(task.id)}>
+                  <Button
+                    variant="ghost" size="icon"
+                    className="h-11 w-11 text-destructive"
+                    aria-label={`Elimina il controllo ${task.name}`}
+                    onClick={() => handleDeleteTask(task.id)}
+                  >
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </CardContent>

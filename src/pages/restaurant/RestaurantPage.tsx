@@ -19,6 +19,10 @@ import {
   Thermometer, Wind, Flame, Trash2, UtensilsCrossed, QrCode, BookOpen,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { getFoodEmoji } from "@/lib/food-images";
 import { format } from "date-fns";
 
@@ -64,6 +68,21 @@ const HACCP_LOOKBACK_DAYS = 14;
 const TEMP_CATEGORIES = ["celle_frigo", "frigoriferi", "freezer", "controllo_temperatura", "temperature"];
 
 type ExpiryStatus = "expired" | "expiring" | "ok" | "nodate";
+
+/** Riga della lista "Urgenti cucina". */
+interface UrgentItem {
+  id: string;
+  name: string;
+  image_url: string | null;
+  date: string | null;
+  storage: string;
+  status: ExpiryStatus;
+  type: "inv" | "prep";
+  product_id?: string | null;
+  quantity?: number | null;
+  unit?: string | null;
+  lot_number?: string | null;
+}
 
 const getStatus = (d: string | null): ExpiryStatus => {
   if (!d) return "nodate";
@@ -118,6 +137,8 @@ const RestaurantPage = () => {
   const [loading, setLoading] = useState(true);
   const [addFoodOpen, setAddFoodOpen] = useState(false);
   const [resolveOpen, setResolveOpen] = useState(false);
+  /** Elemento in attesa di conferma per lo scarto. */
+  const [daButtare, setDaButtare] = useState<UrgentItem | null>(null);
   const { toast } = useToast();
 
   const today = new Date();
@@ -277,9 +298,7 @@ const RestaurantPage = () => {
   };
 
   const urgentList = useMemo(() => {
-    type U = { id: string; name: string; image_url: string | null; date: string | null; storage: string; status: ExpiryStatus; type: "inv" | "prep";
-               product_id?: string | null; quantity?: number | null; unit?: string | null; lot_number?: string | null };
-    const list: U[] = [];
+    const list: UrgentItem[] = [];
     items.forEach((i) => {
       const s = getStatus(i.expiry_date);
       if (s === "expired" || s === "expiring")
@@ -553,7 +572,7 @@ const RestaurantPage = () => {
                   key={`${item.type}-${item.id}`}
                   item={item}
                   onConsumed={() => handleScarico(item, "consumo")}
-                  onDiscarded={() => handleScarico(item, "spreco")}
+                  onDiscarded={() => setDaButtare(item)}
                 />
               ))}
             </div>
@@ -590,6 +609,38 @@ const RestaurantPage = () => {
         restaurantId={restaurant?.id ?? ""}
         onComplete={fetchData}
       />
+
+      {/*
+        Conferma per lo scarto.
+        Lo swipe e il pulsante scaricano l'intero lotto: senza una domanda,
+        un tocco sbagliato buttava via tutta la merce senza modo di tornare
+        indietro, perche' il registro movimenti e' append-only.
+      */}
+      <AlertDialog open={!!daButtare} onOpenChange={(o) => { if (!o) setDaButtare(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Buttare {daButtare?.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {daButtare?.quantity
+                ? `Vengono registrati come spreco ${daButtare.quantity} ${daButtare.unit ?? ""} e il lotto esce dal magazzino.`
+                : "Il lotto viene registrato come spreco ed esce dal magazzino."}
+              {" "}Per scaricarne solo una parte usa il Magazzino.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annulla</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const item = daButtare;
+                setDaButtare(null);
+                if (item) handleScarico(item, "spreco");
+              }}
+            >
+              Butta
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {restaurant && (
         <ResolveExpiryFlow
@@ -694,21 +745,29 @@ const SwipeableUrgentItem = ({ item, onConsumed, onDiscarded }: SwipeableProps) 
             )}
           </div>
         </div>
-        {/* Quick action buttons (desktop / no-swipe fallback) */}
-        <div className="flex items-center gap-1 shrink-0">
+        {/*
+          Alternativa allo swipe.
+          Erano due cerchi da 28px appaiati a 4px di distanza, con lo scarto
+          accanto al consumo e nessuna conferma: un tocco impreciso buttava
+          via un lotto intero. Ora sono bersagli da 40px, distanziati, e
+          "buttato" chiede conferma.
+        */}
+        <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={(e) => { e.stopPropagation(); onConsumed(); }}
-            className="flex h-7 w-7 items-center justify-center rounded-full bg-success/10 active:bg-success/20 transition-colors"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-success/10 active:bg-success/20 transition-colors"
+            aria-label={`Segna ${item.name} come utilizzato`}
             title="Utilizzato"
           >
-            <UtensilsCrossed className="h-3.5 w-3.5 text-success" />
+            <UtensilsCrossed className="h-4 w-4 text-success" />
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); onDiscarded(); }}
-            className="flex h-7 w-7 items-center justify-center rounded-full bg-destructive/10 active:bg-destructive/20 transition-colors"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10 active:bg-destructive/20 transition-colors"
+            aria-label={`Segna ${item.name} come buttato`}
             title="Buttato"
           >
-            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+            <Trash2 className="h-4 w-4 text-destructive" />
           </button>
         </div>
         <span

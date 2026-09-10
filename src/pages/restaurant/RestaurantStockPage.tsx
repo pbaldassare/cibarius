@@ -8,13 +8,16 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import {
   Loader2, Search, Package, TrendingDown, Trash2, ArrowDownToLine,
-  ArrowUpFromLine, SlidersHorizontal, Clock, AlertTriangle, Plus,
+  ArrowUpFromLine, SlidersHorizontal, Clock, AlertTriangle, Plus, Combine,
 } from "lucide-react";
 import {
   forecastFromMovements, fmtQty, MOVEMENT_LABELS, consumeFromItem, recordMovement,
   type Movement, type MovementType,
 } from "@/lib/inventory-movements";
-import { loadProductIndex, resolveProduct } from "@/lib/restaurant-products";
+import {
+  loadProductIndex, resolveProduct, findDuplicatePairs, mergeProducts,
+  type DuplicatePair,
+} from "@/lib/restaurant-products";
 import { fetchAllRows } from "@/lib/supabase-paging";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -68,6 +71,10 @@ const movementColor: Record<MovementType, string> = {
   rettifica: "text-amber-600",
 };
 
+/** "1 lotto" invece di "1 lotti". */
+const plurale = (n: number, singolare: string, plurale_: string) =>
+  `${n} ${n === 1 ? singolare : plurale_}`;
+
 const daysUntil = (d: string) =>
   Math.ceil((new Date(d).getTime() - Date.now()) / 86400000);
 
@@ -80,6 +87,9 @@ const RestaurantStockPage = () => {
   const [tab, setTab] = useState("giacenze");
   const [detail, setDetail] = useState<StockRow | null>(null);
   const [caricoOpen, setCaricoOpen] = useState(false);
+  const [duplicatiOpen, setDuplicatiOpen] = useState(false);
+  // Coppie gia' unite o messe da parte in questa sessione: spariscono dalla lista
+  const [duplicatiRisolti, setDuplicatiRisolti] = useState<Set<string>>(new Set());
   const [scaricoLot, setScaricoLot] = useState<Lot | null>(null);
   const [qty, setQty] = useState("");
   const [busy, setBusy] = useState(false);
@@ -250,6 +260,39 @@ const RestaurantStockPage = () => {
       });
   }, [lots, movements, search]);
 
+  /**
+   * Righe che sembrano lo stesso prodotto.
+   *
+   * I duplicati creati prima della deduplica dei carichi restano a
+   * magazzino: qui si propone di unirli, senza mai farlo da soli.
+   */
+  const duplicati = useMemo(
+    () => findDuplicatePairs(rows).filter((p) => !duplicatiRisolti.has(`${p.a.productId}|${p.b.productId}`)),
+    [rows, duplicatiRisolti],
+  );
+
+  const handleUnisci = async (pair: DuplicatePair<StockRow>, tieni: "a" | "b") => {
+    if (!restaurant) return;
+    const target = tieni === "a" ? pair.a : pair.b;
+    const source = tieni === "a" ? pair.b : pair.a;
+    setBusy(true);
+    const { data, error } = await mergeProducts(restaurant.id, target.productId, source.productId);
+    setBusy(false);
+    if (error) {
+      toast({ variant: "destructive", title: "Fusione non riuscita", description: error });
+      return;
+    }
+    setDuplicatiRisolti((prev) => new Set(prev).add(`${pair.a.productId}|${pair.b.productId}`));
+    toast({
+      title: `Uniti in «${target.name}»`,
+      description: `${plurale(data?.lots_moved ?? 0, "lotto", "lotti")} e ${plurale(data?.movements_moved ?? 0, "movimento", "movimenti")} spostati.`,
+    });
+    await fetchAll();
+  };
+
+  const ignoraCoppia = (pair: DuplicatePair<StockRow>) =>
+    setDuplicatiRisolti((prev) => new Set(prev).add(`${pair.a.productId}|${pair.b.productId}`));
+
   const filteredMovements = useMemo(() => {
     const q = search.trim().toLowerCase();
     return q ? movements.filter((m) => m.product_name.toLowerCase().includes(q)) : movements;
@@ -278,6 +321,7 @@ const RestaurantStockPage = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Cerca prodotto…"
+            aria-label="Cerca prodotto in magazzino"
             className="pl-9 bg-card"
           />
         </div>
@@ -288,6 +332,21 @@ const RestaurantStockPage = () => {
             <TabsTrigger value="movimenti">Movimenti ({movements.length})</TabsTrigger>
           </TabsList>
         </Tabs>
+
+        {tab === "giacenze" && duplicati.length > 0 && (
+          <button
+            onClick={() => setDuplicatiOpen(true)}
+            className="flex w-full items-center gap-2 rounded-[14px] bg-warning/15 px-3 py-2.5 text-left active:scale-[0.99] transition-transform"
+          >
+            <Combine className="h-4 w-4 shrink-0 text-foreground" />
+            <span className="text-[13px] font-medium text-foreground">
+              {duplicati.length === 1
+                ? "Un prodotto sembra presente due volte"
+                : `${duplicati.length} prodotti sembrano presenti due volte`}
+            </span>
+            <span className="ml-auto text-[12px] font-semibold text-primary">Rivedi</span>
+          </button>
+        )}
 
         {tab === "giacenze" && (
           rows.length === 0 ? (
@@ -433,6 +492,52 @@ const RestaurantStockPage = () => {
       </Sheet>
 
       {/* Carico merce */}
+      {/* Fusione dei duplicati gia' a magazzino */}
+      <Sheet open={duplicatiOpen} onOpenChange={setDuplicatiOpen}>
+        <SheetContent side="bottom" className="rounded-t-2xl max-h-[90vh] overflow-y-auto">
+          <SheetHeader><SheetTitle>Possibili duplicati</SheetTitle></SheetHeader>
+          <p className="text-xs text-muted-foreground pt-1">
+            Questi prodotti hanno nomi molto simili. Scegli quale nome tenere: lotti e
+            movimenti dell'altro passano su quello scelto. Controlla prima che siano
+            davvero lo stesso articolo.
+          </p>
+          <div className="space-y-3 py-4">
+            {duplicati.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-6">
+                Nessun duplicato da rivedere.
+              </p>
+            )}
+            {duplicati.map((pair) => (
+              <div key={`${pair.a.productId}|${pair.b.productId}`} className="rounded-[14px] bg-card p-3 shadow-card space-y-2">
+                {[pair.a, pair.b].map((row, i) => (
+                  <button
+                    key={row.productId}
+                    disabled={busy}
+                    onClick={() => handleUnisci(pair, i === 0 ? "a" : "b")}
+                    className="flex w-full items-center gap-2 rounded-[10px] border border-border px-3 py-2.5 text-left active:scale-[0.98] transition-transform disabled:opacity-50"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[13px] font-medium text-foreground truncate">{row.name}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {row.lots.length} lott{row.lots.length === 1 ? "o" : "i"} ·{" "}
+                        {row.totals.map((t) => fmtQty(t.qty, t.unit)).join(" + ")}
+                      </p>
+                    </div>
+                    <span className="shrink-0 text-[12px] font-semibold text-primary">Tieni questo</span>
+                  </button>
+                ))}
+                <button
+                  onClick={() => ignoraCoppia(pair)}
+                  className="w-full rounded-[10px] py-2 text-[12px] font-medium text-muted-foreground active:bg-muted"
+                >
+                  Sono prodotti diversi
+                </button>
+              </div>
+            ))}
+          </div>
+        </SheetContent>
+      </Sheet>
+
       <Sheet open={caricoOpen} onOpenChange={setCaricoOpen}>
         <SheetContent side="bottom" className="rounded-t-2xl max-h-[90vh] overflow-y-auto">
           <SheetHeader><SheetTitle>Carico merce</SheetTitle></SheetHeader>
@@ -442,18 +547,19 @@ const RestaurantStockPage = () => {
           </p>
           <div className="space-y-3 py-4">
             <div className="space-y-1.5">
-              <Label>Prodotto *</Label>
-              <Input value={cNome} onChange={(e) => setCNome(e.target.value)} placeholder="es. Pomodori pelati" />
+              <Label htmlFor="carico-nome">Prodotto *</Label>
+              <Input id="carico-nome" value={cNome} onChange={(e) => setCNome(e.target.value)} placeholder="es. Pomodori pelati" />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1.5">
-                <Label>Quantità *</Label>
-                <Input type="number" inputMode="decimal" min="0" step="any"
+                <Label htmlFor="carico-qta">Quantità *</Label>
+                <Input id="carico-qta" type="number" inputMode="decimal" min="0" step="any"
                   value={cQta} onChange={(e) => setCQta(e.target.value)} placeholder="0" />
               </div>
               <div className="space-y-1.5">
-                <Label>Unità</Label>
+                <Label htmlFor="carico-unita">Unità</Label>
                 <select
+                  id="carico-unita"
                   value={cUnita}
                   onChange={(e) => setCUnita(e.target.value)}
                   className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
@@ -464,12 +570,12 @@ const RestaurantStockPage = () => {
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1.5">
-                <Label>Lotto</Label>
-                <Input value={cLotto} onChange={(e) => setCLotto(e.target.value)} placeholder="es. L-1180-A" />
+                <Label htmlFor="carico-lotto">Lotto</Label>
+                <Input id="carico-lotto" value={cLotto} onChange={(e) => setCLotto(e.target.value)} placeholder="es. L-1180-A" />
               </div>
               <div className="space-y-1.5">
-                <Label>Scadenza</Label>
-                <Input type="date" value={cScad} onChange={(e) => setCScad(e.target.value)} />
+                <Label htmlFor="carico-scad">Scadenza</Label>
+                <Input id="carico-scad" type="date" value={cScad} onChange={(e) => setCScad(e.target.value)} />
               </div>
             </div>
             <div className="space-y-1.5">

@@ -25,7 +25,11 @@ const MobileHeader = ({ title, showBack = true, right, hideNotifications = false
         <div className="flex h-8 items-center">
           <div className="flex w-10 items-center">
             {showBack && (
-              <button onClick={() => navigate(-1)} className="text-white/90 -ml-1 p-1 active:opacity-70 transition-opacity">
+              <button
+                onClick={() => navigate(-1)}
+                aria-label="Torna indietro"
+                className="flex h-11 w-11 items-center justify-center -ml-3 text-white/90 active:opacity-70 transition-opacity"
+              >
                 <ChevronLeft size={22} strokeWidth={2} />
               </button>
             )}

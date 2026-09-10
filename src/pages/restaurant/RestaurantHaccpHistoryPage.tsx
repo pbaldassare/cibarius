@@ -221,7 +221,7 @@ const RestaurantHaccpHistoryPage = () => {
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Cerca..." className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
+          <Input placeholder="Cerca..." aria-label="Cerca nello storico" className="pl-9" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         <Select value={dateRange} onValueChange={(v: any) => setDateRange(v)}>
           <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>

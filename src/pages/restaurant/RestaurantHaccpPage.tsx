@@ -239,7 +239,7 @@ const RestaurantHaccpPage = () => {
 
       {/* Week navigation */}
       <div className="flex items-center justify-between">
-        <Button variant="ghost" size="icon" onClick={() => setWeekOffset(w => w - 1)}>
+        <Button variant="ghost" size="icon" className="h-11 w-11" aria-label="Settimana precedente" onClick={() => setWeekOffset(w => w - 1)}>
           <ChevronLeft className="h-5 w-5" />
         </Button>
         <div className="text-center">
@@ -248,7 +248,7 @@ const RestaurantHaccpPage = () => {
           </p>
           {isCurrentWeek && <Badge variant="secondary" className="text-xs mt-1">Settimana corrente</Badge>}
         </div>
-        <Button variant="ghost" size="icon" onClick={() => setWeekOffset(w => w + 1)}>
+        <Button variant="ghost" size="icon" className="h-11 w-11" aria-label="Settimana successiva" onClick={() => setWeekOffset(w => w + 1)}>
           <ChevronRight className="h-5 w-5" />
         </Button>
       </div>
@@ -338,10 +338,15 @@ const RestaurantHaccpPage = () => {
                       <td key={i} className="p-1 text-center">
                         {show ? (
                           <button
-                            className={`inline-flex items-center justify-center rounded-lg p-1.5 transition-colors ${
+                            className={`inline-flex h-11 w-11 items-center justify-center rounded-lg transition-colors ${
                               canComplete ? "hover:bg-primary/10 active:bg-primary/20 cursor-pointer" : ""
                             } ${log ? "bg-emerald-500/10" : ""}`}
                             disabled={!canComplete}
+                            /* Ogni cella era un pulsante con la sola icona: uno
+                               screen reader leggeva "pulsante" e basta. */
+                            aria-label={`${task.name}, ${format(d, "EEEE d MMMM", { locale: it })}: ${
+                              log ? "completata" : canComplete ? "da registrare" : "non ancora disponibile"
+                            }`}
                             onClick={() => canComplete && setCompleteDialog({ task, date: d })}
                           >
                             {getCellIcon(task, d)}

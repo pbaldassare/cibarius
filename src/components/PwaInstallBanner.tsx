@@ -54,7 +54,7 @@ const PwaInstallBanner = () => {
               Installa
             </Button>
           )}
-          <button onClick={handleDismiss} className="p-1.5 rounded-lg text-muted-foreground hover:bg-muted">
+          <button onClick={handleDismiss} aria-label="Chiudi l'invito a installare" className="flex h-11 w-11 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted">
             <X className="h-4 w-4" />
           </button>
         </div>

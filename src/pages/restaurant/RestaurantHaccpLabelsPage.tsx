@@ -81,7 +81,7 @@ const RestaurantHaccpLabelsPage = () => {
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Cerca per nome o lotto..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+        <Input placeholder="Cerca per nome o lotto..." aria-label="Cerca etichetta per nome o lotto" value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
       </div>
 
       <Tabs value={tab} onValueChange={(v: any) => setTab(v)}>
