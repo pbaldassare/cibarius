@@ -26,8 +26,16 @@ export const productKey = (name: string): string =>
     .replace(/\s+/g, " ")
     .trim();
 
-/** Prodotti gia' noti al ristorante, indicizzati per nome normalizzato. */
-export type ProductIndex = Map<string, string>;
+/**
+ * Prodotti gia' noti al ristorante, indicizzati per nome normalizzato.
+ *
+ * Si tiene anche il nome per esteso: quando un carico riusa un prodotto
+ * esistente, il registro movimenti deve riportare il nome a catalogo e non
+ * quello digitato al momento, altrimenti lo stesso articolo compare nella
+ * lista con grafie diverse ("qa pomodori pelati" accanto a "QA Pomodori
+ * Pelati").
+ */
+export type ProductIndex = Map<string, { id: string; name: string }>;
 
 /**
  * Carica l'indice una volta sola, prima di un ciclo di carichi.
@@ -60,13 +68,13 @@ export const loadProductIndex = async (restaurantId: string): Promise<ProductInd
     const name = row.product?.name;
     if (!row.product_id || !name) continue;
     const key = productKey(name);
-    if (key && !index.has(key)) index.set(key, row.product_id);
+    if (key && !index.has(key)) index.set(key, { id: row.product_id, name });
   }
 
   for (const row of (movRes.data ?? []) as { product_id: string | null; product_name: string }[]) {
     if (!row.product_id || !row.product_name) continue;
     const key = productKey(row.product_name);
-    if (key && !index.has(key)) index.set(key, row.product_id);
+    if (key && !index.has(key)) index.set(key, { id: row.product_id, name: row.product_name });
   }
 
   return index;
@@ -82,13 +90,14 @@ export const resolveProduct = async (
   index: ProductIndex,
   name: string,
   unit?: string | null,
-): Promise<{ productId: string | null; created: boolean; error: string | null }> => {
+): Promise<{ productId: string | null; productName: string; created: boolean; error: string | null }> => {
   const trimmed = name.trim();
-  if (!trimmed) return { productId: null, created: false, error: "Nome prodotto mancante" };
+  if (!trimmed) return { productId: null, productName: trimmed, created: false, error: "Nome prodotto mancante" };
 
   const key = productKey(trimmed);
   const existing = index.get(key);
-  if (existing) return { productId: existing, created: false, error: null };
+  // Vince il nome a catalogo: il registro resta leggibile.
+  if (existing) return { productId: existing.id, productName: existing.name, created: false, error: null };
 
   const { data, error } = await supabase
     .from("products")
@@ -97,11 +106,11 @@ export const resolveProduct = async (
     .single();
 
   if (error || !data) {
-    return { productId: null, created: false, error: error?.message ?? "Prodotto non creato" };
+    return { productId: null, productName: trimmed, created: false, error: error?.message ?? "Prodotto non creato" };
   }
 
-  index.set(key, data.id);
-  return { productId: data.id, created: true, error: null };
+  index.set(key, { id: data.id, name: trimmed });
+  return { productId: data.id, productName: trimmed, created: true, error: null };
 };
 
 /**

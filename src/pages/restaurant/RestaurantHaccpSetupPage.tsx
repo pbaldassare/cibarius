@@ -424,7 +424,7 @@ const RestaurantHaccpSetupPage = () => {
                   />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{task.name}</p>
-                    <p className="text-xs text-muted-foreground capitalize">{frequencyLabel(task)} · {task.category.replace(/_/g, " ")}</p>
+                    <p className="text-xs text-muted-foreground first-letter:uppercase">{frequencyLabel(task)} · {task.category.replace(/_/g, " ")}</p>
                   </div>
                   <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeleteTask(task.id)}>
                     <Trash2 className="h-4 w-4" />

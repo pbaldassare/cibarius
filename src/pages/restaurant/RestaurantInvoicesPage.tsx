@@ -185,7 +185,7 @@ const RestaurantInvoicesPage = () => {
 
       for (const line of items) {
         const unit = line.unit || "pz";
-        const { productId } = await resolveProduct(index, line.name, unit);
+        const { productId, productName } = await resolveProduct(index, line.name, unit);
         if (!productId) continue;
 
         const quantity = line.quantity != null && line.quantity > 0 ? line.quantity : 1;
@@ -208,7 +208,7 @@ const RestaurantInvoicesPage = () => {
           restaurantId: restaurant.id,
           inventoryItemId: inv.id,
           productId,
-          productName: line.name,
+          productName,
           movementType: "carico",
           quantity,
           unit,

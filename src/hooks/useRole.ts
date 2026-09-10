@@ -16,16 +16,28 @@ export interface Profile {
 export const useRole = () => {
   const { user, loading: authLoading } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  /*
+   * Utente a cui appartiene `profile`.
+   *
+   * Serve a distinguere "ruolo non ancora letto" da "utente senza ruolo".
+   * Prima l'hook riportava isLoading false gia' dal giro senza sessione,
+   * mentre `profile` era ancora null: al primo render dopo il login la
+   * LoginPage vedeva "sessione valida, nessun ruolo" e mandava tutti sulla
+   * home consumer. Un ristoratore finiva sulla dispensa personale invece
+   * che sul suo cruscotto, e il redirect era gia' avvenuto prima che il
+   * profilo arrivasse.
+   */
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
       setProfile(null);
-      setIsLoading(false);
+      setLoadedFor(null);
       return;
     }
 
+    let cancelled = false;
     const fetchProfile = async () => {
       const { data, error } = await supabase
         .from("profiles")
@@ -33,19 +45,22 @@ export const useRole = () => {
         .eq("id", user.id)
         .single();
 
-      if (!error && data) {
-        setProfile(data as Profile);
-      }
-      setIsLoading(false);
+      if (cancelled) return;
+      if (!error && data) setProfile(data as Profile);
+      setLoadedFor(user.id);
     };
 
     fetchProfile();
+    return () => { cancelled = true; };
   }, [user, authLoading]);
 
+  // Il ruolo e' attendibile solo quando il profilo caricato e' quello in sessione.
+  const resolved = user ? loadedFor === user.id : true;
+
   return {
-    role: profile?.role ?? null,
-    profile,
-    isLoading: authLoading || isLoading,
+    role: resolved ? profile?.role ?? null : null,
+    profile: resolved ? profile : null,
+    isLoading: authLoading || !resolved,
   };
 };
 

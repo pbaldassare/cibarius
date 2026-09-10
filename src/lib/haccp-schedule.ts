@@ -103,8 +103,17 @@ export interface HaccpAgenda {
   /** Controlli previsti per oggi. */
   todayTotal: number;
   todayDone: number;
+  /**
+   * Controlli di oggi non ancora registrati. Se lo stesso controllo era
+   * stato saltato anche nei giorni scorsi, `missedCount` lo dice: la riga
+   * resta una sola, non se ne aggiunge una fra gli arretrati.
+   */
   todayPending: DueTask[];
-  /** Controlli dei giorni precedenti mai registrati, dal piu' recente. */
+  /**
+   * Controlli non previsti per oggi e mai registrati quando toccava, tipico
+   * della settimanale saltata il lunedi'. Nessuno di questi compare anche
+   * fra quelli di oggi.
+   */
   overdue: DueTask[];
 }
 
@@ -128,28 +137,50 @@ export const buildAgenda = (
   lookbackDays = 14,
 ): HaccpAgenda => {
   const todayDue = tasks.filter((t) => isTaskDueOn(t, today));
-  const todayPending: DueTask[] = todayDue
-    .filter((t) => !isCompletedOn(logs, t.id, today))
-    .map((task) => ({ task, date: today, daysLate: 0, missedCount: 1 }));
+  const pendingToday = todayDue.filter((t) => !isCompletedOn(logs, t.id, today));
+  const pendingTodayIds = new Set(pendingToday.map((t) => t.id));
+  const doneTodayIds = new Set(
+    todayDue.filter((t) => isCompletedOn(logs, t.id, today)).map((t) => t.id),
+  );
 
-  const byTask = new Map<string, DueTask>();
+  // Occorrenze saltate nei giorni precedenti, una riga per attivita'.
+  const backlog = new Map<string, { date: Date; daysLate: number; missedCount: number }>();
   for (let back = 1; back <= lookbackDays; back++) {
     const date = new Date(atMidnight(today).getTime() - back * 86400000);
     for (const task of tasks) {
       if (task.created_at && daysBetween(new Date(task.created_at), date) < 0) continue;
       if (!isTaskDueOn(task, date)) continue;
       if (isCompletedOn(logs, task.id, date)) continue;
-      const seen = byTask.get(task.id);
+      const seen = backlog.get(task.id);
       if (seen) seen.missedCount++;
-      else byTask.set(task.id, { task, date, daysLate: back, missedCount: 1 });
+      else backlog.set(task.id, { date, daysLate: back, missedCount: 1 });
     }
   }
+
+  const todayPending: DueTask[] = pendingToday.map((task) => ({
+    task,
+    date: today,
+    daysLate: 0,
+    // Il pregresso si somma all'occorrenza di oggi invece di duplicare la riga.
+    missedCount: 1 + (backlog.get(task.id)?.missedCount ?? 0),
+  }));
+
+  const overdue: DueTask[] = [...backlog.entries()]
+    // Chi e' gia' nella lista di oggi (aperto o chiuso) non si ripete qui.
+    .filter(([taskId]) => !pendingTodayIds.has(taskId) && !doneTodayIds.has(taskId))
+    .map(([taskId, b]) => ({
+      task: tasks.find((t) => t.id === taskId)!,
+      date: b.date,
+      daysLate: b.daysLate,
+      missedCount: b.missedCount,
+    }))
+    .sort((a, b) => a.daysLate - b.daysLate);
 
   return {
     todayTotal: todayDue.length,
     todayDone: todayDue.length - todayPending.length,
     todayPending,
-    overdue: [...byTask.values()].sort((a, b) => a.daysLate - b.daysLate),
+    overdue,
   };
 };
 

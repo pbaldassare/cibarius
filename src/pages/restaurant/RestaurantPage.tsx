@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import MobileHeader from "@/components/MobileHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { consumeFromItem, consumeFromPreparation } from "@/lib/inventory-movements";
-import { buildAgenda } from "@/lib/haccp-schedule";
+import { buildAgenda, groupCategories } from "@/lib/haccp-schedule";
 import { fetchAllRows } from "@/lib/supabase-paging";
 import { Skeleton } from "@/components/ui/skeleton";
 import RestaurantAddFlow from "@/components/RestaurantAddFlow";
@@ -91,13 +91,14 @@ const storageLabel: Record<string, string> = {
  * Cappe, Forni e Celle frigo puntavano tutte e tre alla stessa lista HACCP
  * senza filtro, e le prime due a categorie che non esistono in nessun
  * template. Ora ogni voce porta davvero dove promette: i gruppi HACCP
- * arrivano alla pagina controlli gia' filtrata.
+ * arrivano alla pagina controlli gia' filtrata, e quelli senza nemmeno
+ * un'attivita' configurata non vengono proposti (portavano a una lista vuota).
  */
 const QUICK_ACTIONS = [
   { label: "Controlli oggi", icon: ClipboardCheck, to: "/restaurant/haccp", color: "text-primary", bg: "bg-primary/10" },
-  { label: "Temperature", icon: Thermometer, to: "/restaurant/haccp?gruppo=temperature", color: "text-sky-600", bg: "bg-sky-500/10" },
-  { label: "Pulizie", icon: Wind, to: "/restaurant/haccp?gruppo=pulizie", color: "text-violet-600", bg: "bg-violet-500/10" },
-  { label: "Attrezzature", icon: Flame, to: "/restaurant/haccp?gruppo=attrezzature", color: "text-orange-600", bg: "bg-orange-500/10" },
+  { label: "Temperature", icon: Thermometer, to: "/restaurant/haccp?gruppo=temperature", group: "temperature", color: "text-sky-600", bg: "bg-sky-500/10" },
+  { label: "Pulizie", icon: Wind, to: "/restaurant/haccp?gruppo=pulizie", group: "pulizie", color: "text-violet-600", bg: "bg-violet-500/10" },
+  { label: "Attrezzature", icon: Flame, to: "/restaurant/haccp?gruppo=attrezzature", group: "attrezzature", color: "text-orange-600", bg: "bg-orange-500/10" },
   { label: "Scadenze", icon: Clock, to: "/restaurant/products", color: "text-amber-600", bg: "bg-amber-500/10" },
   { label: "Magazzino", icon: Package, to: "/restaurant/stock", color: "text-indigo-600", bg: "bg-indigo-500/10" },
   { label: "Etichette HACCP", icon: QrCode, to: "/restaurant/haccp-labels", color: "text-emerald-600", bg: "bg-emerald-500/10" },
@@ -178,6 +179,25 @@ const RestaurantPage = () => {
     () => buildAgenda(haccpTasks, haccpLogs, today, HACCP_LOOKBACK_DAYS),
     [haccpTasks, haccpLogs, todayStr],
   );
+
+  /** Controlli di oggi che si trascinano da giorni, per il riepilogo. */
+  const staleCount = useMemo(
+    () => agenda.todayPending.filter((p) => p.missedCount > 1).length,
+    [agenda],
+  );
+
+  const longestGap = useMemo(
+    () => agenda.todayPending.reduce((max, p) => Math.max(max, p.missedCount - 1), 0),
+    [agenda],
+  );
+
+  /** Scorciatoie proposte: si tolgono i gruppi HACCP senza attivita'. */
+  const quickActions = useMemo(() => {
+    const presenti = new Set(haccpTasks.map((t) => t.category));
+    return QUICK_ACTIONS.filter(
+      (a) => !a.group || groupCategories(a.group).some((c) => presenti.has(c)),
+    );
+  }, [haccpTasks]);
 
   const tempPendingCount = useMemo(
     () => [...agenda.todayPending, ...agenda.overdue]
@@ -392,7 +412,7 @@ const RestaurantPage = () => {
               {/* Controlli di oggi ancora aperti */}
               {agenda.todayPending.length > 0 && (
                 <div className="space-y-1.5 mb-2">
-                  {agenda.todayPending.slice(0, 5).map(({ task }) => (
+                  {agenda.todayPending.slice(0, 5).map(({ task, missedCount }) => (
                     <button
                       key={task.id}
                       onClick={() => navigate("/restaurant/haccp")}
@@ -408,6 +428,16 @@ const RestaurantPage = () => {
                   {agenda.todayPending.length > 5 && (
                     <p className="text-xs text-muted-foreground text-center">
                       +{agenda.todayPending.length - 5} altri controlli
+                    </p>
+                  )}
+
+                  {/* Il pregresso si dice una volta sola: ripeterlo su ogni
+                      riga riempiva la scheda di badge identici. */}
+                  {staleCount > 0 && (
+                    <p className="text-[11px] font-medium text-foreground bg-warning/15 rounded-[8px] px-2.5 py-1.5">
+                      {staleCount === 1
+                        ? `Un controllo non viene registrato da ${longestGap} giorni`
+                        : `${staleCount} controlli non vengono registrati da giorni`}
                     </p>
                   )}
                 </div>
@@ -463,7 +493,7 @@ const RestaurantPage = () => {
 
         {/* ═══ Quick Actions ═══ */}
         <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide" data-tour="rest-quick-actions">
-          {QUICK_ACTIONS.map(({ label, icon: Icon, to, color, bg }) => (
+          {quickActions.map(({ label, icon: Icon, to, color, bg }) => (
             <button
               key={label}
               onClick={() => navigate(to)}

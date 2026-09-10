@@ -123,22 +123,49 @@ describe("buildAgenda", () => {
     expect(agenda.overdue).toHaveLength(0);
   });
 
-  it("elenca un controllo arretrato una volta sola", () => {
-    // Una giornaliera saltata per una settimana deve produrre una riga, non
-    // sette righe identiche sul cruscotto.
+  it("somma il pregresso sulla riga di oggi senza duplicarla", () => {
+    // Una giornaliera saltata per una settimana e ancora aperta oggi deve
+    // produrre una riga sola: prima compariva sia fra i controlli di oggi
+    // sia fra gli arretrati, nella stessa scheda.
     const agenda = buildAgenda([task({ id: "d" })], [], mercoledi, 7);
-    expect(agenda.overdue).toHaveLength(1);
-    expect(agenda.overdue[0].missedCount).toBe(7);
-    expect(agenda.overdue[0].daysLate).toBe(1);
+    expect(agenda.todayPending).toHaveLength(1);
+    expect(agenda.todayPending[0].missedCount).toBe(8);
+    expect(agenda.overdue).toHaveLength(0);
+  });
+
+  it("nessun controllo compare sia fra quelli di oggi sia fra gli arretrati", () => {
+    const tasks = [
+      task({ id: "giorno" }),
+      task({ id: "settimana", frequency: "settimanale" }),
+    ];
+    const martedi = new Date(2026, 8, 8);
+    const agenda = buildAgenda(tasks, [], martedi, 14);
+    const oggi = new Set(agenda.todayPending.map((p) => p.task.id));
+    expect(agenda.overdue.every((o) => !oggi.has(o.task.id))).toBe(true);
+    // la settimanale di lunedi' resta visibile, la giornaliera e' fra quelle di oggi
+    expect(agenda.overdue.map((o) => o.task.id)).toEqual(["settimana"]);
+    expect([...oggi]).toEqual(["giorno"]);
+  });
+
+  it("non ripete fra gli arretrati un controllo gia' fatto oggi", () => {
+    // Il buco di ieri resta nello storico ma non e' piu' azionabile oggi:
+    // tenerlo sul cruscotto sarebbe solo rumore.
+    const agenda = buildAgenda([task({ id: "d" })], [done("d", mercoledi)], mercoledi, 7);
+    expect(agenda.todayPending).toHaveLength(0);
+    expect(agenda.overdue).toHaveLength(0);
   });
 
   it("ordina gli arretrati dal piu' recente", () => {
+    const lunedi2 = new Date(2026, 8, 14);
     const tasks = [
-      task({ id: "vecchio", frequency: "settimanale" }),
-      task({ id: "recente" }),
+      task({ id: "mensile", frequency: "mensile" }),
+      task({ id: "settimanale", frequency: "settimanale" }),
     ];
-    const agenda = buildAgenda(tasks, [], mercoledi, 14);
-    expect(agenda.overdue[0].task.id).toBe("recente");
+    // martedi' 15: la settimanale e' saltata ieri, la mensile il primo del mese
+    const agenda = buildAgenda(tasks, [], new Date(2026, 8, 15), 20);
+    expect(agenda.overdue.map((o) => o.task.id)).toEqual(["settimanale", "mensile"]);
+    expect(agenda.overdue[0].daysLate).toBeLessThan(agenda.overdue[1].daysLate);
+    expect(lunedi2.getDay()).toBe(1);
   });
 });
 

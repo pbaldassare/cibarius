@@ -35,8 +35,18 @@ interface Lot {
 interface StockRow {
   productId: string;
   name: string;
+  /** Unita' prevalente, quella con la giacenza maggiore. */
   unit: string | null;
+  /** Giacenza nell'unita' prevalente, base per la stima di esaurimento. */
   totalQty: number;
+  /**
+   * Giacenza divisa per unita' di misura.
+   *
+   * Lo stesso prodotto puo' avere lotti in unita' diverse (una confezione da
+   * 2 pz e uno sfuso da 1 kg). Sommarli e' privo di senso: prima il totale
+   * usciva come "3 pz" perche' vinceva l'unita' del primo lotto.
+   */
+  totals: { unit: string | null; qty: number }[];
   lots: Lot[];
   /** Scadenza piu' vicina fra i lotti. */
   nextExpiry: string | null;
@@ -125,7 +135,7 @@ const RestaurantStockPage = () => {
     setBusy(true);
     try {
       const index = await loadProductIndex(restaurant.id);
-      const { productId, error: pErr } = await resolveProduct(index, cNome.trim(), cUnita);
+      const { productId, productName, error: pErr } = await resolveProduct(index, cNome.trim(), cUnita);
       if (pErr || !productId) throw new Error(pErr ?? "Prodotto non creato");
 
       const { data: inv, error: iErr } = await supabase.from("inventory_items").insert({
@@ -143,7 +153,7 @@ const RestaurantStockPage = () => {
         restaurantId: restaurant.id,
         inventoryItemId: inv.id,
         productId,
-        productName: cNome.trim(),
+        productName,
         movementType: "carico",
         quantity: q,
         unit: cUnita,
@@ -151,7 +161,7 @@ const RestaurantStockPage = () => {
         expiryDate: cScad || null,
       });
 
-      toast({ title: `Caricato ${fmtQty(q, cUnita)} di ${cNome.trim()} ✓` });
+      toast({ title: `Caricato ${fmtQty(q, cUnita)} di ${productName} ✓` });
       setCaricoOpen(false);
       setCNome(""); setCQta(""); setCLotto(""); setCScad("");
       await fetchAll();
@@ -202,7 +212,15 @@ const RestaurantStockPage = () => {
 
     const out: StockRow[] = [];
     for (const [productId, group] of byProduct) {
-      const totalQty = group.reduce((sum, l) => sum + Number(l.quantity ?? 0), 0);
+      const byUnit = new Map<string, number>();
+      for (const lot of group) {
+        const u = lot.unit ?? "";
+        byUnit.set(u, (byUnit.get(u) ?? 0) + Number(lot.quantity ?? 0));
+      }
+      const totals = [...byUnit.entries()]
+        .map(([unit, qty]) => ({ unit: unit || null, qty }))
+        .sort((a, b) => b.qty - a.qty);
+      const totalQty = totals[0]?.qty ?? 0;
       const expiries = group.map((l) => l.expiry_date).filter(Boolean) as string[];
       const productMovements = movements.filter((m) => m.product_id === productId);
       const { dailyRate, daysLeft } = forecastFromMovements(productMovements, totalQty);
@@ -210,8 +228,9 @@ const RestaurantStockPage = () => {
       out.push({
         productId,
         name: group[0].product?.name ?? "Prodotto",
-        unit: group[0].unit,
+        unit: totals[0]?.unit ?? group[0].unit,
         totalQty,
+        totals,
         lots: group,
         nextExpiry: expiries.length ? expiries.sort()[0] : null,
         dailyRate,
@@ -292,7 +311,7 @@ const RestaurantStockPage = () => {
                           </p>
                         </div>
                         <p className="text-base font-bold shrink-0 text-foreground">
-                          {fmtQty(row.totalQty, row.unit)}
+                          {row.totals.map((t) => fmtQty(t.qty, t.unit)).join(" + ")}
                         </p>
                       </div>
 
@@ -358,7 +377,7 @@ const RestaurantStockPage = () => {
               <SheetHeader><SheetTitle>{detail.name}</SheetTitle></SheetHeader>
               <div className="space-y-4 py-4">
                 <div className="grid grid-cols-2 gap-2">
-                  <Stat label="Giacenza" value={fmtQty(detail.totalQty, detail.unit)} />
+                  <Stat label="Giacenza" value={detail.totals.map((t) => fmtQty(t.qty, t.unit)).join(" + ")} />
                   <Stat
                     label="Esaurimento stimato"
                     value={detail.daysLeft != null ? `~${detail.daysLeft} giorni` : "—"}

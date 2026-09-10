@@ -73,3 +73,28 @@ describe("fmtQty", () => {
     expect(fmtQty(4)).toBe("4");
   });
 });
+
+describe("forecastFromMovements — storico troppo corto", () => {
+  it("non stima nulla con meno di un giorno di osservazione", () => {
+    // Il primo scarico appena registrato non e' un consumo giornaliero:
+    // prima usciva "4 kg al giorno" da un unico movimento di 4 kg.
+    const appena: Pick<Movement, "movement_type" | "quantity_delta" | "created_at"> = {
+      movement_type: "consumo",
+      quantity_delta: -4,
+      created_at: new Date().toISOString(),
+    };
+    const { dailyRate, daysLeft } = forecastFromMovements([appena], 6);
+    expect(dailyRate).toBe(0);
+    expect(daysLeft).toBeNull();
+  });
+
+  it("stima appena c'e' un giorno pieno di storico", () => {
+    const ieri: Pick<Movement, "movement_type" | "quantity_delta" | "created_at"> = {
+      movement_type: "consumo",
+      quantity_delta: -4,
+      created_at: new Date(Date.now() - 2 * 86400000).toISOString(),
+    };
+    const { dailyRate } = forecastFromMovements([ieri], 6);
+    expect(dailyRate).toBeCloseTo(2, 1);
+  });
+});

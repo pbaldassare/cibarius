@@ -208,7 +208,18 @@ export const forecastFromMovements = (
 
   const consumed = outbound.reduce((sum, m) => sum + Math.abs(Number(m.quantity_delta)), 0);
   const oldest = Math.min(...outbound.map((m) => new Date(m.created_at).getTime()));
-  const spanDays = Math.max(1, (Date.now() - oldest) / 86400000);
+  const spanDays = (Date.now() - oldest) / 86400000;
+
+  /*
+   * Serve almeno un giorno di osservazione.
+   *
+   * Prima la finestra veniva portata a un minimo di un giorno, quindi il
+   * primo scarico appena registrato diventava il consumo di un'intera
+   * giornata: scaricare 4 kg su 10 faceva scrivere "consumo medio 4 kg al
+   * giorno" e "finisce in ~1 g". Meglio dire che non e' ancora misurabile.
+   */
+  if (spanDays < 1) return { dailyRate: 0, daysLeft: null };
+
   const dailyRate = consumed / spanDays;
 
   if (dailyRate <= 0) return { dailyRate: 0, daysLeft: null };

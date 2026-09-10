@@ -327,7 +327,7 @@ const RestaurantHaccpPage = () => {
                       {isTemperatureTask(task.category) && <Thermometer className="h-3 w-3 text-sky-500 shrink-0" />}
                       <p className="text-sm font-medium text-foreground leading-tight">{task.name}</p>
                     </div>
-                    <p className="text-[10px] text-muted-foreground capitalize">{frequencyLabel(task)}</p>
+                    <p className="text-[10px] text-muted-foreground first-letter:uppercase">{frequencyLabel(task)}</p>
                   </td>
                   {weekDays.map((d, i) => {
                     const show = isTaskDueOn(task, d);
