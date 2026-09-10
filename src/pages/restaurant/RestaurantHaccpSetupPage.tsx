@@ -419,10 +419,24 @@ const RestaurantHaccpSetupPage = () => {
             {tasks.map(task => (
               <Card key={task.id} className={`${!task.is_active ? "opacity-50" : ""}`}>
                 <CardContent className="flex items-center gap-3 p-3">
-                  <Switch
-                    checked={task.is_active}
-                    onCheckedChange={(v) => handleToggleTask(task.id, v)}
-                  />
+                  {/*
+                    L'interruttore visivo e' alto 24px e non diceva a cosa si
+                    riferisse: uno screen reader annunciava solo "attivo".
+                    L'etichetta che lo avvolge porta l'area toccabile a 44px
+                    (un button e' un elemento etichettabile, quindi il clic
+                    sull'etichetta lo attiva) senza cambiarne l'aspetto.
+                  */}
+                  <label
+                    htmlFor={`task-${task.id}`}
+                    className="flex h-11 cursor-pointer items-center pr-1"
+                  >
+                    <Switch
+                      id={`task-${task.id}`}
+                      checked={task.is_active}
+                      onCheckedChange={(v) => handleToggleTask(task.id, v)}
+                      aria-label={`${task.is_active ? "Disattiva" : "Attiva"} il controllo ${task.name}`}
+                    />
+                  </label>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{task.name}</p>
                     <p className="text-xs text-muted-foreground first-letter:uppercase">{frequencyLabel(task)} · {task.category.replace(/_/g, " ")}</p>

@@ -132,8 +132,9 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <PwaInstallBanner />
       <BrowserRouter>
+        {/* Dentro il Router: il banner deve sapere su che schermata si trova. */}
+        <PwaInstallBanner />
         <AuthProvider>
           <Suspense
             fallback={

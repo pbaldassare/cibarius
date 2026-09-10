@@ -2,16 +2,31 @@ import { useState, useEffect } from "react";
 import { X, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePwaInstall } from "@/hooks/usePwaInstall";
+import { useLocation } from "react-router-dom";
+
+/**
+ * Schermate su cui l'invito puo' comparire.
+ *
+ * Il banner e' `fixed` a z-50 sopra il contenuto: sulle pagine operative
+ * copriva i comandi e ne intercettava i tocchi (sulla configurazione HACCP
+ * rendeva inutilizzabili gli interruttori delle attivita'). Resta solo sulle
+ * home, dove sotto non c'e' nulla da toccare.
+ */
+const HOME_PATHS = ["/", "/restaurant", "/pro", "/supplier"];
+
+/** Un rifiuto vale una settimana: prima tornava dopo due ore. */
+const DISMISS_MS = 7 * 24 * 60 * 60 * 1000;
 
 const PwaInstallBanner = () => {
   const { canInstall, isInstalled, isIos, install } = usePwaInstall();
+  const { pathname } = useLocation();
   const [showBanner, setShowBanner] = useState(false);
 
   useEffect(() => {
     if (isInstalled) return;
 
     const dismissed = localStorage.getItem("pwa-banner-dismissed");
-    if (dismissed && Date.now() - Number(dismissed) < 2 * 60 * 60 * 1000) return;
+    if (dismissed && Date.now() - Number(dismissed) < DISMISS_MS) return;
 
     if (isIos || canInstall) {
       setShowBanner(true);
@@ -28,7 +43,7 @@ const PwaInstallBanner = () => {
     localStorage.setItem("pwa-banner-dismissed", String(Date.now()));
   };
 
-  if (!showBanner) return null;
+  if (!showBanner || !HOME_PATHS.includes(pathname)) return null;
 
   return (
     <div className="fixed bottom-20 left-3 right-3 z-50 animate-in slide-in-from-bottom-4 duration-300">
