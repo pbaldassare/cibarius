@@ -20,7 +20,7 @@ export const SITE_NAME = "Cibarius";
 export const SITE_TAGLINE = "Scadenze, magazzino e HACCP in un'unica app";
 
 export const SITE_DESCRIPTION =
-  "Cibarius tiene sotto controllo scadenze e dispensa a casa, magazzino e controlli HACCP al ristorante, piani alimentari dal nutrizionista. Un'unica app, tre modi di usarla.";
+  "Scadenze e dispensa a casa, magazzino e controlli HACCP al ristorante, piani alimentari dal nutrizionista. Un'unica app, tre modi di usarla.";
 
 export const CONTACT_EMAIL = "info@cibarius.online";
 
@@ -50,7 +50,7 @@ export const SITE_PAGES: SitePage[] = [
     label: "Ristoranti",
     title: "HACCP digitale e magazzino per ristoranti | Cibarius",
     description:
-      "Controlli HACCP giornalieri, registro temperature, etichette di preparazione con QR, carico merce dalla bolla e registro movimenti. Tutto dal telefono, pronto per l'ispezione.",
+      "Controlli HACCP, registro temperature, etichette di preparazione con QR e carico merce dalla bolla. Tutto dal telefono, pronto per l'ispezione.",
     priority: 0.9,
   },
   {
@@ -97,7 +97,8 @@ export const SITE_PAGES: SitePage[] = [
     path: "/contatti",
     label: "Contatti",
     title: "Contatta Cibarius",
-    description: "Scrivici per una dimostrazione, un preventivo o assistenza sull'app.",
+    description:
+      "Scrivici per una dimostrazione sul tuo locale, per un preventivo o per assistenza sull'app. Rispondiamo in italiano, di persona.",
     priority: 0.5,
     footerOnly: true,
   },

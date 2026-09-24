@@ -122,6 +122,13 @@ import { USER_HOME } from "@/lib/routes";
 // visitatore e la pagina che i motori di ricerca devono trovare.
 import SiteLayout from "./components/site/SiteLayout";
 import HomePage from "./pages/site/HomePage";
+const RistorantiPage = lazy(() => import("./pages/site/RistorantiPage"));
+const UtentiPage = lazy(() => import("./pages/site/UtentiPage"));
+const NutrizionistiPage = lazy(() => import("./pages/site/NutrizionistiPage"));
+const ComeFunzionaPage = lazy(() => import("./pages/site/ComeFunzionaPage"));
+const PrezziPage = lazy(() => import("./pages/site/PrezziPage"));
+const FaqPage = lazy(() => import("./pages/site/FaqPage"));
+const ContattiPage = lazy(() => import("./pages/site/ContattiPage"));
 import { PwaInstallProvider } from "./hooks/usePwaInstall";
 import { TourProvider } from "./components/AppTourContext";
 
@@ -153,6 +160,13 @@ const App = () => (
             {/* ═══ SITO PUBBLICO (SiteLayout) ═══ */}
             <Route element={<SiteLayout />}>
               <Route path="/" element={<HomePage />} />
+              <Route path="/ristoranti" element={<RistorantiPage />} />
+              <Route path="/utenti" element={<UtentiPage />} />
+              <Route path="/nutrizionisti" element={<NutrizionistiPage />} />
+              <Route path="/come-funziona" element={<ComeFunzionaPage />} />
+              <Route path="/prezzi" element={<PrezziPage />} />
+              <Route path="/faq" element={<FaqPage />} />
+              <Route path="/contatti" element={<ContattiPage />} />
             </Route>
 
             {/* Public auth routes */}

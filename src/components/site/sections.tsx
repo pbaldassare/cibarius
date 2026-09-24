@@ -22,25 +22,39 @@ export const Section = ({
   <section className={`mx-auto max-w-6xl px-4 py-14 sm:py-20 ${className}`}>{children}</section>
 );
 
+/**
+ * Titolo di sezione.
+ *
+ * `level` esiste perche' ogni pagina deve avere esattamente un `h1`: le
+ * pagine senza fascia di apertura usano questo componente per il titolo
+ * principale, e senza il livello giusto restavano senza `h1` del tutto.
+ */
 export const SectionHeading = ({
   eyebrow,
   title,
   lead,
   center = true,
+  level = 2,
 }: {
   eyebrow?: string;
   title: string;
   lead?: string;
   center?: boolean;
-}) => (
-  <div className={`${center ? "mx-auto text-center" : ""} max-w-2xl`}>
-    {eyebrow && (
-      <p className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-primary">{eyebrow}</p>
-    )}
-    <h2 className="text-[26px] font-bold leading-tight text-foreground sm:text-[32px]">{title}</h2>
-    {lead && <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground sm:text-[17px]">{lead}</p>}
-  </div>
-);
+  level?: 1 | 2;
+}) => {
+  const Titolo = level === 1 ? "h1" : "h2";
+  return (
+    <div className={`${center ? "mx-auto text-center" : ""} max-w-2xl`}>
+      {eyebrow && (
+        <p className="mb-2 text-[13px] font-semibold uppercase tracking-wide text-primary">{eyebrow}</p>
+      )}
+      <Titolo className="text-[26px] font-bold leading-tight text-foreground sm:text-[32px]">
+        {title}
+      </Titolo>
+      {lead && <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground sm:text-[17px]">{lead}</p>}
+    </div>
+  );
+};
 
 export interface FeatureItem {
   icon: LucideIcon;
