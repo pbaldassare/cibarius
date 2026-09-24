@@ -3,6 +3,7 @@ import { X, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePwaInstall } from "@/hooks/usePwaInstall";
 import { useLocation } from "react-router-dom";
+import { USER_HOME } from "@/lib/routes";
 
 /**
  * Schermate su cui l'invito puo' comparire.
@@ -12,7 +13,7 @@ import { useLocation } from "react-router-dom";
  * rendeva inutilizzabili gli interruttori delle attivita'). Resta solo sulle
  * home, dove sotto non c'e' nulla da toccare.
  */
-const HOME_PATHS = ["/", "/restaurant", "/pro", "/supplier"];
+const HOME_PATHS = [USER_HOME, "/restaurant", "/pro", "/supplier"];
 
 /** Un rifiuto vale una settimana: prima tornava dopo due ore. */
 const DISMISS_MS = 7 * 24 * 60 * 60 * 1000;

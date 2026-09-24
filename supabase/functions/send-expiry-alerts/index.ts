@@ -102,7 +102,7 @@ Deno.serve(async (req) => {
             name: profile.full_name || "utente",
             products,
             user_id: userId,
-            app_url: "https://simple-blue-frame.lovable.app",
+            app_url: "https://cibarius.online",
           }),
         });
 
@@ -217,7 +217,7 @@ Deno.serve(async (req) => {
             restaurant_name: restaurant.name,
             products: products.sort((a, b) => a.expiry_date.localeCompare(b.expiry_date)),
             user_id: ownerId,
-            app_url: "https://simple-blue-frame.lovable.app",
+            app_url: "https://cibarius.online",
           }),
         });
 

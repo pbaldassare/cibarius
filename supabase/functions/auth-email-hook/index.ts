@@ -16,7 +16,7 @@ const TEXT_DARK = "#1E2530";
 const TEXT_MUTED = "#6B7280";
 const FROM = "Cibarius <noreply@cibarius.online>";
 
-const SITE_URL = "https://simple-blue-frame.lovable.app";
+const SITE_URL = "https://cibarius.online";
 
 // Function to construct base HTML email template
 // Function to construct base HTML email template

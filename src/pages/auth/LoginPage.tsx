@@ -3,6 +3,7 @@ import { Link, Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useRole, getRoleHomePath } from "@/hooks/useRole";
+import { USER_HOME } from "@/lib/routes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -28,7 +29,7 @@ const LoginPage = () => {
   }
 
   if (session && role) return <Navigate to={getRoleHomePath(role)} replace />;
-  if (session && !role) return <Navigate to="/" replace />;
+  if (session && !role) return <Navigate to={USER_HOME} replace />;
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

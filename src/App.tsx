@@ -116,6 +116,12 @@ const SupplierInvitePage = lazy(() => import("./pages/supplier/SupplierInvitePag
 
 const NotFound = lazy(() => import("./pages/NotFound"));
 import PwaInstallBanner from "./components/PwaInstallBanner";
+import { USER_HOME } from "@/lib/routes";
+
+// Sito pubblico: caricato subito perche' e' la prima cosa che vede un
+// visitatore e la pagina che i motori di ricerca devono trovare.
+import SiteLayout from "./components/site/SiteLayout";
+import HomePage from "./pages/site/HomePage";
 import { PwaInstallProvider } from "./hooks/usePwaInstall";
 import { TourProvider } from "./components/AppTourContext";
 
@@ -144,14 +150,19 @@ const App = () => (
             }
           >
           <Routes>
+            {/* ═══ SITO PUBBLICO (SiteLayout) ═══ */}
+            <Route element={<SiteLayout />}>
+              <Route path="/" element={<HomePage />} />
+            </Route>
+
             {/* Public auth routes */}
             <Route path="/auth/login" element={<LoginPage />} />
             <Route path="/auth/signup" element={<SignupPage />} />
             <Route path="/auth/forgot" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/auth/callback" element={<AuthCallbackPage />} />
-            <Route path="/join/:code" element={<Navigate to="/" replace />} />
-            <Route path="/n/:slug" element={<Navigate to="/" replace />} />
+            <Route path="/join/:code" element={<Navigate to={USER_HOME} replace />} />
+            <Route path="/n/:slug" element={<Navigate to={USER_HOME} replace />} />
             <Route path="/haccp/label/:token" element={<PublicHaccpLabelPage />} />
 
             {/* Protected routes */}
@@ -159,7 +170,8 @@ const App = () => (
 
               {/* ═══ USER APP (UserLayout) ═══ */}
               <Route element={<RG roles={["user", "admin"]}><UserLayout /></RG>}>
-                <Route path="/" element={<Index />} />
+                {/* La radice ospita il sito pubblico: l'app consumer vive su /app. */}
+                <Route path={USER_HOME} element={<Index />} />
                 <Route path="/expiry" element={<ExpiryPage />} />
                 <Route path="/scan" element={<ScanPage />} />
                 <Route path="/products" element={<UserProductsPage />} />
@@ -179,15 +191,15 @@ const App = () => (
                 <Route path="/item/:itemId" element={<UserItemDetailPage />} />
                 <Route path="/compare" element={<CompareProductsPage />} />
                 {/* Legacy routes — redirect to home */}
-                <Route path="/meals" element={<Navigate to="/" replace />} />
-                <Route path="/meals/*" element={<Navigate to="/" replace />} />
-                <Route path="/diet" element={<Navigate to="/" replace />} />
-                <Route path="/plan" element={<Navigate to="/" replace />} />
-                <Route path="/weekly-plan" element={<Navigate to="/" replace />} />
-                <Route path="/progress" element={<Navigate to="/" replace />} />
-                <Route path="/invite" element={<Navigate to="/" replace />} />
-                <Route path="/messages" element={<Navigate to="/" replace />} />
-                <Route path="/measurements" element={<Navigate to="/" replace />} />
+                <Route path="/meals" element={<Navigate to={USER_HOME} replace />} />
+                <Route path="/meals/*" element={<Navigate to={USER_HOME} replace />} />
+                <Route path="/diet" element={<Navigate to={USER_HOME} replace />} />
+                <Route path="/plan" element={<Navigate to={USER_HOME} replace />} />
+                <Route path="/weekly-plan" element={<Navigate to={USER_HOME} replace />} />
+                <Route path="/progress" element={<Navigate to={USER_HOME} replace />} />
+                <Route path="/invite" element={<Navigate to={USER_HOME} replace />} />
+                <Route path="/messages" element={<Navigate to={USER_HOME} replace />} />
+                <Route path="/measurements" element={<Navigate to={USER_HOME} replace />} />
                 <Route path="/meal-reminders" element={<Navigate to="/reminders" replace />} />
               </Route>
 

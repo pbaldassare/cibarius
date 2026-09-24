@@ -559,10 +559,10 @@ const ProfiloPage = () => {
                   navigator.share({
                     title: "Cibarius",
                     text: "Prova Cibarius! Gestisci dispensa, pasti e ricette in modo intelligente 🍽️",
-                    url: "https://simple-blue-frame.lovable.app",
+                    url: "https://cibarius.online",
                   }).catch(() => {});
                 } else {
-                  navigator.clipboard.writeText("https://simple-blue-frame.lovable.app");
+                  navigator.clipboard.writeText("https://cibarius.online");
                   toast({ title: "Link copiato!" });
                 }
               }}

@@ -230,13 +230,13 @@ Deno.serve(async (req) => {
         emailData = passwordResetEmail(name || "utente", link);
         break;
       case "expiry_alert":
-        emailData = expiryAlertEmail(name || "utente", products || [], app_url || "https://simple-blue-frame.lovable.app");
+        emailData = expiryAlertEmail(name || "utente", products || [], app_url || "https://cibarius.online");
         break;
       case "expiry_alert_restaurant":
         emailData = restaurantExpiryAlertEmail(
           restaurant_name || name || "Il tuo ristorante",
           products || [],
-          app_url || "https://simple-blue-frame.lovable.app",
+          app_url || "https://cibarius.online",
         );
         break;
       default:

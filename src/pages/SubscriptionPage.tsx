@@ -11,6 +11,7 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { useRole } from "@/hooks/useRole";
 import { useToast } from "@/hooks/use-toast";
 import { Check, Crown, Loader2, Shield, Sparkles, Store, Zap } from "lucide-react";
+import { USER_HOME } from "@/lib/routes";
 
 interface Plan {
   id: string;
@@ -99,7 +100,7 @@ const SubscriptionPage = () => {
             <h1 className="text-2xl font-bold text-foreground">Pagamento completato!</h1>
             <p className="text-muted-foreground">Il tuo abbonamento è ora attivo.</p>
           </div>
-          <Button className="w-full" onClick={() => navigate("/")}>
+          <Button className="w-full" onClick={() => navigate(USER_HOME)}>
             Vai alla Home
           </Button>
         </main>

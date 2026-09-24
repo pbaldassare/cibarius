@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { USER_HOME } from "@/lib/routes";
 
 interface Notification {
   id: string;
@@ -128,7 +129,7 @@ export default function UserNotificationsBell() {
                       navigate("/pro/clients");
                     } else if (n.type === "link_approved") {
                       setOpen(false);
-                      navigate("/");
+                      navigate(USER_HOME);
                     }
                   }}
                 >
