@@ -11,9 +11,9 @@
  * Il file mantiene i riferimenti agli script, quindi nel browser l'app si
  * riattacca normalmente; chi non esegue JavaScript legge comunque il testo.
  *
- * Uso: `npm run build:seo`, che lancia Vite e poi questo script. Il passaggio
- * e' separato da `npm run build` perche' richiede un browser installato, che
- * l'ambiente di pubblicazione potrebbe non avere.
+ * Uso: gira in coda a `npm run build`. Se l'ambiente di pubblicazione non ha
+ * un browser installato il passaggio si salta con un avviso e la build va
+ * avanti: resta la SPA, che funziona comunque.
  *
  * Sitemap e llms.txt non si generano qui: sono file statici in `public/`, cosi'
  * vengono pubblicati a ogni build senza dipendere da questo passaggio.
@@ -21,7 +21,6 @@
 import { createServer } from "node:http";
 import { readFile, writeFile, mkdir, stat } from "node:fs/promises";
 import { join, extname, normalize, dirname } from "node:path";
-import { chromium } from "playwright";
 
 const ROOT = join(import.meta.dirname, "..", "dist");
 const PORT = Number(process.env.PRERENDER_PORT ?? 5199);
@@ -83,6 +82,11 @@ const avviaServer = () =>
   });
 
 const main = async () => {
+  /* Importazione dinamica: se l'ambiente di pubblicazione non ha Playwright,
+     l'errore si cattura qui invece di far fallire il caricamento del modulo
+     e con esso l'intera build. */
+  const { chromium } = await import("playwright");
+
   const server = await avviaServer();
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
@@ -95,7 +99,10 @@ const main = async () => {
       timeout: 15000,
     });
 
-    const html = "<!DOCTYPE html>\n" + (await page.evaluate(() => document.documentElement.outerHTML));
+    /* Via il blocco di riserva di index.html: serve solo quando il
+       pre-rendering non gira, e qui ripeterebbe contenuti gia' presenti. */
+    const html = ("<!DOCTYPE html>\n" + (await page.evaluate(() => document.documentElement.outerHTML)))
+      .replace(/<noscript>[\s\S]*?<\/noscript>/, "");
     const dest = path === "/" ? join(ROOT, "index.html") : join(ROOT, path.slice(1), "index.html");
     await mkdir(dirname(dest), { recursive: true });
     await writeFile(dest, html, "utf-8");
