@@ -31,18 +31,6 @@ const setLink = (rel: string, href: string) => {
   el.setAttribute("href", href);
 };
 
-/** Inserisce o aggiorna un blocco di dati strutturati identificato da `id`. */
-const setJsonLd = (id: string, data: unknown) => {
-  let el = document.head.querySelector<HTMLScriptElement>(`script[data-seo="${id}"]`);
-  if (!el) {
-    el = document.createElement("script");
-    el.type = "application/ld+json";
-    el.setAttribute("data-seo", id);
-    document.head.appendChild(el);
-  }
-  el.textContent = JSON.stringify(data);
-};
-
 interface SeoProps {
   title: string;
   description: string;
@@ -71,9 +59,22 @@ const Seo = ({ title, description, path, jsonLd, breadcrumb }: SeoProps) => {
 
     // I motori generativi leggono la lingua per decidere se citare la fonte.
     document.documentElement.lang = "it";
+  }, [title, description, path]);
 
-    if (breadcrumb?.length) {
-      setJsonLd("breadcrumb", {
+  /*
+   * I dati strutturati sono resi come elementi, non iniettati da un effetto.
+   *
+   * In fase di build le pagine vengono disegnate da React su Node, dove gli
+   * effetti non vengono eseguiti: iniettandoli da `useEffect` sparirebbero
+   * proprio dai file che i crawler leggono. Un blocco JSON-LD e' valido
+   * ovunque nel documento, quindi puo' stare qui.
+   */
+  const blocchi: { id: string; dati: unknown }[] = [];
+
+  if (breadcrumb?.length) {
+    blocchi.push({
+      id: "breadcrumb",
+      dati: {
         "@context": "https://schema.org",
         "@type": "BreadcrumbList",
         itemListElement: breadcrumb.map((b, i) => ({
@@ -82,19 +83,24 @@ const Seo = ({ title, description, path, jsonLd, breadcrumb }: SeoProps) => {
           name: b.label,
           item: absoluteUrl(b.path),
         })),
-      });
-    }
+      },
+    });
+  }
 
-    if (jsonLd) setJsonLd("page", jsonLd);
+  if (jsonLd) blocchi.push({ id: "page", dati: jsonLd });
 
-    return () => {
-      // I dati della pagina non devono sopravvivere al cambio di rotta.
-      document.head.querySelector('script[data-seo="page"]')?.remove();
-      document.head.querySelector('script[data-seo="breadcrumb"]')?.remove();
-    };
-  }, [title, description, path, jsonLd, breadcrumb]);
-
-  return null;
+  return (
+    <>
+      {blocchi.map(({ id, dati }) => (
+        <script
+          key={id}
+          type="application/ld+json"
+          data-seo={id}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(dati) }}
+        />
+      ))}
+    </>
+  );
 };
 
 export default Seo;
