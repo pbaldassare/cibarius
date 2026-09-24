@@ -182,6 +182,14 @@ function restaurantExpiryAlertEmail(
   };
 }
 
+async function resolveResendApiKey(supabase: ReturnType<typeof createClient>): Promise<string> {
+  const { data, error } = await supabase.rpc("get_resend_api_key");
+  if (!error && typeof data === "string" && data.length > 0) return data;
+  const fromEnv = Deno.env.get("RESEND_API_KEY");
+  if (fromEnv) return fromEnv;
+  throw new Error("RESEND_API_KEY not configured");
+}
+
 async function sendWithResend(apiKey: string, to: string, emailData: { subject: string; html: string; text: string }) {
   const res = await fetch(RESEND_API_URL, {
     method: "POST",
@@ -211,12 +219,10 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-    if (!RESEND_API_KEY) throw new Error("RESEND_API_KEY not configured");
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const RESEND_API_KEY = await resolveResendApiKey(supabase);
 
     const { type, email, name, link, products, app_url, user_id, restaurant_name } = await req.json();
 
