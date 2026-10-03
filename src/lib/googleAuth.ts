@@ -68,22 +68,41 @@ export const readSignupIntent = (): SignupIntent | null => {
   }
 };
 
-/**
- * Traduce gli errori di Supabase in qualcosa di leggibile.
+export const PROVIDER_OFF_MESSAGE =
+  "L'accesso con Google non e' ancora attivo. Nel frattempo puoi usare email e password.";
+
+/*
+ * Supabase non dice via SDK quali provider sono accesi: va letto da
+ * /auth/v1/settings, pubblico e leggibile con la chiave anon. La verifica
+ * serve prima di spedire l'utente, perche' /auth/v1/authorize su un provider
+ * spento non torna indietro all'app: risponde 400 con un JSON grezzo, e
+ * `signInWithOAuth` non se ne accorge (si limita a cambiare indirizzo alla
+ * pagina). Senza questo controllo l'utente finirebbe su una pagina di errore
+ * senza via d'uscita.
  *
- * Il caso piu' probabile e' il provider non ancora abilitato sul progetto:
- * il messaggio originale ("Unsupported provider") non direbbe niente a chi
- * sta solo provando ad accedere.
+ * L'indirizzo e la chiave stanno dentro al client gia' configurato: ricopiarli
+ * qui significherebbe averli in due posti che possono divergere.
  */
-export const describeOAuthError = (message: string): string => {
-  const normalized = message.toLowerCase();
-  if (normalized.includes("provider is not enabled") || normalized.includes("unsupported provider")) {
-    return "L'accesso con Google non e' ancora attivo. Nel frattempo puoi usare email e password.";
-  }
-  if (normalized.includes("redirect")) {
-    return "Indirizzo di ritorno non autorizzato. Segnalacelo e usa intanto email e password.";
-  }
-  return message;
+const clientConfig = supabase as unknown as { authUrl: string | URL; supabaseKey: string };
+
+let googleEnabledProbe: Promise<boolean> | null = null;
+
+export const isGoogleAuthEnabled = (): Promise<boolean> => {
+  googleEnabledProbe ??= (async () => {
+    try {
+      const base = String(clientConfig.authUrl).replace(/\/$/, "");
+      const response = await fetch(`${base}/settings`, {
+        headers: { apikey: clientConfig.supabaseKey },
+      });
+      if (!response.ok) return false;
+      const settings = (await response.json()) as { external?: Record<string, boolean> };
+      return settings.external?.google === true;
+    } catch {
+      return false;
+    }
+  })();
+
+  return googleEnabledProbe;
 };
 
 /**
@@ -92,6 +111,8 @@ export const describeOAuthError = (message: string): string => {
  * significa sempre che qualcosa e' andato storto.
  */
 export const startGoogleAuth = async (intent?: SignupIntent): Promise<string | null> => {
+  if (!(await isGoogleAuthEnabled())) return PROVIDER_OFF_MESSAGE;
+
   if (intent) {
     saveSignupIntent(intent);
   } else {
@@ -110,7 +131,7 @@ export const startGoogleAuth = async (intent?: SignupIntent): Promise<string | n
 
   if (error) {
     clearSignupIntent();
-    return describeOAuthError(error.message);
+    return error.message;
   }
 
   return null;

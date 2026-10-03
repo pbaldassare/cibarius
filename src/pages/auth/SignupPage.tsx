@@ -14,6 +14,7 @@ import AuthFeatureCarousel from "@/components/AuthFeatureCarousel";
 import ReferralBadge from "@/components/ReferralBadge";
 import GoogleAuthButton from "@/components/auth/GoogleAuthButton";
 import { startGoogleAuth, type SignupIntent } from "@/lib/googleAuth";
+import { useGoogleAuthEnabled } from "@/hooks/useGoogleAuthEnabled";
 import { LOGIN_PATH, USER_HOME } from "@/lib/routes";
 import { getRoleHomePath } from "@/hooks/useRole";
 
@@ -31,6 +32,7 @@ const SignupPage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const googleEnabled = useGoogleAuthEnabled();
 
   // Check for referral from URL param or localStorage
   const [refCode, setRefCode] = useState<string | null>(null);
@@ -327,22 +329,26 @@ const SignupPage = () => {
                   </button>
                 ))}
 
-                <div className="flex items-center gap-3 pt-1">
-                  <div className="h-px flex-1 bg-border" />
-                  <span className="text-xs uppercase tracking-wide text-muted-foreground">oppure</span>
-                  <div className="h-px flex-1 bg-border" />
-                </div>
+                {googleEnabled && (
+                  <>
+                    <div className="flex items-center gap-3 pt-1">
+                      <div className="h-px flex-1 bg-border" />
+                      <span className="text-xs uppercase tracking-wide text-muted-foreground">oppure</span>
+                      <div className="h-px flex-1 bg-border" />
+                    </div>
 
-                <GoogleAuthButton
-                  label="Registrati con Google"
-                  onClick={handleGoogleFromAccountType}
-                  loading={googleLoading}
-                  disabled={!accountType}
-                />
-                {!accountType && (
-                  <p className="text-center text-xs text-muted-foreground">
-                    Scegli prima il tipo di account.
-                  </p>
+                    <GoogleAuthButton
+                      label="Registrati con Google"
+                      onClick={handleGoogleFromAccountType}
+                      loading={googleLoading}
+                      disabled={!accountType}
+                    />
+                    {!accountType && (
+                      <p className="text-center text-xs text-muted-foreground">
+                        Scegli prima il tipo di account.
+                      </p>
+                    )}
+                  </>
                 )}
               </div>
             )}
@@ -482,7 +488,7 @@ const SignupPage = () => {
                   onClick={handleGoogleSignup}
                   loading={googleLoading}
                   disabled={!canGoNext()}
-                  className="flex-1"
+                  className="h-10 flex-1"
                 />
               ) : (
                 <Button

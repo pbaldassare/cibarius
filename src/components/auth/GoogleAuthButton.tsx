@@ -1,5 +1,6 @@
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 /** Logo ufficiale di Google: le linee guida del marchio vietano di ricolorarlo. */
 const GoogleMark = () => (
@@ -37,7 +38,10 @@ const GoogleAuthButton = ({ label, onClick, loading, disabled, className }: Goog
     variant="outline"
     onClick={onClick}
     disabled={loading || disabled}
-    className={`h-11 w-full gap-3 rounded-xl border-border/70 bg-card text-sm font-semibold text-foreground shadow-card transition-transform hover:bg-muted/60 active:scale-[0.97] ${className ?? ""}`}
+    className={cn(
+      "h-11 w-full gap-3 rounded-xl border-border/70 bg-card text-sm font-semibold text-foreground shadow-card transition-transform hover:bg-muted/60 active:scale-[0.97]",
+      className,
+    )}
   >
     {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleMark />}
     {label}

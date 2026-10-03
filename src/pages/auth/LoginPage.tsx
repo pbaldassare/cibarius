@@ -12,11 +12,13 @@ import cibariusLogo from "@/assets/cibarius-logo.png";
 import AuthFeatureCarousel from "@/components/AuthFeatureCarousel";
 import GoogleAuthButton from "@/components/auth/GoogleAuthButton";
 import { startGoogleAuth } from "@/lib/googleAuth";
+import { useGoogleAuthEnabled } from "@/hooks/useGoogleAuthEnabled";
 
 const LoginPage = () => {
   const { session, loading } = useAuth();
   const { role, isLoading: roleLoading } = useRole();
   const { toast } = useToast();
+  const googleEnabled = useGoogleAuthEnabled();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -160,18 +162,22 @@ const LoginPage = () => {
           </form>
 
           {/* Separatore + accesso con Google */}
-          <div className="my-5 flex items-center gap-3">
-            <div className="h-px flex-1 bg-border" />
-            <span className="text-xs uppercase tracking-wide text-muted-foreground">oppure</span>
-            <div className="h-px flex-1 bg-border" />
-          </div>
+          {googleEnabled && (
+            <>
+              <div className="my-5 flex items-center gap-3">
+                <div className="h-px flex-1 bg-border" />
+                <span className="text-xs uppercase tracking-wide text-muted-foreground">oppure</span>
+                <div className="h-px flex-1 bg-border" />
+              </div>
 
-          <GoogleAuthButton
-            label="Accedi con Google"
-            onClick={handleGoogleLogin}
-            loading={googleLoading}
-            disabled={submitting}
-          />
+              <GoogleAuthButton
+                label="Accedi con Google"
+                onClick={handleGoogleLogin}
+                loading={googleLoading}
+                disabled={submitting}
+              />
+            </>
+          )}
 
           {/* Bottom links */}
           <div className="mt-6 flex flex-col items-center gap-3">
