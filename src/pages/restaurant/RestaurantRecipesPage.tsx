@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import EmptyState from "@/components/EmptyState";
 import ListSkeleton from "@/components/ListSkeleton";
+import { matchesSearch } from "@/lib/text-match";
 
 interface Recipe {
   id: string;
@@ -274,7 +275,7 @@ const RestaurantRecipesPage = () => {
 
   const debouncedSearch = useDebounce(search, 250);
   const filtered = useMemo(() => recipes.filter((r) => {
-    if (debouncedSearch && !r.title.toLowerCase().includes(debouncedSearch.toLowerCase())) return false;
+    if (!matchesSearch(r.title, debouncedSearch)) return false;
     if (filterCat !== "all" && r.category !== filterCat) return false;
     return true;
   }), [recipes, debouncedSearch, filterCat]);
