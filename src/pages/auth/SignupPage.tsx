@@ -12,7 +12,8 @@ import { Loader2, UserPlus, Eye, EyeOff, User, UtensilsCrossed, Stethoscope, Arr
 import cibariusLogo from "@/assets/cibarius-logo.png";
 import AuthFeatureCarousel from "@/components/AuthFeatureCarousel";
 import ReferralBadge from "@/components/ReferralBadge";
-import { USER_HOME } from "@/lib/routes";
+import { LOGIN_PATH, USER_HOME } from "@/lib/routes";
+import { getRoleHomePath } from "@/hooks/useRole";
 
 
 type AccountType = "user" | "restaurant_owner" | "professional";
@@ -159,11 +160,23 @@ const SignupPage = () => {
       return;
     }
 
+    // Quando la conferma via email non è richiesta la sessione è già aperta:
+    // portare l'utente sul sito pubblico lo costringerebbe a cercarsi da solo
+    // l'area riservata, pur avendogli appena detto di iniziare a usare l'app.
+    if (signUpData?.session) {
+      toast({
+        title: "Registrazione completata! 🎉",
+        description: "Benvenuto in Cibarius! Puoi iniziare subito ad usare l'app.",
+      });
+      navigate(getRoleHomePath(accountType), { replace: true });
+      return;
+    }
+
     toast({
       title: "Registrazione completata! 🎉",
-      description: "Benvenuto in Cibarius! Puoi iniziare subito ad usare l'app.",
+      description: "Ti abbiamo scritto all'indirizzo indicato: conferma l'email e poi accedi.",
     });
-    navigate("/", { replace: true });
+    navigate(LOGIN_PATH, { replace: true });
   };
 
   return (

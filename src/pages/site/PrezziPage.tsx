@@ -4,14 +4,8 @@ import Seo from "@/components/site/Seo";
 import { Section, SectionHeading, CallToAction } from "@/components/site/sections";
 import { pageByPath, absoluteUrl, CONTACT_EMAIL } from "@/lib/site";
 import { SIGNUP_PATH } from "@/lib/routes";
+import { PLAN_PLUS, PLAN_RESTAURANT, formatPrice } from "@/lib/pricing";
 
-/**
- * Prezzi allineati alla tabella `subscription_plans`.
- *
- * Sono gli stessi importi che Stripe addebita: se cambiano a database vanno
- * cambiati anche qui, altrimenti il sito promette una cifra e la cassa ne
- * chiede un'altra.
- */
 const PIANI = [
   {
     nome: "A casa",
@@ -24,13 +18,14 @@ const PIANI = [
       "Avvisi di scadenza via email",
       "Ricette con quello che hai",
     ],
+    nota: `Resta gratuito senza scadenza. Chi vuole l'anti-spreco avanzato e le novità in anteprima può passare a Premium: ${formatPrice(PLAN_PLUS.monthly!)} al mese oppure ${formatPrice(PLAN_PLUS.yearly!)} all'anno, primi ${PLAN_PLUS.trialDays} giorni gratis.`,
     cta: "Crea un account",
     to: SIGNUP_PATH,
     evidenza: false,
   },
   {
     nome: "Ristorante",
-    prezzo: "19,90 €",
+    prezzo: formatPrice(PLAN_RESTAURANT.monthly!),
     periodo: "al mese",
     descrizione: "HACCP, magazzino e tracciabilità per la cucina professionale.",
     voci: [
@@ -40,8 +35,8 @@ const PIANI = [
       "Lettura automatica di bolle e DDT",
       "Backoffice e documenti esportabili",
     ],
-    nota: "Oppure 199 € all'anno. Primi 30 giorni di prova gratuiti.",
-    cta: "Prova 30 giorni",
+    nota: `Oppure ${formatPrice(PLAN_RESTAURANT.yearly!)} all'anno. Primi ${PLAN_RESTAURANT.trialDays} giorni di prova gratuiti.`,
+    cta: `Prova ${PLAN_RESTAURANT.trialDays} giorni`,
     to: SIGNUP_PATH,
     evidenza: true,
   },
@@ -83,15 +78,29 @@ const PrezziPage = () => {
       },
       {
         "@type": "Offer",
-        name: "Cibarius Ristorante, mensile",
-        price: "19.90",
+        name: "Cibarius Premium, mensile",
+        price: PLAN_PLUS.monthly!.toFixed(2),
         priceCurrency: "EUR",
-        description: "HACCP, magazzino e tracciabilità. Trenta giorni di prova gratuita.",
+        description: `Anti-spreco avanzato e funzioni premium per l'uso domestico. Primi ${PLAN_PLUS.trialDays} giorni gratuiti.`,
+      },
+      {
+        "@type": "Offer",
+        name: "Cibarius Premium, annuale",
+        price: PLAN_PLUS.yearly!.toFixed(2),
+        priceCurrency: "EUR",
+        description: "Stesso piano con pagamento annuale.",
+      },
+      {
+        "@type": "Offer",
+        name: "Cibarius Ristorante, mensile",
+        price: PLAN_RESTAURANT.monthly!.toFixed(2),
+        priceCurrency: "EUR",
+        description: `HACCP, magazzino e tracciabilità. Primi ${PLAN_RESTAURANT.trialDays} giorni di prova gratuita.`,
       },
       {
         "@type": "Offer",
         name: "Cibarius Ristorante, annuale",
-        price: "199.00",
+        price: PLAN_RESTAURANT.yearly!.toFixed(2),
         priceCurrency: "EUR",
         description: "Stesso piano con pagamento annuale.",
       },
@@ -113,7 +122,7 @@ const PrezziPage = () => {
           eyebrow="Prezzi"
           title="Paghi solo quello che usi davvero"
           level={1}
-          lead="L'uso domestico è gratuito. Il piano ristorante si prova per trenta giorni senza carta di credito."
+          lead="L'uso domestico è gratuito e resta tale. Chi vuole di più ha il piano Premium, e il piano ristorante si prova per trenta giorni senza carta di credito."
         />
 
         <div className="mt-10 grid gap-4 lg:grid-cols-3">

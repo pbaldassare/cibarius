@@ -111,7 +111,7 @@ const HomePage = () => {
           "@type": "Offer",
           price: "0",
           priceCurrency: "EUR",
-          description: "Prova gratuita di 30 giorni per i ristoranti, uso domestico gratuito.",
+          description: "Uso domestico gratuito, piano Premium facoltativo, trenta giorni di prova per i ristoranti.",
         },
       },
     ],
