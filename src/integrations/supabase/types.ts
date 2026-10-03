@@ -4126,7 +4126,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      complete_oauth_signup: { Args: { p_payload: Json }; Returns: Json }
       current_user_is_admin: { Args: never; Returns: boolean }
+      get_resend_api_key: { Args: never; Returns: string }
       get_user_role: { Args: { _user_id: string }; Returns: string }
       haccp_label_accessible: { Args: { _label_id: string }; Returns: boolean }
       has_active_client_link: {
@@ -4150,6 +4152,14 @@ export type Database = {
         Args: { _restaurant_id: string }
         Returns: boolean
       }
+      merge_restaurant_products: {
+        Args: {
+          p_restaurant_id: string
+          p_source_product: string
+          p_target_product: string
+        }
+        Returns: Json
+      }
       owns_meal: { Args: { _meal_id: string }; Returns: boolean }
       owns_meal_day: { Args: { _meal_day_id: string }; Returns: boolean }
       owns_np_day: { Args: { _day_id: string }; Returns: boolean }
@@ -4157,6 +4167,7 @@ export type Database = {
       owns_nutrition_plan: { Args: { _plan_id: string }; Returns: boolean }
       owns_recipe_restaurant: { Args: { _recipe_id: string }; Returns: boolean }
       owns_supplier: { Args: { _supplier_id: string }; Returns: boolean }
+      purge_unused_product: { Args: { p_product_id: string }; Returns: boolean }
       seed_francesca_biazzi: { Args: never; Returns: string }
     }
     Enums: {
