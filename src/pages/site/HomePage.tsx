@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import Seo from "@/components/site/Seo";
 import { Section, SectionHeading, FeatureGrid, Steps, CallToAction } from "@/components/site/sections";
+import InstallApp from "@/components/site/InstallApp";
 import { SITE_NAME, SITE_TAGLINE, SITE_DESCRIPTION, SITE_URL, absoluteUrl, pageByPath } from "@/lib/site";
 import { LOGIN_PATH, SIGNUP_PATH } from "@/lib/routes";
 
@@ -151,8 +152,11 @@ const HomePage = () => {
         </div>
       </section>
 
+      {/* ── Installazione: subito sotto l'apertura, dove si vede ── */}
+      <InstallApp />
+
       {/* ── Tre modi di usarla ── */}
-      <Section>
+      <Section className="pt-0">
         <SectionHeading
           eyebrow="Un'app, tre profili"
           title="Chi usa Cibarius"
