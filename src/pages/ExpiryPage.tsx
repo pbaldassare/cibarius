@@ -15,6 +15,7 @@ import {
   Plus, ChefHat, CheckSquare, Flame, Refrigerator, Snowflake, Home,
 } from "lucide-react";
 import { getFoodEmoji } from "@/lib/food-images";
+import { getCoarseExpiryStatus } from "@/lib/expiry-status";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
@@ -22,6 +23,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { matchesSearch } from "@/lib/text-match";
 
 interface ExpiryItem {
   id: string;
@@ -41,13 +43,11 @@ interface ExpiryItem {
 
 type ExpiryStatus = "expired" | "expiring" | "ok";
 
+// Questa pagina non ha una scheda per i prodotti senza data: finiscono fra
+// quelli a posto, così non spariscono dall'elenco completo.
 const getStatus = (d: string | null): ExpiryStatus => {
-  if (!d) return "ok";
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const diff = (new Date(d).getTime() - today.getTime()) / 864e5;
-  if (diff < 0) return "expired";
-  if (diff <= 3) return "expiring";
-  return "ok";
+  const status = getCoarseExpiryStatus(d);
+  return status === "nodate" ? "ok" : status;
 };
 
 const statusCfg: Record<ExpiryStatus, { label: string; color: string; barColor: string }> = {
@@ -128,8 +128,7 @@ const ExpiryPage = () => {
     if (storageFilter !== "all") list = list.filter((i) => i.storage_type === storageFilter);
     
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      list = list.filter((i) => i.name.toLowerCase().includes(q));
+      list = list.filter((i) => matchesSearch(i.name, searchQuery));
     }
 
     const order: Record<ExpiryStatus, number> = { expired: 0, expiring: 1, ok: 2 };

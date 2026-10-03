@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { loadTemplates, getNutritionPer100g } from "@/lib/nutrition";
 import { deductPantryFromMeal } from "@/lib/pantry-deduction";
+import { getCoarseExpiryStatus, isExpiringSoon } from "@/lib/expiry-status";
 import {
   Loader2, Package, Flame, AlertTriangle,
   RefreshCw, ShoppingCart, ChefHat, Plus
@@ -191,15 +192,7 @@ const UserPantryRecipesPage = () => {
 
   useEffect(() => {
     if (!priorityExpiry) return;
-    const now = Date.now();
-    const threeDays = 3 * 86400000;
-    const ids = new Set<string>();
-    items.forEach((i) => {
-      if (i.expiry_date) {
-        const exp = new Date(i.expiry_date).getTime();
-        if (exp > now && exp <= now + threeDays) ids.add(i.id);
-      }
-    });
+    const ids = new Set(items.filter((i) => isExpiringSoon(i.expiry_date)).map((i) => i.id));
     if (ids.size > 0) setSelectedIds(ids);
   }, [priorityExpiry, items]);
 
@@ -221,11 +214,8 @@ const UserPantryRecipesPage = () => {
   const deselectAll = () => setSelectedIds(new Set());
 
   const getExpiryStatus = (date: string | null) => {
-    if (!date) return null;
-    const diff = new Date(date).getTime() - Date.now();
-    if (diff < 0) return "expired";
-    if (diff < 3 * 86400000) return "expiring";
-    return null;
+    const status = getCoarseExpiryStatus(date);
+    return status === "expired" || status === "expiring" ? status : null;
   };
 
   // ===== RECIPE GENERATION =====

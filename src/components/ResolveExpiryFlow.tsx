@@ -12,6 +12,7 @@ import {
   Thermometer, Snowflake, Archive, SkipForward,
 } from "lucide-react";
 import { getFoodEmoji } from "@/lib/food-images";
+import { getCoarseExpiryStatus } from "@/lib/expiry-status";
 
 type ExpiryStatus = "expired" | "expiring" | "nodate";
 
@@ -44,14 +45,7 @@ const storageOptions = [
   { key: "ambiente", label: "Dispensa", icon: Archive },
 ];
 
-const getStatus = (d: string | null): ExpiryStatus | "ok" => {
-  if (!d) return "nodate";
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const diff = (new Date(d).getTime() - today.getTime()) / 864e5;
-  if (diff < 0) return "expired";
-  if (diff <= 3) return "expiring";
-  return "ok";
-};
+const getStatus = (d: string | null): ExpiryStatus | "ok" => getCoarseExpiryStatus(d);
 
 interface Props {
   open: boolean;

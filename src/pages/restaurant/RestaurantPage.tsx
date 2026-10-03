@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { getFoodEmoji } from "@/lib/food-images";
 import { format } from "date-fns";
+import { getCoarseExpiryStatus } from "@/lib/expiry-status";
 
 /* ─── types ─── */
 interface InventoryItem {
@@ -84,14 +85,7 @@ interface UrgentItem {
   lot_number?: string | null;
 }
 
-const getStatus = (d: string | null): ExpiryStatus => {
-  if (!d) return "nodate";
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const diff = (new Date(d).getTime() - today.getTime()) / 864e5;
-  if (diff < 0) return "expired";
-  if (diff <= 3) return "expiring";
-  return "ok";
-};
+const getStatus = (d: string | null): ExpiryStatus => getCoarseExpiryStatus(d);
 
 const statusCfg: Record<ExpiryStatus, { label: string; color: string; barColor: string }> = {
   expired:  { label: "Scaduto",     color: "hsl(1,76%,55%)",   barColor: "bg-destructive" },

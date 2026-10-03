@@ -13,6 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useDebounce } from "@/hooks/useDebounce";
+import { getCoarseExpiryStatus } from "@/lib/expiry-status";
+import { matchesSearch } from "@/lib/text-match";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
@@ -57,11 +59,8 @@ interface Allergen {
 type ExpiryStatus = "expired" | "expiring" | "ok";
 
 const getStatus = (d: string): ExpiryStatus => {
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const diff = (new Date(d).getTime() - today.getTime()) / 864e5;
-  if (diff < 0) return "expired";
-  if (diff <= 3) return "expiring";
-  return "ok";
+  const status = getCoarseExpiryStatus(d);
+  return status === "nodate" ? "ok" : status;
 };
 
 const statusCfg: Record<ExpiryStatus, { label: string; badgeBg: string; barColor: string }> = {
@@ -220,8 +219,7 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
     let list = items;
     if (storageTab !== "all") list = list.filter((i) => i.storage_type === storageTab);
     if (debouncedSearch) {
-      const q = debouncedSearch.toLowerCase();
-      list = list.filter((i) => i.name.toLowerCase().includes(q));
+      list = list.filter((i) => matchesSearch(i.name, debouncedSearch));
     }
     if (statusFilter === "relevant") {
       list = list.filter((i) => { const s = getStatus(i.use_by_date); return s === "expired" || s === "expiring"; });

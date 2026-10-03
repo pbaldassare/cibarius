@@ -7,11 +7,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { getFoodImage } from "@/lib/food-images";
+import {
+  getCoarseExpiryStatus,
+  getExpiryLabel,
+  getExpiryStatus,
+  needsAttention,
+  type ExpiryStatus,
+} from "@/lib/expiry-status";
 import AddFoodFlow from "@/components/AddFoodFlow";
 import { useTour } from "@/components/AppTourContext";
 import { useIngredientCompatibility } from "@/hooks/useIngredientCompatibility";
 import ResolveExpiryFlow from "@/components/ResolveExpiryFlow";
 import AutoSuggestFavBanner from "@/components/AutoSuggestFavBanner";
+import { matchesSearch } from "@/lib/text-match";
 import {
   Clock, Plus, Search, ChevronRight,
   SlidersHorizontal, X, Trash2,
@@ -30,27 +38,22 @@ interface InventoryItem {
   product: { name: string; image_url: string | null; category: string | null };
 }
 
-type ExpiryStatus = "expired" | "today" | "tomorrow" | "soon" | "ok" | "nodate";
+const getStatus = getExpiryStatus;
 
-const getStatus = (d: string | null): ExpiryStatus => {
-  if (!d) return "nodate";
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const diff = Math.ceil((new Date(d).getTime() - today.getTime()) / 864e5);
-  if (diff < 0) return "expired";
-  if (diff === 0) return "today";
-  if (diff === 1) return "tomorrow";
-  if (diff <= 3) return "soon";
-  return "ok";
+const statusColor: Record<ExpiryStatus, { color: string; barColor: string }> = {
+  expired:  { color: "hsl(var(--destructive))", barColor: "bg-destructive" },
+  today:    { color: "hsl(1,76%,55%)",          barColor: "bg-destructive" },
+  tomorrow: { color: "hsl(37,90%,51%)",         barColor: "bg-warning" },
+  soon:     { color: "hsl(37,90%,51%)",         barColor: "bg-warning" },
+  ok:       { color: "hsl(152,56%,46%)",        barColor: "bg-success" },
+  nodate:   { color: "hsl(215,10%,62%)",        barColor: "bg-muted-foreground" },
 };
 
-const statusCfg: Record<ExpiryStatus, { label: string; color: string; barColor: string }> = {
-  expired:  { label: "Scaduto",         color: "hsl(var(--destructive))",    barColor: "bg-destructive" },
-  today:    { label: "Scade oggi",      color: "hsl(1,76%,55%)",            barColor: "bg-destructive" },
-  tomorrow: { label: "Scade domani",    color: "hsl(37,90%,51%)",           barColor: "bg-warning" },
-  soon:     { label: "Scade tra 3gg",   color: "hsl(37,90%,51%)",           barColor: "bg-warning" },
-  ok:       { label: "OK",              color: "hsl(152,56%,46%)",          barColor: "bg-success" },
-  nodate:   { label: "Senza data",      color: "hsl(215,10%,62%)",          barColor: "bg-muted-foreground" },
-};
+/** Etichetta e colori della scadenza, presi dalla stessa fonte di tutte le viste. */
+const expiryCfg = (d: string | null) => ({
+  label: getExpiryLabel(d),
+  ...statusColor[getStatus(d)],
+});
 
 const storageLabel: Record<string, string> = {
   frigo: "Frigo", freezer: "Congelatore", ambiente: "Dispensa",
@@ -258,10 +261,7 @@ const Index = () => {
   const aiSuggestion = useMemo((): SmartSuggestion | null => {
     if (items.length === 0 || !compatLoaded) return null;
 
-    const expiring = items.filter(i => {
-      const s = getStatus(i.expiry_date);
-      return s === "expired" || s === "today" || s === "tomorrow" || s === "soon";
-    });
+    const expiring = items.filter(i => needsAttention(i.expiry_date));
 
     // Priority 1: expiring items with compatible pairs
     if (expiring.length >= 2) {
@@ -292,14 +292,14 @@ const Index = () => {
   const counts = useMemo(() => {
     let expired = 0, expiring = 0;
     items.forEach(i => {
-      const s = getStatus(i.expiry_date);
+      const s = getCoarseExpiryStatus(i.expiry_date);
       if (s === "expired") expired++;
-      else if (s === "today" || s === "tomorrow" || s === "soon") expiring++;
+      else if (s === "expiring") expiring++;
     });
     prepItems.forEach(p => {
-      const s = getStatus(p.use_by_date);
+      const s = getCoarseExpiryStatus(p.use_by_date);
       if (s === "expired") expired++;
-      else if (s === "today" || s === "tomorrow" || s === "soon") expiring++;
+      else if (s === "expiring") expiring++;
     });
     return { expired, expiring, allItems: items.length + prepItems.length, total: expired + expiring };
   }, [items, prepItems]);
@@ -309,7 +309,7 @@ const Index = () => {
     const list: UrgentItem[] = [];
     items.forEach(i => {
       const s = getStatus(i.expiry_date);
-      if (s === "expired" || s === "today" || s === "tomorrow" || s === "soon") {
+      if (needsAttention(i.expiry_date)) {
         list.push({
           id: i.id, name: i.product.name, date: i.expiry_date,
           storage: i.storage_type, status: s, type: "inv",
@@ -320,7 +320,7 @@ const Index = () => {
     });
     prepItems.forEach(p => {
       const s = getStatus(p.use_by_date);
-      if (s === "expired" || s === "today" || s === "tomorrow" || s === "soon") {
+      if (needsAttention(p.use_by_date)) {
         list.push({
           id: p.id, name: p.name, date: p.use_by_date,
           storage: p.storage_type, status: s, type: "prep",
@@ -355,10 +355,9 @@ const Index = () => {
   // Search
   const searchResults = useMemo(() => {
     if (!search) return [];
-    const q = search.toLowerCase();
     const results: any[] = [];
     items.forEach(i => {
-      if (i.product.name.toLowerCase().includes(q))
+      if (matchesSearch(i.product.name, search))
         results.push({ id: i.id, name: i.product.name, date: i.expiry_date, storage: i.storage_type, status: getStatus(i.expiry_date), image_url: i.product.image_url, category: i.product.category });
     });
     return results.slice(0, 12);
@@ -434,7 +433,7 @@ const Index = () => {
               {/* Urgent items */}
               <div className="space-y-1.5">
                 {urgentList.map(item => {
-                  const cfg = statusCfg[item.status];
+                  const cfg = expiryCfg(item.date);
                   return (
                     <SwipeableItem key={`${item.type}-${item.id}`} itemKey={`${item.type}-${item.id}`} onDelete={() => handleDeleteUrgent(item.id, item.type)}>
                       <button
@@ -686,7 +685,7 @@ const Index = () => {
             {searchResults.length > 0 && (
               <div className="space-y-1.5">
                 {searchResults.map(r => {
-                  const cfg = statusCfg[r.status as ExpiryStatus];
+                  const cfg = expiryCfg(r.date);
                   return (
                     <div key={r.id} className="flex items-center gap-2 rounded-[14px] bg-card pl-0 pr-3 py-2 shadow-card">
                       <div className={`w-[3px] self-stretch rounded-full ${cfg.barColor}`} />

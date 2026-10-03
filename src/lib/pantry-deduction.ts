@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { isExpired as isExpiredDate } from "@/lib/expiry-status";
 
 /**
  * After a meal is logged, check if any meal items match inventory products
@@ -54,9 +55,7 @@ export async function deductPantryFromMeal(userId: string, mealItems: Array<{
     const newQty = Math.max(0, currentQty - deductQty);
 
     // Only track as waste saving if the item is NOT expired
-    const isExpired = invItem.expiry_date
-      ? new Date(invItem.expiry_date).getTime() < new Date().setHours(0, 0, 0, 0)
-      : false;
+    const isExpired = isExpiredDate(invItem.expiry_date);
 
     if (newQty <= 0) {
       if (!isExpired) {

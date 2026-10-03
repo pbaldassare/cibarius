@@ -10,6 +10,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import ListSkeleton from "@/components/ListSkeleton";
 import EmptyState from "@/components/EmptyState";
 import { deductPantryFromMeal } from "@/lib/pantry-deduction";
+import { daysUntilExpiry, getExpiryCountdown, isExpiringSoon } from "@/lib/expiry-status";
 import {
   Clock, ChefHat, AlertTriangle, Check, X, Loader2,
   Package, Sparkles, Utensils, ChevronDown, ChevronUp,
@@ -225,11 +226,15 @@ const RECIPE_DB = [
   },
 ];
 
-const getDaysToExpiry = (date: string | null): number => {
-  if (!date) return 999;
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  return Math.ceil((new Date(date).getTime() - today.getTime()) / 864e5);
-};
+/**
+ * Qui si guarda piu' lontano dei tre giorni usati dagli avvisi: servono
+ * abbastanza ingredienti da far uscire qualche ricetta. Per non contraddire i
+ * conteggi delle altre schermate la finestra e' scritta nell'etichetta.
+ */
+const ANTI_WASTE_WINDOW_DAYS = 5;
+
+/** 999 per i prodotti senza data: restano fuori da ogni finestra di scadenza. */
+const getDaysToExpiry = (date: string | null): number => daysUntilExpiry(date) ?? 999;
 
 /** Condimenti/aromi di supporto: ok se assenti dalla dispensa. */
 function isOptionalAromatic(name: string): boolean {
@@ -358,7 +363,7 @@ const AntiWastePage = () => {
   }, [user, fetchPantry]);
 
   const expiringItems = useMemo(() =>
-    pantry.filter(i => { const d = getDaysToExpiry(i.expiry_date); return d >= 0 && d <= 5; }),
+    pantry.filter(i => isExpiringSoon(i.expiry_date, ANTI_WASTE_WINDOW_DAYS)),
   [pantry]);
 
   const pantryNames = useMemo(() => pantry.map(i => i.product.name.toLowerCase()), [pantry]);
@@ -698,14 +703,14 @@ const AntiWastePage = () => {
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-warning" />
               <p className="text-sm font-semibold text-foreground">
-                {expiringItems.length} aliment{expiringItems.length === 1 ? "o" : "i"} in scadenza
+                {expiringItems.length} aliment{expiringItems.length === 1 ? "o" : "i"} da usare entro {ANTI_WASTE_WINDOW_DAYS} giorni
               </p>
             </div>
             <div className="flex flex-wrap gap-1.5">
               {expiringItems.slice(0, 6).map(item => (
                 <Badge key={item.id} variant="outline" className="text-[10px] border-warning/40 text-warning">
                   <Clock className="h-3 w-3 mr-1" />
-                  {item.product.name} · {getDaysToExpiry(item.expiry_date)}gg
+                  {item.product.name} · {getExpiryCountdown(item.expiry_date)}
                 </Badge>
               ))}
             </div>
