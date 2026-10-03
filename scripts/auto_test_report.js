@@ -123,7 +123,8 @@ async function main() {
   const browser = await chromium.launch({ args: ["--no-sandbox"] });
   let { context, page } = await openSession(browser);
 
-  const summary = { email: EMAIL, password: PASSWORD, base: BASE, signup: null, login: null };
+  // La password resta solo in report/.account.json, che non finisce nel repo.
+  const summary = { email: EMAIL, base: BASE, signup: null, login: null };
 
   // ─── 1. Sito pubblico ───────────────────────────────────────────────
   console.log("\n== Sito pubblico ==");

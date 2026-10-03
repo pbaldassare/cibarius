@@ -33,3 +33,7 @@ supabase/.temp
 
 # Cartella temporanea della generazione statica
 .ssg
+
+# Tracce del giro di prova automatico
+report/.account.json
+report/.seeded
