@@ -13,6 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useDebounce } from "@/hooks/useDebounce";
+import { compareByExpiry, formatExpiryDate, getCoarseExpiryStatus } from "@/lib/expiry-status";
+import { matchesSearch } from "@/lib/text-match";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
@@ -57,11 +59,8 @@ interface Allergen {
 type ExpiryStatus = "expired" | "expiring" | "ok";
 
 const getStatus = (d: string): ExpiryStatus => {
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const diff = (new Date(d).getTime() - today.getTime()) / 864e5;
-  if (diff < 0) return "expired";
-  if (diff <= 3) return "expiring";
-  return "ok";
+  const status = getCoarseExpiryStatus(d);
+  return status === "nodate" ? "ok" : status;
 };
 
 const statusCfg: Record<ExpiryStatus, { label: string; badgeBg: string; barColor: string }> = {
@@ -205,7 +204,7 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
           label_code: l.internal_lot_code ?? null,
         }));
         merged = [...merged, ...haccpItems].sort(
-          (a, b) => new Date(a.use_by_date).getTime() - new Date(b.use_by_date).getTime()
+          (a, b) => compareByExpiry(a.use_by_date, b.use_by_date)
         );
       }
     }
@@ -220,8 +219,7 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
     let list = items;
     if (storageTab !== "all") list = list.filter((i) => i.storage_type === storageTab);
     if (debouncedSearch) {
-      const q = debouncedSearch.toLowerCase();
-      list = list.filter((i) => i.name.toLowerCase().includes(q));
+      list = list.filter((i) => matchesSearch(i.name, debouncedSearch));
     }
     if (statusFilter === "relevant") {
       list = list.filter((i) => { const s = getStatus(i.use_by_date); return s === "expired" || s === "expiring"; });
@@ -471,7 +469,7 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <span className="text-[11px] flex items-center gap-0.5" style={{ color: "#6B7280" }}>
                         <Clock className="h-2.5 w-2.5" />
-                        {new Date(item.use_by_date).toLocaleDateString("it-IT")}
+                        {formatExpiryDate(item.use_by_date)}
                       </span>
                       <span className="text-[10px]" style={{ color: "#9CA3AF" }}>
                         {storageLabel[item.storage_type]}
@@ -712,7 +710,7 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
                     </div>
                     <div className="rounded-xl bg-muted p-3">
                       <p className="text-[10px] font-medium text-muted-foreground">Usare entro</p>
-                      <p className="text-sm font-semibold">{new Date(detailPrep.use_by_date).toLocaleDateString("it-IT")}</p>
+                      <p className="text-sm font-semibold">{formatExpiryDate(detailPrep.use_by_date)}</p>
                     </div>
                   </div>
 

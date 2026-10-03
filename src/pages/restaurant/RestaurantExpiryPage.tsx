@@ -22,6 +22,8 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { formatExpiryDate, getCoarseExpiryStatus } from "@/lib/expiry-status";
+import { matchesSearch } from "@/lib/text-match";
 
 interface ExpiryItem {
   id: string;
@@ -38,13 +40,10 @@ interface ExpiryItem {
 
 type ExpiryStatus = "expired" | "expiring" | "ok";
 
+// Senza una scheda dedicata, i prodotti senza data restano fra quelli a posto.
 const getStatus = (d: string | null): ExpiryStatus => {
-  if (!d) return "ok";
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const diff = (new Date(d).getTime() - today.getTime()) / 864e5;
-  if (diff < 0) return "expired";
-  if (diff <= 3) return "expiring";
-  return "ok";
+  const status = getCoarseExpiryStatus(d);
+  return status === "nodate" ? "ok" : status;
 };
 
 const statusCfg: Record<ExpiryStatus, { label: string; color: string; barColor: string }> = {
@@ -138,8 +137,7 @@ const RestaurantExpiryPage = () => {
     if (activeTab !== "all") list = list.filter((i) => getStatus(i.expiry_date) === activeTab);
     if (storageFilter !== "all") list = list.filter((i) => i.storage_type === storageFilter);
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      list = list.filter((i) => i.name.toLowerCase().includes(q));
+      list = list.filter((i) => matchesSearch(i.name, searchQuery));
     }
     const order: Record<ExpiryStatus, number> = { expired: 0, expiring: 1, ok: 2 };
     return [...list].sort((a, b) => {
@@ -411,7 +409,7 @@ const RestaurantExpiryPage = () => {
                       {item.expiry_date && (
                         <span className="text-[12px] flex items-center gap-0.5 text-muted-foreground">
                           <Clock className="h-2.5 w-2.5" />
-                          {new Date(item.expiry_date).toLocaleDateString("it-IT")}
+                          {formatExpiryDate(item.expiry_date)}
                         </span>
                       )}
                       <span className="text-[11px] text-muted-foreground">
@@ -478,7 +476,7 @@ const RestaurantExpiryPage = () => {
                   {actionSheet.quantity && <span>· x{actionSheet.quantity}{actionSheet.unit ? ` ${actionSheet.unit}` : ""}</span>}
                   {actionSheet.expiry_date && (
                     <span className="flex items-center gap-0.5">
-                      · <Clock className="h-2.5 w-2.5" /> {new Date(actionSheet.expiry_date).toLocaleDateString("it-IT")}
+                      · <Clock className="h-2.5 w-2.5" /> {formatExpiryDate(actionSheet.expiry_date)}
                     </span>
                   )}
                 </div>

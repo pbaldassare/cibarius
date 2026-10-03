@@ -1,3 +1,4 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { Webhook } from "https://esm.sh/standardwebhooks@1.0.0";
 
 const corsHeaders = {
@@ -136,6 +137,14 @@ function magicLinkEmail(name: string, confirmUrl: string): EmailResult {
   };
 }
 
+async function resolveResendApiKey(supabase: ReturnType<typeof createClient>): Promise<string> {
+  const { data, error } = await supabase.rpc("get_resend_api_key");
+  if (!error && typeof data === "string" && data.length > 0) return data;
+  const fromEnv = Deno.env.get("RESEND_API_KEY");
+  if (fromEnv) return fromEnv;
+  throw new Error("RESEND_API_KEY not configured");
+}
+
 async function sendWithResend(apiKey: string, to: string, emailData: EmailResult) {
   const res = await fetch(RESEND_API_URL, {
     method: "POST",
@@ -165,8 +174,10 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-    if (!RESEND_API_KEY) throw new Error("RESEND_API_KEY not configured");
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const RESEND_API_KEY = await resolveResendApiKey(supabase);
 
     const HOOK_SECRET = Deno.env.get("SEND_EMAIL_HOOK_SECRET");
     if (!HOOK_SECRET) throw new Error("SEND_EMAIL_HOOK_SECRET not configured");

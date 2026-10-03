@@ -16,9 +16,11 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, Search, Package, Loader2, Flame, ScanLine, Trash2, AlertCircle, Clock, Home, Refrigerator, Snowflake } from "lucide-react";
 import { getFoodEmoji } from "@/lib/food-images";
 import { findSimilarProducts, type SimilarProduct } from "@/lib/product-dedup";
+import { formatExpiryDate, getCoarseExpiryStatus, type CoarseExpiryStatus } from "@/lib/expiry-status";
 import DuplicateProductDialog from "@/components/DuplicateProductDialog";
 import EmptyState from "@/components/EmptyState";
 import ListSkeleton from "@/components/ListSkeleton";
+import { matchesSearchAny } from "@/lib/text-match";
 
 interface InventoryItemWithProduct {
   id: string;
@@ -42,18 +44,9 @@ interface InventoryItemWithProduct {
   };
 }
 
-type ExpiryStatus = "expired" | "expiring" | "ok" | "nodate";
+type ExpiryStatus = CoarseExpiryStatus;
 
-const getExpiryStatus = (expiryDate: string | null): ExpiryStatus => {
-  if (!expiryDate) return "nodate";
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const expiry = new Date(expiryDate);
-  const diffDays = (expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
-  if (diffDays < 0) return "expired";
-  if (diffDays <= 3) return "expiring";
-  return "ok";
-};
+const getExpiryStatus = getCoarseExpiryStatus;
 
 const statusConfig: Record<ExpiryStatus, { label: string; className: string }> = {
   expired: { label: "SCADUTO", className: "bg-destructive text-destructive-foreground" },
@@ -360,7 +353,7 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
   const debouncedSearch = useDebounce(search, 250);
 
   const filtered = useMemo(() => items.filter((item) => {
-    const matchSearch = !debouncedSearch || item.product.name.toLowerCase().includes(debouncedSearch.toLowerCase());
+    const matchSearch = matchesSearchAny([item.product.name, item.product.brand], debouncedSearch);
     const matchStorage = storageFilter === "all" || item.storage_type === storageFilter;
     const status = getExpiryStatus(item.expiry_date);
     const matchStatus = statusFilter === "all" || status === statusFilter;
@@ -558,7 +551,7 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
                       )}
                       {item.expiry_date && (
                         <span className="text-[10px] text-muted-foreground">
-                          Scad: {new Date(item.expiry_date).toLocaleDateString("it-IT")}
+                          Scad: {formatExpiryDate(item.expiry_date)}
                         </span>
                       )}
                     </div>

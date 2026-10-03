@@ -20,7 +20,7 @@ const DOMANDE: { d: string; r: string }[] = [
   },
   {
     d: "Quanto dura la prova gratuita?",
-    r: "Trenta giorni per il piano ristorante, senza carta di credito. L'uso domestico è gratuito e non ha scadenza.",
+    r: "Trenta giorni per il piano ristorante, senza carta di credito. L'uso domestico è gratuito e non ha scadenza: dispensa, scadenze, scansione e ricette non si pagano. Resta facoltativo il piano Premium, con anti-spreco avanzato e funzioni in anteprima, che si prova sette giorni.",
   },
   {
     d: "Posso usare lo stesso account a casa e al ristorante?",

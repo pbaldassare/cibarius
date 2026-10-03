@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Wand2, Send, Package, Flame, AlertTriangle, Sparkles, PenLine } from "lucide-react";
 import ProRecipeEditor, { type RecipeData } from "@/components/ProRecipeEditor";
+import { needsAttention } from "@/lib/expiry-status";
 
 const MEAL_LABELS: Record<string, string> = {
   colazione: "☀️ Colazione",
@@ -343,7 +344,7 @@ const ProClientPantryPage = () => {
             <p className="text-sm text-muted-foreground text-center py-4">Nessun prodotto in dispensa.</p>
           ) : (
             filtered.map((item) => {
-              const isExpiring = item.expiry_date && new Date(item.expiry_date) <= new Date(Date.now() + 3 * 86400000);
+              const isExpiring = needsAttention(item.expiry_date);
               return (
                 <div key={item.id} className="flex items-center gap-2 rounded-lg border border-border p-2.5">
                   <Package className="h-4 w-4 text-muted-foreground shrink-0" />

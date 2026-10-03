@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Package, Plus, Loader2, Search, Pencil, Trash2, Save } from "lucide-react";
 import EmptyState from "@/components/EmptyState";
 import ListSkeleton from "@/components/ListSkeleton";
+import { matchesSearchAny } from "@/lib/text-match";
 
 interface CatalogItem {
   id: string;
@@ -108,9 +109,7 @@ const SupplierCatalogPage = () => {
   };
 
   const filtered = items.filter((i) => {
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return i.products?.name?.toLowerCase().includes(q) || i.products?.brand?.toLowerCase().includes(q);
+    return matchesSearchAny([i.products?.name, i.products?.brand], search);
   });
 
   return (

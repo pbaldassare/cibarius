@@ -22,6 +22,8 @@ import { fetchAllRows } from "@/lib/supabase-paging";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { daysUntilExpiry, formatExpiryDate } from "@/lib/expiry-status";
+import { matchesSearch } from "@/lib/text-match";
 
 interface Lot {
   id: string;
@@ -75,8 +77,7 @@ const movementColor: Record<MovementType, string> = {
 const plurale = (n: number, singolare: string, plurale_: string) =>
   `${n} ${n === 1 ? singolare : plurale_}`;
 
-const daysUntil = (d: string) =>
-  Math.ceil((new Date(d).getTime() - Date.now()) / 86400000);
+const daysUntil = (d: string) => daysUntilExpiry(d) ?? 0;
 
 const RestaurantStockPage = () => {
   const { restaurant, isLoading: restLoading } = useRestaurant();
@@ -250,7 +251,7 @@ const RestaurantStockPage = () => {
 
     const q = search.trim().toLowerCase();
     return out
-      .filter((r) => !q || r.name.toLowerCase().includes(q))
+      .filter((r) => matchesSearch(r.name, q))
       .sort((a, b) => {
         // Prima quello che sta per finire, poi il resto in ordine alfabetico
         const da = a.daysLeft ?? Infinity;
@@ -295,7 +296,7 @@ const RestaurantStockPage = () => {
 
   const filteredMovements = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return q ? movements.filter((m) => m.product_name.toLowerCase().includes(q)) : movements;
+    return q ? movements.filter((m) => matchesSearch(m.product_name, q)) : movements;
   }, [movements, search]);
 
   if (restLoading || loading) {
@@ -458,7 +459,7 @@ const RestaurantStockPage = () => {
                         </div>
                         <p className="text-muted-foreground">
                           {l.storage_type}
-                          {l.expiry_date ? ` · scade ${new Date(l.expiry_date).toLocaleDateString("it-IT")}` : " · senza scadenza"}
+                          {l.expiry_date ? ` · scade ${formatExpiryDate(l.expiry_date)}` : " · senza scadenza"}
                         </p>
                         <Button
                           size="sm"

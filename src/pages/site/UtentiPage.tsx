@@ -115,7 +115,7 @@ const UtentiPage = () => {
 
       <CallToAction
         title="L'uso in casa è gratuito"
-        text="Crei l'account e cominci ad aggiungere prodotti. Le funzioni avanzate restano opzionali."
+        text="Crei l'account e cominci ad aggiungere prodotti, senza carta di credito. Il piano Premium, con anti-spreco avanzato, resta facoltativo."
       />
     </>
   );
