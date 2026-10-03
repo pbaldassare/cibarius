@@ -1,9 +1,9 @@
 {
   "summary": {
-    "email": "demo_tester_1791033759899@example.com",
+    "email": "demo_tester_1791037187943@example.com",
     "base": "http://127.0.0.1:5182",
     "signup": {
-      "url": "/",
+      "url": "/app",
       "toast": "Registrazione completata! 🎉\nBenvenuto in Cibarius! Puoi iniziare subito ad usare l'app."
     },
     "login": {
@@ -127,7 +127,7 @@
       "url": "/auth/signup",
       "heading": "",
       "notes": [
-        "account demo: demo_tester_1791033759899@example.com"
+        "account demo: demo_tester_1791037187943@example.com"
       ],
       "consoleErrors": []
     },
@@ -135,11 +135,11 @@
       "n": 11,
       "title": "Registrazione - esito",
       "file": "11_registrazione_esito.png",
-      "url": "/",
-      "heading": "Scadenze, magazzino e HACCP in un'unica app",
+      "url": "/app",
+      "heading": "",
       "notes": [
         "messaggio a schermo: Registrazione completata! 🎉 Benvenuto in Cibarius! Puoi iniziare subito ad usare l'app.",
-        "destinazione dopo la registrazione: /"
+        "destinazione dopo la registrazione: /app"
       ],
       "consoleErrors": []
     },
@@ -172,7 +172,7 @@
       "url": "/app",
       "heading": "",
       "notes": [
-        "elementi interattivi nella schermata: 27"
+        "elementi interattivi nella schermata: 28"
       ],
       "consoleErrors": []
     },

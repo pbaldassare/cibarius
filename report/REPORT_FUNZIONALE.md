@@ -1,7 +1,12 @@
 # Report funzionale Cibarius
 
-Giro di prova automatico eseguito il 3 ottobre 2026 su `http://127.0.0.1:5182`
-(build di sviluppo Vite del branch `cursor/resend-api-key-e688`).
+Giro di prova automatico eseguito il 3 ottobre 2026 su `http://31.220.82.50:5182`
+(build di sviluppo Vite del branch `cursor/qa-report-funzionale-e688`).
+
+I difetti descritti qui sono stati corretti nello stesso ciclo di lavoro: gli
+screenshot allegati vengono dall'ultimo giro, quello sulla versione corretta.
+Dove il comportamento è cambiato lo trovi segnalato schermata per schermata, e
+il riepilogo delle correzioni è in fondo.
 
 ## 1. Introduzione
 
@@ -43,7 +48,7 @@ di console.
 
 **Esito complessivo: 30 schermate catturate, 0 errori di console e 0 errori
 JavaScript su tutto il percorso.** L'account di prova usato per questo report è
-`demo_tester_1791033759899@example.com`.
+`demo_tester_1791037187943@example.com`.
 
 ### Dati di prova
 
@@ -72,7 +77,7 @@ graph TD
     I --> I1["Passo 1 - Chi sei?"]
     I1 --> I2["Passo 2 - I tuoi dati"]
     I2 --> I3["Account creato, email gia confermata"]
-    I3 -->|"redirect su /"| A
+    I3 -->|"sessione gia aperta"| N
 
     M --> N["App consumer /app"]
 
@@ -216,12 +221,14 @@ registrati.
 | Elemento | Funzione |
 | --- | --- |
 | Piano "A casa — Gratis" | Dispensa/frigo/congelatore, scansione barcode, avvisi email, ricette; pulsante "Crea un account" |
+| Nota sul piano Premium | 2,99 € al mese oppure 29,90 € all'anno, primi 7 giorni gratis: gli stessi importi che l'app chiede alla cassa |
 | Piano "Ristorante — 19,90 € al mese" (badge "Il più scelto") | HACCP, etichette QR, magazzino a lotti, lettura bolle e DDT, backoffice; pulsante "Prova 30 giorni" |
 | Piano "Professionisti — Su misura" | Piani alimentari, diario clienti, note e appuntamenti; pulsante "Parlane con noi" |
 | Nota "Oppure 199 € all'anno" | Alternativa annuale al piano Ristorante |
 
-**Esito test.** ✅ OK — nessun errore di console. Vedi però la nota sulla
-coerenza dei prezzi nelle conclusioni.
+**Esito test.** ✅ OK — nessun errore di console. Questa schermata viene dalla
+versione corretta: prima la pagina si fermava a "Gratis" e del piano Premium,
+che pure esisteva dentro l'app, non diceva nulla.
 
 ---
 
@@ -320,20 +327,22 @@ script, nessun errore di console.
 
 ![Registrazione - esito](./screenshots/11_registrazione_esito.png)
 
-**Descrizione e scopo.** Conferma della creazione dell'account.
+**Descrizione e scopo.** Conferma della creazione dell'account e primo
+ingresso nell'app, con la dispensa ancora vuota.
 
 **Elenco funzionalità.**
 
 | Elemento | Funzione |
 | --- | --- |
 | Avviso "Registrazione completata! 🎉 — Benvenuto in Cibarius! Puoi iniziare subito ad usare l'app." | Conferma a comparsa in basso a destra |
+| Blocco "Attenzione oggi — ✓ Nessuna scadenza urgente" | Stato iniziale, senza prodotti |
+| Contatori "I tuoi alimenti" a zero | Frigo, congelatore e dispensa ancora vuoti |
 
-**Esito test.** ✅ OK per la creazione dell'account (verificata anche lato
-database: utenza presente e email già confermata), ⚠️ con riserva sulla
-navigazione. Dopo la registrazione l'app rimanda alla **home del sito pubblico**
-`/` invece che all'app `/app`: il messaggio dice "puoi iniziare subito ad usare
-l'app", ma l'utente si ritrova sulla pagina commerciale e deve cercare da solo
-"Area riservata". Vedi le conclusioni.
+**Esito test.** ✅ OK — account creato (verificato anche lato database: utenza
+presente ed email già confermata) e atterraggio su `/app`. Prima della
+correzione la registrazione rimandava alla home del sito pubblico: il messaggio
+diceva "puoi iniziare subito ad usare l'app" e l'utente si ritrovava sulla
+pagina commerciale a cercare "Area riservata".
 
 ---
 
@@ -386,7 +395,7 @@ una sola domanda: cosa serve fare oggi.
 | Barra superiore: lente, filtri, campanella | Ricerca prodotti, filtri rapidi, notifiche |
 | Saluto contestuale "Buon pomeriggio, Demo 👋" | Personalizzazione con il nome e la fascia oraria |
 | Blocco "Attenzione oggi" con contatore "3 in scadenza" | Riepilogo degli alimenti critici |
-| Righe prodotto con etichetta colorata ("Scade domani", "Scade tra 3gg") | Petto di pollo, Latte intero UHT, Yogurt greco con data, collocazione e quantità |
+| Righe prodotto con etichetta colorata ("Scade oggi", "Scade domani", "Scade tra 2 giorni") | Petto di pollo, Latte intero UHT, Yogurt greco e Mozzarella con data, collocazione e quantità |
 | Link "Vedi tutti (3)" | Apre l'elenco completo delle scadenze |
 | Pulsante "Gestisci scadenze" | Porta a `/expiry` per smaltire o consumare |
 | Pulsante "Trova ricette" | Porta alle ricette anti-spreco |
@@ -396,8 +405,11 @@ una sola domanda: cosa serve fare oggi.
 | Pulsante flottante `+` | Apre il flusso di inserimento prodotto da qualsiasi schermata |
 | Barra inferiore: Home, Scadenze, Ricette, Profilo | Navigazione principale a quattro voci |
 
-**Esito test.** ✅ OK — 27 elementi interattivi rilevati, i dieci prodotti di
-prova correttamente classificati, nessun errore di console.
+**Esito test.** ✅ OK — 28 elementi interattivi rilevati, i dieci prodotti di
+prova correttamente classificati, nessun errore di console. Le etichette ora
+coincidono con quelle delle altre schermate: il petto di pollo che scade oggi è
+marcato "Scade oggi" qui, "in scadenza" nell'elenco e fra gli ingredienti
+disponibili nelle ricette. Prima diceva "Scade domani".
 
 ---
 
@@ -412,15 +424,15 @@ scadenza, con doppio livello di filtri.
 
 | Elemento | Funzione |
 | --- | --- |
-| Filtri di stato con contatore: "Scaduti 0", "In scadenza 3", "Tutti 10" | Selezione per criticità; i contatori sono calcolati sui dati reali |
+| Filtri di stato con contatore: "Scaduti 0", "In scadenza 4", "Tutti 10" | Selezione per criticità; i contatori sono calcolati sui dati reali |
 | Filtri di collocazione: Tutti, Dispensa, Frigo, Congelatore | Selezione per luogo di conservazione |
 | Campo "Cerca prodotto…" | Ricerca testuale nell'elenco |
 | Righe prodotto con bordo colorato e badge "in scadenza" | Nome, data, collocazione e quantità |
 | Pulsante flottante `+` | Aggiunta rapida di un prodotto |
 
-**Esito test.** ✅ OK — i tre prodotti in scadenza sono gli stessi mostrati in
-home, i contatori coincidono con i dieci articoli caricati, nessun errore di
-console.
+**Esito test.** ✅ OK — i quattro prodotti in scadenza sono gli stessi mostrati
+in home e il contatore coincide, cosa che prima non succedeva; il totale torna
+con i dieci articoli caricati. Nessun errore di console.
 
 ---
 
@@ -462,12 +474,11 @@ usata qui per provare la ricerca testuale.
 | Campo di ricerca | Filtra l'elenco mentre si digita |
 | Filtri di stato e di collocazione | Come nella schermata Dispensa |
 | Stato vuoto "Nessun prodotto — Nessun risultato per la tua ricerca." | Messaggio quando il filtro non produce risultati |
+| Confronto tollerante | Trova il prodotto al singolare o al plurale, senza badare ad accenti e ordine delle parole |
 
-**Esito test.** ⚠️ Comportamento da rivedere. La ricerca di "pomodoro" non
-restituisce nulla pur essendoci in dispensa "Pomodori pelati": il confronto è una
-sottostringa esatta, quindi singolare e plurale non si incontrano. Nessun errore
-di console: la schermata gestisce correttamente lo stato vuoto, ma il risultato
-non è quello che l'utente si aspetta. Vedi le conclusioni.
+**Esito test.** ✅ OK — la ricerca di "pomodoro" restituisce "Pomodori pelati",
+nessun errore di console. Prima non trovava nulla: il confronto era una
+sottostringa esatta e in italiano singolare e plurale non si incontrano mai.
 
 ---
 
@@ -555,15 +566,15 @@ propone come usarlo.
 | --- | --- |
 | Menu a tendina "Tutto" | Filtro sul tipo di portata |
 | Interruttore "🔥 Priorità scadenze" | Dà precedenza agli ingredienti che stanno per scadere |
-| Intestazione "Ingredienti (9/10)" con scorciatoie "Tutti" / "Nessuno" | Contatore e selezione in blocco |
+| Intestazione "Ingredienti (10/10)" con scorciatoie "Tutti" / "Nessuno" | Contatore e selezione in blocco |
 | Righe ingrediente con segno di spunta | Nome, quantità, collocazione, calorie per 100 g e badge di stato ("Scaduto", "In scadenza") |
 | Pulsante "Genera 3 ricette dalla dispensa" | Avvia la generazione sulle voci selezionate |
 
-**Esito test.** ✅ OK come funzionamento — nove ingredienti su dieci selezionati
-in automatico, quello scaduto escluso, nessun errore di console. ⚠️ Emerge però
-un'incoerenza di etichette: il "Petto di pollo a fette", che scade oggi, è
-marcato "Scaduto" qui, "in scadenza" nella pagina Scadenze e "Scade domani" in
-home. Vedi le conclusioni.
+**Esito test.** ✅ OK — gli ingredienti ancora buoni sono selezionati in
+automatico e le etichette coincidono con le altre schermate, nessun errore di
+console. Prima il "Petto di pollo a fette" che scade oggi veniva marcato
+"Scaduto" ed **escluso dalla selezione**: l'ingrediente più urgente era proprio
+quello che restava fuori dalla ricetta che doveva salvarlo.
 
 ---
 
@@ -578,15 +589,17 @@ scadenza, con ricette filtrate e generazione assistita.
 
 | Elemento | Funzione |
 | --- | --- |
-| Riquadro "4 alimenti in scadenza" | Etichette con nome e giorni residui (pollo 1gg, latte 2gg, yogurt 3gg, mozzarella 4gg) |
+| Riquadro "4 alimenti da usare entro 5 giorni" | Etichette con nome e scadenza (pollo oggi, latte domani, yogurt 2 gg, mozzarella 3 gg) |
 | Filtro "Solo in scadenza" | Restringe le ricette a quelle che usano prodotti critici |
 | Scheda "Suggerimenti AI personalizzati" + pulsante "Genera" | Analizza dispensa e scadenze e propone ricette su misura |
 | Stato vuoto "Nessuna ricetta trovata" | Compare quando il catalogo non ha ricette compatibili |
 | Pulsanti "Vai alla dispensa" e "Genera con AI" | Due vie d'uscita dallo stato vuoto |
 
-**Esito test.** ✅ OK — il conteggio degli alimenti in scadenza e i giorni residui
-sono corretti, lo stato vuoto è gestito con due azioni sensate, nessun errore di
-console.
+**Esito test.** ✅ OK — conteggio e giorni residui corretti, stato vuoto gestito
+con due azioni sensate, nessun errore di console. Questa pagina guarda cinque
+giorni invece dei tre usati dagli avvisi, perché le servono abbastanza
+ingredienti per far uscire una ricetta: ora lo scrive nell'intestazione, invece
+di chiamarli "in scadenza" e contraddire il conteggio della home.
 
 ---
 
@@ -691,8 +704,9 @@ con la distinzione fra ciò che è gratuito e ciò che è a pagamento.
 | Piano "Mensile — €2,99/mese" con badge "7gg gratis" | Pulsante "Inizia 7gg gratis" |
 | Piano "Annuale — €29,90" con badge "Più conveniente" | Alternativa annuale |
 
-**Esito test.** ✅ OK — nessun errore di console. Il listino qui mostrato non
-coincide con quello del sito pubblico (vedi conclusioni).
+**Esito test.** ✅ OK — nessun errore di console. Gli importi arrivano dalla
+tabella `subscription_plans`, cioè da quello che Stripe addebita davvero, e ora
+coincidono con quelli annunciati sul sito.
 
 ---
 
@@ -749,7 +763,7 @@ amministrazione, nessun errore di console.
 
 ---
 
-## 4. Conclusioni e suggerimenti
+## 4. Conclusioni, correzioni e suggerimenti
 
 ### Quadro generale
 
@@ -761,41 +775,72 @@ amministrazione. Tutte le schermate reggono bene lo stato vuoto, con messaggi
 che spiegano cosa fare invece di limitarsi a dire che non c'è nulla — un
 dettaglio spesso trascurato e qui curato ovunque.
 
-### Difetti rilevati
+I quattro difetti emersi dal primo giro sono stati corretti e verificati con un
+secondo giro completo sulla versione sistemata.
 
-**1. Stati di scadenza incoerenti fra le schermate.** Il "Petto di pollo a fette"
-con scadenza odierna viene etichettato in tre modi diversi: "Scade domani" in
-home, "in scadenza" nella pagina Scadenze, "Scaduto" nella generazione ricette.
-Tre pagine, tre risposte, e almeno una è sbagliata. La causa più probabile è che
-ogni vista calcoli i giorni residui per conto proprio, con arrotondamenti e
-confronti di data diversi. Conviene estrarre una sola funzione (per esempio
-`getExpiryStatus(expiryDate, today)`) che restituisca stato ed etichetta, e farla
-usare a tutte le viste. È il difetto a maggiore impatto: mina la fiducia
-nell'unica informazione su cui si regge l'app.
+### Difetti rilevati e corretti
 
-**2. La ricerca prodotti non tollera singolare e plurale.** Cercare "pomodoro"
-non trova "Pomodori pelati". Per un'app italiana, dove la differenza fra
-singolare e plurale è continua, una `ILIKE '%termine%'` non basta. Si può
-normalizzare lato client (confronto senza accenti e con troncamento della
-desinenza) oppure, lato Postgres, usare `pg_trgm` con un indice GIN e ordinare
-per similarità. Quest'ultima strada risolve anche i refusi di battitura.
+**1. Stati di scadenza incoerenti fra le schermate.** Il "Petto di pollo a
+fette" con scadenza odierna veniva etichettato in tre modi diversi: "Scade
+domani" in home, "in scadenza" nella pagina Scadenze, "Scaduto" nella
+generazione ricette — dove per di più finiva *escluso* dalla selezione, cioè
+l'ingrediente più urgente era l'unico a restare fuori dalla ricetta che doveva
+salvarlo.
 
-**3. Dopo la registrazione si finisce sul sito pubblico.** L'avviso dice "puoi
-iniziare subito ad usare l'app", ma la navigazione porta a `/`, cioè alla pagina
-commerciale, e l'utente deve trovare da sé "Area riservata". Poiché la
-registrazione lascia già la sessione aperta e l'email risulta confermata, il
-passaggio naturale è un redirect diretto su `USER_HOME` (o sulla home del ruolo
-scelto), eventualmente con il tour di benvenuto come primo contatto.
+La causa non era l'arrotondamento ma il fuso orario: `new Date("2026-10-03")`
+produce la mezzanotte **UTC**, che veniva confrontata con la mezzanotte
+**locale**. In Italia, due ore avanti, il conto slittava di un giorno. Sopra ci
+si erano stratificati tre modi diversi di arrotondare: `Math.ceil` dalla
+mezzanotte in home, una divisione senza arrotondamento nell'elenco, la
+differenza da `Date.now()` nelle ricette.
+
+```
+mezzanotte locale  2026-10-02T22:00:00Z
+new Date("2026-10-03")  2026-10-03T00:00:00Z   <- due ore avanti
+
+home        Math.ceil(0,083) = 1   -> "Scade domani"
+elenco      0,083                  -> "in scadenza"
+ricette     -0,58 da Date.now()    -> "Scaduto"
+```
+
+Ora `src/lib/expiry-status.ts` legge le date come mezzanotte locale e arrotonda
+una volta sola; le dodici reimplementazioni sparse fra app consumer, area
+ristorante e suite professionale chiamano lui. Il modulo copre anche il
+passaggio all'ora legale, dove fra due giorni consecutivi passano 23 o 25 ore.
+Tredici test lo verificano, incluso il caso che ha prodotto il difetto.
+
+**2. La ricerca prodotti non tollerava singolare e plurale.** Cercare "pomodoro"
+non trovava "Pomodori pelati". Per un'app italiana, dove la differenza fra
+singolare e plurale è continua, il confronto per sottostringa esatta non basta.
+
+`src/lib/text-match.ts` normalizza il testo (minuscole, via gli accenti e la
+punteggiatura) e confronta ogni parola anche nelle sue forme singolare e
+plurale, accettando le parole in ordine diverso da quello dell'etichetta. Le
+desinenze velari hanno la precedenza sulla regola generale, altrimenti da
+"pesca" uscirebbe "pesce": è il motivo per cui le varianti si generano una
+desinenza alla volta invece di troncare la parola a una radice comune.
+
+**3. Dopo la registrazione si finiva sul sito pubblico.** L'avviso diceva "puoi
+iniziare subito ad usare l'app" ma la navigazione portava a `/`, la pagina
+commerciale, e l'utente doveva trovare da sé "Area riservata" — pur avendo già
+una sessione aperta. Ora la registrazione porta alla home del ruolo scelto. Se
+in futuro la conferma via email venisse richiesta, e quindi la sessione non
+fosse ancora aperta, l'utente viene mandato al login con un messaggio che glielo
+dice, invece di sbattere contro una guardia di autenticazione.
 
 **4. Due listini diversi per lo stesso prodotto.** La pagina pubblica `/prezzi`
-descrive l'uso domestico come "Gratis", mentre dentro l'app `/subscription`
-propone un piano Mensile a 2,99 € e uno Annuale a 29,90 € con sette giorni di
-prova. Le due cose possono convivere (gratuito di base, Premium a pagamento), ma
-così come sono scritte si contraddicono: chi arriva dal sito non si aspetta un
-paywall. Conviene allineare i testi e citare il Premium anche sulla pagina
-pubblica.
+descriveva l'uso domestico come "Gratis" e basta, mentre dentro l'app compariva
+un piano a 2,99 € al mese di cui il sito non diceva nulla: chi arrivava da lì
+non si aspettava un paywall. Ora il piano Premium compare sul sito con gli
+importi veri, il periodo di prova e lo stesso nome che usa l'app, e le cifre
+stanno in `src/lib/pricing.ts` invece di essere ripetute in quattro pagine.
+Dentro l'app i prezzi continuano ad arrivare da `subscription_plans`, che resta
+la sola fonte usata per incassare.
 
-### Migliorie di UX suggerite
+### Migliorie di UX ancora aperte
+
+Queste non sono state toccate: sono scelte di prodotto più che difetti, e vale
+la pena decidano le persone.
 
 **Sfruttare lo spazio sugli schermi larghi.** A 1280×800 l'app consumer resta una
 colonna stretta al centro, con ampi margini vuoti ai lati. La scelta
@@ -835,14 +880,14 @@ annotarli, perché si ripresenteranno a chiunque automatizzi questa app:
   `cibarius_tour_done` prima del caricamento della pagina.
 - **La sessione Supabase vive in `localStorage`, non nei cookie.** Cancellare i
   cookie non disconnette: per fotografare la pagina di accesso serve un contesto
-  browser nuovo (è la strada scelta) oppure lo svuotamento esplicito di
-  `localStorage`.
+  browser nuovo, che è la strada scelta dallo script.
 
 ### Come riprodurre
 
 ```bash
-npm run dev -- --port 5182        # server di sviluppo
-node scripts/auto_test_report.js  # giro completo con screenshot
+npm run dev -- --port 5182 --host 0.0.0.0   # server di sviluppo
+node scripts/auto_test_report.js            # giro completo con screenshot
+npx vitest run                              # i test dei moduli condivisi
 ```
 
 Lo script accetta `BASE_URL`, `DEMO_EMAIL`, `DEMO_PASSWORD` e `SKIP_SIGNUP=1`
@@ -854,7 +899,7 @@ L'account usato per questo report è rimasto attivo per permettere di verificare
 i rilievi. Per rimuoverlo insieme ai dieci prodotti dimostrativi:
 
 ```sql
-delete from auth.users where email = 'demo_tester_1791033759899@example.com';
+delete from auth.users where email like 'demo_tester_%@example.com';
 delete from public.products
  where data_source = 'manual'
    and name in ('Latte intero UHT','Yogurt greco bianco','Mozzarella di bufala campana',
