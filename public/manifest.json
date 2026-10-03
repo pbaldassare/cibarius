@@ -9,8 +9,8 @@
   "scope": "/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
-  "background_color": "#0B7DBE",
-  "theme_color": "#0B7DBE",
+  "background_color": "#34B4DC",
+  "theme_color": "#22B6F2",
   "orientation": "portrait-primary",
   "categories": ["food", "lifestyle", "productivity"],
   "icons": [
