@@ -1,0 +1,356 @@
+{
+  "summary": {
+    "email": "demo_tester_1791033759899@example.com",
+    "base": "http://127.0.0.1:5182",
+    "signup": {
+      "url": "/",
+      "toast": "Registrazione completata! 🎉\nBenvenuto in Cibarius! Puoi iniziare subito ad usare l'app."
+    },
+    "login": {
+      "ok": true,
+      "landing": "/app",
+      "toast": ""
+    }
+  },
+  "results": [
+    {
+      "n": 1,
+      "title": "Home sito pubblico",
+      "file": "01_home_sito_pubblico.png",
+      "url": "/",
+      "heading": "Scadenze, magazzino e HACCP in un'unica app",
+      "notes": [
+        "link di navigazione: 8",
+        "call to action verso l'area riservata: 7"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "n": 2,
+      "title": "Sito - Utenti",
+      "file": "02_sito_utenti.png",
+      "url": "/utenti",
+      "heading": "Sai sempre cosa hai e cosa sta per scadere",
+      "notes": [
+        "link di navigazione: 8",
+        "call to action verso l'area riservata: 6"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "n": 3,
+      "title": "Sito - Ristoranti",
+      "file": "03_sito_ristoranti.png",
+      "url": "/ristoranti",
+      "heading": "L'HACCP smette di vivere su un quaderno",
+      "notes": [
+        "link di navigazione: 8",
+        "call to action verso l'area riservata: 6"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "n": 4,
+      "title": "Sito - Nutrizionisti",
+      "file": "04_sito_nutrizionisti.png",
+      "url": "/nutrizionisti",
+      "heading": "Il piano lo scrivi tu, il diario lo tiene l'app",
+      "notes": [
+        "link di navigazione: 8",
+        "call to action verso l'area riservata: 6"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "n": 5,
+      "title": "Sito - Come funziona",
+      "file": "05_sito_come_funziona.png",
+      "url": "/come-funziona",
+      "heading": "Tre percorsi, lo stesso impianto",
+      "notes": [
+        "link di navigazione: 8",
+        "call to action verso l'area riservata: 5"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "n": 6,
+      "title": "Sito - Prezzi",
+      "file": "06_sito_prezzi.png",
+      "url": "/prezzi",
+      "heading": "Paghi solo quello che usi davvero",
+      "notes": [
+        "link di navigazione: 8",
+        "call to action verso l'area riservata: 7"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "n": 7,
+      "title": "Sito - Domande frequenti",
+      "file": "07_sito_domande_frequenti.png",
+      "url": "/faq",
+      "heading": "Le risposte che chiedono più spesso",
+      "notes": [
+        "link di navigazione: 8",
+        "call to action verso l'area riservata: 5"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "n": 8,
+      "title": "Sito - Contatti",
+      "file": "08_sito_contatti.png",
+      "url": "/contatti",
+      "heading": "Parliamone",
+      "notes": [
+        "link di navigazione: 8",
+        "call to action verso l'area riservata: 4"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "n": 9,
+      "title": "Registrazione - scelta del tipo di account",
+      "file": "09_registrazione_scelta_del_tipo_di_account.png",
+      "url": "/auth/signup",
+      "heading": "",
+      "notes": [
+        "tre tipi disponibili: Utente, Ristorante, Professionista"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "n": 10,
+      "title": "Registrazione - dati dell'account",
+      "file": "10_registrazione_dati_dell_account.png",
+      "url": "/auth/signup",
+      "heading": "",
+      "notes": [
+        "account demo: demo_tester_1791033759899@example.com"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "n": 11,
+      "title": "Registrazione - esito",
+      "file": "11_registrazione_esito.png",
+      "url": "/",
+      "heading": "Scadenze, magazzino e HACCP in un'unica app",
+      "notes": [
+        "messaggio a schermo: Registrazione completata! 🎉 Benvenuto in Cibarius! Puoi iniziare subito ad usare l'app.",
+        "destinazione dopo la registrazione: /"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "n": 12,
+      "title": "Accesso",
+      "file": "12_accesso.png",
+      "url": "/auth/login",
+      "heading": "Bentornato",
+      "notes": [
+        "modulo con email, password e recupero credenziali"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "n": 13,
+      "title": "Esito accesso",
+      "file": "13_esito_accesso.png",
+      "url": "/app",
+      "heading": "",
+      "notes": [
+        "accesso riuscito, atterraggio su /app"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "n": 14,
+      "title": "App - Home giornata",
+      "file": "14_app_home_giornata.png",
+      "url": "/app",
+      "heading": "",
+      "notes": [
+        "elementi interattivi nella schermata: 27"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "n": 15,
+      "title": "App - Scadenze",
+      "file": "15_app_scadenze.png",
+      "url": "/expiry",
+      "heading": "",
+      "notes": [
+        "elenco dei prodotti ordinati per data di scadenza"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "n": 16,
+      "title": "App - Dispensa",
+      "file": "16_app_dispensa.png",
+      "url": "/pantry",
+      "heading": "",
+      "notes": [
+        "nessun pulsante di aggiunta visibile in questa schermata"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "n": 17,
+      "title": "App - Prodotti",
+      "file": "17_app_prodotti.png",
+      "url": "/products",
+      "heading": "",
+      "notes": [
+        "ricerca di prova con il termine 'pomodoro'"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "n": 18,
+      "title": "App - Congelatore",
+      "file": "18_app_congelatore.png",
+      "url": "/freezer",
+      "heading": "",
+      "notes": [
+        "scorte congelate, separate dalla dispensa"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "n": 19,
+      "title": "App - Scansione",
+      "file": "19_app_scansione.png",
+      "url": "/scan",
+      "heading": "",
+      "notes": [
+        "lettura del codice a barre: senza fotocamera resta in attesa"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "n": 20,
+      "title": "App - Ricette pubbliche",
+      "file": "20_app_ricette_pubbliche.png",
+      "url": "/recipes",
+      "heading": "",
+      "notes": [
+        "catalogo ricette"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "n": 21,
+      "title": "App - Ricette dalla dispensa",
+      "file": "21_app_ricette_dalla_dispensa.png",
+      "url": "/my-recipes",
+      "heading": "",
+      "notes": [
+        "proposte generate dagli ingredienti disponibili"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "n": 22,
+      "title": "App - Anti spreco",
+      "file": "22_app_anti_spreco.png",
+      "url": "/anti-waste",
+      "heading": "",
+      "notes": [
+        "suggerimenti per consumare i prodotti in scadenza"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "n": 23,
+      "title": "App - Lista della spesa",
+      "file": "23_app_lista_della_spesa.png",
+      "url": "/shopping-list",
+      "heading": "",
+      "notes": [
+        "lista della spesa"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "n": 24,
+      "title": "App - Preparazioni",
+      "file": "24_app_preparazioni.png",
+      "url": "/preparations",
+      "heading": "",
+      "notes": [
+        "preparazioni salvate dall'utente"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "n": 25,
+      "title": "App - Preferiti",
+      "file": "25_app_preferiti.png",
+      "url": "/favorites",
+      "heading": "I miei preferiti",
+      "notes": [
+        "prodotti e ricette messi da parte"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "n": 26,
+      "title": "App - Promemoria",
+      "file": "26_app_promemoria.png",
+      "url": "/reminders",
+      "heading": "",
+      "notes": [
+        "avvisi su scadenze e pasti"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "n": 27,
+      "title": "App - Abbonamento",
+      "file": "27_app_abbonamento.png",
+      "url": "/subscription",
+      "heading": "Piani Cibarius",
+      "notes": [
+        "piani disponibili e stato dell'abbonamento"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "n": 28,
+      "title": "App - Profilo",
+      "file": "28_app_profilo.png",
+      "url": "/profile",
+      "heading": "",
+      "notes": [
+        "schede presenti nel profilo: 0"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "n": 29,
+      "title": "Area ristorante senza permessi",
+      "file": "29_area_ristorante_senza_permessi.png",
+      "url": "/app",
+      "heading": "",
+      "notes": [
+        "un account 'utente' che apre /restaurant finisce su /app"
+      ],
+      "consoleErrors": []
+    },
+    {
+      "n": 30,
+      "title": "Area amministrazione senza permessi",
+      "file": "30_area_amministrazione_senza_permessi.png",
+      "url": "/app",
+      "heading": "",
+      "notes": [
+        "un account 'utente' che apre /admin finisce su /app"
+      ],
+      "consoleErrors": []
+    }
+  ]
+}
