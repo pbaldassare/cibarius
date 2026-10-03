@@ -1,7 +1,7 @@
 // Cambiare versione a ogni modifica degli asset precaricati: l'activate
 // cancella le cache con nome diverso, altrimenti chi ha gia' installato l'app
 // continuerebbe a vedere le icone e il manifesto vecchi (serviti cache-first).
-const CACHE_NAME = 'cibarius-v2';
+const CACHE_NAME = 'cibarius-v3';
 const STATIC_ASSETS = [
   '/',
   '/app',
