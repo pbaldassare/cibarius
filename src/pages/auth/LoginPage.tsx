@@ -10,14 +10,19 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, LogIn, Eye, EyeOff, ArrowRight } from "lucide-react";
 import cibariusLogo from "@/assets/cibarius-logo.png";
 import AuthFeatureCarousel from "@/components/AuthFeatureCarousel";
+import GoogleAuthButton from "@/components/auth/GoogleAuthButton";
+import { startGoogleAuth } from "@/lib/googleAuth";
+import { useGoogleAuthEnabled } from "@/hooks/useGoogleAuthEnabled";
 
 const LoginPage = () => {
   const { session, loading } = useAuth();
   const { role, isLoading: roleLoading } = useRole();
   const { toast } = useToast();
+  const googleEnabled = useGoogleAuthEnabled();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   if (loading || roleLoading) {
@@ -49,6 +54,17 @@ const LoginPage = () => {
             ? "Credenziali non valide. Verifica email e password oppure usa il recupero password."
             : error.message,
       });
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setGoogleLoading(true);
+    // Chi accede non sta scegliendo un tipo di account: nessuna intenzione
+    // da salvare, e quella di un tentativo abbandonato va anzi buttata via.
+    const message = await startGoogleAuth();
+    if (message) {
+      setGoogleLoading(false);
+      toast({ variant: "destructive", title: "Accesso con Google non riuscito", description: message });
     }
   };
 
@@ -144,6 +160,24 @@ const LoginPage = () => {
               Accedi
             </Button>
           </form>
+
+          {/* Separatore + accesso con Google */}
+          {googleEnabled && (
+            <>
+              <div className="my-5 flex items-center gap-3">
+                <div className="h-px flex-1 bg-border" />
+                <span className="text-xs uppercase tracking-wide text-muted-foreground">oppure</span>
+                <div className="h-px flex-1 bg-border" />
+              </div>
+
+              <GoogleAuthButton
+                label="Accedi con Google"
+                onClick={handleGoogleLogin}
+                loading={googleLoading}
+                disabled={submitting}
+              />
+            </>
+          )}
 
           {/* Bottom links */}
           <div className="mt-6 flex flex-col items-center gap-3">

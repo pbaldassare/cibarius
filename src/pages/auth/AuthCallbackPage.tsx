@@ -2,9 +2,23 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { applyPendingSignupIntent } from "@/lib/googleAuth";
+import { getRoleHomePath, type AppRole } from "@/hooks/useRole";
 import { Loader2 } from "lucide-react";
 
 const OTP_TYPES: EmailOtpType[] = ["signup", "recovery", "invite", "email", "email_change"];
+
+/**
+ * Dove mandare chi rientra dal redirect.
+ *
+ * Il ruolo va riletto adesso: se l'utente arriva da una registrazione con
+ * Google, `complete_oauth_signup` lo ha appena cambiato. La radice "/" non e'
+ * piu' una destinazione valida, ospita il sito pubblico.
+ */
+const resolveHomePath = async (userId: string): Promise<string> => {
+  const { data } = await supabase.from("profiles").select("role").eq("id", userId).maybeSingle();
+  return getRoleHomePath((data?.role as AppRole | undefined) ?? null);
+};
 
 const AuthCallbackPage = () => {
   const navigate = useNavigate();
@@ -53,19 +67,36 @@ const AuthCallbackPage = () => {
         // Check if there's a ?next= param (e.g. /reset-password)
         const nextPath = url.searchParams.get("next");
 
+        const goHome = async (userId: string) => {
+          // Il tipo di account scelto prima di passare da Google esiste solo
+          // nel browser: applicarlo prima di decidere dove atterrare.
+          await applyPendingSignupIntent();
+          navigate(nextPath || (await resolveHomePath(userId)), { replace: true });
+        };
+
         if (session) {
-          navigate(nextPath || "/", { replace: true });
+          await goHome(session.user.id);
           return;
         }
 
+        /*
+         * L'attesa va fermata appena la sessione arriva. Senza, il rinvio di
+         * sotto scattava comunque sei secondi dopo e sbatteva fuori dall'app
+         * chi era appena entrato: `navigate` continua a funzionare anche a
+         * componente smontato.
+         */
+        let settled = false;
+
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
           if ((event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "USER_UPDATED" || event === "PASSWORD_RECOVERY") && nextSession) {
+            settled = true;
             subscription.unsubscribe();
-            navigate(nextPath || "/", { replace: true });
+            void goHome(nextSession.user.id);
           }
         });
 
         setTimeout(() => {
+          if (settled) return;
           subscription.unsubscribe();
           navigate("/auth/login", { replace: true });
         }, 6000);

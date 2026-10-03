@@ -12,6 +12,9 @@ import { Loader2, UserPlus, Eye, EyeOff, User, UtensilsCrossed, Stethoscope, Arr
 import cibariusLogo from "@/assets/cibarius-logo.png";
 import AuthFeatureCarousel from "@/components/AuthFeatureCarousel";
 import ReferralBadge from "@/components/ReferralBadge";
+import GoogleAuthButton from "@/components/auth/GoogleAuthButton";
+import { startGoogleAuth, type SignupIntent } from "@/lib/googleAuth";
+import { useGoogleAuthEnabled } from "@/hooks/useGoogleAuthEnabled";
 import { LOGIN_PATH, USER_HOME } from "@/lib/routes";
 import { getRoleHomePath } from "@/hooks/useRole";
 
@@ -29,6 +32,7 @@ const SignupPage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const googleEnabled = useGoogleAuthEnabled();
 
   // Check for referral from URL param or localStorage
   const [refCode, setRefCode] = useState<string | null>(null);
@@ -68,6 +72,13 @@ const SignupPage = () => {
   const [bio, setBio] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
+  /*
+   * Registrazione con Google: email e password le mette Google, quindi il
+   * passo 2 sparisce. Per ristoranti e professionisti resta pero' il passo 3,
+   * che raccoglie dati che Google non conosce.
+   */
+  const [googleMode, setGoogleMode] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   if (loading) {
     return (
@@ -79,7 +90,11 @@ const SignupPage = () => {
 
   if (session) return <Navigate to={USER_HOME} replace />;
 
-  const totalSteps = accountType === "user" ? 2 : 3;
+  // I pannelli da attraversare: con Google il passo 2 (email e password) salta.
+  const visibleSteps = googleMode ? [1, 3] : accountType === "user" ? [1, 2] : [1, 2, 3];
+  const stepIndex = Math.max(visibleSteps.indexOf(step), 0);
+  const totalSteps = visibleSteps.length;
+  const isLastStep = stepIndex === totalSteps - 1;
 
   const canGoNext = () => {
     if (step === 1) return !!accountType;
@@ -95,12 +110,67 @@ const SignupPage = () => {
     return true;
   };
 
-  const handleNext = () => {
-    if (step < totalSteps) {
-      setStep(step + 1);
-    } else {
-      handleSignup();
+  const buildSignupIntent = (): SignupIntent => {
+    const intent: SignupIntent = { role: accountType! };
+    if (fullName) intent.full_name = fullName;
+    if (phone) intent.phone = phone;
+    if (refCode) intent.ref_coupon_code = refCode;
+
+    if (accountType === "restaurant_owner") {
+      intent.restaurant_name = restaurantName;
+      intent.restaurant_address = restaurantAddress;
+      intent.restaurant_phone = restaurantPhone;
     }
+
+    if (accountType === "professional") {
+      intent.display_name = displayName;
+      intent.specialization = specialization;
+      intent.city = city;
+      intent.bio = bio;
+    }
+
+    return intent;
+  };
+
+  const handleGoogleSignup = async () => {
+    if (!accountType) return;
+    setGoogleLoading(true);
+    const message = await startGoogleAuth(buildSignupIntent());
+    if (message) {
+      setGoogleLoading(false);
+      toast({ variant: "destructive", title: "Registrazione con Google non riuscita", description: message });
+    }
+  };
+
+  const handleGoogleFromAccountType = () => {
+    if (!accountType) return;
+    // Un utente privato non ha altro da dichiarare: si parte subito.
+    if (accountType === "user") {
+      handleGoogleSignup();
+      return;
+    }
+    setGoogleMode(true);
+    setStep(3);
+  };
+
+  const handleNext = () => {
+    if (!isLastStep) {
+      setStep(visibleSteps[stepIndex + 1]);
+      return;
+    }
+    if (googleMode) {
+      handleGoogleSignup();
+      return;
+    }
+    handleSignup();
+  };
+
+  const handleBack = () => {
+    const previous = visibleSteps[stepIndex - 1];
+    // Tornando alla scelta del tipo di account si torna a poter cambiare
+    // idea anche su Google.
+    if (previous === 1) setGoogleMode(false);
+    setStep(previous);
   };
 
   const handleSignup = async () => {
@@ -206,11 +276,11 @@ const SignupPage = () => {
           <CardHeader className="items-center text-center">
             {/* Progress dots */}
             <div className="flex gap-2 mb-3">
-              {Array.from({ length: totalSteps }).map((_, i) => (
+              {visibleSteps.map((panel, i) => (
                 <div
-                  key={i}
+                  key={panel}
                   className={`h-2 rounded-full transition-all ${
-                    i + 1 <= step ? "w-8 bg-primary" : "w-2 bg-muted"
+                    i <= stepIndex ? "w-8 bg-primary" : "w-2 bg-muted"
                   }`}
                 />
               ))}
@@ -224,7 +294,8 @@ const SignupPage = () => {
             <CardDescription>
               {step === 1 && "Scegli il tipo di account per iniziare"}
               {step === 2 && "Inserisci le informazioni base"}
-              {step === 3 && "Completa i dati specifici"}
+              {step === 3 && googleMode && "Ultimi dati, poi passiamo a Google"}
+              {step === 3 && !googleMode && "Completa i dati specifici"}
             </CardDescription>
           </CardHeader>
 
@@ -257,6 +328,28 @@ const SignupPage = () => {
                     )}
                   </button>
                 ))}
+
+                {googleEnabled && (
+                  <>
+                    <div className="flex items-center gap-3 pt-1">
+                      <div className="h-px flex-1 bg-border" />
+                      <span className="text-xs uppercase tracking-wide text-muted-foreground">oppure</span>
+                      <div className="h-px flex-1 bg-border" />
+                    </div>
+
+                    <GoogleAuthButton
+                      label="Registrati con Google"
+                      onClick={handleGoogleFromAccountType}
+                      loading={googleLoading}
+                      disabled={!accountType}
+                    />
+                    {!accountType && (
+                      <p className="text-center text-xs text-muted-foreground">
+                        Scegli prima il tipo di account.
+                      </p>
+                    )}
+                  </>
+                )}
               </div>
             )}
 
@@ -384,25 +477,35 @@ const SignupPage = () => {
 
             {/* Navigation buttons */}
             <div className="flex gap-3 mt-6">
-              {step > 1 && (
-                <Button variant="outline" className="flex-1" onClick={() => setStep(step - 1)}>
+              {stepIndex > 0 && (
+                <Button variant="outline" className="flex-1" onClick={handleBack} disabled={googleLoading}>
                   <ArrowLeft className="mr-2 h-4 w-4" /> Indietro
                 </Button>
               )}
-              <Button
-                className="flex-1"
-                disabled={!canGoNext() || submitting}
-                onClick={handleNext}
-              >
-                {submitting ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : step === totalSteps ? (
-                  <UserPlus className="mr-2 h-4 w-4" />
-                ) : (
-                  <ArrowRight className="mr-2 h-4 w-4" />
-                )}
-                {step === totalSteps ? "Registrati" : "Avanti"}
-              </Button>
+              {googleMode && isLastStep ? (
+                <GoogleAuthButton
+                  label="Continua con Google"
+                  onClick={handleGoogleSignup}
+                  loading={googleLoading}
+                  disabled={!canGoNext()}
+                  className="h-10 flex-1"
+                />
+              ) : (
+                <Button
+                  className="flex-1"
+                  disabled={!canGoNext() || submitting}
+                  onClick={handleNext}
+                >
+                  {submitting ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : isLastStep ? (
+                    <UserPlus className="mr-2 h-4 w-4" />
+                  ) : (
+                    <ArrowRight className="mr-2 h-4 w-4" />
+                  )}
+                  {isLastStep ? "Registrati" : "Avanti"}
+                </Button>
+              )}
             </div>
 
             <p className="mt-4 text-center text-sm text-muted-foreground">
