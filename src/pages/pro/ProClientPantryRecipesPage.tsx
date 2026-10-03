@@ -16,7 +16,7 @@ import {
   RefreshCw, ShoppingCart, ChefHat, Trophy, Target, PenLine, Sparkles
 } from "lucide-react";
 import ProRecipeEditor, { type RecipeData } from "@/components/ProRecipeEditor";
-import { getCoarseExpiryStatus, isExpiringSoon } from "@/lib/expiry-status";
+import { getCoarseExpiryStatus, isExpired, isExpiringSoon } from "@/lib/expiry-status";
 
 const MEAL_LABELS: Record<string, string> = {
   colazione: "☀️ Colazione",
@@ -217,13 +217,7 @@ const ProClientPantryRecipesPage = () => {
         setMealTarget(mt || null);
       }
 
-      const now = new Date();
-      const ids = new Set<string>();
-      loadedItems.forEach((i) => {
-        const expired = i.expiry_date && new Date(i.expiry_date) < now;
-        if (!expired) ids.add(i.id);
-      });
-      setSelectedIds(ids);
+      setSelectedIds(new Set(loadedItems.filter((i) => !isExpired(i.expiry_date)).map((i) => i.id)));
       setLoading(false);
     };
     load();

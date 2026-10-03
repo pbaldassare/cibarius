@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   compareByExpiry,
   daysUntilExpiry,
+  formatExpiryDate,
   getCoarseExpiryStatus,
   getExpiryBadgeLabel,
   getExpiryLabel,
@@ -86,6 +87,24 @@ describe("getCoarseExpiryStatus", () => {
     expect(getCoarseExpiryStatus("2026-10-07", now)).toBe("ok");
     expect(getCoarseExpiryStatus("2026-10-02", now)).toBe("expired");
     expect(getCoarseExpiryStatus(null, now)).toBe("nodate");
+  });
+});
+
+describe("isExpired", () => {
+  it("non considera scaduto quello che scade oggi", () => {
+    // Confrontare la data con l'ora corrente, come si faceva nella selezione
+    // degli ingredienti, escludeva dalle ricette il prodotto da usare per primo.
+    expect(isExpired("2026-10-03", now)).toBe(false);
+    expect(isExpired("2026-10-02", now)).toBe(true);
+    expect(isExpired(null, now)).toBe(false);
+  });
+});
+
+describe("formatExpiryDate", () => {
+  it("stampa il giorno scritto a database", () => {
+    expect(formatExpiryDate("2026-10-03")).toBe("03/10/2026");
+    expect(formatExpiryDate("2026-10-03", { day: "2-digit", month: "2-digit", year: "2-digit" })).toBe("03/10/26");
+    expect(formatExpiryDate(null)).toBe("");
   });
 });
 

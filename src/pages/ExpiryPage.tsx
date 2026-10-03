@@ -15,7 +15,7 @@ import {
   Plus, ChefHat, CheckSquare, Flame, Refrigerator, Snowflake, Home,
 } from "lucide-react";
 import { getFoodEmoji } from "@/lib/food-images";
-import { getCoarseExpiryStatus } from "@/lib/expiry-status";
+import { formatExpiryDate, getCoarseExpiryStatus } from "@/lib/expiry-status";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
@@ -285,7 +285,7 @@ const ExpiryPage = () => {
           {item.quantity && <span>· x{item.quantity}{item.unit ? ` ${item.unit}` : ""}</span>}
           {item.expiry_date && (
             <span className="flex items-center gap-0.5">
-              · <Clock className="h-2.5 w-2.5" /> {new Date(item.expiry_date).toLocaleDateString("it-IT")}
+              · <Clock className="h-2.5 w-2.5" /> {formatExpiryDate(item.expiry_date)}
             </span>
           )}
         </div>
@@ -443,7 +443,7 @@ const ExpiryPage = () => {
                       {item.expiry_date && (
                         <span className="text-[12px] flex items-center gap-0.5 text-muted-foreground">
                           <Clock className="h-2.5 w-2.5" />
-                          {new Date(item.expiry_date).toLocaleDateString("it-IT")}
+                          {formatExpiryDate(item.expiry_date)}
                         </span>
                       )}
                       <span className="text-[11px] text-muted-foreground">

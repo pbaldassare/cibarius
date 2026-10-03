@@ -12,7 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { loadTemplates, getNutritionPer100g } from "@/lib/nutrition";
 import { deductPantryFromMeal } from "@/lib/pantry-deduction";
-import { getCoarseExpiryStatus, isExpiringSoon } from "@/lib/expiry-status";
+import { getCoarseExpiryStatus, isExpired, isExpiringSoon } from "@/lib/expiry-status";
 import {
   Loader2, Package, Flame, AlertTriangle,
   RefreshCw, ShoppingCart, ChefHat, Plus
@@ -178,13 +178,7 @@ const UserPantryRecipesPage = () => {
       const tmpl = await loadTemplates();
       setTemplates(tmpl);
 
-      const now = new Date();
-      const ids = new Set<string>();
-      loadedItems.forEach((i) => {
-        const expired = i.expiry_date && new Date(i.expiry_date) < now;
-        if (!expired) ids.add(i.id);
-      });
-      setSelectedIds(ids);
+      setSelectedIds(new Set(loadedItems.filter((i) => !isExpired(i.expiry_date)).map((i) => i.id)));
       setLoading(false);
     };
     load();

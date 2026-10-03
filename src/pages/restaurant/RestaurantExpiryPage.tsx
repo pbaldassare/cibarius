@@ -22,7 +22,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { getCoarseExpiryStatus } from "@/lib/expiry-status";
+import { formatExpiryDate, getCoarseExpiryStatus } from "@/lib/expiry-status";
 import { matchesSearch } from "@/lib/text-match";
 
 interface ExpiryItem {
@@ -409,7 +409,7 @@ const RestaurantExpiryPage = () => {
                       {item.expiry_date && (
                         <span className="text-[12px] flex items-center gap-0.5 text-muted-foreground">
                           <Clock className="h-2.5 w-2.5" />
-                          {new Date(item.expiry_date).toLocaleDateString("it-IT")}
+                          {formatExpiryDate(item.expiry_date)}
                         </span>
                       )}
                       <span className="text-[11px] text-muted-foreground">
@@ -476,7 +476,7 @@ const RestaurantExpiryPage = () => {
                   {actionSheet.quantity && <span>· x{actionSheet.quantity}{actionSheet.unit ? ` ${actionSheet.unit}` : ""}</span>}
                   {actionSheet.expiry_date && (
                     <span className="flex items-center gap-0.5">
-                      · <Clock className="h-2.5 w-2.5" /> {new Date(actionSheet.expiry_date).toLocaleDateString("it-IT")}
+                      · <Clock className="h-2.5 w-2.5" /> {formatExpiryDate(actionSheet.expiry_date)}
                     </span>
                   )}
                 </div>

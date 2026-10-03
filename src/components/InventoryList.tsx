@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, Search, Package, Loader2, Flame, ScanLine, Trash2, AlertCircle, Clock, Home, Refrigerator, Snowflake } from "lucide-react";
 import { getFoodEmoji } from "@/lib/food-images";
 import { findSimilarProducts, type SimilarProduct } from "@/lib/product-dedup";
-import { getCoarseExpiryStatus, type CoarseExpiryStatus } from "@/lib/expiry-status";
+import { formatExpiryDate, getCoarseExpiryStatus, type CoarseExpiryStatus } from "@/lib/expiry-status";
 import DuplicateProductDialog from "@/components/DuplicateProductDialog";
 import EmptyState from "@/components/EmptyState";
 import ListSkeleton from "@/components/ListSkeleton";
@@ -551,7 +551,7 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
                       )}
                       {item.expiry_date && (
                         <span className="text-[10px] text-muted-foreground">
-                          Scad: {new Date(item.expiry_date).toLocaleDateString("it-IT")}
+                          Scad: {formatExpiryDate(item.expiry_date)}
                         </span>
                       )}
                     </div>

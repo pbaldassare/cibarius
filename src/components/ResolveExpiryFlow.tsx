@@ -12,7 +12,7 @@ import {
   Thermometer, Snowflake, Archive, SkipForward,
 } from "lucide-react";
 import { getFoodEmoji } from "@/lib/food-images";
-import { getCoarseExpiryStatus } from "@/lib/expiry-status";
+import { formatExpiryDate, getCoarseExpiryStatus } from "@/lib/expiry-status";
 
 type ExpiryStatus = "expired" | "expiring" | "nodate";
 
@@ -479,7 +479,7 @@ const ResolveExpiryFlow = ({ open, onOpenChange, onComplete, restaurantId }: Pro
                     {/* Info line */}
                     <p className="text-[13px] text-muted-foreground mt-1.5">
                       {current.expiry_date && (
-                        <>Scade il {new Date(current.expiry_date).toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit", year: "2-digit" })}</>
+                        <>Scade il {formatExpiryDate(current.expiry_date, { day: "2-digit", month: "2-digit", year: "2-digit" })}</>
                       )}
                       {!current.expiry_date && "Nessuna data di scadenza"}
                       {" · "}
@@ -491,7 +491,7 @@ const ResolveExpiryFlow = ({ open, onOpenChange, onComplete, restaurantId }: Pro
                     {current.type === "preparation" && current.prepared_at && (
                       <p className="text-[12px] text-muted-foreground mt-1">
                         Preparato il {new Date(current.prepared_at).toLocaleDateString("it-IT")}
-                        {current.expiry_date && <> · Servibile fino al {new Date(current.expiry_date).toLocaleDateString("it-IT")}</>}
+                        {current.expiry_date && <> · Servibile fino al {formatExpiryDate(current.expiry_date)}</>}
                       </p>
                     )}
 

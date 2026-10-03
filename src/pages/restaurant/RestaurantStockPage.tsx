@@ -22,7 +22,7 @@ import { fetchAllRows } from "@/lib/supabase-paging";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { daysUntilExpiry } from "@/lib/expiry-status";
+import { daysUntilExpiry, formatExpiryDate } from "@/lib/expiry-status";
 import { matchesSearch } from "@/lib/text-match";
 
 interface Lot {
@@ -459,7 +459,7 @@ const RestaurantStockPage = () => {
                         </div>
                         <p className="text-muted-foreground">
                           {l.storage_type}
-                          {l.expiry_date ? ` · scade ${new Date(l.expiry_date).toLocaleDateString("it-IT")}` : " · senza scadenza"}
+                          {l.expiry_date ? ` · scade ${formatExpiryDate(l.expiry_date)}` : " · senza scadenza"}
                         </p>
                         <Button
                           size="sm"
