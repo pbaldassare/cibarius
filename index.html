@@ -65,6 +65,17 @@
       <p>Per usare l'applicazione serve attivare JavaScript.</p>
     </noscript>
     <div id="root"></div>
+    <script>
+      // Chrome emette beforeinstallprompt appena la pagina e' pronta, spesso
+      // prima che React abbia montato il listener: l'evento andrebbe perso e
+      // il pulsante "Installa l'app" non si attiverebbe mai. Qui viene messo
+      // da parte subito, e l'app lo ritrova su window all'avvio.
+      window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault();
+        window.__cibariusInstallPrompt = e;
+        window.dispatchEvent(new Event('cibarius:installprompt'));
+      });
+    </script>
     <script type="module" src="/src/main.tsx"></script>
     <script>
       if ('serviceWorker' in navigator) {
