@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, useRef, ReactNode } from "react";
+import { USER_HOME } from "@/lib/routes";
 
 export type TourActionType = "navigate" | "open-add-food" | "close-add-food" | "scroll" | "wait";
 
@@ -45,30 +46,30 @@ export const useTour = () => {
 
 /* ═══════════════ USER TOUR ═══════════════ */
 export const USER_TOUR_STEPS: TourStep[] = [
-  { selector: "home-greeting", title: "Benvenuto su Cibarius! 🎉", description: "Questa è la tua home. Qui trovi scadenze, dispensa e suggerimenti anti-spreco a colpo d'occhio.", page: "/" },
-  { selector: "home-search", title: "Cerca prodotti 🔍", description: "Cerca rapidamente tra tutti i tuoi prodotti in dispensa, frigo o congelatore.", page: "/" },
-  { selector: "home-expiry", title: "Attenzione oggi ⚠️", description: "Qui vedi i prodotti in scadenza o già scaduti. Non sprecare nulla! Puoi gestirli direttamente da qui.", page: "/" },
-  { selector: "home-action-scan", title: "Scansiona barcode 📷", description: "Scansiona il barcode di un prodotto per aggiungerlo automaticamente con tutte le info nutrizionali.", page: "/" },
-  { selector: "home-action-add", title: "Aggiungi manualmente ➕", description: "Aggiungi un prodotto manualmente, con foto AI, o cercandolo nel database.", page: "/" },
-  { selector: "home-action-fridge", title: "In scadenza ⏳", description: "Apri le ricette anti-spreco già filtrate sugli ingredienti che scadono presto.", page: "/" },
-  { selector: "home-action-suggest", title: "Ricette 🍳", description: "Cucina con quello che hai: le ricette con ingredienti in scadenza vengono mostrate per prime.", page: "/" },
-  { selector: "home-fab", title: "Aggiungi velocemente ➕", description: "Premi questo pulsante in qualsiasi momento per aggiungere un nuovo prodotto. Apriamolo insieme!", page: "/", action: { type: "wait", delay: 300 } },
-  { selector: "home-fab", title: "Apriamo il modale! 📦", description: "Ora apro il modale per mostrarti tutte le opzioni disponibili per aggiungere prodotti.", page: "/", action: { type: "open-add-food", delay: 600 } },
+  { selector: "home-greeting", title: "Benvenuto su Cibarius! 🎉", description: "Questa è la tua home. Qui trovi scadenze, dispensa e suggerimenti anti-spreco a colpo d'occhio.", page: USER_HOME },
+  { selector: "home-search", title: "Cerca prodotti 🔍", description: "Cerca rapidamente tra tutti i tuoi prodotti in dispensa, frigo o congelatore.", page: USER_HOME },
+  { selector: "home-expiry", title: "Attenzione oggi ⚠️", description: "Qui vedi i prodotti in scadenza o già scaduti. Non sprecare nulla! Puoi gestirli direttamente da qui.", page: USER_HOME },
+  { selector: "home-action-scan", title: "Scansiona barcode 📷", description: "Scansiona il barcode di un prodotto per aggiungerlo automaticamente con tutte le info nutrizionali.", page: USER_HOME },
+  { selector: "home-action-add", title: "Aggiungi manualmente ➕", description: "Aggiungi un prodotto manualmente, con foto AI, o cercandolo nel database.", page: USER_HOME },
+  { selector: "home-action-fridge", title: "In scadenza ⏳", description: "Apri le ricette anti-spreco già filtrate sugli ingredienti che scadono presto.", page: USER_HOME },
+  { selector: "home-action-suggest", title: "Ricette 🍳", description: "Cucina con quello che hai: le ricette con ingredienti in scadenza vengono mostrate per prime.", page: USER_HOME },
+  { selector: "home-fab", title: "Aggiungi velocemente ➕", description: "Premi questo pulsante in qualsiasi momento per aggiungere un nuovo prodotto. Apriamolo insieme!", page: USER_HOME, action: { type: "wait", delay: 300 } },
+  { selector: "home-fab", title: "Apriamo il modale! 📦", description: "Ora apro il modale per mostrarti tutte le opzioni disponibili per aggiungere prodotti.", page: USER_HOME, action: { type: "open-add-food", delay: 600 } },
   { selector: "add-photo-ai", title: "📸 Foto AI — Consigliato!", description: "Scatta 1-5 foto del prodotto e l'intelligenza artificiale legge automaticamente nome, barcode, valori nutrizionali e scadenza." },
   { selector: "add-receipt", title: "📋 Scontrino", description: "Fotografa lo scontrino della spesa o scansiona il QR code: tutti i prodotti vengono aggiunti in automatico con le scadenze stimate." },
   { selector: "add-scan", title: "🔍 Scansiona barcode", description: "Inquadra il barcode con la fotocamera per trovare il prodotto nel database con tutte le info nutrizionali." },
   { selector: "add-search", title: "🔎 Cerca prodotto", description: "Cerca per nome tra migliaia di prodotti nel database. Trovi prodotti italiani e internazionali." },
   { selector: "add-manual", title: "⌨️ Inserisci manualmente", description: "Se il prodotto non si trova, puoi inserirlo a mano con nome e valori nutrizionali." },
   { selector: "add-close-tour", title: "Chiudiamo il modale ✓", description: "Perfetto! Ora conosci tutti i modi per aggiungere prodotti. Chiudiamo e continuiamo il tour.", action: { type: "close-add-food", delay: 400 } },
-  { selector: "home-pantry", title: "La tua dispensa 🏠", description: "Panoramica completa di tutti i tuoi prodotti: quanti ne hai, quanti in scadenza, quanti quasi finiti.", page: "/", action: { type: "scroll", target: "home-pantry" } },
-  { selector: "home-recipes", title: "Ricette anti-spreco 🍳", description: "Ricette suggerite automaticamente in base a ciò che hai in casa. Cucina senza sprecare!", page: "/", action: { type: "scroll", target: "home-recipes" } },
-  { selector: "nav-expiry", title: "Scadenze 📅", description: "Vai alla lista completa delle scadenze. Filtra per stato, tipo di conservazione e gestisci tutto.", page: "/" },
-  { selector: "nav-recipes", title: "Ricette anti-spreco 🍳", description: "Trova cosa cucinare con gli ingredienti che hai, soprattutto quelli in scadenza.", page: "/" },
-  { selector: "nav-profile", title: "Profilo ⚙️", description: "Impostazioni, notifiche scadenze e assistenza.", page: "/" },
+  { selector: "home-pantry", title: "La tua dispensa 🏠", description: "Panoramica completa di tutti i tuoi prodotti: quanti ne hai, quanti in scadenza, quanti quasi finiti.", page: USER_HOME, action: { type: "scroll", target: "home-pantry" } },
+  { selector: "home-recipes", title: "Ricette anti-spreco 🍳", description: "Ricette suggerite automaticamente in base a ciò che hai in casa. Cucina senza sprecare!", page: USER_HOME, action: { type: "scroll", target: "home-recipes" } },
+  { selector: "nav-expiry", title: "Scadenze 📅", description: "Vai alla lista completa delle scadenze. Filtra per stato, tipo di conservazione e gestisci tutto.", page: USER_HOME },
+  { selector: "nav-recipes", title: "Ricette anti-spreco 🍳", description: "Trova cosa cucinare con gli ingredienti che hai, soprattutto quelli in scadenza.", page: USER_HOME },
+  { selector: "nav-profile", title: "Profilo ⚙️", description: "Impostazioni, notifiche scadenze e assistenza.", page: USER_HOME },
   { selector: "expiry-page-header", title: "Pagina Scadenze 📅", description: "Qui puoi filtrare per scaduti/in scadenza, per tipo di conservazione (frigo, freezer, dispensa), cercare e gestire tutti i prodotti.", page: "/expiry", action: { type: "navigate", target: "/expiry", delay: 500 } },
   { selector: "profile-page-header", title: "Il tuo Profilo ⚙️", description: "Modifica nome, foto, gestisci le notifiche email e accedi al supporto. Qui puoi anche rivedere questo tour!", page: "/profile", action: { type: "navigate", target: "/profile", delay: 500 } },
-  { selector: "nav-profile", title: "Condividi Cibarius con gli amici 🤝", description: "Ti piace Cibarius? Dal profilo puoi condividere l'app con amici e famiglia!", page: "/", action: { type: "navigate", target: "/", delay: 400 } },
-  { selector: "home-greeting", title: "Grazie per la tua attenzione! 🎊", description: "Ora conosci le funzionalità di Cibarius. Inizia aggiungendo i tuoi primi prodotti e riduci gli sprechi. Buon appetito! 🍽️", page: "/", action: { type: "navigate", target: "/", delay: 400 } },
+  { selector: "nav-profile", title: "Condividi Cibarius con gli amici 🤝", description: "Ti piace Cibarius? Dal profilo puoi condividere l'app con amici e famiglia!", page: USER_HOME, action: { type: "navigate", target: USER_HOME, delay: 400 } },
+  { selector: "home-greeting", title: "Grazie per la tua attenzione! 🎊", description: "Ora conosci le funzionalità di Cibarius. Inizia aggiungendo i tuoi primi prodotti e riduci gli sprechi. Buon appetito! 🍽️", page: USER_HOME, action: { type: "navigate", target: USER_HOME, delay: 400 } },
 ];
 
 /* ═══════════════ RESTAURANT TOUR ═══════════════ */

@@ -1,17 +1,18 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { Home, AlertTriangle, ChefHat, User, LucideIcon } from "lucide-react";
+import { USER_HOME } from "@/lib/routes";
 
 interface TabItem { to: string; icon: LucideIcon; label: string }
 
 const tabs: TabItem[] = [
-  { to: "/", icon: Home, label: "Home" },
+  { to: USER_HOME, icon: Home, label: "Home" },
   { to: "/expiry", icon: AlertTriangle, label: "Scadenze" },
   { to: "/anti-waste", icon: ChefHat, label: "Ricette" },
   { to: "/profile", icon: User, label: "Profilo" },
 ];
 
 const tourIds: Record<string, string> = {
-  "/": "nav-home",
+  [USER_HOME]: "nav-home",
   "/expiry": "nav-expiry",
   "/anti-waste": "nav-recipes",
   "/profile": "nav-profile",

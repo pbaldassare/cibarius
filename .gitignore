@@ -30,3 +30,6 @@ dist-ssr
 
 # Artefatti della CLI Supabase
 supabase/.temp
+
+# Cartella temporanea della generazione statica
+.ssg

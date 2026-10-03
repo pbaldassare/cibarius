@@ -1,6 +1,7 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { useRole } from "@/hooks/useRole";
 import { RESTAURANT_TABS } from "@/lib/restaurant-tabs";
+import { USER_HOME } from "@/lib/routes";
 import {
   Home, User, UtensilsCrossed,
   BookOpen, LayoutDashboard, Users, FileText,
@@ -17,7 +18,7 @@ interface TabItem {
 
 const tabsByRole: Record<string, TabItem[]> = {
   user: [
-    { to: "/", icon: Home, label: "Home", tourId: "nav-home" },
+    { to: USER_HOME, icon: Home, label: "Home", tourId: "nav-home" },
     { to: "/expiry", icon: Clock, label: "Scadenze", tourId: "nav-expiry" },
     { to: "/diet", icon: ClipboardList, label: "Piano", tourId: "nav-plan" },
     { to: "/meals", icon: UtensilsCrossed, label: "Pasti", tourId: "nav-meals" },

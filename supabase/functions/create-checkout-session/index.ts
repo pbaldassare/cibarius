@@ -144,8 +144,8 @@ Deno.serve(async (req) => {
       customer: customerId,
       mode: "subscription",
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: success_url || `${req.headers.get("origin") || "https://simple-blue-frame.lovable.app"}/subscription?success=true`,
-      cancel_url: cancel_url || `${req.headers.get("origin") || "https://simple-blue-frame.lovable.app"}/subscription?cancelled=true`,
+      success_url: success_url || `${req.headers.get("origin") || "https://cibarius.online"}/subscription?success=true`,
+      cancel_url: cancel_url || `${req.headers.get("origin") || "https://cibarius.online"}/subscription?cancelled=true`,
       metadata: {
         supabase_user_id: user.id,
         plan_id: plan.id,

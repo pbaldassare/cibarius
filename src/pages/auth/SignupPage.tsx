@@ -12,6 +12,7 @@ import { Loader2, UserPlus, Eye, EyeOff, User, UtensilsCrossed, Stethoscope, Arr
 import cibariusLogo from "@/assets/cibarius-logo.png";
 import AuthFeatureCarousel from "@/components/AuthFeatureCarousel";
 import ReferralBadge from "@/components/ReferralBadge";
+import { USER_HOME } from "@/lib/routes";
 
 
 type AccountType = "user" | "restaurant_owner" | "professional";
@@ -75,7 +76,7 @@ const SignupPage = () => {
     );
   }
 
-  if (session) return <Navigate to="/" replace />;
+  if (session) return <Navigate to={USER_HOME} replace />;
 
   const totalSteps = accountType === "user" ? 2 : 3;
 
