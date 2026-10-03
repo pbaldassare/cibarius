@@ -1,15 +1,27 @@
-const CACHE_NAME = 'cibarius-v1';
+// Cambiare versione a ogni modifica degli asset precaricati: l'activate
+// cancella le cache con nome diverso, altrimenti chi ha gia' installato l'app
+// continuerebbe a vedere le icone e il manifesto vecchi (serviti cache-first).
+const CACHE_NAME = 'cibarius-v2';
 const STATIC_ASSETS = [
   '/',
+  '/app',
   '/offline.html',
   '/manifest.json',
   '/favicon.ico',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
 ];
 
-// Install: pre-cache static shell
+// Install: pre-cache static shell.
+// Un `addAll` fallisce in blocco se anche un solo file non risponde, e con lui
+// fallisce l'installazione del service worker. Qui ogni risorsa va per conto
+// suo: se l'hosting non ha il fallback SPA su /app, il resto si installa lo
+// stesso.
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
+    caches.open(CACHE_NAME).then((cache) =>
+      Promise.all(STATIC_ASSETS.map((url) => cache.add(url).catch(() => {})))
+    )
   );
   self.skipWaiting();
 });

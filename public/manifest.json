@@ -1,12 +1,18 @@
 {
-  "name": "Cibarius",
+  "id": "/",
+  "name": "Cibarius — Scadenze, dispensa e HACCP",
   "short_name": "Cibarius",
   "description": "Gestione intelligente di dispensa, pasti e ricette",
-  "start_url": "/",
+  "lang": "it",
+  "dir": "ltr",
+  "start_url": "/app",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "background_color": "#0B7DBE",
   "theme_color": "#0B7DBE",
   "orientation": "portrait-primary",
+  "categories": ["food", "lifestyle", "productivity"],
   "icons": [
     {
       "src": "/icons/icon-192.png",
@@ -21,10 +27,33 @@
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-192.png",
-      "sizes": "192x192",
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Scadenze",
+      "short_name": "Scadenze",
+      "description": "Cosa sta per scadere",
+      "url": "/expiry",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Scansiona un prodotto",
+      "short_name": "Scansiona",
+      "description": "Aggiungi un alimento dal codice a barre",
+      "url": "/scan",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Lista della spesa",
+      "short_name": "Spesa",
+      "description": "Cosa manca in dispensa",
+      "url": "/shopping-list",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ]
 }
