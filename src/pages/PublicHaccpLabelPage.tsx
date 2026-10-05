@@ -70,6 +70,9 @@ const PublicHaccpLabelPage = () => {
 
   const buildPdf = async (): Promise<jsPDF | null> => {
     if (!pdfRef.current) return null;
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    });
     return captureElementToPdf(pdfRef.current, pdfFilename());
   };
 
@@ -117,8 +120,14 @@ const PublicHaccpLabelPage = () => {
           <DialogHeader className="p-4 border-b">
             <DialogTitle className="flex items-center gap-2"><Eye className="h-4 w-4" /> Anteprima PDF — {label.preparation_name}</DialogTitle>
           </DialogHeader>
-          <div className="flex-1 bg-muted overflow-hidden">
-            {previewUrl && <iframe src={previewUrl} title="Anteprima PDF" className="w-full h-full border-0" />}
+          <div className="flex-1 min-h-0 bg-white overflow-hidden">
+            {previewUrl && (
+              <iframe
+                src={`${previewUrl}#view=FitH`}
+                title="Anteprima PDF"
+                className="w-full h-full min-h-[480px] border-0 bg-white"
+              />
+            )}
           </div>
           <DialogFooter className="p-4 border-t flex-row justify-end gap-2">
             <Button variant="outline" onClick={closePreview}>Annulla</Button>
@@ -128,7 +137,8 @@ const PublicHaccpLabelPage = () => {
       </Dialog>
       <div
         ref={pdfRef}
-        className="fixed top-0 left-[-10000px] w-[672px] pointer-events-none"
+        data-haccp-pdf-capture
+        className="fixed top-0 left-0 -z-50 w-[672px] opacity-0 pointer-events-none overflow-visible"
         aria-hidden
       >
         <HaccpLabelPdfView
