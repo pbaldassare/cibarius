@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
+import { formatExpiryDate } from "@/lib/format-date";
 import {
   compareByExpiry,
   daysUntilExpiry,
-  formatExpiryDate,
   getCoarseExpiryStatus,
   getExpiryBadgeLabel,
   getExpiryLabel,

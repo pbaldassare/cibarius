@@ -13,7 +13,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useDebounce } from "@/hooks/useDebounce";
-import { compareByExpiry, formatExpiryDate, getCoarseExpiryStatus } from "@/lib/expiry-status";
+import { searchFoodProgressive, type FoodSearchResult } from "@/lib/search-food";
+import { compareByExpiry, getCoarseExpiryStatus } from "@/lib/expiry-status";
+import { formatDisplayDate, formatExpiryDate } from "@/lib/format-date";
+import { DateInputWithHint } from "@/components/DateInputWithHint";
 import { matchesSearch } from "@/lib/text-match";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
@@ -40,6 +43,7 @@ interface Preparation {
 interface PrepIngredient {
   id: string;
   custom_name: string | null;
+  product_id: string | null;
   quantity: number | null;
   unit: string | null;
   product: { name: string } | null;
@@ -47,7 +51,7 @@ interface PrepIngredient {
 
 interface PrepAllergen {
   id: string;
-  allergen: { name: string; code: string };
+  allergen: { name: string; code: string } | null;
 }
 
 interface Allergen {
@@ -141,10 +145,15 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
   const [useByManuallySet, setUseByManuallySet] = useState(false);
 
   // Ingredients
-  const [ingredients, setIngredients] = useState<{ name: string; quantity: string; unit: string }[]>([]);
+  const [ingredients, setIngredients] = useState<{ name: string; quantity: string; unit: string; product_id?: string | null }[]>([]);
   const [ingredientName, setIngredientName] = useState("");
   const [ingredientQty, setIngredientQty] = useState("");
   const [ingredientUnit, setIngredientUnit] = useState("g");
+  const [pendingProductId, setPendingProductId] = useState<string | null>(null);
+  const [catalogQuery, setCatalogQuery] = useState("");
+  const debouncedCatalogQuery = useDebounce(catalogQuery, 300);
+  const [catalogResults, setCatalogResults] = useState<FoodSearchResult[]>([]);
+  const [catalogSearching, setCatalogSearching] = useState(false);
 
   // Allergens
   const [allergens, setAllergens] = useState<Allergen[]>([]);
@@ -163,57 +172,105 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
     }
   }, [formStorage, useByManuallySet, editingId]);
 
+  useEffect(() => {
+    if (debouncedCatalogQuery.trim().length < 2) {
+      setCatalogResults([]);
+      setCatalogSearching(false);
+      return;
+    }
+    setCatalogSearching(true);
+    const abort = searchFoodProgressive(debouncedCatalogQuery.trim(), (results, _phase, done) => {
+      setCatalogResults(results.slice(0, 8));
+      if (done) setCatalogSearching(false);
+    });
+    return abort;
+  }, [debouncedCatalogQuery]);
+
+  const HACCP_LABEL_SELECT_WITH_PORTIONS =
+    "id,preparation_name,expiration_date,production_date,conservation_type,quantity,unit,portions,internal_lot_code,notes,status,source_preparation_id";
+  const HACCP_LABEL_SELECT_LEGACY =
+    "id,preparation_name,expiration_date,production_date,conservation_type,quantity,unit,internal_lot_code,notes,status,source_preparation_id";
+
   const fetchItems = async () => {
-    if (!user) return;
-    let query = supabase.from("preparations").select("*").order("use_by_date", { ascending: true });
-    if (isRestaurant && restaurant) {
-      query = query.eq("restaurant_id", restaurant.id);
-    } else {
-      query = query.eq("owner_user_id", user.id);
+    if (!user) {
+      setLoading(false);
+      return;
     }
-    const { data } = await query;
-    let merged: Preparation[] = (data as unknown as Preparation[]) ?? [];
-
-    // Include HACCP preparation labels (restaurant only). Labels linked to a preparation REPLACE
-    // the legacy entry so the user opens the editable HACCP label (ingredients + documents).
-    if (isRestaurant && restaurant) {
-      const { data: labels } = await supabase
-        .from("haccp_preparation_labels")
-        .select("id,preparation_name,expiration_date,production_date,conservation_type,quantity,unit,internal_lot_code,notes,status,source_preparation_id")
-        .eq("restaurant_id", restaurant.id)
-        .neq("status", "cancelled")
-        .order("expiration_date", { ascending: true });
-      if (labels) {
-        const mapStorage = (c: string): string =>
-          c === "frigo" || c === "freezer" || c === "ambiente" ? c : "ambiente";
-        const linkedPrepIds = new Set(
-          labels.map((l: any) => l.source_preparation_id).filter(Boolean)
-        );
-        // Drop legacy preparations that already have an auto-generated HACCP label
-        merged = merged.filter((p) => !linkedPrepIds.has(p.id));
-        const haccpItems: Preparation[] = labels.map((l: any) => ({
-          id: `haccp:${l.id}`,
-          name: l.preparation_name,
-          description: l.notes ?? null,
-          prepared_at: l.production_date,
-          storage_type: mapStorage(l.conservation_type),
-          use_by_date: l.expiration_date,
-          portions: null,
-          notes: l.notes ?? null,
-          image_url: null,
-          label_code: l.internal_lot_code ?? null,
-        }));
-        merged = [...merged, ...haccpItems].sort(
-          (a, b) => compareByExpiry(a.use_by_date, b.use_by_date)
-        );
+    // useRestaurant può essere ancora null: restiamo sullo skeleton finché non arriva il ristorante
+    if (isRestaurant && !restaurant) {
+      return;
+    }
+    try {
+      let query = supabase.from("preparations").select("*").order("use_by_date", { ascending: true });
+      if (isRestaurant && restaurant) {
+        query = query.eq("restaurant_id", restaurant.id);
+      } else {
+        query = query.eq("owner_user_id", user.id);
       }
-    }
+      const { data, error: prepError } = await query;
+      if (prepError) {
+        console.error("preparations fetch:", prepError.message);
+        toast({ variant: "destructive", title: "Errore caricamento preparazioni", description: prepError.message });
+        setItems([]);
+        return;
+      }
+      let merged: Preparation[] = (data as unknown as Preparation[]) ?? [];
 
-    setItems(merged);
-    setLoading(false);
+      // Include HACCP preparation labels (restaurant only). Labels linked to a preparation REPLACE
+      // the legacy entry so the user opens the editable HACCP label (ingredients + documents).
+      if (isRestaurant && restaurant) {
+        let labelsRes = await supabase
+          .from("haccp_preparation_labels")
+          .select(HACCP_LABEL_SELECT_WITH_PORTIONS)
+          .eq("restaurant_id", restaurant.id)
+          .neq("status", "cancelled")
+          .order("expiration_date", { ascending: true });
+        if (labelsRes.error?.message?.includes("portions")) {
+          labelsRes = await supabase
+            .from("haccp_preparation_labels")
+            .select(HACCP_LABEL_SELECT_LEGACY)
+            .eq("restaurant_id", restaurant.id)
+            .neq("status", "cancelled")
+            .order("expiration_date", { ascending: true });
+        }
+        const labels = labelsRes.data;
+        if (labelsRes.error) {
+          console.error("haccp_preparation_labels fetch:", labelsRes.error.message);
+        } else if (labels) {
+          const mapStorage = (c: string | null): string =>
+            c === "frigo" || c === "freezer" || c === "ambiente" ? c : "ambiente";
+          const linkedPrepIds = new Set(
+            labels.map((l: { source_preparation_id: string | null }) => l.source_preparation_id).filter(Boolean)
+          );
+          merged = merged.filter((p) => !linkedPrepIds.has(p.id));
+          const haccpItems: Preparation[] = labels.map((l: Record<string, unknown>) => ({
+            id: `haccp:${l.id}`,
+            name: String(l.preparation_name ?? "Etichetta HACCP"),
+            description: (l.notes as string | null) ?? null,
+            prepared_at: (l.production_date as string) ?? new Date().toISOString(),
+            storage_type: mapStorage(l.conservation_type as string | null),
+            use_by_date: (l.expiration_date as string) ?? "",
+            portions: (l.portions as number | null | undefined) ?? null,
+            notes: (l.notes as string | null) ?? null,
+            image_url: null,
+            label_code: (l.internal_lot_code as string | null) ?? null,
+          }));
+          merged = [...merged, ...haccpItems].sort(
+            (a, b) => compareByExpiry(a.use_by_date, b.use_by_date)
+          );
+        }
+      }
+
+      setItems(merged);
+    } catch (err) {
+      console.error("fetchItems:", err);
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => { fetchItems(); }, [user, restaurant]);
+  useEffect(() => { fetchItems(); }, [user, restaurant, isRestaurant]);
 
   const filtered = useMemo(() => {
     let list = items;
@@ -237,10 +294,27 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
     return c;
   }, [statusFilter, storageTab]);
 
+  const pickCatalogResult = (result: FoodSearchResult) => {
+    setIngredientName(result.name);
+    setPendingProductId(result.local_product_id ?? null);
+    setCatalogQuery("");
+    setCatalogResults([]);
+  };
+
   const addIngredient = () => {
     if (!ingredientName.trim()) return;
-    setIngredients([...ingredients, { name: ingredientName.trim(), quantity: ingredientQty, unit: ingredientUnit }]);
-    setIngredientName(""); setIngredientQty(""); setIngredientUnit("g");
+    setIngredients([...ingredients, {
+      name: ingredientName.trim(),
+      quantity: ingredientQty,
+      unit: ingredientUnit,
+      product_id: pendingProductId,
+    }]);
+    setIngredientName("");
+    setIngredientQty("");
+    setIngredientUnit("g");
+    setPendingProductId(null);
+    setCatalogQuery("");
+    setCatalogResults([]);
   };
 
   const handleSave = async () => {
@@ -279,12 +353,20 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
         prepId = prep.id;
       }
 
+      if (isRestaurant && prepId) {
+        await supabase
+          .from("haccp_preparation_labels")
+          .update({ portions: parseInt(formPortions) || 1 })
+          .eq("source_preparation_id", prepId);
+      }
+
       // Save ingredients
       if (ingredients.length > 0) {
         await supabase.from("preparation_ingredients").insert(
           ingredients.map((ing) => ({
             preparation_id: prepId!,
-            custom_name: ing.name,
+            product_id: ing.product_id ?? null,
+            custom_name: ing.product_id ? null : ing.name,
             quantity: parseFloat(ing.quantity) || null,
             unit: ing.unit || null,
           }))
@@ -317,6 +399,7 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
     setFormName(""); setFormDesc(""); setFormStorage("frigo"); setFormUseBy("");
     setFormPortions("1"); setFormNotes(""); setIngredients([]);
     setIngredientName(""); setIngredientQty(""); setIngredientUnit("g");
+    setPendingProductId(null); setCatalogQuery(""); setCatalogResults([]);
     setSelectedAllergens([]); setEditingId(null);
     setUseByManuallySet(false);
   };
@@ -335,9 +418,12 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
       name: ing.product?.name ?? ing.custom_name ?? "",
       quantity: ing.quantity ? String(ing.quantity) : "",
       unit: ing.unit ?? "g",
+      product_id: ing.product_id ?? null,
     })));
     setSelectedAllergens(detailAllergens.map(a => {
-      const match = allergens.find(al => al.name === a.allergen.name);
+      const allergenName = a.allergen?.name;
+      if (!allergenName) return "";
+      const match = allergens.find(al => al.name === allergenName);
       return match?.id ?? "";
     }).filter(Boolean));
     setDetailOpen(false);
@@ -351,7 +437,7 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
     params.set("notes", detailPrep.notes ?? detailPrep.description ?? "");
     params.set("conservation", detailPrep.storage_type);
     params.set("expiration", detailPrep.use_by_date);
-    if (detailPrep.portions) params.set("quantity", String(detailPrep.portions));
+    if (detailPrep.portions) params.set("portions", String(detailPrep.portions));
     navigate(`/restaurant/haccp-labels/new?${params.toString()}`);
   };
 
@@ -367,7 +453,7 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
     setDetailOpen(true);
     setDetailLoading(true);
     const [ingRes, allRes] = await Promise.all([
-      supabase.from("preparation_ingredients").select("id, custom_name, quantity, unit, product:products(name)").eq("preparation_id", prep.id),
+      supabase.from("preparation_ingredients").select("id, custom_name, product_id, quantity, unit, product:products(name)").eq("preparation_id", prep.id),
       supabase.from("preparation_allergens").select("id, allergen:allergens(name, code)").eq("preparation_id", prep.id),
     ]);
     setDetailIngredients((ingRes.data ?? []) as unknown as PrepIngredient[]);
@@ -448,7 +534,7 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
           <div className="space-y-1.5">
             {filtered.map((item) => {
               const status = getStatus(item.use_by_date);
-              const cfg = statusCfg[status];
+              const cfg = statusCfg[status] ?? statusCfg.ok;
               return (
               <button key={item.id} onClick={() => {
                   if (item.id.startsWith("haccp:")) {
@@ -545,15 +631,16 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>Porzioni</Label>
-                <Input type="number" min="1" value={formPortions} onChange={(e) => setFormPortions(e.target.value)} />
+                <Label>Porzioni fatte</Label>
+                <Input type="number" min="1" step={1} value={formPortions} onChange={(e) => setFormPortions(e.target.value)} />
+                <p className="text-[11px] text-muted-foreground">Quante porzioni ottieni da questa preparazione (non è un peso; serve per lo scarico in magazzino).</p>
               </div>
             </div>
 
             {/* Use-by date with smart suggestion */}
             <div className="space-y-1.5">
               <Label>Usare/Servire entro *</Label>
-              <Input type="date" value={formUseBy} onChange={(e) => {
+              <DateInputWithHint value={formUseBy} onChange={(e) => {
                 setFormUseBy(e.target.value);
                 setUseByManuallySet(true);
               }} />
@@ -575,6 +662,9 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
             {/* Ingredients */}
             <div className="space-y-2">
               <Label>Ingredienti</Label>
+              <p className="text-[11px] text-muted-foreground">
+                Cerca nel catalogo Cibarius: non devi digitare tutto a mano. La quantità è quella usata per l&apos;intera preparazione.
+              </p>
               {ingredients.map((ing, i) => (
                 <div key={i} className="flex items-center gap-2 rounded-lg bg-muted p-2 text-sm">
                   <span className="flex-1">{ing.name} {ing.quantity ? `— ${ing.quantity} ${ing.unit}` : ""}</span>
@@ -583,16 +673,62 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
                   </button>
                 </div>
               ))}
+              <Input
+                className="w-full"
+                placeholder="Cerca nel catalogo (min. 2 lettere)…"
+                aria-label="Cerca ingrediente nel catalogo"
+                value={catalogQuery}
+                onChange={(e) => {
+                  setCatalogQuery(e.target.value);
+                  if (!e.target.value.trim()) {
+                    setPendingProductId(null);
+                  }
+                }}
+              />
+              {catalogSearching && catalogQuery.trim().length >= 2 && (
+                <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Ricerca nel catalogo…
+                </p>
+              )}
+              {catalogResults.length > 0 && (
+                <div className="max-h-36 overflow-y-auto space-y-1 rounded-lg border border-border p-2">
+                  {catalogResults.map((r, idx) => (
+                    <button
+                      key={`${r.name}-${idx}`}
+                      type="button"
+                      className="w-full text-left px-3 py-1.5 rounded hover:bg-secondary text-sm"
+                      onClick={() => pickCatalogResult(r)}
+                    >
+                      {r.name}{r.brand ? ` (${r.brand})` : ""}
+                      {r.local_product_id && <span className="text-[10px] text-muted-foreground ml-1">· catalogo</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="flex gap-2">
-                <Input className="flex-1" placeholder="Ingrediente" value={ingredientName} onChange={(e) => setIngredientName(e.target.value)} />
-                <Input className="w-16" placeholder="Qtà" value={ingredientQty} onChange={(e) => setIngredientQty(e.target.value)} />
+                <Input
+                  className="flex-1"
+                  placeholder={pendingProductId ? "Prodotto selezionato" : "Oppure nome libero"}
+                  value={ingredientName}
+                  onChange={(e) => {
+                    setIngredientName(e.target.value);
+                    setPendingProductId(null);
+                  }}
+                />
+                <Input
+                  className="w-20"
+                  placeholder="Qtà"
+                  aria-label="Quantità ingrediente per tutta la preparazione"
+                  value={ingredientQty}
+                  onChange={(e) => setIngredientQty(e.target.value)}
+                />
                 <Select value={ingredientUnit} onValueChange={setIngredientUnit}>
                   <SelectTrigger className="w-20"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {["g", "kg", "ml", "l", "pz"].map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                <Button size="sm" variant="outline" onClick={addIngredient}>
+                <Button size="sm" variant="outline" onClick={addIngredient} aria-label="Aggiungi ingrediente">
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
@@ -679,7 +815,7 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
         <SheetContent side="bottom" className="h-[80vh] rounded-t-2xl overflow-y-auto">
           {detailPrep && (() => {
             const status = getStatus(detailPrep.use_by_date);
-            const cfg = statusCfg[status];
+            const cfg = statusCfg[status] ?? statusCfg.ok;
             return (
               <>
                 <SheetHeader>
@@ -706,7 +842,7 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="rounded-xl bg-muted p-3">
                       <p className="text-[10px] font-medium text-muted-foreground">Preparato il</p>
-                      <p className="text-sm font-semibold">{new Date(detailPrep.prepared_at).toLocaleDateString("it-IT")}</p>
+                      <p className="text-sm font-semibold">{formatDisplayDate(detailPrep.prepared_at)}</p>
                     </div>
                     <div className="rounded-xl bg-muted p-3">
                       <p className="text-[10px] font-medium text-muted-foreground">Usare entro</p>
@@ -760,7 +896,7 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
                       <div className="flex flex-wrap gap-2">
                         {detailAllergens.map((a) => (
                           <span key={a.id} className="rounded-lg bg-[#FEF3C7] px-3 py-1.5 text-xs font-semibold" style={{ color: "#92400E" }}>
-                            {a.allergen.name}
+                            {a.allergen?.name ?? "Allergene"}
                           </span>
                         ))}
                       </div>

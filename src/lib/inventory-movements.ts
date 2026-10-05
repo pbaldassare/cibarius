@@ -140,10 +140,41 @@ export const consumeFromItem = async (
  * Stessa semantica dei lotti — la preparazione si elimina solo quando arriva a
  * zero. Senza questo, uno scarico parziale cancellerebbe l'intera teglia.
  */
+const consumePortionsStock = async (
+  availableRaw: number,
+  name: string,
+  restaurantId: string,
+  movementType: Extract<MovementType, "consumo" | "spreco">,
+  quantity: number | undefined,
+  meta: { unit?: string | null; lotNumber?: string | null; expiryDate?: string | null; notes: string },
+): Promise<{ error: string | null; remaining: number; requested: number; total: number }> => {
+  const available = Number(availableRaw ?? 0);
+  const total = available > 0 ? available : 1;
+  const asked = quantity != null && quantity > 0 ? Math.max(1, Math.round(quantity)) : total;
+  const requested = Math.min(asked, total);
+  const remaining = total - requested;
+
+  const { error: movErr } = await recordMovement({
+    restaurantId,
+    productName: name,
+    movementType,
+    quantity: requested,
+    unit: meta.unit ?? "porzioni",
+    lotNumber: meta.lotNumber,
+    expiryDate: meta.expiryDate,
+    notes: meta.notes,
+  });
+  if (movErr) return { error: movErr.message, remaining: total, requested: 0, total };
+
+  return { error: null, remaining, requested, total };
+};
+
 export const consumeFromPreparation = async (
   prep: {
     id: string;
     restaurant_id: string;
+    portions?: number | null;
+    /** Alias legacy usato da alcune schermate prima del campo portions. */
     quantity?: number | null;
     unit?: string | null;
     lot_number?: string | null;
@@ -153,31 +184,88 @@ export const consumeFromPreparation = async (
   movementType: Extract<MovementType, "consumo" | "spreco">,
   quantity?: number,
 ): Promise<{ error: string | null; remaining: number }> => {
-  const available = Number(prep.quantity ?? 0);
-  const total = available > 0 ? available : 1;
-  // `preparations.portions` e' un intero: una richiesta frazionaria verrebbe
-  // rifiutata dal database, quindi si scarica a porzioni intere (minimo una).
-  const asked = quantity != null && quantity > 0 ? Math.max(1, Math.round(quantity)) : total;
-  const requested = Math.min(asked, total);
-  const remaining = total - requested;
-
-  const { error: movErr } = await recordMovement({
-    restaurantId: prep.restaurant_id,
-    productName: name,
+  const stock = await consumePortionsStock(
+    Number(prep.portions ?? prep.quantity ?? 0),
+    name,
+    prep.restaurant_id,
     movementType,
-    quantity: requested,
-    unit: prep.unit ?? "porzioni",
-    lotNumber: prep.lot_number,
-    expiryDate: prep.expiry_date,
-    notes: "Preparazione",
-  });
-  if (movErr) return { error: movErr.message, remaining: total };
+    quantity,
+    {
+      unit: prep.unit ?? "porzioni",
+      lotNumber: prep.lot_number,
+      expiryDate: prep.expiry_date,
+      notes: "Preparazione",
+    },
+  );
+  if (stock.error) return { error: stock.error, remaining: stock.total };
 
-  const { error: stockErr } = remaining > 0
-    ? await supabase.from("preparations").update({ portions: remaining }).eq("id", prep.id)
+  const { error: stockErr } = stock.remaining > 0
+    ? await supabase.from("preparations").update({ portions: stock.remaining }).eq("id", prep.id)
     : await supabase.from("preparations").delete().eq("id", prep.id);
 
-  return { error: stockErr?.message ?? null, remaining };
+  if (!stockErr && stock.remaining === 0) {
+    await supabase
+      .from("haccp_preparation_labels")
+      .update({ portions: 0 })
+      .eq("source_preparation_id", prep.id);
+  } else if (!stockErr && stock.remaining > 0) {
+    await supabase
+      .from("haccp_preparation_labels")
+      .update({ portions: stock.remaining })
+      .eq("source_preparation_id", prep.id);
+  }
+
+  return { error: stockErr?.message ?? null, remaining: stock.remaining };
+};
+
+/** Scarica porzioni da un'etichetta HACCP e allinea la preparazione sorgente se presente. */
+export const consumeFromHaccpLabel = async (
+  label: {
+    id: string;
+    restaurant_id: string;
+    portions?: number | null;
+    source_preparation_id?: string | null;
+    internal_lot_code?: string | null;
+    expiration_date?: string | null;
+  },
+  name: string,
+  movementType: Extract<MovementType, "consumo" | "spreco">,
+  quantity?: number,
+): Promise<{ error: string | null; remaining: number }> => {
+  const stock = await consumePortionsStock(
+    Number(label.portions ?? 0),
+    name,
+    label.restaurant_id,
+    movementType,
+    quantity,
+    {
+      unit: "porzioni",
+      lotNumber: label.internal_lot_code,
+      expiryDate: label.expiration_date,
+      notes: "Etichetta HACCP",
+    },
+  );
+  if (stock.error) return { error: stock.error, remaining: stock.total };
+
+  const { error: labelErr } = await supabase
+    .from("haccp_preparation_labels")
+    .update({ portions: stock.remaining })
+    .eq("id", label.id);
+
+  if (labelErr) return { error: labelErr.message, remaining: stock.total };
+
+  if (label.source_preparation_id) {
+    if (stock.remaining > 0) {
+      await supabase
+        .from("preparations")
+        .update({ portions: stock.remaining })
+        .eq("id", label.source_preparation_id);
+    } else {
+      await supabase.from("preparations").delete().eq("id", label.source_preparation_id);
+    }
+  }
+
+  return { error: null, remaining: stock.remaining };
 };
 
 /** Consumo medio giornaliero e giorni residui stimati, per prodotto. */

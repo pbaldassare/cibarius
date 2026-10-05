@@ -16,6 +16,8 @@ import { recordMovement } from "@/lib/inventory-movements";
 import {
   loadProductIndex, resolveProduct, documentAlreadyImported, loadImportedDocumentIds,
 } from "@/lib/restaurant-products";
+import { formatDisplayDate } from "@/lib/format-date";
+import { DateInputWithHint } from "@/components/DateInputWithHint";
 
 interface ExtractedData {
   supplier_name?: string | null;
@@ -337,7 +339,7 @@ const RestaurantInvoicesPage = () => {
                       </p>
                       <div className="flex items-center gap-1.5">
                         <p className="text-xs text-muted-foreground">
-                          {doc.document_date ? new Date(doc.document_date).toLocaleDateString("it-IT") : "Senza data"}
+                          {doc.document_date ? formatDisplayDate(doc.document_date) : "Senza data"}
                         </p>
                         {doc.extracted_data && (
                           <span className="flex items-center gap-0.5 text-[10px] font-medium text-primary">
@@ -384,7 +386,7 @@ const RestaurantInvoicesPage = () => {
             </div>
             <div className="space-y-1.5">
               <Label>Data documento (opzionale — l'AI la rileverà)</Label>
-              <Input type="date" value={docDate} onChange={(e) => setDocDate(e.target.value)} />
+              <DateInputWithHint value={docDate} onChange={(e) => setDocDate(e.target.value)} />
             </div>
             <div className="space-y-1.5">
               <Label>File (PDF, JPG, PNG)</Label>
@@ -482,13 +484,13 @@ const RestaurantInvoicesPage = () => {
                         {ed.document_date && (
                           <div className="rounded-xl bg-muted p-3">
                             <p className="text-[10px] font-medium text-muted-foreground">Data</p>
-                            <p className="text-sm font-semibold">{new Date(ed.document_date).toLocaleDateString("it-IT")}</p>
+                            <p className="text-sm font-semibold">{formatDisplayDate(ed.document_date)}</p>
                           </div>
                         )}
                         {ed.delivery_date && (
                           <div className="rounded-xl bg-muted p-3">
                             <p className="text-[10px] font-medium text-muted-foreground">Consegna</p>
-                            <p className="text-sm font-semibold">{new Date(ed.delivery_date).toLocaleDateString("it-IT")}</p>
+                            <p className="text-sm font-semibold">{formatDisplayDate(ed.delivery_date)}</p>
                           </div>
                         )}
                         {ed.recipient_name && (
