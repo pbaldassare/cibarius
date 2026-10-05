@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRestaurant } from "@/hooks/useRestaurant";
 import {
   LayoutDashboard, Store, Users, FileText, LogOut, ArrowLeft, ChevronLeft,
-  ClipboardCheck, Settings2, Package, ShieldCheck, Thermometer,
+  ClipboardCheck, Settings2, Package, ShieldCheck, Thermometer, Plug,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import cibariusLogo from "@/assets/cibarius-logo.png";
@@ -14,6 +14,7 @@ const sidebarItems = [
   { to: "/restaurant-admin/haccp-control", icon: ShieldCheck, label: "Modalità Controllo" },
   { to: "/restaurant-admin/temperatures", icon: Thermometer, label: "Registro Temperature" },
   { to: "/restaurant-admin/settings", icon: Store, label: "Dati ristorante" },
+  { to: "/restaurant-admin/integrations", icon: Plug, label: "Integrazioni carico" },
   { to: "/restaurant/haccp/setup", icon: Settings2, label: "Configura HACCP" },
   { to: "/restaurant/haccp/history", icon: FileText, label: "Storico HACCP" },
   { to: "/restaurant-admin/staff", icon: Users, label: "Staff" },
