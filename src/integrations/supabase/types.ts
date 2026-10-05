@@ -1307,6 +1307,7 @@ export type Database = {
           notes: string | null
           operator_name: string | null
           operator_user_id: string | null
+          portions: number | null
           preparation_name: string
           production_date: string
           qr_token: string
@@ -1330,6 +1331,7 @@ export type Database = {
           notes?: string | null
           operator_name?: string | null
           operator_user_id?: string | null
+          portions?: number | null
           preparation_name: string
           production_date?: string
           qr_token?: string
@@ -1353,6 +1355,7 @@ export type Database = {
           notes?: string | null
           operator_name?: string | null
           operator_user_id?: string | null
+          portions?: number | null
           preparation_name?: string
           production_date?: string
           qr_token?: string
