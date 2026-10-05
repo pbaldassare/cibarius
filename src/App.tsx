@@ -165,7 +165,8 @@ const App = () => (
             <Route path="/auth/callback" element={<AuthCallbackPage />} />
             <Route path="/join/:code" element={<Navigate to={USER_HOME} replace />} />
             <Route path="/n/:slug" element={<Navigate to={USER_HOME} replace />} />
-            <Route path="/haccp/label/:token" element={<PublicHaccpLabelPage />} />
+            {/* Segmento jolly: il token e' base64 e puo' contenere barre. */}
+            <Route path="/haccp/label/*" element={<PublicHaccpLabelPage />} />
 
             {/* Protected routes */}
             <Route element={<ProtectedRoute />}>
