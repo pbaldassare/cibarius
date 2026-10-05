@@ -9,11 +9,15 @@ import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import type { jsPDF } from "jspdf";
 import { toast } from "sonner";
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+import { functionsUrl } from "@/lib/supabaseUrls";
 
 const PublicHaccpLabelPage = () => {
-  const { token } = useParams<{ token: string }>();
+  /*
+   * Il token e' base64 e puo' contenere barre, che spezzerebbero un parametro
+   * di rotta normale: la rotta usa quindi un segmento jolly e qui si rimette
+   * insieme tutto quello che segue /haccp/label/.
+   */
+  const token = useParams()["*"];
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -23,10 +27,14 @@ const PublicHaccpLabelPage = () => {
   const pdfRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!token) return;
+    if (!token) {
+      setError("Etichetta non indicata. Riprova a inquadrare il QR.");
+      setLoading(false);
+      return;
+    }
     (async () => {
       try {
-        const res = await fetch(`${SUPABASE_URL}/functions/v1/get-haccp-label?token=${encodeURIComponent(token)}`);
+        const res = await fetch(`${functionsUrl()}/get-haccp-label?token=${encodeURIComponent(token)}`);
         const json = await res.json();
         if (!res.ok) { setError(json.error || "Errore"); }
         else { setData(json); }

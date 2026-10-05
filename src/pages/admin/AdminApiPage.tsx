@@ -19,9 +19,7 @@ import {
 import { Key, Plus, Copy, Check, Trash2, Globe, ShieldCheck, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+import { functionsUrl } from "@/lib/supabaseUrls";
 
 const ENDPOINTS = [
   { method: "GET", path: "/products", description: "Lista prodotti con paginazione e filtri", scopes: ["read"] },
@@ -53,7 +51,7 @@ const AdminApiPage = () => {
   const [copied, setCopied] = useState(false);
   const [revokeId, setRevokeId] = useState<string | null>(null);
 
-  const baseUrl = `${SUPABASE_URL}/functions/v1`;
+  const baseUrl = functionsUrl();
 
   const fetchKeys = async () => {
     setLoading(true);
