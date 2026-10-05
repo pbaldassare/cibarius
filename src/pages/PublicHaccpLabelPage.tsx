@@ -9,6 +9,7 @@ import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import type { jsPDF } from "jspdf";
 import { toast } from "sonner";
+import HaccpPublicPdfDocument, { CONSERVATION_LABELS, formatHaccpDate } from "@/components/HaccpPublicPdfDocument";
 
 const SUPABASE_URL =
   import.meta.env.VITE_SUPABASE_URL || "https://dqhzopbjhxyhgcpedskl.supabase.co";
@@ -40,7 +41,8 @@ const PublicHaccpLabelPage = () => {
   if (error) return <div className="min-h-screen flex items-center justify-center p-4"><Card><CardContent className="p-8 text-center">{error}</CardContent></Card></div>;
   if (!data) return null;
 
-  const { label, restaurant, ingredients, documents, events = [] } = data;
+  const { label, restaurant, ingredients = [], documents = [], events = [] } = data;
+  const allergens = (label.allergens || []).filter(Boolean);
 
   const eventMeta = (action: string) => {
     switch (action) {
@@ -64,7 +66,6 @@ const PublicHaccpLabelPage = () => {
 
   const buildPdf = async (): Promise<jsPDF | null> => {
     if (!pdfRef.current) return null;
-    // html2canvas + jspdf pesano ~600 kB: caricali solo quando si genera il PDF
     const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
       import("html2canvas"),
       import("jspdf"),
@@ -74,12 +75,14 @@ const PublicHaccpLabelPage = () => {
       backgroundColor: "#ffffff",
       useCORS: true,
       logging: false,
+      width: 794,
+      windowWidth: 794,
     });
-    const imgData = canvas.toDataURL("image/jpeg", 0.92);
+    const imgData = canvas.toDataURL("image/jpeg", 0.95);
     const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
     const pageW = pdf.internal.pageSize.getWidth();
     const pageH = pdf.internal.pageSize.getHeight();
-    const margin = 10;
+    const margin = 8;
     const usableW = pageW - margin * 2;
     const imgH = (canvas.height * usableW) / canvas.width;
     let heightLeft = imgH;
@@ -101,6 +104,10 @@ const PublicHaccpLabelPage = () => {
   const previewPdf = async () => {
     setGenerating(true);
     try {
+      for (let i = 0; i < 20; i++) {
+        if (pdfRef.current?.querySelector("img[alt='QR tracciabilità']")) break;
+        await new Promise((r) => setTimeout(r, 100));
+      }
       const pdf = await buildPdf();
       if (!pdf) return;
       pdfDocRef.current = pdf;
@@ -151,7 +158,22 @@ const PublicHaccpLabelPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <div ref={pdfRef} className="space-y-4">
+
+      <div
+        ref={pdfRef}
+        className="print:block"
+        style={{ position: "absolute", left: -10000, top: 0, width: 794, background: "#ffffff" }}
+        aria-hidden
+      >
+        <HaccpPublicPdfDocument
+          label={label}
+          restaurant={restaurant}
+          ingredients={ingredients}
+          documents={documents}
+          events={events}
+        />
+      </div>
+
       <Card className="haccp-section print:shadow-none print:border-0">
         <CardContent className="p-6 space-y-3 print:p-2">
           <div className="flex items-center justify-between gap-2">
@@ -161,17 +183,36 @@ const PublicHaccpLabelPage = () => {
           {restaurant && (
             <p className="text-sm text-muted-foreground">{restaurant.name} {restaurant.address && `· ${restaurant.address}`}</p>
           )}
-          <div className="grid grid-cols-2 gap-2 text-sm pt-2">
-            <div><span className="text-muted-foreground">Lotto:</span> <b>{label.internal_lot_code}</b></div>
-            <div><span className="text-muted-foreground">Conserv:</span> <b className="capitalize">{label.conservation_type}</b></div>
-            <div><span className="text-muted-foreground">Produzione:</span> <b>{format(new Date(label.production_date), "dd MMM yyyy", { locale: it })}</b></div>
-            <div><span className="text-muted-foreground">Scadenza:</span> <b>{format(new Date(label.expiration_date), "dd MMM yyyy", { locale: it })}</b></div>
-            {label.quantity != null && <div><span className="text-muted-foreground">Qtà:</span> <b>{label.quantity} {label.unit}</b></div>}
-            {label.operator_name && <div><span className="text-muted-foreground">Operatore:</span> <b>{label.operator_name}</b></div>}
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm pt-2">
+            <div className="flex justify-between gap-3 border-b border-border/70 pb-1">
+              <span className="text-muted-foreground">Lotto</span>
+              <b>{label.internal_lot_code || "—"}</b>
+            </div>
+            <div className="flex justify-between gap-3 border-b border-border/70 pb-1">
+              <span className="text-muted-foreground">Conservazione</span>
+              <b>{CONSERVATION_LABELS[label.conservation_type] || label.conservation_type || "—"}</b>
+            </div>
+            <div className="flex justify-between gap-3 border-b border-border/70 pb-1">
+              <span className="text-muted-foreground">Produzione</span>
+              <b>{formatHaccpDate(label.production_date)}</b>
+            </div>
+            <div className="flex justify-between gap-3 border-b border-border/70 pb-1">
+              <span className="text-muted-foreground">Scadenza</span>
+              <b>{formatHaccpDate(label.expiration_date)}</b>
+            </div>
+            <div className="flex justify-between gap-3 border-b border-border/70 pb-1">
+              <span className="text-muted-foreground">Quantità</span>
+              <b>{label.quantity != null ? `${label.quantity} ${label.unit || ""}`.trim() : "—"}</b>
+            </div>
+            <div className="flex justify-between gap-3 border-b border-border/70 pb-1">
+              <span className="text-muted-foreground">Operatore</span>
+              <b>{label.operator_name || restaurant?.name || "—"}</b>
+            </div>
           </div>
-          {label.allergens?.length > 0 && (
-            <div className="pt-2 text-sm"><b>Allergeni:</b> {label.allergens.join(", ")}</div>
-          )}
+          <div className="pt-2 text-sm">
+            <b>Allergeni:</b>{" "}
+            {allergens.length > 0 ? allergens.join(", ") : "nessuno dichiarato"}
+          </div>
           {label.notes && <div className="text-sm text-muted-foreground">{label.notes}</div>}
           {label.cancel_reason && (
             <div className="text-sm text-destructive bg-destructive/10 rounded p-2">
@@ -181,9 +222,12 @@ const PublicHaccpLabelPage = () => {
         </CardContent>
       </Card>
 
-      {ingredients.length > 0 && (
-        <Card className="print:shadow-none print:border-0"><CardContent className="p-4 space-y-2 print:p-2">
-          <h2 className="haccp-section-header font-semibold">Tracciabilità ingredienti</h2>
+      <Card className="print:shadow-none print:border-0">
+        <CardContent className="p-4 space-y-2 print:p-2">
+          <h2 className="haccp-section-header font-semibold">Ingredienti</h2>
+          {ingredients.length === 0 && (
+            <p className="text-sm text-muted-foreground">Nessun ingrediente registrato su questa etichetta.</p>
+          )}
           {ingredients.map((i: any, idx: number) => (
             <div key={idx} className="haccp-row border-b border-border last:border-0 pb-2 text-sm">
               <div className="font-medium">{i.ingredient_name} {i.quantity_used && `· ${i.quantity_used} ${i.unit || ""}`}</div>
@@ -194,12 +238,15 @@ const PublicHaccpLabelPage = () => {
               </div>
             </div>
           ))}
-        </CardContent></Card>
-      )}
+        </CardContent>
+      </Card>
 
-      {documents.length > 0 && (
-        <Card className="print:shadow-none print:border-0"><CardContent className="p-4 space-y-2 print:p-2">
+      <Card className="print:shadow-none print:border-0">
+        <CardContent className="p-4 space-y-2 print:p-2">
           <h2 className="haccp-section-header font-semibold">Bolle / Documenti</h2>
+          {documents.length === 0 && (
+            <p className="text-sm text-muted-foreground">Nessun DDT / bolla collegato.</p>
+          )}
           {documents.map((d: any) => (
             <a key={d.id} href={d.file_url || d.photo_url} target="_blank" rel="noopener noreferrer"
               className="haccp-row flex items-center gap-2 border border-border rounded-lg p-2 hover:bg-muted">
@@ -210,8 +257,8 @@ const PublicHaccpLabelPage = () => {
               </div>
             </a>
           ))}
-        </CardContent></Card>
-      )}
+        </CardContent>
+      </Card>
 
       {events.length > 0 && (
         <Card className="print:shadow-none print:border-0">
@@ -241,7 +288,6 @@ const PublicHaccpLabelPage = () => {
       )}
 
       <p className="text-center text-xs text-muted-foreground py-4">Tracciabilità HACCP — Cibarius</p>
-      </div>
     </div>
   );
 };

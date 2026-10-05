@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
 
     const { data: label, error } = await supabase
       .from("haccp_preparation_labels")
-      .select("id, restaurant_id, preparation_name, quantity, unit, production_date, expiration_date, conservation_type, internal_lot_code, operator_name, notes, allergens, status, cancel_reason, finalized_at")
+      .select("id, restaurant_id, preparation_name, quantity, unit, production_date, expiration_date, conservation_type, internal_lot_code, operator_name, notes, allergens, status, cancel_reason, finalized_at, source_preparation_id, qr_token")
       .eq("qr_token", token)
       .maybeSingle();
 
@@ -37,11 +37,41 @@ Deno.serve(async (req) => {
     }
 
     const [{ data: rest }, { data: ingredients }, { data: pdocs }, { data: events }] = await Promise.all([
-      supabase.from("restaurants").select("name, address").eq("id", label.restaurant_id).maybeSingle(),
+      supabase.from("restaurants").select("name, address, phone").eq("id", label.restaurant_id).maybeSingle(),
       supabase.from("haccp_preparation_ingredients").select("ingredient_name, quantity_used, unit, source_lot_code, supplier_name, ingredient_expiration_date, origin_document_id").eq("preparation_label_id", label.id),
       supabase.from("haccp_preparation_documents").select("document_id").eq("preparation_label_id", label.id),
       supabase.from("haccp_label_audit_log").select("action, user_name, reason, metadata, created_at").eq("preparation_label_id", label.id).order("created_at", { ascending: true }),
     ]);
+
+    let resolvedIngredients = ingredients || [];
+    let resolvedAllergens: string[] = Array.isArray(label.allergens) ? label.allergens.filter(Boolean) : [];
+    if (label.source_preparation_id && (resolvedIngredients.length === 0 || resolvedAllergens.length === 0)) {
+      const [{ data: prepAllergens }, { data: prepIngredients }] = await Promise.all([
+        supabase
+          .from("preparation_allergens")
+          .select("allergens(name)")
+          .eq("preparation_id", label.source_preparation_id),
+        supabase
+          .from("preparation_ingredients")
+          .select("custom_name, quantity, unit, products(name)")
+          .eq("preparation_id", label.source_preparation_id),
+      ]);
+      if (resolvedAllergens.length === 0 && prepAllergens) {
+        resolvedAllergens = prepAllergens
+          .map((row: any) => row.allergens?.name)
+          .filter(Boolean);
+      }
+      if (resolvedIngredients.length === 0 && prepIngredients) {
+        resolvedIngredients = prepIngredients.map((row: any) => ({
+          ingredient_name: row.custom_name || row.products?.name || "Ingrediente",
+          quantity_used: row.quantity,
+          unit: row.unit,
+          source_lot_code: null,
+          supplier_name: null,
+          ingredient_expiration_date: null,
+        }));
+      }
+    }
 
     let documents: any[] = [];
     if (pdocs && pdocs.length > 0) {
@@ -61,9 +91,9 @@ Deno.serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        label: { ...label, computed_status: computedStatus },
+        label: { ...label, allergens: resolvedAllergens, computed_status: computedStatus },
         restaurant: rest,
-        ingredients: ingredients || [],
+        ingredients: resolvedIngredients,
         documents,
         events: events || [],
       }),

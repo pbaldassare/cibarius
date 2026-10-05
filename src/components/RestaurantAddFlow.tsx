@@ -268,6 +268,15 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
               }
             }
 
+            // Il trigger crea l'etichetta HACCP senza aspettare gli allergeni:
+            // li copiamo qui, sennò il PDF pubblico resta senza ALLERGENI.
+            if (item.allergens.length > 0) {
+              await supabase
+                .from("haccp_preparation_labels")
+                .update({ allergens: item.allergens })
+                .eq("source_preparation_id", prep.id);
+            }
+
             labels.push({
               id: prep.id,
               type: "preparation",
