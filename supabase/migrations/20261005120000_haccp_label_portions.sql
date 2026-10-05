@@ -5,28 +5,8 @@ ALTER TABLE public.haccp_preparation_labels
 COMMENT ON COLUMN public.haccp_preparation_labels.portions IS
   'Porzioni rimanenti da consumare (intero). Il peso totale resta in quantity + unit.';
 
--- Allinea alle preparazioni collegate
-UPDATE public.haccp_preparation_labels l
-SET portions = p.portions
-FROM public.preparations p
-WHERE l.source_preparation_id = p.id
-  AND l.portions IS NULL
-  AND p.portions IS NOT NULL;
-
--- Etichette create col trigger legacy: porzioni finivano in quantity con unità pz
-UPDATE public.haccp_preparation_labels
-SET portions = GREATEST(1, quantity::integer),
-    quantity = NULL,
-    unit = NULL
-WHERE portions IS NULL
-  AND quantity IS NOT NULL
-  AND COALESCE(unit, 'pz') IN ('pz', 'porz.', 'porzioni');
-
--- Bozze senza porzioni: default 1
-UPDATE public.haccp_preparation_labels
-SET portions = 1
-WHERE portions IS NULL
-  AND status <> 'cancelled';
+-- Backfill dati: vedi 20261005140000_haccp_label_portions_backfill_fix.sql
+-- (gli UPDATE qui fallivano su etichette finalized per protect_finalized_haccp_label)
 
 CREATE OR REPLACE FUNCTION public.auto_create_haccp_label_for_preparation()
 RETURNS trigger
