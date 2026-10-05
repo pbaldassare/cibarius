@@ -10,6 +10,7 @@ import { Loader2, Ticket, Copy, Check, Users, Banknote, Link2, QrCode, Share2, G
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import QRCode from "qrcode";
+import { publicShareUrl } from "@/lib/site";
 
 const ProCouponPage = () => {
   const { user } = useAuth();
@@ -26,8 +27,8 @@ const ProCouponPage = () => {
   const [profileId, setProfileId] = useState<string>("");
   const [qrPublicUrl, setQrPublicUrl] = useState<string>("");
 
-  const referralUrl = coupon ? `${window.location.origin}/join/${coupon.coupon_code}` : "";
-  const publicUrl = publicSlug ? `${window.location.origin}/n/${publicSlug}` : "";
+  const referralUrl = coupon ? publicShareUrl(`/join/${coupon.coupon_code}`) : "";
+  const publicUrl = publicSlug ? publicShareUrl(`/n/${publicSlug}`) : "";
 
   useEffect(() => {
     if (!user) return;

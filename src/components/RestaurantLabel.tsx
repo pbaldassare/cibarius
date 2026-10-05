@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
+import { publicShareUrl } from "@/lib/site";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Printer, LayoutGrid, Minus, Plus } from "lucide-react";
@@ -119,8 +120,9 @@ const labelCss = `
 const RestaurantLabel = ({ label, showActions = true }: { label: LabelData; showActions?: boolean }) => {
   const [qrDataUrl, setQrDataUrl] = useState<string>("");
 
-  const baseUrl = window.location.origin;
-  const qrUrl = `${baseUrl}/restaurant/item/${label.type === "product" ? "inv" : "prep"}-${label.id}`;
+  const qrUrl = publicShareUrl(
+    `/restaurant/item/${label.type === "product" ? "inv" : "prep"}-${label.id}`,
+  );
 
   useEffect(() => {
     QRCode.toDataURL(qrUrl, { width: 120, margin: 1 }).then(setQrDataUrl);

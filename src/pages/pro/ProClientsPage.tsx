@@ -12,6 +12,7 @@ import { Users, Plus, Copy, Loader2, UserX, Eye, Link2, ClipboardList, Activity,
 import ListSkeleton from "@/components/ListSkeleton";
 import EmptyState from "@/components/EmptyState";
 import ProLinkRequests from "@/components/ProLinkRequests";
+import { publicShareUrl } from "@/lib/site";
 
 interface ClientLink {
   id: string;
@@ -91,7 +92,7 @@ const ProClientsPage = () => {
     if (error) {
       toast({ variant: "destructive", title: "Errore", description: error.message });
     } else {
-      const url = `${window.location.origin}/invite?code=${code}`;
+      const url = publicShareUrl(`/invite?code=${code}`);
       await navigator.clipboard.writeText(code);
       toast({ title: "Invito creato e codice copiato!", description: `Codice: ${code}` });
       loadData();
@@ -104,7 +105,7 @@ const ProClientsPage = () => {
   };
 
   const copyInviteLink = (code: string) => {
-    const url = `${window.location.origin}/invite?code=${code}`;
+    const url = publicShareUrl(`/invite?code=${code}`);
     navigator.clipboard.writeText(url);
     toast({ title: "Link copiato!" });
   };

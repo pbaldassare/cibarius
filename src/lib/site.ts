@@ -113,3 +113,13 @@ export const pageByPath = (path: string): SitePage | undefined =>
 /** URL assoluto di una pagina, per canonici e sitemap. */
 export const absoluteUrl = (path: string): string =>
   path === "/" ? `${SITE_URL}/` : `${SITE_URL}${path}`;
+
+/**
+ * URL da mettere su QR, etichette e inviti.
+ *
+ * Deve funzionare da un altro dispositivo: in locale `window.location.origin`
+ * e' `http://localhost:5174`, e il telefono che inquadra il codice non
+ * raggiunge la macchina di sviluppo. Il dominio pubblico invece apre la
+ * stessa pagina sul sito in produzione (stesso progetto Supabase).
+ */
+export const publicShareUrl = (path: string): string => absoluteUrl(path);

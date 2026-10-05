@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Building2, Plus, Copy, Loader2, UserX, Link2 } from "lucide-react";
+import { publicShareUrl } from "@/lib/site";
 
 const SupplierRestaurantsPage = () => {
   const { user } = useAuth();
@@ -57,7 +58,7 @@ const SupplierRestaurantsPage = () => {
   };
 
   const copyLink = (code: string) => {
-    const url = `${window.location.origin}/supplier-invite?code=${code}`;
+    const url = publicShareUrl(`/supplier-invite?code=${code}`);
     navigator.clipboard.writeText(url);
     toast({ title: "Link copiato!" });
   };
