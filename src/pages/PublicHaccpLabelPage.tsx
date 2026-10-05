@@ -9,7 +9,9 @@ import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import type { jsPDF } from "jspdf";
 import { toast } from "sonner";
+import QRCode from "qrcode";
 import HaccpPublicPdfDocument, { CONSERVATION_LABELS, formatHaccpDate } from "@/components/HaccpPublicPdfDocument";
+import { publicShareUrl } from "@/lib/site";
 
 const SUPABASE_URL =
   import.meta.env.VITE_SUPABASE_URL || "https://dqhzopbjhxyhgcpedskl.supabase.co";
@@ -21,6 +23,7 @@ const PublicHaccpLabelPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState("");
   const pdfDocRef = useRef<jsPDF | null>(null);
   const pdfRef = useRef<HTMLDivElement>(null);
 
@@ -36,6 +39,16 @@ const PublicHaccpLabelPage = () => {
       finally { setLoading(false); }
     })();
   }, [token]);
+
+  useEffect(() => {
+    const qrToken = data?.label?.qr_token || token;
+    if (!qrToken) return;
+    QRCode.toDataURL(publicShareUrl(`/haccp/label/${qrToken}`), {
+      width: 220,
+      margin: 1,
+      color: { dark: "#111827", light: "#ffffff" },
+    }).then(setQrDataUrl).catch(() => setQrDataUrl(""));
+  }, [data, token]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   if (error) return <div className="min-h-screen flex items-center justify-center p-4"><Card><CardContent className="p-8 text-center">{error}</CardContent></Card></div>;
@@ -104,10 +117,6 @@ const PublicHaccpLabelPage = () => {
   const previewPdf = async () => {
     setGenerating(true);
     try {
-      for (let i = 0; i < 20; i++) {
-        if (pdfRef.current?.querySelector("img[alt='QR tracciabilità']")) break;
-        await new Promise((r) => setTimeout(r, 100));
-      }
       const pdf = await buildPdf();
       if (!pdf) return;
       pdfDocRef.current = pdf;
@@ -138,7 +147,7 @@ const PublicHaccpLabelPage = () => {
         <Button size="sm" variant="outline" onClick={() => window.print()} className="gap-2">
           <Printer className="h-4 w-4" /> Stampa
         </Button>
-        <Button size="sm" onClick={previewPdf} disabled={generating} className="gap-2">
+        <Button size="sm" onClick={previewPdf} disabled={generating || !qrDataUrl} className="gap-2">
           {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
           Anteprima PDF
         </Button>
@@ -171,6 +180,7 @@ const PublicHaccpLabelPage = () => {
           ingredients={ingredients}
           documents={documents}
           events={events}
+          qrDataUrl={qrDataUrl}
         />
       </div>
 

@@ -73,6 +73,7 @@ interface Props {
   ingredients?: HaccpPdfIngredient[];
   documents?: HaccpPdfDocument[];
   events?: HaccpPdfEvent[];
+  qrDataUrl?: string;
 }
 
 const EVENT_LABEL: Record<string, string> = {
@@ -131,18 +132,23 @@ const HaccpPublicPdfDocument = ({
   ingredients = [],
   documents = [],
   events = [],
+  qrDataUrl,
 }: Props) => {
-  const [qr, setQr] = useState("");
+  const [qr, setQr] = useState(qrDataUrl || "");
   const publicUrl = label.qr_token
     ? publicShareUrl(`/haccp/label/${label.qr_token}`)
     : "";
 
   useEffect(() => {
+    if (qrDataUrl) {
+      setQr(qrDataUrl);
+      return;
+    }
     if (!publicUrl) return;
     QRCode.toDataURL(publicUrl, { width: 220, margin: 1, color: { dark: "#111827", light: "#ffffff" } })
       .then(setQr)
       .catch(() => setQr(""));
-  }, [publicUrl]);
+  }, [publicUrl, qrDataUrl]);
 
   const allergens = (label.allergens || []).filter(Boolean);
   const qty =
