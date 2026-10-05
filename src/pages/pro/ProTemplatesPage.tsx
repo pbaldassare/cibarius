@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Trash2, Plus, Upload, Copy, FileText, Pencil } from "lucide-react";
+import { anonKey, functionsUrl } from "@/lib/supabaseUrls";
 
 const MEAL_LABELS: Record<string, string> = {
   colazione: "☀️ Colazione",
@@ -117,10 +118,10 @@ const ProTemplatesPage = () => {
       const formData = new FormData();
       formData.append("file", file);
       const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-diet-template`,
+        `${functionsUrl()}/extract-diet-template`,
         {
           method: "POST",
-          headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+          headers: { Authorization: `Bearer ${anonKey()}` },
           body: formData,
         }
       );
