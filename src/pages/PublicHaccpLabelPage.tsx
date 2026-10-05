@@ -10,7 +10,8 @@ import { it } from "date-fns/locale";
 import type { jsPDF } from "jspdf";
 import { toast } from "sonner";
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_URL =
+  import.meta.env.VITE_SUPABASE_URL || "https://dqhzopbjhxyhgcpedskl.supabase.co";
 
 const PublicHaccpLabelPage = () => {
   const { token } = useParams<{ token: string }>();
