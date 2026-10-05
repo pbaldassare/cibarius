@@ -199,7 +199,7 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
         ...item,
         itemType: itemTypeChoice,
         recipeIngredients: [],
-        netWeightG: null,
+        netWeightG: item.weight_g ?? null,
       }));
     if (items.length === 0) {
       toast({ variant: "destructive", title: "Seleziona almeno un prodotto" });
@@ -755,17 +755,17 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
                 </div>
               </div>
 
-              {/* Lot + Quantity */}
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Lotto</label>
+                <Input
+                  value={currentItem.lot_number || ""}
+                  onChange={(e) => updateEditItem("lot_number", e.target.value)}
+                  placeholder="N° lotto"
+                  className="mt-1"
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">Lotto</label>
-                  <Input
-                    value={currentItem.lot_number || ""}
-                    onChange={(e) => updateEditItem("lot_number", e.target.value)}
-                    placeholder="N° lotto"
-                    className="mt-1"
-                  />
-                </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground">
                     {currentItem.itemType === "preparation" ? "Porzioni" : "Quantità"}
@@ -784,30 +784,32 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
                     />
                   </div>
                 </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Peso netto totale (g)</label>
+                  <Input
+                    type="number"
+                    value={currentItem.netWeightG || ""}
+                    onChange={(e) => updateEditItem("netWeightG", e.target.value ? parseFloat(e.target.value) : null)}
+                    placeholder="Es: 2000"
+                    className="mt-1"
+                  />
+                </div>
               </div>
-
-              <div>
-                <label className="text-xs font-medium text-muted-foreground">Peso netto totale (g)</label>
-                <Input
-                  type="number"
-                  value={currentItem.netWeightG || ""}
-                  onChange={(e) => updateEditItem("netWeightG", e.target.value ? parseFloat(e.target.value) : null)}
-                  placeholder="Es: 2000"
-                  className="mt-1"
-                />
-                <p className="text-[11px] text-muted-foreground mt-1">
-                  Peso di tutta la produzione, non della singola porzione.
-                </p>
-                {portionWeightG(currentItem.netWeightG, currentItem.quantity) != null && (
-                  <p className="text-sm font-medium mt-1">
-                    Peso per {currentItem.itemType === "preparation" ? "porzione" : "unità"}:{" "}
+              <p className="text-[11px] text-muted-foreground -mt-1">
+                Il peso netto è di tutta la produzione, non della singola porzione.
+              </p>
+              {portionWeightG(currentItem.netWeightG, currentItem.quantity) != null && (
+                <div className="rounded-xl bg-primary/10 px-3 py-2">
+                  <p className="text-sm font-semibold text-foreground">
+                    Peso {currentItem.itemType === "preparation" ? "di una porzione" : "per unità"}:{" "}
                     {formatGrams(portionWeightG(currentItem.netWeightG, currentItem.quantity)!)}
-                    <span className="text-[11px] font-normal text-muted-foreground">
-                      {" "}({currentItem.netWeightG} g ÷ {currentItem.quantity} {currentItem.unit || "pz"})
-                    </span>
                   </p>
-                )}
-              </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Calcolato in automatico: {currentItem.netWeightG} g ÷ {currentItem.quantity}{" "}
+                    {currentItem.unit || "pz"}
+                  </p>
+                </div>
+              )}
 
               {currentItem.itemType === "preparation" ? (
                 <IngredientSearchList

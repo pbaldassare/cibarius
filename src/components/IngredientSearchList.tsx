@@ -3,25 +3,13 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useDebounce } from "@/hooks/useDebounce";
 import { Loader2, Plus, Search, Trash2 } from "lucide-react";
+import {
+  QUICK_INGREDIENTS,
+  type RecipeIngredient,
+} from "@/lib/recipe-ingredients";
 
-export interface RecipeIngredient {
-  key: string;
-  product_id: string | null;
-  pantry_item_id: string | null;
-  name: string;
-  quantity: string;
-  unit: string;
-  lot_number?: string | null;
-  expiry_date?: string | null;
-}
-
-export const recipeIngredientsLabel = (items: RecipeIngredient[]): string =>
-  items
-    .map((i) => {
-      const qty = i.quantity ? `${i.quantity} ${i.unit}`.trim() : "";
-      return qty ? `${i.name} (${qty})` : i.name;
-    })
-    .join(", ");
+export type { RecipeIngredient };
+export { recipeIngredientsLabel, QUICK_INGREDIENTS } from "@/lib/recipe-ingredients";
 
 interface SearchHit {
   key: string;
@@ -40,14 +28,48 @@ interface Props {
   onChange: (next: RecipeIngredient[]) => void;
 }
 
+const toHitFromPantry = (row: any): SearchHit | null => {
+  const prod = row.products;
+  const name = prod?.name as string | undefined;
+  if (!name) return null;
+  return {
+    key: `pantry-${row.id}`,
+    name,
+    source: "dispensa",
+    product_id: row.product_id,
+    pantry_item_id: row.id,
+    lot_number: row.lot_number,
+    expiry_date: row.expiry_date,
+    unit: row.unit || "g",
+  };
+};
+
 const IngredientSearchList = ({ restaurantId, value, onChange }: Props) => {
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<SearchHit[]>([]);
+  const [pantry, setPantry] = useState<SearchHit[]>([]);
   const [searching, setSearching] = useState(false);
   const debounced = useDebounce(query.trim(), 250);
 
   useEffect(() => {
-    if (debounced.length < 2) {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("inventory_items")
+        .select("id, lot_number, expiry_date, unit, product_id, products(id, name)")
+        .eq("restaurant_id", restaurantId)
+        .order("created_at", { ascending: false })
+        .limit(40);
+      if (cancelled) return;
+      setPantry((data || []).map(toHitFromPantry).filter(Boolean) as SearchHit[]);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [restaurantId]);
+
+  useEffect(() => {
+    if (debounced.length < 1) {
       setHits([]);
       return;
     }
@@ -55,37 +77,19 @@ const IngredientSearchList = ({ restaurantId, value, onChange }: Props) => {
     setSearching(true);
     const term = `%${debounced}%`;
     (async () => {
-      const [pantryRes, productsRes, catalogRes] = await Promise.all([
-        supabase
-          .from("inventory_items")
-          .select("id, lot_number, expiry_date, unit, product_id, products(id, name)")
-          .eq("restaurant_id", restaurantId)
-          .order("created_at", { ascending: false })
-          .limit(40),
-        supabase.from("products").select("id, name, brand").ilike("name", term).limit(6),
-        supabase.from("ingredients").select("id, name").ilike("name", term).limit(6),
+      const q = debounced.toLowerCase();
+      const [productsRes, catalogRes] = await Promise.all([
+        supabase.from("products").select("id, name, brand").ilike("name", term).limit(8),
+        supabase.from("ingredients").select("id, name").ilike("name", term).limit(8),
       ]);
       if (cancelled) return;
 
-      const q = debounced.toLowerCase();
       const seen = new Set<string>();
       const next: SearchHit[] = [];
-      for (const row of pantryRes.data || []) {
-        const prod = (row as any).products;
-        const name = prod?.name as string | undefined;
-        if (!name || !name.toLowerCase().includes(q)) continue;
-        const key = `pantry-${row.id}`;
-        seen.add((prod.id || name).toLowerCase());
-        next.push({
-          key,
-          name,
-          source: "dispensa",
-          product_id: row.product_id,
-          pantry_item_id: row.id,
-          lot_number: row.lot_number,
-          expiry_date: row.expiry_date,
-          unit: row.unit || "g",
-        });
+      for (const hit of pantry) {
+        if (!hit.name.toLowerCase().includes(q)) continue;
+        seen.add((hit.product_id || hit.name).toLowerCase());
+        next.push(hit);
       }
       for (const p of productsRes.data || []) {
         const id = p.id.toLowerCase();
@@ -112,16 +116,21 @@ const IngredientSearchList = ({ restaurantId, value, onChange }: Props) => {
           unit: "g",
         });
       }
-      setHits(next.slice(0, 10));
+      setHits(next.slice(0, 12));
       setSearching(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, [debounced, restaurantId]);
+  }, [debounced, pantry]);
+
+  const alreadyAdded = (name: string, pantryItemId: string | null) =>
+    value.some(
+      (v) => v.name.toLowerCase() === name.toLowerCase() && v.pantry_item_id === pantryItemId,
+    );
 
   const addHit = (hit: SearchHit) => {
-    if (value.some((v) => v.name.toLowerCase() === hit.name.toLowerCase() && v.pantry_item_id === hit.pantry_item_id)) {
+    if (alreadyAdded(hit.name, hit.pantry_item_id)) {
       setQuery("");
       setHits([]);
       return;
@@ -143,15 +152,33 @@ const IngredientSearchList = ({ restaurantId, value, onChange }: Props) => {
     setHits([]);
   };
 
+  const addQuick = (name: string) => {
+    if (alreadyAdded(name, null)) return;
+    onChange([
+      ...value,
+      {
+        key: `quick-${name}-${Date.now()}`,
+        product_id: null,
+        pantry_item_id: null,
+        name,
+        quantity: "",
+        unit: "g",
+      },
+    ]);
+  };
+
   const updateRow = (key: string, field: keyof RecipeIngredient, val: string) => {
     onChange(value.map((row) => (row.key === key ? { ...row, [field]: val } : row)));
   };
+
+  const pantryAvailable = pantry.filter((hit) => !alreadyAdded(hit.name, hit.pantry_item_id));
+  const showQuick = debounced.length < 1;
 
   return (
     <div className="space-y-2">
       <label className="text-xs font-medium text-muted-foreground">Ingredienti</label>
       <p className="text-[11px] text-muted-foreground -mt-1">
-        Cerca in dispensa o in catalogo: non serve scriverli a mano.
+        Scegli dall&apos;elenco o cerca in dispensa/catalogo: non serve scriverli a mano.
       </p>
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -161,8 +188,45 @@ const IngredientSearchList = ({ restaurantId, value, onChange }: Props) => {
           placeholder="Cerca ingrediente…"
           className="pl-9"
         />
-        {searching && <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />}
+        {searching && (
+          <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+        )}
       </div>
+
+      {showQuick && pantryAvailable.length > 0 && (
+        <div className="rounded-xl border border-border bg-card max-h-40 overflow-y-auto">
+          <p className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Dalla dispensa
+          </p>
+          {pantryAvailable.map((hit) => (
+            <button
+              key={hit.key}
+              type="button"
+              onClick={() => addHit(hit)}
+              className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-secondary/60 border-t border-border"
+            >
+              <span className="truncate font-medium">{hit.name}</span>
+              <Plus className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            </button>
+          ))}
+        </div>
+      )}
+
+      {showQuick && (
+        <div className="flex flex-wrap gap-1.5">
+          {QUICK_INGREDIENTS.filter((name) => !alreadyAdded(name, null)).map((name) => (
+            <button
+              key={name}
+              type="button"
+              onClick={() => addQuick(name)}
+              className="rounded-full border border-border bg-card px-2.5 py-1 text-[11px] font-medium text-foreground hover:bg-secondary/60"
+            >
+              + {name}
+            </button>
+          ))}
+        </div>
+      )}
+
       {hits.length > 0 && (
         <div className="rounded-xl border border-border bg-card max-h-48 overflow-y-auto">
           {hits.map((hit) => (
@@ -181,7 +245,7 @@ const IngredientSearchList = ({ restaurantId, value, onChange }: Props) => {
           ))}
         </div>
       )}
-      {debounced.length >= 2 && !searching && hits.length === 0 && (
+      {debounced.length >= 1 && !searching && hits.length === 0 && (
         <p className="text-[11px] text-muted-foreground">Nessun risultato per “{debounced}”.</p>
       )}
 
