@@ -26,6 +26,7 @@ import {
 import { getFoodEmoji } from "@/lib/food-images";
 import { format } from "date-fns";
 import { getCoarseExpiryStatus } from "@/lib/expiry-status";
+import { formatDisplayDate } from "@/lib/format-date";
 
 /* ─── types ─── */
 interface InventoryItem {
@@ -738,7 +739,7 @@ const SwipeableUrgentItem = ({ item, onConsumed, onDiscarded }: SwipeableProps) 
             {item.date && (
               <span className="text-[11px] flex items-center gap-0.5 text-muted-foreground">
                 <Clock className="h-2.5 w-2.5" />
-                {new Date(item.date).toLocaleDateString("it-IT")}
+                {formatDisplayDate(item.date)}
               </span>
             )}
             <span className="text-[10px] text-muted-foreground">{storageLabel[item.storage] ?? item.storage}</span>

@@ -22,7 +22,8 @@ import { fetchAllRows } from "@/lib/supabase-paging";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { daysUntilExpiry, formatExpiryDate } from "@/lib/expiry-status";
+import { daysUntilExpiry } from "@/lib/expiry-status";
+import { formatExpiryDate } from "@/lib/format-date";
 import { matchesSearch } from "@/lib/text-match";
 
 interface Lot {

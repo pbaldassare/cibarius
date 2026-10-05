@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInputWithHint } from "@/components/DateInputWithHint";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
@@ -648,8 +649,7 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground">Scadenza</label>
-                  <Input
-                    type="date"
+                  <DateInputWithHint
                     value={currentItem.expiry_date || ""}
                     onChange={(e) => updateEditItem("expiry_date", e.target.value)}
                     className="mt-1"
@@ -657,8 +657,7 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground">Produzione</label>
-                  <Input
-                    type="date"
+                  <DateInputWithHint
                     value={currentItem.production_date || ""}
                     onChange={(e) => updateEditItem("production_date", e.target.value)}
                     className="mt-1"

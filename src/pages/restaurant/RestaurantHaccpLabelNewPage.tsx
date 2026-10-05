@@ -9,6 +9,7 @@ import MobileHeader from "@/components/MobileHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInputWithHint } from "@/components/DateInputWithHint";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -268,8 +269,8 @@ const RestaurantHaccpLabelNewPage = () => {
           <p className="text-[10px] text-muted-foreground mt-1">Quante porzioni servite puoi ricavare da questa produzione</p>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <div><Label>Data produzione</Label><Input type="date" value={productionDate} onChange={e => setProductionDate(e.target.value)} /></div>
-          <div><Label>Data scadenza</Label><Input type="date" value={expirationDate} onChange={e => setExpirationDate(e.target.value)} /></div>
+          <div><Label>Data produzione</Label><DateInputWithHint value={productionDate} onChange={e => setProductionDate(e.target.value)} /></div>
+          <div><Label>Data scadenza</Label><DateInputWithHint value={expirationDate} onChange={e => setExpirationDate(e.target.value)} /></div>
         </div>
         <div>
           <Label>Conservazione</Label>
@@ -349,7 +350,7 @@ const RestaurantHaccpLabelNewPage = () => {
               <Input placeholder="Lotto origine" value={ing.source_lot_code} onChange={e => updateIng(i, "source_lot_code", e.target.value)} />
               <Input placeholder="Fornitore" value={ing.supplier_name} onChange={e => updateIng(i, "supplier_name", e.target.value)} />
             </div>
-            <Input type="date" value={ing.ingredient_expiration_date} onChange={e => updateIng(i, "ingredient_expiration_date", e.target.value)} />
+            <DateInputWithHint value={ing.ingredient_expiration_date} onChange={e => updateIng(i, "ingredient_expiration_date", e.target.value)} />
           </div>
         ))}
       </CardContent></Card>

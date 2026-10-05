@@ -14,7 +14,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useDebounce } from "@/hooks/useDebounce";
 import { searchFoodProgressive, type FoodSearchResult } from "@/lib/search-food";
-import { compareByExpiry, formatExpiryDate, getCoarseExpiryStatus } from "@/lib/expiry-status";
+import { compareByExpiry, getCoarseExpiryStatus } from "@/lib/expiry-status";
+import { formatDisplayDate, formatExpiryDate } from "@/lib/format-date";
+import { DateInputWithHint } from "@/components/DateInputWithHint";
 import { matchesSearch } from "@/lib/text-match";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
@@ -638,7 +640,7 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
             {/* Use-by date with smart suggestion */}
             <div className="space-y-1.5">
               <Label>Usare/Servire entro *</Label>
-              <Input type="date" value={formUseBy} onChange={(e) => {
+              <DateInputWithHint value={formUseBy} onChange={(e) => {
                 setFormUseBy(e.target.value);
                 setUseByManuallySet(true);
               }} />
@@ -840,7 +842,7 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="rounded-xl bg-muted p-3">
                       <p className="text-[10px] font-medium text-muted-foreground">Preparato il</p>
-                      <p className="text-sm font-semibold">{new Date(detailPrep.prepared_at).toLocaleDateString("it-IT")}</p>
+                      <p className="text-sm font-semibold">{formatDisplayDate(detailPrep.prepared_at)}</p>
                     </div>
                     <div className="rounded-xl bg-muted p-3">
                       <p className="text-[10px] font-medium text-muted-foreground">Usare entro</p>

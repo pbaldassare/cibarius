@@ -22,7 +22,9 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { formatExpiryDate, getCoarseExpiryStatus } from "@/lib/expiry-status";
+import { DateInputWithHint } from "@/components/DateInputWithHint";
+import { getCoarseExpiryStatus } from "@/lib/expiry-status";
+import { formatExpiryDate } from "@/lib/format-date";
 import { matchesSearch } from "@/lib/text-match";
 
 interface ExpiryItem {
@@ -627,7 +629,7 @@ const RestaurantExpiryPage = () => {
               </p>
             </div>
             <div className="flex gap-2">
-              <Input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} className="flex-1 h-12 rounded-xl" />
+              <DateInputWithHint value={newDate} onChange={(e) => setNewDate(e.target.value)} className="flex-1 h-12 rounded-xl" />
               <Button className="h-12 rounded-xl" onClick={() => actionSheet && handleUpdateDate(actionSheet)}>
                 <CalendarClock className="h-4 w-4 mr-1" /> Aggiorna
               </Button>
