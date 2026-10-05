@@ -49,6 +49,7 @@ const RestaurantHaccpLabelNewPage = () => {
 
   const [name, setName] = useState("");
   const [quantity, setQuantity] = useState("");
+  const [portions, setPortions] = useState("1");
   const [unit, setUnit] = useState("kg");
   const [productionDate, setProductionDate] = useState(today);
   const [expirationDate, setExpirationDate] = useState(tomorrow);
@@ -70,12 +71,14 @@ const RestaurantHaccpLabelNewPage = () => {
     const conservationParam = searchParams.get("conservation");
     const expirationParam = searchParams.get("expiration");
     const quantityParam = searchParams.get("quantity");
+    const portionsParam = searchParams.get("portions");
 
     if (nameParam) setName(nameParam);
     if (notesParam) setNotes(notesParam);
     if (conservationParam) setConservation(conservationParam);
     if (expirationParam) setExpirationDate(expirationParam);
     if (quantityParam) setQuantity(quantityParam);
+    if (portionsParam) setPortions(portionsParam);
   }, [searchParams]);
 
   useEffect(() => {
@@ -142,6 +145,7 @@ const RestaurantHaccpLabelNewPage = () => {
         restaurant_id: restaurant.id,
         preparation_name: name.trim(),
         quantity: quantity ? parseFloat(quantity) : null,
+        portions: parseInt(portions, 10) > 0 ? parseInt(portions, 10) : 1,
         unit: unit || null,
         production_date: productionDate,
         expiration_date: expirationDate,
@@ -209,18 +213,24 @@ const RestaurantHaccpLabelNewPage = () => {
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label>Quantità prodotta</Label>
-            <Input type="number" step="0.01" value={quantity} onChange={e => setQuantity(e.target.value)} />
+            <Label>Quantità totale prodotta</Label>
+            <Input type="number" step="0.01" value={quantity} onChange={e => setQuantity(e.target.value)} aria-label="Peso o volume totale della preparazione" placeholder="es. 3.5" />
+            <p className="text-[10px] text-muted-foreground mt-1">Peso o volume dell&apos;intera produzione (kg, g, l…)</p>
           </div>
           <div>
             <Label>Unità</Label>
             <Select value={unit} onValueChange={setUnit}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {["kg", "g", "l", "ml", "pz", "porz."].map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                {["kg", "g", "l", "ml", "pz"].map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
+        </div>
+        <div>
+          <Label>Porzioni fatte</Label>
+          <Input type="number" min={1} step={1} value={portions} onChange={e => setPortions(e.target.value)} aria-label="Numero di porzioni prodotte" />
+          <p className="text-[10px] text-muted-foreground mt-1">Quante porzioni servite puoi ricavare da questa produzione</p>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div><Label>Data produzione</Label><Input type="date" value={productionDate} onChange={e => setProductionDate(e.target.value)} /></div>

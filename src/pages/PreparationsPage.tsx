@@ -179,7 +179,7 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
     if (isRestaurant && restaurant) {
       const { data: labels } = await supabase
         .from("haccp_preparation_labels")
-        .select("id,preparation_name,expiration_date,production_date,conservation_type,quantity,unit,internal_lot_code,notes,status,source_preparation_id")
+        .select("id,preparation_name,expiration_date,production_date,conservation_type,quantity,unit,portions,internal_lot_code,notes,status,source_preparation_id")
         .eq("restaurant_id", restaurant.id)
         .neq("status", "cancelled")
         .order("expiration_date", { ascending: true });
@@ -198,7 +198,7 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
           prepared_at: l.production_date,
           storage_type: mapStorage(l.conservation_type),
           use_by_date: l.expiration_date,
-          portions: null,
+          portions: l.portions ?? null,
           notes: l.notes ?? null,
           image_url: null,
           label_code: l.internal_lot_code ?? null,
@@ -279,6 +279,13 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
         prepId = prep.id;
       }
 
+      if (isRestaurant && prepId) {
+        await supabase
+          .from("haccp_preparation_labels")
+          .update({ portions: parseInt(formPortions) || 1 })
+          .eq("source_preparation_id", prepId);
+      }
+
       // Save ingredients
       if (ingredients.length > 0) {
         await supabase.from("preparation_ingredients").insert(
@@ -351,7 +358,7 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
     params.set("notes", detailPrep.notes ?? detailPrep.description ?? "");
     params.set("conservation", detailPrep.storage_type);
     params.set("expiration", detailPrep.use_by_date);
-    if (detailPrep.portions) params.set("quantity", String(detailPrep.portions));
+    if (detailPrep.portions) params.set("portions", String(detailPrep.portions));
     navigate(`/restaurant/haccp-labels/new?${params.toString()}`);
   };
 
@@ -545,8 +552,9 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>Porzioni</Label>
-                <Input type="number" min="1" value={formPortions} onChange={(e) => setFormPortions(e.target.value)} />
+                <Label>Porzioni fatte</Label>
+                <Input type="number" min="1" step={1} value={formPortions} onChange={(e) => setFormPortions(e.target.value)} />
+                <p className="text-[10px] text-muted-foreground">Quante porzioni ricavi da questa preparazione (per lo scarico in magazzino)</p>
               </div>
             </div>
 

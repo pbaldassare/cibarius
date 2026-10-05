@@ -12,7 +12,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Printer, Copy, X, Loader2, ExternalLink } from "lucide-react";
+import { Printer, Copy, X, Loader2, ExternalLink, UtensilsCrossed } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { consumeFromHaccpLabel } from "@/lib/inventory-movements";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 
@@ -32,6 +35,8 @@ const RestaurantHaccpLabelDetailPage = () => {
   const [printSize, setPrintSize] = useState<"small" | "medium" | "a4">("medium");
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
+  const [consumeQty, setConsumeQty] = useState("1");
+  const [consuming, setConsuming] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
 
   const fetchAll = async () => {
@@ -77,8 +82,45 @@ const RestaurantHaccpLabelDetailPage = () => {
     await supabase.from("haccp_preparation_labels").update({
       status: "finalized", finalized_at: new Date().toISOString(),
     }).eq("id", label.id);
+    if (label.source_preparation_id && label.portions != null) {
+      await supabase.from("preparations").update({ portions: label.portions }).eq("id", label.source_preparation_id);
+    }
     await logAction("finalized");
     toast({ title: "Etichetta finalizzata ✓" });
+    fetchAll();
+  };
+
+  const handleConsumePortions = async () => {
+    if (!label || !restaurant || isCancelled) return;
+    const qty = parseInt(consumeQty, 10);
+    if (!Number.isFinite(qty) || qty <= 0) {
+      toast({ variant: "destructive", title: "Inserisci un numero di porzioni valido" });
+      return;
+    }
+    setConsuming(true);
+    const { error, remaining } = await consumeFromHaccpLabel(
+      {
+        id: label.id,
+        restaurant_id: restaurant.id,
+        portions: label.portions,
+        source_preparation_id: label.source_preparation_id,
+        internal_lot_code: label.internal_lot_code,
+        expiration_date: label.expiration_date,
+      },
+      label.preparation_name,
+      "consumo",
+      qty,
+    );
+    setConsuming(false);
+    if (error) {
+      toast({ variant: "destructive", title: "Errore", description: error });
+      return;
+    }
+    toast({
+      title: "Porzioni scaricate ✓",
+      description: remaining > 0 ? `${remaining} porzioni rimaste` : "Produzione esaurita",
+    });
+    setConsumeQty("1");
     fetchAll();
   };
 
@@ -103,7 +145,7 @@ const RestaurantHaccpLabelDetailPage = () => {
     const { data: newL, error } = await supabase.from("haccp_preparation_labels").insert({
       restaurant_id: label.restaurant_id,
       preparation_name: label.preparation_name,
-      quantity: label.quantity, unit: label.unit,
+      quantity: label.quantity, unit: label.unit, portions: label.portions,
       production_date: new Date().toISOString().slice(0, 10),
       expiration_date: new Date(Date.now() + 86400000).toISOString().slice(0, 10),
       conservation_type: label.conservation_type,
@@ -143,6 +185,7 @@ const RestaurantHaccpLabelDetailPage = () => {
           size={printSize}
           publicUrl={publicUrl}
           sourceDocs={docs}
+          ingredients={ingredients}
         />
       </div>
 
@@ -158,7 +201,10 @@ const RestaurantHaccpLabelDetailPage = () => {
             <div><b>Produzione:</b> {format(new Date(label.production_date), "dd MMM yyyy", { locale: it })}</div>
             <div><b>Scadenza:</b> {format(new Date(label.expiration_date), "dd MMM yyyy", { locale: it })}</div>
             <div><b>Conservazione:</b> {label.conservation_type}</div>
-            {label.quantity != null && <div><b>Quantità:</b> {label.quantity} {label.unit}</div>}
+            {label.quantity != null && <div><b>Quantità totale:</b> {label.quantity} {label.unit}</div>}
+            {label.portions != null && (
+              <div><b>Porzioni rimaste:</b> {label.portions > 0 ? label.portions : "esaurite"}</div>
+            )}
             {label.operator_name && <div><b>Operatore:</b> {label.operator_name}</div>}
             {label.allergens?.length > 0 && <div><b>Allergeni:</b> {label.allergens.join(", ")}</div>}
             {label.notes && <div><b>Note:</b> {label.notes}</div>}
@@ -215,6 +261,21 @@ const RestaurantHaccpLabelDetailPage = () => {
           </CardContent></Card>
         )}
 
+        {!isCancelled && (label.portions ?? 0) > 0 && (
+          <Card><CardContent className="p-4 space-y-3">
+            <h3 className="font-semibold flex items-center gap-2"><UtensilsCrossed className="h-4 w-4" /> Scarica porzioni</h3>
+            <div className="flex gap-2 items-end">
+              <div className="flex-1 space-y-1">
+                <Label className="text-xs">Porzioni consumate</Label>
+                <Input type="number" min={1} step={1} value={consumeQty} onChange={e => setConsumeQty(e.target.value)} />
+              </div>
+              <Button onClick={handleConsumePortions} disabled={consuming}>
+                {consuming ? <Loader2 className="h-4 w-4 animate-spin" /> : "Scarica"}
+              </Button>
+            </div>
+          </CardContent></Card>
+        )}
+
         {/* Actions */}
         <div className="grid grid-cols-2 gap-2">
           {isDraft && (
@@ -265,7 +326,7 @@ const RestaurantHaccpLabelDetailPage = () => {
               </Select>
             </div>
             <div className="flex justify-center">
-              <HaccpLabelPrintView label={label} restaurantName={restaurant?.name || ""} size={printSize} publicUrl={publicUrl} sourceDocs={docs} />
+              <HaccpLabelPrintView label={label} restaurantName={restaurant?.name || ""} size={printSize} publicUrl={publicUrl} sourceDocs={docs} ingredients={ingredients} />
             </div>
             <Button onClick={() => { setPrintOpen(false); handlePrint(audit.some(a => a.action === "printed")); }} className="w-full">
               <Printer className="h-4 w-4 mr-1" /> Stampa
