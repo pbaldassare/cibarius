@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Users, Store, Loader2, ClipboardCheck, Settings2, FileText,
-  Package, AlertTriangle, CheckCircle2, Clock, ShieldCheck, Thermometer,
+  Package, AlertTriangle, CheckCircle2, Clock, ShieldCheck, Thermometer, Plug,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
@@ -109,6 +109,18 @@ const RestaurantAdminPage = () => {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">{restaurant?.name} · {restaurant?.address ?? "Nessun indirizzo"}</p>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link to="/restaurant-admin/integrations">
+          <Card className="transition-shadow hover:shadow-md border-primary/20">
+            <CardHeader className="flex flex-row items-center gap-3 pb-2">
+              <Plug className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base">Integrazioni carico</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">API REST per import automatico in magazzino</p>
             </CardContent>
           </Card>
         </Link>

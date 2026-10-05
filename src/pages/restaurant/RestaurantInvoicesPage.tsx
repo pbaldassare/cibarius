@@ -12,10 +12,8 @@ import { Loader2, Upload, FileText, Download, Trash2, Plus, ExternalLink, Chevro
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { recordMovement } from "@/lib/inventory-movements";
-import {
-  loadProductIndex, resolveProduct, documentAlreadyImported, loadImportedDocumentIds,
-} from "@/lib/restaurant-products";
+import { ingestReceiptLines } from "@/lib/ingest-stock";
+import { loadImportedDocumentIds } from "@/lib/restaurant-products";
 
 interface ExtractedData {
   supplier_name?: string | null;
@@ -171,7 +169,23 @@ const RestaurantInvoicesPage = () => {
     let created = 0;
 
     try {
-      if (await documentAlreadyImported(doc.id)) {
+      const result = await ingestReceiptLines(restaurant.id, {
+        source_document_id: doc.id,
+        header: {
+          supplier_name: doc.supplier_name,
+          document_number: doc.document_number,
+          document_type: doc.document_type,
+        },
+        lines: items.map((line) => ({
+          name: line.name,
+          quantity: line.quantity,
+          unit: line.unit,
+        })),
+      });
+
+      created = result.created;
+
+      if (result.skipped && result.skipReason === "already_imported") {
         setImportedDocIds((prev) => new Set(prev).add(doc.id));
         toast({
           variant: "destructive",
@@ -179,44 +193,6 @@ const RestaurantInvoicesPage = () => {
           description: "Gli articoli di questa bolla sono già a magazzino.",
         });
         return;
-      }
-
-      const index = await loadProductIndex(restaurant.id);
-
-      for (const line of items) {
-        const unit = line.unit || "pz";
-        const { productId, productName } = await resolveProduct(index, line.name, unit);
-        if (!productId) continue;
-
-        const quantity = line.quantity != null && line.quantity > 0 ? line.quantity : 1;
-        const { data: inv, error: iErr } = await supabase
-          .from("inventory_items")
-          .insert({
-            product_id: productId,
-            restaurant_id: restaurant.id,
-            storage_type: "frigo",
-            quantity,
-            unit,
-            lot_number: doc.document_number || null,
-            source_document_id: doc.id,
-          })
-          .select("id")
-          .single();
-        if (iErr || !inv) continue;
-
-        await recordMovement({
-          restaurantId: restaurant.id,
-          inventoryItemId: inv.id,
-          productId,
-          productName,
-          movementType: "carico",
-          quantity,
-          unit,
-          lotNumber: doc.document_number || null,
-          sourceDocumentId: doc.id,
-          notes: doc.supplier_name ? `Da ${doc.document_type} ${doc.supplier_name}` : `Da ${doc.document_type}`,
-        });
-        created++;
       }
 
       if (created > 0) setImportedDocIds((prev) => new Set(prev).add(doc.id));

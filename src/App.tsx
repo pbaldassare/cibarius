@@ -76,6 +76,7 @@ const RestaurantAdminStaffPage = lazy(() => import("./pages/restaurant-admin/Res
 const RestaurantAdminReportsPage = lazy(() => import("./pages/restaurant-admin/RestaurantAdminReportsPage"));
 const RestaurantHaccpControlPage = lazy(() => import("./pages/restaurant-admin/RestaurantHaccpControlPage"));
 const RestaurantTemperaturesPage = lazy(() => import("./pages/restaurant-admin/RestaurantTemperaturesPage"));
+const RestaurantAdminIntegrationsPage = lazy(() => import("./pages/restaurant-admin/RestaurantAdminIntegrationsPage"));
 
 // Pro pages
 const ProPage = lazy(() => import("./pages/pro/ProPage"));
@@ -292,6 +293,7 @@ const App = () => (
               <Route path="/restaurant-admin/settings" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><RestaurantAdminSettingsPage /></RestaurantGuard></RG>} />
               <Route path="/restaurant-admin/staff" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><RestaurantAdminStaffPage /></RestaurantGuard></RG>} />
               <Route path="/restaurant-admin/reports" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><RestaurantAdminReportsPage /></RestaurantGuard></RG>} />
+              <Route path="/restaurant-admin/integrations" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><RestaurantAdminIntegrationsPage /></RestaurantGuard></RG>} />
             </Route>
 
             <Route path="*" element={<NotFound />} />
