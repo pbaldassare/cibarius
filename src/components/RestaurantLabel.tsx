@@ -18,6 +18,9 @@ export interface LabelData {
   lotNumber?: string;
   chefLifeHours?: number;
   netWeightG?: number;
+  portionWeightG?: number;
+  portions?: number;
+  unit?: string;
   /** Documento di provenienza (DDT/bolla/fattura) — tracciabilita' del lotto */
   ddtType?: string;
   ddtNumber?: string;
@@ -86,7 +89,8 @@ const buildLabelHtml = (label: LabelData, qrDataUrl: string) => {
       <div class="footer-row">
         <div class="footer-left">
           <div><span class="label-title">CONSERVAZIONE:</span> ${storageLabels[label.storageType || ""] || label.storageType || ""}</div>
-          ${label.netWeightG ? `<div><span class="label-title">PESO NETTO:</span> ${label.netWeightG >= 1000 ? (label.netWeightG / 1000).toLocaleString("it-IT") + " kg" : label.netWeightG + " g"}</div>` : ""}
+          ${label.netWeightG ? `<div><span class="label-title">PESO NETTO TOTALE:</span> ${label.netWeightG >= 1000 ? (label.netWeightG / 1000).toLocaleString("it-IT") + " kg" : label.netWeightG + " g"}</div>` : ""}
+          ${label.portionWeightG ? `<div><span class="label-title">PESO PORZIONE:</span> ${label.portionWeightG >= 1000 ? (label.portionWeightG / 1000).toLocaleString("it-IT") + " kg" : label.portionWeightG + " g"}${label.portions ? ` (${label.portions} ${label.unit || "pz"})` : ""}</div>` : ""}
           ${label.chefLifeHours ? `<div><span class="label-title">CHEF LIFE:</span> ${label.chefLifeHours}h</div>` : ""}
           ${label.lotNumber ? `<div><span class="label-title">LOTTO:</span> ${label.lotNumber}</div>` : ""}
           ${ddtText ? `<div><span class="label-title">DOC. PROVENIENZA:</span> ${ddtText}</div>` : ""}
@@ -217,7 +221,10 @@ const RestaurantLabel = ({ label, showActions = true }: { label: LabelData; show
           <div className="text-[8px] text-black space-y-0.5">
             <p><span className="font-bold text-[7px] uppercase">Conservazione:</span> {storageLabels[label.storageType || ""] || ""}</p>
             {label.netWeightG && (
-              <p><span className="font-bold text-[7px] uppercase">Peso netto:</span> {label.netWeightG >= 1000 ? `${(label.netWeightG / 1000).toLocaleString("it-IT")} kg` : `${label.netWeightG} g`}</p>
+              <p><span className="font-bold text-[7px] uppercase">Peso netto totale:</span> {label.netWeightG >= 1000 ? `${(label.netWeightG / 1000).toLocaleString("it-IT")} kg` : `${label.netWeightG} g`}</p>
+            )}
+            {label.portionWeightG && (
+              <p><span className="font-bold text-[7px] uppercase">Peso porzione:</span> {label.portionWeightG >= 1000 ? `${(label.portionWeightG / 1000).toLocaleString("it-IT")} kg` : `${label.portionWeightG} g`}</p>
             )}
             {label.chefLifeHours && (
               <p><span className="font-bold text-[7px] uppercase">Chef life:</span> {label.chefLifeHours}h</p>
