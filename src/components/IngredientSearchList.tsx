@@ -245,8 +245,8 @@ const IngredientSearchList = ({ restaurantId, value, onChange }: Props) => {
           ))}
         </div>
       )}
-      {debounced.length >= 1 && !searching && hits.length === 0 && (
-        <p className="text-[11px] text-muted-foreground">Nessun risultato per “{debounced}”.</p>
+      {query.trim().length >= 1 && !searching && hits.length === 0 && (
+        <p className="text-[11px] text-muted-foreground">Nessun risultato per “{query.trim()}”.</p>
       )}
 
       {value.length === 0 ? (
