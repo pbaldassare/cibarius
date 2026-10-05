@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cibarius — accesso demo</title>
+  <style>
+    :root { font-family: system-ui, sans-serif; color: #0f172a; }
+    html, body { margin: 0; min-height: 100%; background: #f8fafc; }
+    body { max-width: 420px; padding: 1rem 1.25rem 2rem; box-sizing: border-box; }
+    h1 { font-size: 1.1rem; margin: 0 0 1rem; }
+    h2 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; margin: 1.25rem 0 0.5rem; }
+    .banner {
+      background: #eff6ff; border: 1px solid #93c5fd; border-radius: 10px;
+      padding: 0.75rem 1rem; margin-bottom: 1rem; font-size: 0.88rem; line-height: 1.45;
+    }
+    .banner strong { display: block; margin-bottom: 0.35rem; color: #1d4ed8; }
+    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 0.75rem 1rem; margin-bottom: 0.5rem; }
+    a { color: #2563eb; word-break: break-all; font-size: 0.9rem; }
+    code { background: #f1f5f9; padding: 0.1em 0.35em; border-radius: 4px; font-size: 0.85rem; }
+    .cred { font-size: 0.95rem; line-height: 1.6; }
+    .note { font-size: 0.8rem; color: #64748b; margin-top: 0.75rem; line-height: 1.4; }
+    ul { margin: 0.25rem 0 0; padding-left: 1.1rem; font-size: 0.88rem; }
+  </style>
+</head>
+<body>
+  <h1>Cibarius — preview &amp; ristorante demo</h1>
+
+  <div class="banner">
+    <strong>Pannello laterale Cursor</strong>
+    Apri questo URL (HTTPS tunnel, non <code>localhost</code>):
+    <br /><a id="panelUrl" href="https://britannica-meaning-trinity-taylor.trycloudflare.com/dev-access.html">https://britannica-meaning-trinity-taylor.trycloudflare.com/dev-access.html</a>
+  </div>
+
+  <h2>IP server</h2>
+  <div class="card"><code id="ip">31.220.82.50</code></div>
+
+  <h2>App</h2>
+  <div class="card">
+    <div><strong>HTTPS (tunnel)</strong><br /><a id="tunnelRoot" href="https://britannica-meaning-trinity-taylor.trycloudflare.com/">https://britannica-meaning-trinity-taylor.trycloudflare.com/</a></div>
+    <div style="margin-top:0.5rem"><strong>HTTP :4173</strong><br /><a id="http4173" href="http://31.220.82.50:4173/">http://31.220.82.50:4173/</a></div>
+    <div style="margin-top:0.5rem"><strong>Dev :5182</strong><br /><a href="http://31.220.82.50:5182/">http://31.220.82.50:5182/</a></div>
+  </div>
+
+  <h2>Ristoratore demo</h2>
+  <div class="card cred">
+    <div><strong>Email</strong><br /><code>cibariussrl@gmail.com</code></div>
+    <div style="margin-top:0.5rem"><strong>Password</strong><br /><code>Leone123!</code></div>
+    <div style="margin-top:0.5rem"><strong>Ristorante</strong><br />Cibarius SRL</div>
+    <div style="margin-top:0.5rem"><strong>Ruolo</strong><br /><code>restaurant_owner</code></div>
+  </div>
+
+  <h2>Link rapidi</h2>
+  <ul>
+    <li><a id="login" href="/auth/login">Login</a></li>
+    <li><a id="restaurant" href="/restaurant">App operativa</a></li>
+    <li><a id="admin" href="/restaurant-admin">Backoffice</a></li>
+    <li><a id="integrations" href="/restaurant-admin/integrations">Integrazioni</a></li>
+  </ul>
+
+  <p class="note">Se vedi pagina bianca nel pannello: l’URL del tunnel è scaduto (riavvia <code>cibarius-tunnel</code>) oppure stai usando <code>127.0.0.1</code> dal tuo PC. Usa sempre l’HTTPS sopra.</p>
+
+  <script>
+    (function () {
+      var host = location.origin.replace(/\/dev-access\.html$/, "");
+      var isTunnel = location.hostname.endsWith(".trycloudflare.com");
+      var ids = ["login", "restaurant", "admin", "integrations"];
+      ids.forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.href = host + el.getAttribute("href");
+      });
+      if (location.protocol.startsWith("http") && !isTunnel) {
+        document.getElementById("http4173").href = host + "/";
+      }
+      if (isTunnel) {
+        var panel = document.getElementById("panelUrl");
+        panel.href = location.href;
+        panel.textContent = location.href;
+        document.getElementById("tunnelRoot").href = host + "/";
+        document.getElementById("tunnelRoot").textContent = host + "/";
+      }
+    })();
+  </script>
+</body>
+</html>
