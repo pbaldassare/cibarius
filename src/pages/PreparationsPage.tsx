@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useDebounce } from "@/hooks/useDebounce";
+import { searchFoodProgressive, type FoodSearchResult } from "@/lib/search-food";
 import { compareByExpiry, formatExpiryDate, getCoarseExpiryStatus } from "@/lib/expiry-status";
 import { matchesSearch } from "@/lib/text-match";
 import {
@@ -40,6 +41,7 @@ interface Preparation {
 interface PrepIngredient {
   id: string;
   custom_name: string | null;
+  product_id: string | null;
   quantity: number | null;
   unit: string | null;
   product: { name: string } | null;
@@ -141,10 +143,15 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
   const [useByManuallySet, setUseByManuallySet] = useState(false);
 
   // Ingredients
-  const [ingredients, setIngredients] = useState<{ name: string; quantity: string; unit: string }[]>([]);
+  const [ingredients, setIngredients] = useState<{ name: string; quantity: string; unit: string; product_id?: string | null }[]>([]);
   const [ingredientName, setIngredientName] = useState("");
   const [ingredientQty, setIngredientQty] = useState("");
   const [ingredientUnit, setIngredientUnit] = useState("g");
+  const [pendingProductId, setPendingProductId] = useState<string | null>(null);
+  const [catalogQuery, setCatalogQuery] = useState("");
+  const debouncedCatalogQuery = useDebounce(catalogQuery, 300);
+  const [catalogResults, setCatalogResults] = useState<FoodSearchResult[]>([]);
+  const [catalogSearching, setCatalogSearching] = useState(false);
 
   // Allergens
   const [allergens, setAllergens] = useState<Allergen[]>([]);
@@ -162,6 +169,20 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
       setFormUseBy(suggestUseByDate(formStorage));
     }
   }, [formStorage, useByManuallySet, editingId]);
+
+  useEffect(() => {
+    if (debouncedCatalogQuery.trim().length < 2) {
+      setCatalogResults([]);
+      setCatalogSearching(false);
+      return;
+    }
+    setCatalogSearching(true);
+    const abort = searchFoodProgressive(debouncedCatalogQuery.trim(), (results, _phase, done) => {
+      setCatalogResults(results.slice(0, 8));
+      if (done) setCatalogSearching(false);
+    });
+    return abort;
+  }, [debouncedCatalogQuery]);
 
   const fetchItems = async () => {
     if (!user) return;
@@ -237,10 +258,27 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
     return c;
   }, [statusFilter, storageTab]);
 
+  const pickCatalogResult = (result: FoodSearchResult) => {
+    setIngredientName(result.name);
+    setPendingProductId(result.local_product_id ?? null);
+    setCatalogQuery("");
+    setCatalogResults([]);
+  };
+
   const addIngredient = () => {
     if (!ingredientName.trim()) return;
-    setIngredients([...ingredients, { name: ingredientName.trim(), quantity: ingredientQty, unit: ingredientUnit }]);
-    setIngredientName(""); setIngredientQty(""); setIngredientUnit("g");
+    setIngredients([...ingredients, {
+      name: ingredientName.trim(),
+      quantity: ingredientQty,
+      unit: ingredientUnit,
+      product_id: pendingProductId,
+    }]);
+    setIngredientName("");
+    setIngredientQty("");
+    setIngredientUnit("g");
+    setPendingProductId(null);
+    setCatalogQuery("");
+    setCatalogResults([]);
   };
 
   const handleSave = async () => {
@@ -284,7 +322,8 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
         await supabase.from("preparation_ingredients").insert(
           ingredients.map((ing) => ({
             preparation_id: prepId!,
-            custom_name: ing.name,
+            product_id: ing.product_id ?? null,
+            custom_name: ing.product_id ? null : ing.name,
             quantity: parseFloat(ing.quantity) || null,
             unit: ing.unit || null,
           }))
@@ -317,6 +356,7 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
     setFormName(""); setFormDesc(""); setFormStorage("frigo"); setFormUseBy("");
     setFormPortions("1"); setFormNotes(""); setIngredients([]);
     setIngredientName(""); setIngredientQty(""); setIngredientUnit("g");
+    setPendingProductId(null); setCatalogQuery(""); setCatalogResults([]);
     setSelectedAllergens([]); setEditingId(null);
     setUseByManuallySet(false);
   };
@@ -335,6 +375,7 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
       name: ing.product?.name ?? ing.custom_name ?? "",
       quantity: ing.quantity ? String(ing.quantity) : "",
       unit: ing.unit ?? "g",
+      product_id: ing.product_id ?? null,
     })));
     setSelectedAllergens(detailAllergens.map(a => {
       const match = allergens.find(al => al.name === a.allergen.name);
@@ -367,7 +408,7 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
     setDetailOpen(true);
     setDetailLoading(true);
     const [ingRes, allRes] = await Promise.all([
-      supabase.from("preparation_ingredients").select("id, custom_name, quantity, unit, product:products(name)").eq("preparation_id", prep.id),
+      supabase.from("preparation_ingredients").select("id, custom_name, product_id, quantity, unit, product:products(name)").eq("preparation_id", prep.id),
       supabase.from("preparation_allergens").select("id, allergen:allergens(name, code)").eq("preparation_id", prep.id),
     ]);
     setDetailIngredients((ingRes.data ?? []) as unknown as PrepIngredient[]);
@@ -545,8 +586,9 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>Porzioni</Label>
+                <Label>N. porzioni</Label>
                 <Input type="number" min="1" value={formPortions} onChange={(e) => setFormPortions(e.target.value)} />
+                <p className="text-[11px] text-muted-foreground">Quante porzioni ottieni da questa preparazione (non è un peso).</p>
               </div>
             </div>
 
@@ -575,6 +617,9 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
             {/* Ingredients */}
             <div className="space-y-2">
               <Label>Ingredienti</Label>
+              <p className="text-[11px] text-muted-foreground">
+                Cerca nel catalogo Cibarius: non devi digitare tutto a mano. La quantità è quella usata per l&apos;intera preparazione.
+              </p>
               {ingredients.map((ing, i) => (
                 <div key={i} className="flex items-center gap-2 rounded-lg bg-muted p-2 text-sm">
                   <span className="flex-1">{ing.name} {ing.quantity ? `— ${ing.quantity} ${ing.unit}` : ""}</span>
@@ -583,16 +628,62 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
                   </button>
                 </div>
               ))}
+              <Input
+                className="w-full"
+                placeholder="Cerca nel catalogo (min. 2 lettere)…"
+                aria-label="Cerca ingrediente nel catalogo"
+                value={catalogQuery}
+                onChange={(e) => {
+                  setCatalogQuery(e.target.value);
+                  if (!e.target.value.trim()) {
+                    setPendingProductId(null);
+                  }
+                }}
+              />
+              {catalogSearching && catalogQuery.trim().length >= 2 && (
+                <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Ricerca nel catalogo…
+                </p>
+              )}
+              {catalogResults.length > 0 && (
+                <div className="max-h-36 overflow-y-auto space-y-1 rounded-lg border border-border p-2">
+                  {catalogResults.map((r, idx) => (
+                    <button
+                      key={`${r.name}-${idx}`}
+                      type="button"
+                      className="w-full text-left px-3 py-1.5 rounded hover:bg-secondary text-sm"
+                      onClick={() => pickCatalogResult(r)}
+                    >
+                      {r.name}{r.brand ? ` (${r.brand})` : ""}
+                      {r.local_product_id && <span className="text-[10px] text-muted-foreground ml-1">· catalogo</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="flex gap-2">
-                <Input className="flex-1" placeholder="Ingrediente" value={ingredientName} onChange={(e) => setIngredientName(e.target.value)} />
-                <Input className="w-16" placeholder="Qtà" value={ingredientQty} onChange={(e) => setIngredientQty(e.target.value)} />
+                <Input
+                  className="flex-1"
+                  placeholder={pendingProductId ? "Prodotto selezionato" : "Oppure nome libero"}
+                  value={ingredientName}
+                  onChange={(e) => {
+                    setIngredientName(e.target.value);
+                    setPendingProductId(null);
+                  }}
+                />
+                <Input
+                  className="w-20"
+                  placeholder="Qtà"
+                  aria-label="Quantità ingrediente per tutta la preparazione"
+                  value={ingredientQty}
+                  onChange={(e) => setIngredientQty(e.target.value)}
+                />
                 <Select value={ingredientUnit} onValueChange={setIngredientUnit}>
                   <SelectTrigger className="w-20"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {["g", "kg", "ml", "l", "pz"].map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                <Button size="sm" variant="outline" onClick={addIngredient}>
+                <Button size="sm" variant="outline" onClick={addIngredient} aria-label="Aggiungi ingrediente">
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>

@@ -313,8 +313,13 @@ const RestaurantRecipesPage = () => {
           <div className="grid grid-cols-3 gap-2">
             <Input placeholder="Prep (min)" type="number" value={prepTime} onChange={(e) => setPrepTime(e.target.value)} />
             <Input placeholder="Cottura (min)" type="number" value={cookTime} onChange={(e) => setCookTime(e.target.value)} />
-            <Input placeholder="Porzioni" type="number" value={servings} onChange={(e) => setServings(e.target.value)} />
+            <div className="space-y-1">
+              <Input placeholder="Porzioni" type="number" value={servings} onChange={(e) => setServings(e.target.value)} aria-label="Numero porzioni ricetta" />
+            </div>
           </div>
+          <p className="text-[11px] text-muted-foreground -mt-2">
+            Le porzioni servono a calcolare le kcal per porzione; le quantità ingredienti sotto sono per l&apos;intera ricetta.
+          </p>
 
           <div className="space-y-1">
             <div className="flex items-center gap-3">
@@ -336,9 +341,12 @@ const RestaurantRecipesPage = () => {
           <Card className="border-2 border-accent">
             <CardContent className="py-4 space-y-3">
               <h3 className="text-sm font-semibold text-foreground">Ingredienti</h3>
+              <p className="text-[11px] text-muted-foreground">
+                Cerca nel catalogo prodotti: seleziona un risultato e indica quanto ne usi per tutta la ricetta (non per singola porzione).
+              </p>
               <div className="flex gap-2">
-                <Input placeholder="Cerca prodotto…" aria-label="Cerca ingrediente" value={ingSearch} onChange={(e) => searchIngredients(e.target.value)} className="flex-1" />
-                <Input placeholder="Qtà" type="number" value={ingQty} onChange={(e) => setIngQty(e.target.value)} className="w-16" />
+                <Input placeholder="Cerca nel catalogo…" aria-label="Cerca ingrediente nel catalogo" value={ingSearch} onChange={(e) => searchIngredients(e.target.value)} className="flex-1" />
+                <Input placeholder="Qtà ricetta" type="number" aria-label="Quantità per tutta la ricetta" value={ingQty} onChange={(e) => setIngQty(e.target.value)} className="w-20" />
                 <Select value={ingUnit} onValueChange={setIngUnit}>
                   <SelectTrigger className="w-16"><SelectValue /></SelectTrigger>
                   <SelectContent>
