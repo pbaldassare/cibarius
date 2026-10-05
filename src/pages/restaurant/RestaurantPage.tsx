@@ -269,11 +269,11 @@ const RestaurantPage = () => {
         return;
       }
     } else {
-      const { error } = await consumeFromPreparation(
+      const { error, remaining } = await consumeFromPreparation(
         {
           id: item.id,
           restaurant_id: restaurant.id,
-          quantity: item.quantity,
+          portions: item.quantity,
           unit: item.unit,
           lot_number: item.lot_number,
           expiry_date: item.date,
@@ -283,6 +283,14 @@ const RestaurantPage = () => {
       );
       if (error) {
         toast({ variant: "destructive", title: "Errore", description: error });
+        return;
+      }
+      if (remaining > 0) {
+        toast({
+          title: movementType === "consumo" ? "Segnato come utilizzato ✓" : "Segnato come buttato 🗑",
+          description: `${remaining} porzioni rimaste`,
+        });
+        fetchData();
         return;
       }
     }
