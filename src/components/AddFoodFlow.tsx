@@ -2189,7 +2189,7 @@ const AddFoodFlow = ({
                       <div className="flex items-center gap-2">
                         <HelpCircle className={`h-4 w-4 ${needsServingSize ? "text-amber-600" : "text-muted-foreground"}`} />
                         <p className={`text-xs font-semibold ${needsServingSize ? "text-amber-800" : "text-foreground"}`}>
-                          Peso per {unit === "pezzi" ? "pezzo" : "porzione"}
+                          Peso per {unit === "pezzi" ? "pezzo" : "porzione"} (g)
                         </p>
                       </div>
                       <div className="flex items-center gap-1">
@@ -2231,6 +2231,9 @@ const AddFoodFlow = ({
                       max={500}
                       step={5}
                     />
+                    <p className="text-[10px] text-muted-foreground">
+                      Grammi di cibo in un singolo pezzo o porzione, per calcolare kcal e macro (non il peso totale del pacco).
+                    </p>
                     {servingSizeG && computed.calories != null && (
                       <p className="text-[10px] text-center text-muted-foreground">
                         {quantity} × {servingSizeG}g = <span className="font-semibold text-foreground">{quantity * servingSizeG}g</span> → {computed.calories} kcal

@@ -118,6 +118,9 @@ export default function ProRecipeEditor({ initialRecipe, onSend, sending, sendLa
 
         <div className="space-y-2">
           <p className="text-xs font-semibold text-muted-foreground">Ingredienti</p>
+          <p className="text-[10px] text-muted-foreground">
+            Il peso (g) è per l&apos;intera ricetta qui sotto, non per porzione cliente. Cerca e seleziona dal catalogo quando aggiungi al diario.
+          </p>
           {recipe.ingredients.map((ing, idx) => (
             <div key={idx} className="grid grid-cols-[1fr_60px_55px_55px_55px_55px_28px] gap-1 items-center">
               <Input
@@ -128,7 +131,8 @@ export default function ProRecipeEditor({ initialRecipe, onSend, sending, sendLa
               />
               <Input
                 type="number"
-                placeholder="g"
+                placeholder="Peso g"
+                aria-label="Peso ingrediente in grammi per tutta la ricetta"
                 value={ing.grams || ""}
                 onChange={(e) => updateIngredient(idx, "grams", e.target.value)}
                 className="text-xs h-8"
@@ -172,7 +176,7 @@ export default function ProRecipeEditor({ initialRecipe, onSend, sending, sendLa
           ))}
           <div className="flex items-center gap-2 text-[10px] text-muted-foreground px-1">
             <span className="flex-1" />
-            <span>g</span>
+            <span className="w-[60px] text-center">Peso (g)</span>
             <span className="w-[55px] text-center">kcal</span>
             <span className="w-[55px] text-center">Prot</span>
             <span className="w-[55px] text-center">Carb</span>
