@@ -16,6 +16,7 @@ import {
   FileText, Upload, ExternalLink, Link2,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { formatGrams, portionWeightG } from "@/lib/portion-weight";
 
 /** Documento di provenienza (bolla / DDT / fattura) collegato a un lotto */
 interface SourceDoc {
@@ -325,11 +326,21 @@ const RestaurantItemPage = () => {
   const expiryDate = isPrep ? item.use_by_date : item.expiry_date;
   const fmtDate = (d?: string) => d ? new Date(d).toLocaleDateString("it-IT") : "—";
 
+  const portionsOrQty = isPrep ? item.portions : item.quantity;
+  const recipeLabel = isPrep
+    ? prepIngredients
+        .map((ing: any) => {
+          const qty = ing.quantity_used ? `${ing.quantity_used} ${ing.unit ?? ""}`.trim() : "";
+          return qty ? `${ing.ingredient_name} (${qty})` : ing.ingredient_name;
+        })
+        .filter(Boolean)
+        .join(", ")
+    : "";
   const labelData: LabelData = {
     id: item.id,
     type: isPrep ? "preparation" : "product",
     name,
-    ingredients: isPrep ? item.description : item.ingredients,
+    ingredients: isPrep ? recipeLabel || item.description : item.ingredients,
     allergens,
     restaurantName: restaurant?.name,
     productionDate: item.production_date,
@@ -337,7 +348,10 @@ const RestaurantItemPage = () => {
     storageType: storage,
     lotNumber: item.lot_number,
     chefLifeHours: item.chef_life_hours,
-    netWeightG: !isPrep ? item.net_weight_g : undefined,
+    netWeightG: item.net_weight_g || undefined,
+    portionWeightG: portionWeightG(item.net_weight_g, portionsOrQty) || undefined,
+    portions: portionsOrQty || undefined,
+    unit: item.unit || (isPrep ? "pz" : undefined),
     // Tracciabilita': documento di provenienza collegato al lotto
     ddtType: sourceDoc?.document_type,
     ddtNumber: sourceDoc?.document_number ?? undefined,
@@ -470,6 +484,25 @@ const RestaurantItemPage = () => {
                 </div>
               </div>
             )}
+            {item.net_weight_g ? (
+              <div>
+                <p className="text-[10px] text-muted-foreground">Peso netto totale</p>
+                <p className="text-sm font-medium">{formatGrams(item.net_weight_g)}</p>
+              </div>
+            ) : null}
+            {portionWeightG(item.net_weight_g, portionsOrQty) != null ? (
+              <div>
+                <p className="text-[10px] text-muted-foreground">Peso porzione</p>
+                <p className="text-sm font-medium">
+                  {formatGrams(portionWeightG(item.net_weight_g, portionsOrQty)!)}
+                  {portionsOrQty ? (
+                    <span className="text-[10px] font-normal text-muted-foreground">
+                      {" "}({portionsOrQty} {item.unit || "pz"})
+                    </span>
+                  ) : null}
+                </p>
+              </div>
+            ) : null}
           </div>
         </div>
 

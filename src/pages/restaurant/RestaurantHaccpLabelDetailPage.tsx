@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Printer, Copy, X, Loader2, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
+import { publicShareUrl } from "@/lib/site";
 
 const RestaurantHaccpLabelDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -63,7 +64,7 @@ const RestaurantHaccpLabelDetailPage = () => {
   };
 
   const publicUrl = label
-    ? `${window.location.origin}/haccp/label/${label.qr_token}`
+    ? publicShareUrl(`/haccp/label/${label.qr_token}`)
     : "";
 
   const handlePrint = async (isReprint: boolean) => {

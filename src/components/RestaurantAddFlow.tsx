@@ -9,6 +9,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import RestaurantLabel, { type LabelData } from "@/components/RestaurantLabel";
+import IngredientSearchList, {
+  recipeIngredientsLabel,
+  type RecipeIngredient,
+} from "@/components/IngredientSearchList";
+import { formatGrams, portionWeightG } from "@/lib/portion-weight";
 import { recordMovement } from "@/lib/inventory-movements";
 import { format, addDays } from "date-fns";
 import {
@@ -43,6 +48,9 @@ interface AiResult {
 
 interface EditItem extends AiItem {
   itemType: "product" | "preparation";
+  netWeightG?: number | null;
+  ingredientsText?: string;
+  recipeIngredients?: RecipeIngredient[];
 }
 
 type Step = "choice" | "photo" | "results" | "edit" | "label";
@@ -132,6 +140,9 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
       allergens: [],
       category: null,
       itemType: type,
+      netWeightG: null,
+      ingredientsText: "",
+      recipeIngredients: [],
     };
     setEditItems([empty]);
     setEditIndex(0);
@@ -187,6 +198,8 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
       .map((item) => ({
         ...item,
         itemType: itemTypeChoice,
+        recipeIngredients: [],
+        netWeightG: item.weight_g ?? null,
       }));
     if (items.length === 0) {
       toast({ variant: "destructive", title: "Seleziona almeno un prodotto" });
@@ -248,7 +261,8 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
             production_date: item.production_date || null,
             portions: item.quantity || 1,
             description: item.brand || null,
-          }).select("id").single();
+            net_weight_g: item.netWeightG || null,
+          } as any).select("id").single();
 
           if (error) throw error;
           if (prep) {
@@ -268,17 +282,62 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
               }
             }
 
+            // Il trigger crea l'etichetta HACCP senza aspettare gli allergeni:
+            // li copiamo qui, sennò il PDF pubblico resta senza ALLERGENI.
+            if (item.allergens.length > 0) {
+              await supabase
+                .from("haccp_preparation_labels")
+                .update({ allergens: item.allergens })
+                .eq("source_preparation_id", prep.id);
+            }
+
+            const recipe = item.recipeIngredients || [];
+            if (recipe.length > 0) {
+              await supabase.from("preparation_ingredients").insert(
+                recipe.map((ing) => ({
+                  preparation_id: prep.id,
+                  product_id: ing.product_id,
+                  custom_name: ing.name,
+                  quantity: ing.quantity ? parseFloat(ing.quantity) : null,
+                  unit: ing.unit || null,
+                })) as any,
+              );
+              const { data: lab } = await supabase
+                .from("haccp_preparation_labels")
+                .select("id")
+                .eq("source_preparation_id", prep.id)
+                .maybeSingle();
+              if (lab) {
+                await supabase.from("haccp_preparation_ingredients").insert(
+                  recipe.map((ing) => ({
+                    preparation_label_id: lab.id,
+                    pantry_item_id: ing.pantry_item_id,
+                    ingredient_name: ing.name,
+                    quantity_used: ing.quantity ? parseFloat(ing.quantity) : null,
+                    unit: ing.unit || null,
+                    source_lot_code: ing.lot_number || null,
+                    ingredient_expiration_date: ing.expiry_date || null,
+                  })) as any,
+                );
+              }
+            }
+
+            const portion = portionWeightG(item.netWeightG, item.quantity);
             labels.push({
               id: prep.id,
               type: "preparation",
               name: item.name,
-              ingredients: item.brand || undefined,
+              ingredients: recipeIngredientsLabel(recipe) || item.brand || undefined,
               allergens: item.allergens.length > 0 ? item.allergens : undefined,
               productionDate: item.production_date || format(new Date(), "yyyy-MM-dd"),
               expiryDate: item.expiry_date || format(addDays(new Date(), 3), "yyyy-MM-dd"),
               storageType: item.storage_hint,
               lotNumber: item.lot_number || undefined,
               chefLifeHours: item.chef_life_hours || undefined,
+              netWeightG: item.netWeightG || undefined,
+              portionWeightG: portion || undefined,
+              portions: item.quantity || undefined,
+              unit: item.unit || "pz",
             });
           }
         } else {
@@ -301,8 +360,8 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
               lot_number: item.lot_number || null,
               chef_life_hours: item.chef_life_hours || null,
               production_date: item.production_date || null,
-              ingredients: (item as any).ingredientsText || null,
-              net_weight_g: (item as any).netWeightG || null,
+              ingredients: item.ingredientsText || null,
+              net_weight_g: item.netWeightG || null,
             }).select("id").single();
 
             if (iErr) throw iErr;
@@ -341,14 +400,17 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
                 id: inv.id,
                 type: "product",
                 name: item.name,
-                ingredients: (item as any).ingredientsText || undefined,
+                ingredients: item.ingredientsText || undefined,
                 allergens: item.allergens.length > 0 ? item.allergens : undefined,
                 productionDate: item.production_date || format(new Date(), "yyyy-MM-dd"),
                 expiryDate: item.expiry_date || format(addDays(new Date(), 3), "yyyy-MM-dd"),
                 storageType: item.storage_hint,
                 lotNumber: item.lot_number || undefined,
                 chefLifeHours: item.chef_life_hours || undefined,
-                netWeightG: (item as any).netWeightG || undefined,
+                netWeightG: item.netWeightG || undefined,
+                portionWeightG: portionWeightG(item.netWeightG, item.quantity) || undefined,
+                portions: item.quantity || undefined,
+                unit: item.unit || undefined,
               });
             }
           }
@@ -693,19 +755,21 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
                 </div>
               </div>
 
-              {/* Lot + Quantity */}
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Lotto</label>
+                <Input
+                  value={currentItem.lot_number || ""}
+                  onChange={(e) => updateEditItem("lot_number", e.target.value)}
+                  placeholder="N° lotto"
+                  className="mt-1"
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground">Lotto</label>
-                  <Input
-                    value={currentItem.lot_number || ""}
-                    onChange={(e) => updateEditItem("lot_number", e.target.value)}
-                    placeholder="N° lotto"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">Quantità</label>
+                  <label className="text-xs font-medium text-muted-foreground">
+                    {currentItem.itemType === "preparation" ? "Porzioni" : "Quantità"}
+                  </label>
                   <div className="flex gap-1 mt-1">
                     <Input
                       type="number"
@@ -720,30 +784,50 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
                     />
                   </div>
                 </div>
-              </div>
-
-              {/* Net weight + Ingredients text */}
-              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground">Peso netto (g)</label>
+                  <label className="text-xs font-medium text-muted-foreground">Peso netto totale (g)</label>
                   <Input
                     type="number"
-                    value={(currentItem as any).netWeightG || ""}
+                    value={currentItem.netWeightG || ""}
                     onChange={(e) => updateEditItem("netWeightG", e.target.value ? parseFloat(e.target.value) : null)}
-                    placeholder="Es: 500"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground">Ingredienti (etichetta)</label>
-                  <Input
-                    value={(currentItem as any).ingredientsText || ""}
-                    onChange={(e) => updateEditItem("ingredientsText", e.target.value)}
-                    placeholder="farina, acqua, sale..."
+                    placeholder="Es: 2000"
                     className="mt-1"
                   />
                 </div>
               </div>
+              <p className="text-[11px] text-muted-foreground -mt-1">
+                Il peso netto è di tutta la produzione, non della singola porzione.
+              </p>
+              {portionWeightG(currentItem.netWeightG, currentItem.quantity) != null && (
+                <div className="rounded-xl bg-primary/10 px-3 py-2">
+                  <p className="text-sm font-semibold text-foreground">
+                    Peso {currentItem.itemType === "preparation" ? "di una porzione" : "per unità"}:{" "}
+                    {formatGrams(portionWeightG(currentItem.netWeightG, currentItem.quantity)!)}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Calcolato in automatico: {currentItem.netWeightG} g ÷ {currentItem.quantity}{" "}
+                    {currentItem.unit || "pz"}
+                  </p>
+                </div>
+              )}
+
+              {currentItem.itemType === "preparation" ? (
+                <IngredientSearchList
+                  restaurantId={restaurantId}
+                  value={currentItem.recipeIngredients || []}
+                  onChange={(next) => updateEditItem("recipeIngredients", next)}
+                />
+              ) : (
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">Ingredienti in etichetta</label>
+                  <Input
+                    value={currentItem.ingredientsText || ""}
+                    onChange={(e) => updateEditItem("ingredientsText", e.target.value)}
+                    placeholder="come scritti sulla confezione"
+                    className="mt-1"
+                  />
+                </div>
+              )}
 
               {/* Allergens */}
               <div>
