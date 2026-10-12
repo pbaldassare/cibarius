@@ -42,14 +42,10 @@ Tutto passa da `isNativeApp()` in `src/lib/native.ts`:
 - **Condividi**: nella WebView non c'è `navigator.share`. `src/lib/native-share.ts`
   lo definisce sopra `CondividiPlugin.java`, che apre il pannello di condivisione
   di Android (solo testo e link).
-- **Abbonamenti**: l'app è "consumption-only" per Google Play. Gli abbonamenti si
-  comprano dal sito (Stripe) e nell'app si usano; `/subscription` e
-  `/restaurant/subscription` rimandano alla home (`ABBONAMENTO` in `src/App.tsx`),
-  la voce del profilo sparisce e il banner di prova del ristorante dice solo che
-  l'abbonamento si gestisce dal sito, senza link. Regola di Play: niente pulsanti,
-  link o inviti a comprare fuori dall'app. Vendere dall'app richiede Play Billing
-  oppure il programma di Google per i link esterni (registrazione come azienda,
-  API di Play, 10% di commissione sugli abbonamenti dal 30/06/2026).
+- **Abbonamenti**: si comprano con Stripe come sul sito. Il checkout si apre nel
+  browser di sistema (Capacitor apre fuori dall'app ogni indirizzo esterno), il
+  ritorno va su `SITE_URL` perché `https://localhost` nel browser non esiste, e
+  `useSubscription` rilegge lo stato quando si torna nell'app.
 
 **Barre di sistema.** Da Android 15 l'app disegna sotto barra di stato e barra
 dei gesti. Capacitor inietta le misure in `--safe-area-inset-*`, e
@@ -216,6 +212,13 @@ screenshot con l'app.
 ---
 
 ## 9. Punti aperti
+
+- **Abbonamenti e regole di Google Play.** Vendere servizi digitali con un
+  pagamento esterno è ammesso solo aderendo al programma di Google per i link
+  esterni / billing choice (UE e Regno Unito): registrazione come azienda in
+  Play Console, integrazione delle API di Play (schermata informativa di Google
+  prima del link, segnalazione delle transazioni), commissione del 10% sugli
+  abbonamenti dal 30/06/2026. Senza adesione l'app rischia il rifiuto.
 
 - **Stampa etichette.** Il formato `@page 62mm 40mm` non è sempre rispettato dal
   dialogo di Android: il formato carta si sceglie nel dialogo. Da provare con

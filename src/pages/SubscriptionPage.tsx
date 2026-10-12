@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { isNativeApp } from "@/lib/native";
+import { SITE_URL } from "@/lib/site";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import MobileHeader from "@/components/MobileHeader";
 import { Card, CardContent } from "@/components/ui/card";
@@ -67,13 +69,17 @@ const SubscriptionPage = () => {
   const handleCheckout = async (plan: Plan) => {
     if (!user) return;
     setProcessing(plan.id);
+    // Nell'app il checkout si apre nel browser, dove https://localhost non
+    // esiste: dopo il pagamento si torna sul sito, poi l'utente rientra
+    // nell'app (useSubscription rilegge lo stato al ritorno).
+    const ritorno = (isNativeApp() ? SITE_URL : window.location.origin) + window.location.pathname;
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout-session", {
         body: {
           plan_id: plan.id,
           coupon_code: couponCode || undefined,
-          success_url: `${window.location.origin}${window.location.pathname}?success=true`,
-          cancel_url: `${window.location.origin}${window.location.pathname}?cancelled=true`,
+          success_url: `${ritorno}?success=true`,
+          cancel_url: `${ritorno}?cancelled=true`,
         },
       });
       if (error) throw error;

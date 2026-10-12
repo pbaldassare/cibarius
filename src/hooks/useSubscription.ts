@@ -89,6 +89,10 @@ export const useSubscription = (planType?: "restaurant" | "user_plus") => {
     };
 
     fetch();
+    // Chi paga con Stripe nel browser (app Android) torna qui a pagamento fatto.
+    const alRitorno = () => { if (document.visibilityState === "visible") fetch(); };
+    document.addEventListener("visibilitychange", alRitorno);
+    return () => document.removeEventListener("visibilitychange", alRitorno);
   }, [user, planType]);
 
   const isActive = subscription?.status === "trial" || subscription?.status === "active";

@@ -3,7 +3,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Clock, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { isNativeApp } from "@/lib/native";
 
 /**
  * Shows trial countdown or expiry warning on restaurant pages.
@@ -14,19 +13,14 @@ const RestaurantSubscriptionBanner = () => {
 
   if (isLoading) return null;
 
-  // Nell'app Android niente acquisti ne' inviti a comprare altrove (regole di
-  // Google Play): solo l'informazione, senza link.
-  const invito = (testo: string, className: string) =>
-    isNativeApp() ? (
-      <span className="block mt-1">L'abbonamento si gestisce dall'area riservata del sito.</span>
-    ) : (
-      <>
-        {testo}
-        <Button variant="link" className={`${className} px-1 h-auto`} onClick={() => navigate("/restaurant/subscription")}>
-          Attiva ora →
-        </Button>
-      </>
-    );
+  const invito = (testo: string, className: string) => (
+    <>
+      {testo}
+      <Button variant="link" className={`${className} px-1 h-auto`} onClick={() => navigate("/restaurant/subscription")}>
+        Attiva ora →
+      </Button>
+    </>
+  );
 
   if (isTrial && trialDaysLeft <= 7) {
     return (
