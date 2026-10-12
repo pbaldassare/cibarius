@@ -12,7 +12,7 @@ const ListSkeleton = ({ count = 4, variant = "card" }: ListSkeletonProps) => (
       variant === "card" ? (
         <div
           key={i}
-          className="flex items-center gap-3 rounded-2xl border-2 border-accent/30 bg-card p-3"
+          className="flex items-center gap-3 rounded-2xl border bg-card p-3"
         >
           <Skeleton className="h-16 w-16 shrink-0 rounded-xl" />
           <div className="flex-1 space-y-2">

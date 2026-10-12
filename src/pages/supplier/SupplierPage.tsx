@@ -95,7 +95,7 @@ const SupplierPage = () => {
       <div>
         <MobileHeader title="Crea profilo Fornitore" />
         <main className="px-4 py-5">
-          <Card className="border-2 border-accent">
+          <Card>
             <CardHeader>
               <CardTitle className="text-base">Dati fornitore</CardTitle>
             </CardHeader>
@@ -125,14 +125,14 @@ const SupplierPage = () => {
         <p className="text-sm text-muted-foreground">Benvenuto, <span className="font-semibold text-foreground">{supplier?.name}</span></p>
 
         <div className="grid grid-cols-2 gap-3">
-          <Card className="border-2 border-accent cursor-pointer" onClick={() => navigate("/supplier/restaurants")}>
+          <Card className="cursor-pointer" onClick={() => navigate("/supplier/restaurants")}>
             <CardContent className="flex flex-col items-center py-5">
               <Building2 className="h-8 w-8 text-primary mb-2" />
               <span className="text-2xl font-bold text-foreground">{restaurantCount}</span>
               <span className="text-xs text-muted-foreground">Ristoranti</span>
             </CardContent>
           </Card>
-          <Card className="border-2 border-accent cursor-pointer" onClick={() => navigate("/supplier/catalog")}>
+          <Card className="cursor-pointer" onClick={() => navigate("/supplier/catalog")}>
             <CardContent className="flex flex-col items-center py-5">
               <Package className="h-8 w-8 text-primary mb-2" />
               <span className="text-2xl font-bold text-foreground">{catalogCount}</span>
@@ -141,7 +141,7 @@ const SupplierPage = () => {
           </Card>
         </div>
 
-        <Card className="border-2 border-accent">
+        <Card>
           <CardContent className="flex flex-col items-center py-5">
             <TrendingUp className="h-8 w-8 text-primary mb-2" />
             <span className="text-sm text-muted-foreground">Report — prossimamente</span>

@@ -196,7 +196,7 @@ const ProClientDetailPage = () => {
         </div>
 
         {/* Kcal summary */}
-        <Card className="border-2 border-accent">
+        <Card>
           <CardContent className="py-4 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -263,7 +263,7 @@ const ProClientDetailPage = () => {
         )}
 
         {/* Notes section */}
-        <Card className="border-2 border-accent">
+        <Card>
           <CardHeader className="flex flex-row items-center gap-3 pb-2">
             <MessageSquare className="h-5 w-5 text-primary" />
             <CardTitle className="text-base">Note</CardTitle>

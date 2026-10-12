@@ -138,7 +138,7 @@ const SupplierCatalogPage = () => {
         ) : (
           <div className="space-y-2">
             {filtered.map((item) => (
-              <Card key={item.id} className="border-2 border-accent">
+              <Card key={item.id}>
                 <CardContent className="flex items-center gap-3 py-3">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">{item.products?.name}</p>

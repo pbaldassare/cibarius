@@ -290,7 +290,7 @@ const ProCouponPage = () => {
 
         {/* Referral link card */}
         {coupon && (
-          <Card className="border-2 border-accent">
+          <Card>
             <CardHeader className="flex flex-row items-center gap-3 pb-2">
               <Link2 className="h-5 w-5 text-primary" />
               <CardTitle className="text-base">Link referral diretto</CardTitle>

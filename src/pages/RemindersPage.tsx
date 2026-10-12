@@ -47,7 +47,7 @@ const RemindersPage = () => {
     <div>
       <MobileHeader title="Promemoria" showBack />
       <main className="px-4 py-5 space-y-4">
-        <Card className="border-2 border-accent">
+        <Card>
           <CardContent className="py-5 space-y-5">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">

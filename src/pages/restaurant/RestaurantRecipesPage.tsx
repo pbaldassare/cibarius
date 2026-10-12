@@ -333,7 +333,7 @@ const RestaurantRecipesPage = () => {
           <Textarea placeholder="Istruzioni / Procedimento" value={instructions} onChange={(e) => setInstructions(e.target.value)} className="min-h-[100px]" />
 
           {/* Ingredients */}
-          <Card className="border-2 border-accent">
+          <Card>
             <CardContent className="py-4 space-y-3">
               <h3 className="text-sm font-semibold text-foreground">Ingredienti</h3>
               <div className="flex gap-2">
@@ -386,7 +386,7 @@ const RestaurantRecipesPage = () => {
           </Card>
 
           {/* Allergens */}
-          <Card className="border-2 border-accent">
+          <Card>
             <CardContent className="py-4 space-y-3">
               <h3 className="text-sm font-semibold text-foreground">Allergeni</h3>
               <div className="grid grid-cols-2 gap-2">

@@ -97,7 +97,7 @@ const SupplierRestaurantsPage = () => {
             <div>
               <h3 className="text-sm font-semibold text-muted-foreground mb-2">Ristoranti attivi ({activeLinks.length})</h3>
               {activeLinks.length === 0 ? (
-                <Card className="border-2 border-accent">
+                <Card>
                   <CardContent className="py-6 text-center">
                     <Building2 className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
                     <p className="text-sm text-muted-foreground">Nessun ristorante collegato.</p>
@@ -106,7 +106,7 @@ const SupplierRestaurantsPage = () => {
               ) : (
                 <div className="space-y-2">
                   {activeLinks.map((l) => (
-                    <Card key={l.id} className="border-2 border-accent">
+                    <Card key={l.id}>
                       <CardContent className="flex items-center gap-3 py-3">
                         <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">🏪</div>
                         <div className="flex-1 min-w-0">

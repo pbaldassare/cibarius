@@ -5,7 +5,7 @@ import { FileText } from "lucide-react";
 const RestaurantAdminReportsPage = () => (
   <RestaurantAdminLayout>
     <h1 className="mb-6 text-2xl font-bold text-foreground">Report</h1>
-    <Card className="border-2 border-accent">
+    <Card>
       <CardHeader className="flex flex-row items-center gap-3 pb-2">
         <FileText className="h-5 w-5 text-primary" />
         <CardTitle className="text-base">Report</CardTitle>

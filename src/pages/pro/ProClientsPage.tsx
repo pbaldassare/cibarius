@@ -168,7 +168,7 @@ const ProClientsPage = () => {
               ) : (
                 <div className="space-y-3">
                   {activeClients.map((c) => (
-                    <Card key={c.id} className="border-2 border-accent">
+                    <Card key={c.id}>
                       <CardContent className="py-3 space-y-2">
                         <div className="flex items-center gap-3">
                           <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-lg">

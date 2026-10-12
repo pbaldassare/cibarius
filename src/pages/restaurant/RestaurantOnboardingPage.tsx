@@ -66,7 +66,7 @@ const RestaurantOnboardingPage = () => {
     <div>
       <MobileHeader title="Benvenuto" />
       <main className="px-4 py-5">
-        <Card className="border-2 border-accent">
+        <Card>
           <CardHeader className="items-center text-center">
             <Store className="mb-2 h-10 w-10 text-primary" />
             <CardTitle className="text-xl">Crea il tuo ristorante</CardTitle>

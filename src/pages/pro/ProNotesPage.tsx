@@ -32,7 +32,7 @@ const ProNotesPage = () => {
         {loading ? (
           <div className="flex justify-center py-10"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
         ) : notes.length === 0 ? (
-          <Card className="border-2 border-accent">
+          <Card>
             <CardContent className="py-8 text-center">
               <MessageSquare className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
               <p className="text-sm text-muted-foreground">Nessuna nota ancora. Vai nel dettaglio di un cliente per aggiungerne una.</p>

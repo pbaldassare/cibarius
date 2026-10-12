@@ -79,7 +79,7 @@ const SupplierInvitePage = () => {
       <div>
         <MobileHeader title="Collega Fornitore" />
         <main className="px-4 py-5">
-          <Card className="border-2 border-accent">
+          <Card>
             <CardContent className="py-8 text-center">
               <p className="text-sm text-muted-foreground">Devi avere un ristorante per collegare un fornitore.</p>
             </CardContent>
@@ -94,7 +94,7 @@ const SupplierInvitePage = () => {
       <MobileHeader title="Collega Fornitore" />
       <main className="px-4 py-5 space-y-4">
         {step === "input" && (
-          <Card className="border-2 border-accent">
+          <Card>
             <CardHeader className="items-center pb-2">
               <Link2 className="h-10 w-10 text-primary mb-2" />
               <CardTitle className="text-lg">Inserisci codice fornitore</CardTitle>
@@ -119,7 +119,7 @@ const SupplierInvitePage = () => {
         )}
 
         {step === "confirm" && supplierInfo && (
-          <Card className="border-2 border-accent">
+          <Card>
             <CardHeader className="items-center pb-2">
               <ShieldCheck className="h-10 w-10 text-primary mb-2" />
               <CardTitle className="text-lg">Conferma collegamento</CardTitle>
@@ -144,7 +144,7 @@ const SupplierInvitePage = () => {
         )}
 
         {step === "done" && (
-          <Card className="border-2 border-accent">
+          <Card>
             <CardHeader className="items-center pb-2">
               <Truck className="h-10 w-10 text-primary mb-2" />
               <CardTitle className="text-lg">Collegato!</CardTitle>

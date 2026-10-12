@@ -399,7 +399,7 @@ const ProClientPantryPage = () => {
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-foreground">Ricette generate</h3>
             {generatedRecipes.map((recipe, idx) => (
-              <Card key={idx} className="border-2 border-accent">
+              <Card key={idx}>
                 <CardHeader className="pb-1 pt-3 px-4">
                   <CardTitle className="text-sm flex items-center justify-between">
                     <span>{recipe.title}</span>

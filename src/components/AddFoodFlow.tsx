@@ -2365,7 +2365,7 @@ const AddFoodFlow = ({
           </DialogHeader>
           <div className="space-y-4">
             {expiryImage && (
-              <div className="rounded-xl overflow-hidden border-2 border-accent bg-secondary max-h-48">
+              <div className="rounded-xl overflow-hidden bg-secondary max-h-48">
                 <img src={expiryImage} alt="Etichetta" className="w-full h-full object-contain" />
               </div>
             )}

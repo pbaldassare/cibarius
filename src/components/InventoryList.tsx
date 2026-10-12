@@ -508,7 +508,7 @@ const InventoryList = ({ mode, storageFilter: externalStorageFilter }: Inventory
                 <button
                   key={item.id}
                   onClick={() => mode === "user" ? navigate(`/item/${item.id}`) : openEditDialog(item)}
-                  className="flex w-full items-center gap-3 rounded-2xl border-2 border-accent bg-card p-3 text-left active:scale-[0.98] transition-transform"
+                  className="flex w-full items-center gap-3 rounded-2xl border bg-card p-3 shadow-sm text-left active:scale-[0.98] transition-transform"
                 >
                   {/* Image / placeholder */}
                   <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-secondary overflow-hidden">

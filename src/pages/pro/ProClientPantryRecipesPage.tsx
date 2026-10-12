@@ -702,7 +702,7 @@ const ProClientPantryRecipesPage = () => {
                 : mealTarget?.kcal_target ?? 0;
 
               return (
-                <Card key={idx} className="border-2 border-accent overflow-hidden">
+                <Card key={idx} className="overflow-hidden">
                   <CardHeader className="pb-2 pt-3 px-4">
                     <div className="flex items-center justify-between gap-2">
                       <CardTitle className="text-sm flex-1">{recipe.title}</CardTitle>

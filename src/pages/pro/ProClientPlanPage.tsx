@@ -496,7 +496,7 @@ const ProClientPlanPage = () => {
 
         {/* Step 1: Daily targets */}
         {step === 1 && (
-          <Card className="border-2 border-accent">
+          <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">📊 Target giornalieri</CardTitle>
@@ -754,7 +754,7 @@ const ProClientPlanPage = () => {
 
         {/* Step 3: Notes */}
         {step === 3 && (
-          <Card className="border-2 border-accent">
+          <Card>
             <CardHeader><CardTitle className="text-base">📝 Note e regole</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               <div>

@@ -135,7 +135,7 @@ const RestaurantAdminStaffPage = () => {
         disabilitato finche' il percorso non e' completo, invece di aggiungere
         righe che non producono nessun accesso.
       */}
-      <Card className="mb-6 max-w-lg border-2 border-accent">
+      <Card className="mb-6 max-w-lg">
         <CardHeader>
           <CardTitle className="text-base">Aggiungi membro</CardTitle>
         </CardHeader>
@@ -165,7 +165,7 @@ const RestaurantAdminStaffPage = () => {
       </Card>
 
       {/* Members list */}
-      <Card className="border-2 border-accent overflow-auto">
+      <Card className="overflow-auto">
         {loading ? (
           <div className="flex justify-center py-8">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />

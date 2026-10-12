@@ -156,7 +156,7 @@ const ProClientMonitorPage = () => {
         </div>
 
         {/* Daily adherence */}
-        <Card className="border-2 border-accent">
+        <Card>
           <CardContent className="py-4 space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm font-semibold">Aderenza giornaliera</span>

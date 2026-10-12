@@ -95,7 +95,7 @@ const BarcodeScanner = ({ onDetected, active, onPermissionDenied }: BarcodeScann
 
   return (
     <div className="flex flex-col items-center gap-3">
-      <div ref={containerRef} className="relative w-full overflow-hidden rounded-2xl border-2 border-accent bg-secondary">
+      <div ref={containerRef} className="relative w-full overflow-hidden rounded-2xl bg-secondary">
         <div id="barcode-reader-flow" className="w-full" />
         {!running && !error && (
           <div className="flex flex-col items-center justify-center gap-2 py-16 text-muted-foreground">

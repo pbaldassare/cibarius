@@ -87,7 +87,7 @@ const PublicRecipesPage = () => {
             {filtered.map((r) => (
               <Card
                 key={r.id}
-                className="border-2 border-accent overflow-hidden cursor-pointer active:scale-[0.98] transition-transform"
+                className="overflow-hidden cursor-pointer active:scale-[0.98] transition-transform"
                 onClick={() => navigate(`/recipes/${r.id}`)}
               >
                 <div className="flex">

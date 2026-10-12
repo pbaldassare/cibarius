@@ -58,7 +58,7 @@ const RestaurantAdminSettingsPage = () => {
   return (
     <RestaurantAdminLayout>
       <h1 className="mb-6 text-2xl font-bold text-foreground">Dati Ristorante</h1>
-      <Card className="max-w-lg border-2 border-accent">
+      <Card className="max-w-lg">
         <CardHeader>
           <CardTitle className="text-base">Modifica dati</CardTitle>
         </CardHeader>

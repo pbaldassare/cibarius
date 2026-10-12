@@ -175,7 +175,7 @@ const RestaurantSettingsPage = () => {
       <MobileHeader title="Impostazioni" showBack />
       <main className="px-4 py-5 space-y-6 pb-28">
         {/* Immagine attività */}
-        <Card className="border-2 border-accent overflow-hidden">
+        <Card className="overflow-hidden">
           <CardHeader>
             <CardTitle className="text-base">Immagine attività</CardTitle>
           </CardHeader>
@@ -212,7 +212,7 @@ const RestaurantSettingsPage = () => {
         </Card>
 
         {/* Dati base */}
-        <Card className="border-2 border-accent">
+        <Card>
           <CardHeader>
             <CardTitle className="text-base">Dati ristorante</CardTitle>
           </CardHeader>
@@ -360,7 +360,7 @@ const RestaurantSettingsPage = () => {
         </Card>
 
         {/* Fornitori section */}
-        <Card className="border-2 border-accent">
+        <Card>
           <CardHeader className="flex flex-row items-center gap-3 pb-2">
             <Truck className="h-5 w-5 text-primary" />
             <CardTitle className="text-base flex-1">Fornitori</CardTitle>
