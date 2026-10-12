@@ -184,6 +184,10 @@ const SignupPage = () => {
       {/* Header gradient */}
       <div className="relative bg-gradient-to-r from-primary to-primary-dark px-4 pb-16 pt-[calc(4rem+var(--sat))] text-center">
         <img src={cibariusLogo} alt="Cibarius" className="mx-auto h-10 brightness-0 invert" />
+        {/* Testi bianchi: il carosello sta sul blu, come nell'accesso. */}
+        <div className="mx-auto mt-6 w-full max-w-sm">
+          <AuthFeatureCarousel />
+        </div>
         <div className="absolute bottom-0 left-0 right-0 translate-y-[1px]">
           <svg viewBox="0 0 1440 50" fill="none" xmlns="http://www.w3.org/2000/svg" className="block w-full">
             <path d="M0 0C0 0 360 50 720 50C1080 50 1440 0 1440 0V50H0V0Z" className="fill-background" />
@@ -191,13 +195,8 @@ const SignupPage = () => {
         </div>
       </div>
 
-      {/* Feature carousel */}
-      <div className="px-4 pt-6 pb-2">
-        <AuthFeatureCarousel />
-      </div>
-
       {/* Referral badge */}
-      <div className="px-4">
+      <div className="px-4 pt-4">
         <ReferralBadge className="max-w-md mx-auto" />
       </div>
 
