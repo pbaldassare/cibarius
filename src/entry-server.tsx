@@ -3,6 +3,7 @@ import { StaticRouter } from "react-router-dom/server";
 import { Routes, Route } from "react-router-dom";
 import SiteLayout from "@/components/site/SiteLayout";
 import { SITE_ROUTES } from "@/lib/site-routes";
+import { LEGAL_ROUTES } from "@/lib/legal-routes";
 
 /**
  * Disegna una pagina del sito pubblico fuori dal browser.
@@ -20,7 +21,7 @@ export const render = (path: string): string =>
     <StaticRouter location={path}>
       <Routes>
         <Route element={<SiteLayout />}>
-          {SITE_ROUTES.map(({ path: p, element }) => (
+          {[...SITE_ROUTES, ...LEGAL_ROUTES].map(({ path: p, element }) => (
             <Route key={p} path={p} element={element} />
           ))}
         </Route>
@@ -29,4 +30,4 @@ export const render = (path: string): string =>
   );
 
 /** Indirizzi da generare, letti dallo stesso elenco usato dall'app. */
-export const paths = (): string[] => SITE_ROUTES.map((r) => r.path);
+export const paths = (): string[] => [...SITE_ROUTES, ...LEGAL_ROUTES].map((r) => r.path);

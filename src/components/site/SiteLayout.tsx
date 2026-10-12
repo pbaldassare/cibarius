@@ -136,6 +136,16 @@ const SiteLayout = () => {
                   Contatti
                 </Link>
               </li>
+              <li>
+                <Link to="/privacy" className="text-[13px] text-muted-foreground hover:text-primary">
+                  Privacy
+                </Link>
+              </li>
+              <li>
+                <Link to="/elimina-account" className="text-[13px] text-muted-foreground hover:text-primary">
+                  Elimina account
+                </Link>
+              </li>
             </ul>
           </div>
 

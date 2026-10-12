@@ -3,7 +3,7 @@ import { useTour, TourRole } from "@/components/AppTourContext";
 import cibariusLogo from "@/assets/cibarius-logo.png";
 import MobileHeader from "@/components/MobileHeader";
 import { useAuth } from "@/hooks/useAuth";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useRole } from "@/hooks/useRole";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -586,6 +586,10 @@ const ProfiloPage = () => {
           <span className="flex-1 text-[15px] font-medium text-foreground">Rivedi il tour dell'app</span>
           <ChevronRight size={16} className="text-muted-foreground" />
         </button>
+
+        <Button variant="ghost" asChild className="w-full gap-2 text-primary">
+          <Link to="/privacy"><Lock size={16} /> Privacy <ChevronRight size={16} /></Link>
+        </Button>
 
         <button
           onClick={() => setDeleteOpen(true)}

@@ -65,6 +65,14 @@ const META = {
     description:
       "Scrivici per una dimostrazione sul tuo locale, per un preventivo o per assistenza sull'app. Rispondiamo in italiano, di persona.",
   },
+  "/privacy": {
+    title: "Informativa sulla privacy di Cibarius",
+    description: "Informativa GDPR di Cibarius: dati trattati, finalità, sicurezza, conservazione e diritti degli interessati.",
+  },
+  "/elimina-account": {
+    title: "Eliminazione account e dati Cibarius",
+    description: "Come richiedere l’eliminazione dell’account Cibarius e dei dati personali: dall’app o via email, entro 30 giorni.",
+  },
 };
 
 const esc = (t) => t.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
