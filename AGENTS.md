@@ -1,0 +1,2 @@
+# Project rules
+- Register legal pages separately from SITE_ROUTES and protected routes, sharing their list with static rendering, because native apps redirect marketing routes to login but legal pages must remain public.
