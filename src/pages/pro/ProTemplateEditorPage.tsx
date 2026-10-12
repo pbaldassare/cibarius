@@ -517,7 +517,7 @@ const ProTemplateEditorPage = () => {
               <Collapsible key={weekIdx} open={openWeeks[week.week_number]} onOpenChange={() => toggleWeek(week.week_number)}>
                 <Card className="border border-border overflow-hidden">
                   <CollapsibleTrigger asChild>
-                    <button className="w-full flex items-center justify-between p-3 hover:bg-accent/30 transition-colors">
+                    <button className="w-full flex items-center justify-between p-3 hover:bg-secondary/30 transition-colors">
                       <div className="flex items-center gap-2">
                         <CalendarDays className="h-4 w-4 text-primary" />
                         <span className="font-semibold text-sm">{week.week_title}</span>
@@ -556,7 +556,7 @@ const ProTemplateEditorPage = () => {
                           <Collapsible key={dayKey} open={openDays[dayKey]} onOpenChange={() => toggleDay(dayKey)}>
                             <div className="rounded-lg border border-border overflow-hidden">
                               <CollapsibleTrigger asChild>
-                                <button className="w-full flex items-center justify-between px-3 py-2 hover:bg-accent/30 transition-colors">
+                                <button className="w-full flex items-center justify-between px-3 py-2 hover:bg-secondary/30 transition-colors">
                                   <div className="flex items-center gap-2">
                                     <span className="text-sm font-medium">{dayLabel}</span>
                                     {filled > 0 && <Badge variant="default" className="text-[9px] px-1.5">{filled}</Badge>}

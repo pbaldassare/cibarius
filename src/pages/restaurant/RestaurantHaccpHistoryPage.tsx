@@ -287,7 +287,7 @@ const RestaurantHaccpHistoryPage = () => {
               {filtered.map(l => (
                 <TableRow
                   key={l.id}
-                  className={`cursor-pointer hover:bg-accent/50 transition-colors ${l.temperature_anomaly ? "bg-destructive/5" : ""}`}
+                  className={`cursor-pointer hover:bg-secondary/50 transition-colors ${l.temperature_anomaly ? "bg-destructive/5" : ""}`}
                   onClick={() => openDetail(l)}
                 >
                   <TableCell className="text-sm whitespace-nowrap">

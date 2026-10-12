@@ -102,5 +102,7 @@ export default {
       },
     },
   },
+  // Sui telefoni hover: resterebbe acceso dopo il tocco.
+  future: { hoverOnlyWhenSupported: true },
   plugins: [require("tailwindcss-animate")],
 } satisfies Config;

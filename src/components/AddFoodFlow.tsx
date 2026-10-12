@@ -1730,7 +1730,7 @@ const AddFoodFlow = ({
                                   const nextIdx = (keys.indexOf(p.storage_type as typeof keys[number]) + 1) % keys.length;
                                   setReceiptProducts(prev => prev.map((pp, i) => i === idx ? { ...pp, storage_type: keys[nextIdx] } : pp));
                                 }}
-                                className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium bg-muted text-muted-foreground hover:bg-accent transition-colors shrink-0"
+                                className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium bg-muted text-muted-foreground hover:bg-secondary transition-colors shrink-0"
                                 title={`Cambia conservazione (${stOpt.label})`}
                               >
                                 <StIcon className="h-3.5 w-3.5" />

@@ -122,7 +122,7 @@ const MealTextAutocomplete = ({ value, onChange, mealType, placeholder, classNam
             <button
               key={s.id}
               type="button"
-              className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-accent/50 transition-colors group"
+              className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-secondary/50 transition-colors group"
               onClick={() => applySuggestion(s.meal_text)}
             >
               <div className="flex-1 min-w-0">
