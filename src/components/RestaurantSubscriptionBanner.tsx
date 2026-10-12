@@ -3,6 +3,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Clock, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { isNativeApp } from "@/lib/native";
 
 /**
  * Shows trial countdown or expiry warning on restaurant pages.
@@ -13,6 +14,20 @@ const RestaurantSubscriptionBanner = () => {
 
   if (isLoading) return null;
 
+  // Nell'app Android niente acquisti ne' inviti a comprare altrove (regole di
+  // Google Play): solo l'informazione, senza link.
+  const invito = (testo: string, className: string) =>
+    isNativeApp() ? (
+      <span className="block mt-1">L'abbonamento si gestisce dall'area riservata del sito.</span>
+    ) : (
+      <>
+        {testo}
+        <Button variant="link" className={`${className} px-1 h-auto`} onClick={() => navigate("/restaurant/subscription")}>
+          Attiva ora →
+        </Button>
+      </>
+    );
+
   if (isTrial && trialDaysLeft <= 7) {
     return (
       <Alert className="border-amber-500/30 bg-amber-50 dark:bg-amber-950/20">
@@ -21,14 +36,7 @@ const RestaurantSubscriptionBanner = () => {
           Periodo di prova: {trialDaysLeft} giorni rimasti
         </AlertTitle>
         <AlertDescription className="text-amber-700 dark:text-amber-500 text-sm">
-          Attiva l'abbonamento per continuare a usare tutte le funzioni.
-          <Button
-            variant="link"
-            className="text-amber-800 dark:text-amber-400 px-1 h-auto"
-            onClick={() => navigate("/subscription")}
-          >
-            Attiva ora →
-          </Button>
+          {invito("Attiva l'abbonamento per continuare a usare tutte le funzioni.", "text-amber-800 dark:text-amber-400")}
         </AlertDescription>
       </Alert>
     );
@@ -40,14 +48,8 @@ const RestaurantSubscriptionBanner = () => {
         <AlertTriangle className="h-4 w-4" />
         <AlertTitle>Abbonamento scaduto</AlertTitle>
         <AlertDescription className="text-sm">
-          Il tuo periodo di prova è terminato. Attiva l'abbonamento per continuare.
-          <Button
-            variant="link"
-            className="text-destructive-foreground px-1 h-auto"
-            onClick={() => navigate("/subscription")}
-          >
-            Attiva ora →
-          </Button>
+          Il tuo periodo di prova è terminato.{" "}
+          {invito("Attiva l'abbonamento per continuare.", "text-destructive-foreground")}
         </AlertDescription>
       </Alert>
     );

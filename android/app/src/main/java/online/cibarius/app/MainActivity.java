@@ -11,6 +11,7 @@ public class MainActivity extends BridgeActivity {
         // I plugin locali vanno registrati prima che parta il bridge.
         registerPlugin(StampaPlugin.class);
         registerPlugin(SalvaPlugin.class);
+        registerPlugin(CondividiPlugin.class);
         super.onCreate(savedInstanceState);
 
         // Senza questo il tasto indietro chiude l'app da qualsiasi pagina.

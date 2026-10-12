@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Upload, FileText, Download, Trash2, Plus, ExternalLink, ChevronRight, Sparkles, RefreshCw, PackagePlus, CheckCircle2 } from "lucide-react";
+import { Loader2, Camera, Upload, FileText, Download, Trash2, Plus, ExternalLink, ChevronRight, Sparkles, RefreshCw, PackagePlus, CheckCircle2 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -389,6 +389,14 @@ const RestaurantInvoicesPage = () => {
             <div className="space-y-1.5">
               <Label>File (PDF, JPG, PNG)</Label>
               <Input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+              {/* Con capture si apre la fotocamera, ma solo per le immagini: per il PDF resta l'input sopra. */}
+              <Button asChild variant="outline" className="w-full cursor-pointer">
+                <label>
+                  <Camera className="mr-2 h-4 w-4" /> Scatta foto
+                  <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+                </label>
+              </Button>
+              {file && <p className="truncate text-xs text-muted-foreground">{file.name}</p>}
             </div>
             <Button onClick={handleUpload} disabled={!file || uploading} className="w-full">
               {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}

@@ -72,8 +72,8 @@ const SubscriptionPage = () => {
         body: {
           plan_id: plan.id,
           coupon_code: couponCode || undefined,
-          success_url: `${window.location.origin}/subscription?success=true`,
-          cancel_url: `${window.location.origin}/subscription?cancelled=true`,
+          success_url: `${window.location.origin}${window.location.pathname}?success=true`,
+          cancel_url: `${window.location.origin}${window.location.pathname}?cancelled=true`,
         },
       });
       if (error) throw error;

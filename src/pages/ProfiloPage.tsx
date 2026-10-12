@@ -4,6 +4,7 @@ import cibariusLogo from "@/assets/cibarius-logo.png";
 import MobileHeader from "@/components/MobileHeader";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
+import { isNativeApp } from "@/lib/native";
 import { useRole } from "@/hooks/useRole";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -458,7 +459,8 @@ const ProfiloPage = () => {
             { icon: Heart, label: "Preferiti", path: "/favorites", badge: 0 },
             { icon: Sparkles, label: "Abbonamento Premium", path: "/subscription", badge: 0 },
             { icon: Bell, label: "Promemoria scadenze", path: "/reminders", badge: 0 },
-          ]).map((item, i) => (
+          // Nell'app Android l'abbonamento non si compra (vedi ABBONAMENTO in App.tsx).
+          ]).filter((item) => !(isNativeApp() && item.path === "/subscription")).map((item, i) => (
             <button
               key={item.label}
               onClick={() => item.path ? navigate(item.path) : toast({ title: "In arrivo!", description: `${item.label} sarà disponibile a breve.` })}

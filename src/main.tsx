@@ -6,12 +6,14 @@ import { isNativeApp } from "./lib/native";
 import { installaStampaNativa } from "./lib/native-print";
 import { installaDownloadNativi } from "./lib/native-download";
 import { installaTastoIndietro } from "./lib/native-back";
+import { installaCondivisioneNativa } from "./lib/native-share";
 
 initOfflineSync();
 if (isNativeApp()) {
   installaStampaNativa();
   installaDownloadNativi();
   installaTastoIndietro();
+  installaCondivisioneNativa();
 }
 
 createRoot(document.getElementById("root")!).render(<App />);

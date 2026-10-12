@@ -128,6 +128,13 @@ import { TourProvider } from "./components/AppTourContext";
 
 const queryClient = new QueryClient();
 
+/**
+ * Nell'app Android gli abbonamenti non si comprano: Google chiede Play Billing
+ * per i servizi digitali venduti nell'app. Si comprano dal sito e nell'app si
+ * usano (app "consumption-only"), quindi le pagine d'acquisto rimandano alla home.
+ */
+const ABBONAMENTO = isNativeApp() ? <Navigate to={LOGIN_PATH} replace /> : <SubscriptionPage />;
+
 const RG = ({ roles, children }: { roles: string[]; children: React.ReactNode }) => (
   <RoleGuard allowedRoles={roles as any}>{children}</RoleGuard>
 );
@@ -197,7 +204,7 @@ const App = () => (
                 <Route path="/recipes/:recipeId" element={<RecipeDetailPage />} />
                 <Route path="/preparations" element={<PreparationsPage />} />
                 <Route path="/shopping-list" element={<ShoppingListPage />} />
-                <Route path="/subscription" element={<SubscriptionPage />} />
+                <Route path="/subscription" element={ABBONAMENTO} />
                 <Route path="/favorites" element={<UserFavoritesPage />} />
                 <Route path="/item/:itemId" element={<UserItemDetailPage />} />
                 <Route path="/compare" element={<CompareProductsPage />} />
@@ -229,6 +236,8 @@ const App = () => (
                 <Route path="/restaurant/preparations" element={<RestaurantPreparationsPage />} />
                 <Route path="/restaurant/item/:id" element={<RestaurantItemPage />} />
                 <Route path="/restaurant/profile" element={<ProfiloPage />} />
+                {/* /subscription e' dell'app consumer: il ristoratore verrebbe rimandato alla home. */}
+                <Route path="/restaurant/subscription" element={ABBONAMENTO} />
                 <Route path="/restaurant/haccp" element={<RestaurantHaccpPage />} />
                 <Route path="/restaurant/haccp/setup" element={<RestaurantHaccpSetupPage />} />
                 <Route path="/restaurant/haccp/history" element={<RestaurantHaccpHistoryPage />} />

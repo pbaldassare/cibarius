@@ -39,6 +39,17 @@ Tutto passa da `isNativeApp()` in `src/lib/native.ts`:
 - **Fotocamera**: gli input con `capture` aprono l'app Fotocamera solo grazie a
   `<queries>` nel manifest; senza, da Android 11 Capacitor ripiega sulla galleria.
   Un input senza `capture` apre solo il selettore di file.
+- **Condividi**: nella WebView non c'è `navigator.share`. `src/lib/native-share.ts`
+  lo definisce sopra `CondividiPlugin.java`, che apre il pannello di condivisione
+  di Android (solo testo e link).
+- **Abbonamenti**: l'app è "consumption-only" per Google Play. Gli abbonamenti si
+  comprano dal sito (Stripe) e nell'app si usano; `/subscription` e
+  `/restaurant/subscription` rimandano alla home (`ABBONAMENTO` in `src/App.tsx`),
+  la voce del profilo sparisce e il banner di prova del ristorante dice solo che
+  l'abbonamento si gestisce dal sito, senza link. Regola di Play: niente pulsanti,
+  link o inviti a comprare fuori dall'app. Vendere dall'app richiede Play Billing
+  oppure il programma di Google per i link esterni (registrazione come azienda,
+  API di Play, 10% di commissione sugli abbonamenti dal 30/06/2026).
 
 **Barre di sistema.** Da Android 15 l'app disegna sotto barra di stato e barra
 dei gesti. Capacitor inietta le misure in `--safe-area-inset-*`, e
@@ -206,11 +217,6 @@ screenshot con l'app.
 
 ## 9. Punti aperti
 
-- **Abbonamenti e Google Play Billing.** Play chiede di vendere i servizi
-  digitali usati nell'app (Plus, Ristorante Pro) con il suo sistema di
-  pagamento, non con Stripe. Oggi `SubscriptionPage` apre il checkout Stripe nel
-  browser. Prima di pubblicare va deciso: Play Billing, oppure togliere
-  l'acquisto dall'app (si compra dal sito) senza link o inviti a pagare altrove.
 - **Stampa etichette.** Il formato `@page 62mm 40mm` non è sempre rispettato dal
   dialogo di Android: il formato carta si sceglie nel dialogo. Da provare con
   l'etichettatrice vera.
@@ -220,8 +226,3 @@ screenshot con l'app.
 - **Notifiche push native.** Non ci sono, restano email e notifiche in app.
 - **Font.** Fredoka e Inter arrivano da Google Fonts: senza rete al primo avvio
   si vede il font di sistema. L'app senza rete comunque non lavora (Supabase).
-- **Carica documento (Bolle).** L'input accetta PDF e immagini senza `capture`:
-  apre solo il selettore di file, non la fotocamera. Con `capture` si perderebbe
-  il PDF; servirebbe un secondo pulsante "Scatta foto".
-- **Condividi.** Nella WebView non c'è `navigator.share`: il pulsante del profilo
-  copia il link invece di aprire il pannello di condivisione di Android.
