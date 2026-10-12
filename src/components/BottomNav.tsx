@@ -38,7 +38,8 @@ const tabsByRole: Record<string, TabItem[]> = {
     { to: "/supplier/restaurants", icon: Building2, label: "Ristoranti" },
     { to: "/supplier/catalog", icon: Package, label: "Catalogo" },
     { to: "/supplier/reports", icon: FileText, label: "Report" },
-    { to: "/profile", icon: User, label: "Profilo" },
+    // /profile e' dell'app consumer: il fornitore verrebbe rimandato alla dashboard.
+    { to: "/supplier/profile", icon: User, label: "Profilo" },
   ],
   admin: [
     { to: "/admin", icon: LayoutDashboard, label: "Dashboard" },

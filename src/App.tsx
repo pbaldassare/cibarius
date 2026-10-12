@@ -275,6 +275,7 @@ const App = () => (
                 <Route path="/supplier/restaurants" element={<RG roles={["supplier", "admin"]}><SupplierRestaurantsPage /></RG>} />
                 <Route path="/supplier/catalog" element={<RG roles={["supplier", "admin"]}><SupplierCatalogPage /></RG>} />
                 <Route path="/supplier/reports" element={<RG roles={["supplier", "admin"]}><SupplierReportsPage /></RG>} />
+                <Route path="/supplier/profile" element={<RG roles={["supplier", "admin"]}><ProfiloPage /></RG>} />
               </Route>
 
               {/* ═══ ADMIN (browser only, with PWA guard) ═══ */}

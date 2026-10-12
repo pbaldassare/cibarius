@@ -449,7 +449,8 @@ const ProfiloPage = () => {
         )}
 
 
-        {/* ═══ Menu items ═══ */}
+        {/* ═══ Menu items (il fornitore non ha voci: preferiti e abbonamento sono del consumer) ═══ */}
+        {role !== "supplier" && (
         <div className="rounded-[18px] bg-card shadow-card overflow-hidden">
           {(role === "professional" ? [
             { icon: Sparkles, label: "Abbonamenti clienti", path: "/pro/clients", badge: 0 },
@@ -476,6 +477,7 @@ const ProfiloPage = () => {
             </button>
           ))}
         </div>
+        )}
 
         <div className="rounded-[18px] bg-card shadow-card overflow-hidden">
           <button

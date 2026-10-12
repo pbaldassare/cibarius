@@ -49,7 +49,7 @@ scrive UI nuova:
   (`MobileHeader` lo fa già: usalo);
 - un elemento fisso in basso aggiunge `var(--sab)` (`safe-bottom`, o
   `bottom-[calc(72px+var(--sab))]` come i FAB esistenti);
-- le sheet di `ui/sheet.tsx` lo fanno da sole;
+- le sheet di `ui/sheet.tsx` e i toast (`ui/toast.tsx`, `ui/sonner.tsx`) lo fanno da soli;
 - non usare `env(safe-area-inset-*)` da solo: su Android prima di Chrome 140 vale 0;
 - le icone della barra di stato sono chiare, per l'intestazione blu: una schermata
   con il fondo chiaro in alto chiama `useIconeBarraScure()` (`src/lib/native.ts`),
@@ -223,3 +223,5 @@ screenshot con l'app.
 - **Carica documento (Bolle).** L'input accetta PDF e immagini senza `capture`:
   apre solo il selettore di file, non la fotocamera. Con `capture` si perderebbe
   il PDF; servirebbe un secondo pulsante "Scatta foto".
+- **Condividi.** Nella WebView non c'è `navigator.share`: il pulsante del profilo
+  copia il link invece di aprire il pannello di condivisione di Android.
