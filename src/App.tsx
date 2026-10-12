@@ -123,6 +123,7 @@ import { isNativeApp } from "@/lib/native";
 // visitatore e la pagina che i motori di ricerca devono trovare.
 import SiteLayout from "./components/site/SiteLayout";
 import { SITE_ROUTES } from "@/lib/site-routes";
+import { LEGAL_ROUTES } from "@/lib/legal-routes";
 import { PwaInstallProvider } from "./hooks/usePwaInstall";
 import { TourProvider } from "./components/AppTourContext";
 
@@ -175,6 +176,11 @@ const App = () => (
             <Route path="/join/:code" element={<Navigate to={USER_HOME} replace />} />
             <Route path="/n/:slug" element={<Navigate to={USER_HOME} replace />} />
             <Route path="/haccp/label/:token" element={<PublicHaccpLabelPage />} />
+            <Route element={<SiteLayout />}>
+              {LEGAL_ROUTES.map(({ path, element }) => (
+                <Route key={path} path={path} element={element} />
+              ))}
+            </Route>
 
             {/* Protected routes */}
             <Route element={<ProtectedRoute />}>

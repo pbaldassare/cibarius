@@ -410,6 +410,9 @@ const SignupPage = () => {
                 Accedi
               </Link>
             </p>
+            <p className="mt-3 text-center text-sm text-muted-foreground">
+              <Link to="/privacy" className="hover:text-primary hover:underline">Privacy</Link>
+            </p>
           </CardContent>
         </Card>
       </div>

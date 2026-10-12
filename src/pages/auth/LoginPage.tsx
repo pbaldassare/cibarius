@@ -156,6 +156,9 @@ const LoginPage = () => {
                 Registrati <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </p>
+            <Link to="/privacy" className="text-sm text-muted-foreground hover:text-primary hover:underline">
+              Privacy
+            </Link>
           </div>
         </div>
       </div>
