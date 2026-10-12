@@ -33,12 +33,14 @@ const NOMI = { "Utente test": "Giulia", "Ristorante prova": "Trattoria Il Glicin
 
 function pulisci(v) {
   if (typeof v === "string") {
-    let s = v.replace(/\[DEMO\]\s*/g, "");
+    let s = v.replace(/\[(DEMO|FB)\]\s*/g, "");
     for (const [a, b] of Object.entries(NOMI)) s = s.split(a).join(b);
     return s;
   }
   if (Array.isArray(v)) return v.map(pulisci);
-  if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, pulisci(x)]));
+  // Il nome del profilo e' sempre "Giulia": nella scheda pubblica non deve finire
+  // il nome vero di chi ha l'account usato per le catture.
+  if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, k === "full_name" && x ? "Giulia" : pulisci(x)]));
   return v;
 }
 // Le scadenze di prova sono di mesi fa: si spostano tutte insieme, nello
@@ -57,8 +59,17 @@ function sposta(json) {
   const ancora = date.length === 1 && prodotto ? prodotto : min;
   const meta = date.length === 1 ? (prodotto ? 0 : 2) : -1;
   const delta = Math.round((OGGI - new Date(ancora + "T12:00:00")) / 864e5) + meta;
+  // In una lista i prodotti con la stessa scadenza si distanziano di un giorno:
+  // altrimenti finirebbero tutti "scaduti da ieri".
+  const visti = new Map();
+  const scarto = (k, x) => {
+    if (!SCADENZE.includes(k) || date.length < 2) return 0;
+    const n = visti.get(x.slice(0, 10)) ?? 0;
+    visti.set(x.slice(0, 10), n + 1);
+    return n;
+  };
   const applica = (v) => Array.isArray(v) ? v.map(applica) : v && typeof v === "object"
-    ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, DATE.includes(k) && typeof x === "string" ? giorno(new Date(new Date(x.slice(0, 10) + "T12:00:00").getTime() + delta * 864e5)) : applica(x)]))
+    ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, DATE.includes(k) && typeof x === "string" ? giorno(new Date(new Date(x.slice(0, 10) + "T12:00:00").getTime() + (delta + scarto(k, x)) * 864e5)) : applica(x)]))
     : v;
   return applica(json);
 }
