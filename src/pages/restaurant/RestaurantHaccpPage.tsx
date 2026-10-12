@@ -235,7 +235,7 @@ const RestaurantHaccpPage = () => {
 
   return (
     <div className="space-y-4 p-4" data-tour="rest-haccp-page">
-      <MobileHeader title="HACCP" />
+      <MobileHeader className="-mx-4 -mt-4" title="HACCP" />
 
       {/* Week navigation */}
       <div className="flex items-center justify-between">

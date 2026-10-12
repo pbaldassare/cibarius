@@ -68,7 +68,7 @@ const RestaurantHaccpLabelsPage = () => {
 
   return (
     <div className="space-y-4 p-4">
-      <MobileHeader title="Etichette HACCP" />
+      <MobileHeader className="-mx-4 -mt-4" title="Etichette HACCP" />
 
       <div className="flex gap-2">
         <Link to="/restaurant/haccp-labels/new" className="flex-1">

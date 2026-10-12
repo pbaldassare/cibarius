@@ -1,5 +1,6 @@
 import { ChevronLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { cn } from "@/lib/utils";
 import cibariusLogo from "@/assets/cibarius-logo.png";
 import UserNotificationsBell from "@/components/UserNotificationsBell";
 
@@ -8,16 +9,18 @@ interface MobileHeaderProps {
   showBack?: boolean;
   right?: React.ReactNode;
   hideNotifications?: boolean;
+  /** Per le pagine con padding: `-mx-4 -mt-4` riporta l'intestazione ai bordi. */
+  className?: string;
 }
 
-const MobileHeader = ({ title, showBack = true, right, hideNotifications = false }: MobileHeaderProps) => {
+const MobileHeader = ({ title, showBack = true, right, hideNotifications = false, className }: MobileHeaderProps) => {
   const navigate = useNavigate();
 
   return (
-    <div className="relative">
+    <div className={cn("relative", className)}>
       {/* Gradient header – subtle, elegant */}
       <header
-        className="sticky top-0 z-40 px-4 pt-2 pb-5"
+        className="sticky top-0 z-40 px-4 pt-[calc(0.5rem+var(--sat))] pb-5"
         style={{
           background: "linear-gradient(135deg, hsl(196, 88%, 54%) 0%, hsl(201, 89%, 39%) 100%)",
         }}

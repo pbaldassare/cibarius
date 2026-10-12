@@ -1,0 +1,1 @@
+const c=async o=>{const t=[];for(let r=0;r<20;r++){const a=r*1e3,{data:s,error:e}=await o(a,a+1e3-1);if(e)return{data:t,error:e,truncated:!1};const n=s??[];if(t.push(...n),n.length<1e3)return{data:t,error:null,truncated:!1}}return{data:t,error:null,truncated:!0}};export{c as f};

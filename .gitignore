@@ -37,3 +37,9 @@ supabase/.temp
 # Tracce del giro di prova automatico
 report/.account.json
 report/.seeded
+
+# Firma Android: la chiave non entra mai nel repo, chi la perde non puo' piu'
+# aggiornare l'app su Play Store.
+*.jks
+*.keystore
+android/keystore.properties

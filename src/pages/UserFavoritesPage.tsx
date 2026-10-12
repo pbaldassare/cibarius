@@ -65,7 +65,7 @@ const UserFavoritesPage = () => {
   };
 
   return (
-    <main className="px-4 pt-4 pb-6 space-y-5">
+    <main className="px-4 pt-[calc(1rem+var(--sat))] pb-6 space-y-5">
       <div className="flex items-center gap-3">
         <button onClick={() => navigate(-1)} className="p-1.5 rounded-full hover:bg-secondary transition-colors">
           <ArrowLeft className="h-5 w-5 text-foreground" />

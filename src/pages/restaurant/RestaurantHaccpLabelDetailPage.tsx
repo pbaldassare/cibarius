@@ -131,7 +131,7 @@ const RestaurantHaccpLabelDetailPage = () => {
 
   return (
     <div className="space-y-4 p-4 pb-24 print:p-0">
-      <div className="print:hidden">
+      <div className="-mx-4 -mt-4 print:hidden">
         <MobileHeader title={label.preparation_name} />
       </div>
 

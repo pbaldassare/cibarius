@@ -10,7 +10,7 @@ const RestaurantLayout = () => {
   return (
     <div className="mx-auto min-h-screen max-w-2xl bg-background restaurant-app">
       <Outlet />
-      <div className="h-[calc(64px+env(safe-area-inset-bottom,0px)+12px)]" />
+      <div className="h-[calc(64px+var(--sab)+12px)]" />
       <RestaurantBottomNav />
       <AppTour />
       <AppTourPrompt />

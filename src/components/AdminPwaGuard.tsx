@@ -1,5 +1,6 @@
 import { ShieldX, Monitor } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { isNativeApp } from "@/lib/native";
 
 /**
  * Detects if the app is running in standalone/PWA mode.
@@ -7,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
  */
 const isStandaloneMode = (): boolean => {
   if (typeof window === "undefined") return false;
+  if (isNativeApp()) return true;
   // Check display-mode: standalone
   if (window.matchMedia("(display-mode: standalone)").matches) return true;
   // iOS standalone

@@ -433,7 +433,7 @@ const RestaurantExpiryPage = () => {
 
       {/* Selection action bar */}
       {selectionMode && selectedIds.size > 0 && (
-        <div className="fixed bottom-[calc(72px+env(safe-area-inset-bottom,0px))] left-0 right-0 z-50 px-4 pb-2">
+        <div className="fixed bottom-[calc(72px+var(--sab))] left-0 right-0 z-50 px-4 pb-2">
           <div className="flex items-center gap-3 rounded-2xl bg-card shadow-elevated px-4 py-3 border border-border">
             <span className="text-[13px] font-medium text-foreground flex-1">
               {selectedIds.size} selezionat{selectedIds.size === 1 ? "o" : "i"}

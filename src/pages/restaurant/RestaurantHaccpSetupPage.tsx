@@ -276,7 +276,7 @@ const RestaurantHaccpSetupPage = () => {
   if (loading) {
     return (
       <div className="p-4">
-        <MobileHeader title="Configura HACCP" />
+        <MobileHeader className="-mx-4 -mt-4" title="Configura HACCP" />
         <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
       </div>
     );
@@ -286,7 +286,7 @@ const RestaurantHaccpSetupPage = () => {
 
   return (
     <div className="space-y-4 p-4" data-tour="rest-haccp-setup-page">
-      <MobileHeader title="Configura HACCP" />
+      <MobileHeader className="-mx-4 -mt-4" title="Configura HACCP" />
 
       {/* Template picker */}
       {showTemplates ? (

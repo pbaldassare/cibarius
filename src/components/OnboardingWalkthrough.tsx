@@ -133,7 +133,7 @@ const OnboardingWalkthrough = ({ role, onComplete }: Props) => {
   return (
     <div className="fixed inset-0 z-[100] flex flex-col bg-background">
       {/* Top bar with skip */}
-      <div className="flex items-center justify-between px-4 pt-4">
+      <div className="flex items-center justify-between px-4 pt-[calc(1rem+var(--sat))]">
         <img src={cibariusLogo} alt="Cibarius" className="h-7" />
         <Button
           variant="ghost"
@@ -172,7 +172,7 @@ const OnboardingWalkthrough = ({ role, onComplete }: Props) => {
       </div>
 
       {/* Bottom navigation */}
-      <div className="px-6 pb-8 space-y-3">
+      <div className="px-6 pb-[calc(2rem+var(--sab))] space-y-3">
         <Button className="w-full h-12 text-base" onClick={handleNext}>
           {isLast ? "Inizia ad usare Cibarius" : "Avanti"}
           <ArrowRight className="ml-2 h-4 w-4" />

@@ -116,7 +116,8 @@ const SupplierInvitePage = lazy(() => import("./pages/supplier/SupplierInvitePag
 
 const NotFound = lazy(() => import("./pages/NotFound"));
 import PwaInstallBanner from "./components/PwaInstallBanner";
-import { USER_HOME } from "@/lib/routes";
+import { USER_HOME, LOGIN_PATH } from "@/lib/routes";
+import { isNativeApp } from "@/lib/native";
 
 // Sito pubblico: caricato subito perche' e' la prima cosa che vede un
 // visitatore e la pagina che i motori di ricerca devono trovare.
@@ -150,12 +151,20 @@ const App = () => (
             }
           >
           <Routes>
-            {/* ═══ SITO PUBBLICO (SiteLayout) ═══ */}
-            <Route element={<SiteLayout />}>
-              {SITE_ROUTES.map(({ path, element }) => (
-                <Route key={path} path={path} element={element} />
-              ))}
-            </Route>
+            {/* ═══ SITO PUBBLICO (SiteLayout) ═══
+                Nell'app nativa il sito non c'e': si parte dall'accesso, che
+                rimanda chi ha gia' la sessione alla home del suo ruolo. */}
+            {isNativeApp() ? (
+              SITE_ROUTES.map(({ path }) => (
+                <Route key={path} path={path} element={<Navigate to={LOGIN_PATH} replace />} />
+              ))
+            ) : (
+              <Route element={<SiteLayout />}>
+                {SITE_ROUTES.map(({ path, element }) => (
+                  <Route key={path} path={path} element={element} />
+                ))}
+              </Route>
+            )}
 
             {/* Public auth routes */}
             <Route path="/auth/login" element={<LoginPage />} />

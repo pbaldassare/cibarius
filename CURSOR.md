@@ -33,6 +33,7 @@ Redirect post-login: `getRoleHomePath(role)` in `src/hooks/useRole.ts`.
 - **Pagamenti**: Stripe (checkout + webhook firmato).
 - **AI**: Lovable AI Gateway (Gemini / GPT), USDA + OpenFoodFacts per nutrizione.
 - **PWA**: `public/sw.js` + `public/manifest.json`, install prompt custom (`PwaInstallProvider`).
+- **App Android**: guscio Capacitor 8 in `android/`, avvio dall'accesso, margini di sistema con `--sat`/`--sab`. Vedi `docs/ANDROID.md`.
 - **PDF/immagini**: `jspdf`, `html2canvas`, `qrcode`.
 
 Non è un progetto Next/Angular/Vue. Non aggiungere framework alternativi.

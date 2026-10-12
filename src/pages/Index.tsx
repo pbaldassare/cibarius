@@ -651,7 +651,7 @@ const Index = () => {
       </main>
 
       {/* ─── FAB ─── */}
-      <div className="fixed bottom-[calc(76px+env(safe-area-inset-bottom,0px))] right-4 z-40" data-tour="home-fab">
+      <div className="fixed bottom-[calc(76px+var(--sab))] right-4 z-40" data-tour="home-fab">
         <button
           onClick={() => setAddFoodOpen(true)}
           className="flex h-12 w-12 items-center justify-center rounded-full btn-brand active:scale-95 transition-all shadow-brand"
@@ -664,7 +664,7 @@ const Index = () => {
       {/* ─── SEARCH OVERLAY ─── */}
       {searchOpen && (
         <div className="fixed inset-0 z-[60] bg-background">
-          <div className="flex items-center gap-2 px-4 pt-3 pb-2">
+          <div className="flex items-center gap-2 px-4 pt-[calc(0.75rem+var(--sat))] pb-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input

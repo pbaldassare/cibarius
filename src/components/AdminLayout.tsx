@@ -76,7 +76,7 @@ const AdminLayout = ({ children }: { children: ReactNode }) => {
 
       {/* Mobile header for admin */}
       <div className="flex flex-1 flex-col">
-        <header className="flex h-16 items-center gap-3 bg-gradient-to-r from-primary to-primary-dark px-4 md:hidden">
+        <header className="flex h-[calc(4rem+var(--sat))] items-center gap-3 bg-gradient-to-r from-primary to-primary-dark px-4 pt-[var(--sat)] md:hidden">
           <button onClick={() => navigate(-1)} className="text-white/90 -ml-1 p-1 active:opacity-70 transition-opacity">
             <ChevronLeft size={22} strokeWidth={2} />
           </button>

@@ -499,7 +499,7 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
       </main>
 
       {/* FAB */}
-      <div className="fixed bottom-[calc(68px+env(safe-area-inset-bottom,0px)+0.75rem)] right-3.5 z-40">
+      <div className="fixed bottom-[calc(68px+var(--sab)+0.75rem)] right-3.5 z-40">
         <button onClick={() => {
             if (isRestaurant) {
               navigate("/restaurant/haccp-labels/new");

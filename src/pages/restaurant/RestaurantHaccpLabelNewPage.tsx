@@ -200,7 +200,7 @@ const RestaurantHaccpLabelNewPage = () => {
 
   return (
     <div className="space-y-4 p-4 pb-24">
-      <MobileHeader title="Nuova etichetta" />
+      <MobileHeader className="-mx-4 -mt-4" title="Nuova etichetta" />
 
       <Card><CardContent className="p-4 space-y-3">
         <div>

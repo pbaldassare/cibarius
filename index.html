@@ -2,7 +2,10 @@
 <html lang="it">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover: nell'app installata e in quella Android la pagina
+         arriva sotto barra di stato e notch, e i margini li gestiscono le
+         variabili --sat / --sab di src/index.css. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Cibarius — Scadenze, magazzino e HACCP in un'unica app</title>
     <meta name="description" content="Scadenze e dispensa a casa, magazzino e controlli HACCP al ristorante, piani alimentari dal nutrizionista. Un'unica app, tre modi di usarla.">
     <meta name="author" content="Cibarius" />
@@ -78,7 +81,10 @@
     </script>
     <script type="module" src="/src/main.tsx"></script>
     <script>
-      if ('serviceWorker' in navigator) {
+      // Nell'app Android i file sono gia' nel pacchetto: il service worker
+      // servirebbe solo a tenere in cache una versione vecchia.
+      var nativa = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
+      if ('serviceWorker' in navigator && !nativa) {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('/sw.js');
         });

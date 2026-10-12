@@ -587,7 +587,7 @@ const RestaurantPage = () => {
       </main>
 
       {/* FAB */}
-      <div className="fixed bottom-[calc(68px+env(safe-area-inset-bottom,0px)+0.75rem)] right-3.5 z-40">
+      <div className="fixed bottom-[calc(68px+var(--sab)+0.75rem)] right-3.5 z-40">
         <button
           onClick={() => setAddFoodOpen(true)}
           className="flex h-12 w-12 items-center justify-center rounded-full shadow-elevated active:scale-95 transition-all bg-primary"

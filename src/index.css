@@ -6,6 +6,13 @@
 
 @layer base {
   :root {
+    /* Margini di sistema (barra di stato in alto, barra dei gesti in basso).
+       Nell'app Android la WebView disegna sotto le barre, e prima di Chrome
+       140 env(safe-area-inset-*) vale 0: Capacitor inietta i valori giusti in
+       --safe-area-inset-*. Sul web restano env(), cioe' 0 fuori dagli iPhone. */
+    --sat: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+    --sab: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+
     /* Cibarius Premium palette */
     --background: 216 20% 96%;      /* #F3F5F8 */
     --foreground: 220 20% 14%;      /* #1E2530 */
@@ -152,7 +159,11 @@ h1, h2, h3, h4, h5, h6, .font-display {
 
 @layer utilities {
   .safe-bottom {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-bottom: var(--sab);
+  }
+
+  .safe-top {
+    padding-top: var(--sat);
   }
 
   .shadow-card {
@@ -234,4 +245,23 @@ h1, h2, h3, h4, h5, h6, .font-display {
     page-break-inside: avoid;
   }
   .haccp-public-page a { color: inherit !important; text-decoration: none !important; }
+}
+
+/* Sheet a tutta altezza o ancorate in basso: uno spaziatore lascia libera la
+   fascia della barra di stato o dei gesti. E' un elemento in piu' e non un
+   padding, cosi' non si scontra con i p-0 / px-0 passati dalle pagine. Sul
+   web --sat e --sab valgono 0 e lo spaziatore sparisce. */
+[data-sheet-side="bottom"]::after {
+  content: "";
+  display: block;
+  flex: none;
+  height: var(--sab);
+}
+[data-sheet-side="left"]::before,
+[data-sheet-side="right"]::before,
+[data-sheet-side="top"]::before {
+  content: "";
+  display: block;
+  flex: none;
+  height: var(--sat);
 }

@@ -59,7 +59,7 @@ const LoginPage = () => {
         {/* Glass overlay */}
         <div className="absolute inset-0 bg-white/[0.08]" />
 
-        <div className="relative z-10 flex flex-col items-center px-4 pt-14 pb-10">
+        <div className="relative z-10 flex flex-col items-center px-4 pt-[calc(3.5rem+var(--sat))] pb-10">
           {/* Logo */}
           <img
             src={cibariusLogo}

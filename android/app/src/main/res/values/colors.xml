@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Lo stesso azzurro dell'icona PWA (public/icons/icon-512.png). -->
+    <color name="cibarius_azzurro">#35B5DC</color>
+</resources>

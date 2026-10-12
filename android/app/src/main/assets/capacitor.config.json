@@ -1,0 +1,15 @@
+{
+	"appId": "online.cibarius.app",
+	"appName": "Cibarius",
+	"webDir": "dist",
+	"backgroundColor": "#F3F5F8",
+	"android": {
+		"allowMixedContent": false
+	},
+	"plugins": {
+		"SystemBars": {
+			"style": "DARK",
+			"insetsHandling": "css"
+		}
+	}
+}
