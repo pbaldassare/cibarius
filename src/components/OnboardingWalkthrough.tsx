@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, X, ScanLine, Clock, UtensilsCrossed, ShoppingCart, Users, ClipboardList, BarChart3, Sparkles, Refrigerator, BookOpen, MessageSquare, Package } from "lucide-react";
 import cibariusLogo from "@/assets/cibarius-logo.png";
 import type { AppRole } from "@/hooks/useRole";
+import { useIconeBarraScure } from "@/lib/native";
 
 interface Slide {
   icon: React.ReactNode;
@@ -112,6 +113,7 @@ interface Props {
 const OnboardingWalkthrough = ({ role, onComplete }: Props) => {
   const slides = SLIDES_BY_ROLE[role || "user"] || SLIDES_BY_ROLE.user;
   const [current, setCurrent] = useState(0);
+  useIconeBarraScure();
 
   const handleSkip = useCallback(() => {
     markOnboardingDone();

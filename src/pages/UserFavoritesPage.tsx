@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getFoodEmoji } from "@/lib/food-images";
+import { useIconeBarraScure } from "@/lib/native";
 
 interface FavMealItem {
   id: string;
@@ -29,6 +30,7 @@ interface FavMeal {
 
 const UserFavoritesPage = () => {
   const navigate = useNavigate();
+  useIconeBarraScure();
   const { user } = useAuth();
   const { favorites, loading: favsLoading, toggleFavorite } = useFavorites();
   const { favorites: productFavs, loading: prodFavsLoading, toggleFavorite: toggleProductFav } = useProductFavorites();

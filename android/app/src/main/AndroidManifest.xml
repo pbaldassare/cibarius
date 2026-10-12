@@ -37,4 +37,12 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <!-- Non obbligatoria: senza fotocamera si inserisce tutto a mano. -->
     <uses-feature android:name="android.hardware.camera" android:required="false" />
+
+    <!-- Da Android 11 l'app vede solo le app dichiarate qui. Senza, Capacitor
+         non trova la fotocamera e gli input con capture aprono la galleria. -->
+    <queries>
+        <intent>
+            <action android:name="android.media.action.IMAGE_CAPTURE" />
+        </intent>
+    </queries>
 </manifest>

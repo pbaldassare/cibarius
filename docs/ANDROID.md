@@ -30,6 +30,15 @@ Tutto passa da `isNativeApp()` in `src/lib/native.ts`:
   stampa di Android (stampante, servizio di stampa dell'etichettatrice o PDF).
   Copre sia le pagine che stampano se stesse sia le finestre di etichette e
   registri HACCP, senza toccarle.
+- **Download**: la WebView ignora i link con `download`, quindi gli export CSV e
+  i PDF di jsPDF non partirebbero. `src/lib/native-download.ts` intercetta il
+  click e passa il file a `SalvaPlugin.java`, che apre il "Salva come" di Android.
+- **Tasto indietro**: `MainActivity.java` chiede alla pagina
+  (`src/lib/native-back.ts`): chiude sheet e dialog aperti, poi torna alla pagina
+  prima. Dalle home dei ruoli e dall'accesso l'app va in secondo piano.
+- **Fotocamera**: gli input con `capture` aprono l'app Fotocamera solo grazie a
+  `<queries>` nel manifest; senza, da Android 11 Capacitor ripiega sulla galleria.
+  Un input senza `capture` apre solo il selettore di file.
 
 **Barre di sistema.** Da Android 15 l'app disegna sotto barra di stato e barra
 dei gesti. Capacitor inietta le misure in `--safe-area-inset-*`, e
@@ -41,7 +50,10 @@ scrive UI nuova:
 - un elemento fisso in basso aggiunge `var(--sab)` (`safe-bottom`, o
   `bottom-[calc(72px+var(--sab))]` come i FAB esistenti);
 - le sheet di `ui/sheet.tsx` lo fanno da sole;
-- non usare `env(safe-area-inset-*)` da solo: su Android prima di Chrome 140 vale 0.
+- non usare `env(safe-area-inset-*)` da solo: su Android prima di Chrome 140 vale 0;
+- le icone della barra di stato sono chiare, per l'intestazione blu: una schermata
+  con il fondo chiaro in alto chiama `useIconeBarraScure()` (`src/lib/native.ts`),
+  come onboarding e Preferiti.
 
 Sul web `--sat` e `--sab` valgono 0 (o il notch dell'iPhone), quindi non cambia niente.
 
@@ -50,8 +62,11 @@ Sul web `--sat` e `--sab` valgono 0 (o il notch dell'iPhone), quindi non cambia 
 ## 2. Cosa serve sul PC
 
 - **Android Studio** recente, con Android SDK 36.
-- **JDK 21**: quello incluso in Android Studio va bene. Capacitor 8 compila a
-  livello 21, con un JDK più vecchio Gradle si ferma su `invalid source release`.
+- **JDK 21**: Capacitor 8 compila a livello 21, con un JDK più vecchio Gradle si
+  ferma su `invalid source release`. Attenzione: le versioni recenti di Android
+  Studio includono il JDK 25, su cui Gradle 8.14 non parte. In Android Studio
+  scegli un JDK 21 in *Settings › Build Tools › Gradle › Gradle JDK*; da riga di
+  comando passa `JAVA_HOME` (per esempio `~/.jdks/jbr-21.*`).
 
 Node non serve sul PC dove costruisci: il sito compilato e la libreria di
 Capacitor sono versionati in `android/`. Serve solo dove si rigenera (punto 6).
@@ -205,5 +220,6 @@ screenshot con l'app.
 - **Notifiche push native.** Non ci sono, restano email e notifiche in app.
 - **Font.** Fredoka e Inter arrivano da Google Fonts: senza rete al primo avvio
   si vede il font di sistema. L'app senza rete comunque non lavora (Supabase).
-- **Preferiti.** È l'unica schermata senza intestazione blu: lì le icone chiare
-  della barra di stato si leggono poco sul fondo chiaro.
+- **Carica documento (Bolle).** L'input accetta PDF e immagini senza `capture`:
+  apre solo il selettore di file, non la fotocamera. Con `capture` si perderebbe
+  il PDF; servirebbe un secondo pulsante "Scatta foto".
