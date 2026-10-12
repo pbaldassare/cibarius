@@ -153,7 +153,43 @@ Su Android 12+ l'avvio lo disegna il sistema: l'icona dell'app su
 
 ---
 
-## 8. Punti aperti
+## 8. Materiale per la scheda Play Store
+
+Pronto da caricare in `design/play-store/finali/`:
+
+| File | Uso in Play Console |
+|---|---|
+| `icona-512.png` | Icona dell'app, 512×512, quadrata piena (gli angoli li arrotonda Play) |
+| `feature-graphic-1024x500.png` | Immagine in evidenza |
+| `01-ristorante.png` … `06-ricette.png` | Screenshot telefono 1080×1920, da caricare in ordine |
+
+Le sei tavole sono un'unica scena: una fascia blu a onda le attraversa e
+continua da una all'altra nel carosello, per questo vanno caricate in ordine e
+senza saltarne. Dentro i telefoni ci sono catture vere dell'app, non
+ricostruzioni.
+
+Per rifarle (serve Node con le dipendenze, non Android Studio):
+
+```sh
+npx vite build && npx vite preview --port 5174    # in un altro terminale
+CIBARIUS_RISTORANTE='email:password' CIBARIUS_UTENTE='email:password' \
+  node scripts/cattura-play-store.mjs              # → design/play-store/schermate/
+node scripts/render-play-store.mjs                 # → design/play-store/finali/
+```
+
+La cattura usa gli account di prova e passa le risposte di Supabase da un
+filtro che toglie i prefissi `[DEMO]`, rinomina utente e ristorante
+("Giulia", "Trattoria Il Glicine") e sposta le scadenze vecchie su date
+vicine. Per la settimana HACCP inserisce un registro di esempio completo,
+con due controlli saltati. Il database non viene toccato. Titoli e testi delle
+tavole stanno in `design/play-store.html`.
+
+Se la UI cambia in modo visibile, rifai le tavole: Google confronta gli
+screenshot con l'app.
+
+---
+
+## 9. Punti aperti
 
 - **Abbonamenti e Google Play Billing.** Play chiede di vendere i servizi
   digitali usati nell'app (Plus, Ristorante Pro) con il suo sistema di

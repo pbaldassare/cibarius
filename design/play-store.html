@@ -1,0 +1,286 @@
+<!-- Sorgente delle immagini per la scheda su Google Play.
+
+     Si rigenera con:
+
+       node scripts/render-play-store.mjs
+
+     che apre questo file in Chromium (Playwright) e salva ogni tavola in
+     design/play-store/finali/. Le tavole [data-out] sono sei screenshot
+     telefono 1080x1920 (9:16) e la feature graphic 1024x500.
+
+     Le schermate dentro il telefono sono catture vere dell'app
+     (design/play-store/schermate/, prodotte da scripts/cattura-play-store.mjs)
+     con i dati di prova ripuliti: niente ricostruzioni, cosi' quello che si
+     vede nello store e' quello che si trova installando l'app.
+
+     Impianto, ripreso da IDGuard: le sei tavole sono un'unica scena larga
+     6480px. Una fascia nel blu del marchio la attraversa a onda e ogni tavola
+     ne ritaglia il suo tratto, cosi' nel carosello di Play la fascia continua
+     da una tavola all'altra. Il telefono sta sulla fascia; nelle tavole
+     dispari esce dal bordo inferiore e il titolo sta in alto, nelle pari esce
+     dal bordo superiore e il titolo sta in basso.
+
+     Colori e font sono quelli di src/index.css: fondo #F3F5F8, gradiente
+     #22B6F2 -> #0B7DBE, Fredoka per i titoli, Inter per il testo. L'arancione
+     resta riservato agli avvisi, come nell'app. -->
+<meta charset="utf-8">
+<title>Cibarius — tavole Play Store</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600&display=block">
+<style>
+  :root {
+    --background: #F3F5F8;
+    --foreground: #1E2530;
+    --muted-foreground: #5E6878;
+    --blu: #22B6F2;
+    --blu-scuro: #0B7DBE;
+    --gradiente: linear-gradient(135deg, #22B6F2 0%, #0B7DBE 100%);
+    --display: "Fredoka", "Baloo 2", system-ui, sans-serif;
+    --sans: "Inter", system-ui, sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: #3b4250; }
+  body { display: flex; flex-wrap: wrap; gap: 24px 8px; padding: 60px; align-items: flex-start; width: 6620px; }
+
+  /* ---------- Tavola 1080x1920 ---------- */
+  .board {
+    position: relative;
+    width: 1080px; height: 1920px;
+    background: var(--background);
+    overflow: hidden;
+    font-family: var(--sans);
+    color: var(--foreground);
+  }
+  .board > svg.fascia { position: absolute; inset: 0; width: 1080px; height: 1920px; }
+
+  .copy { position: absolute; left: 96px; width: 888px; }
+  .board.dispari .copy { top: 150px; }
+  .board.pari .copy { top: 1420px; }
+
+  .headline {
+    font-family: var(--display);
+    font-size: 96px; font-weight: 700;
+    letter-spacing: -0.015em; line-height: 1.0;
+    text-wrap: balance;
+  }
+  .headline em { font-style: normal; color: var(--blu-scuro); }
+  .sub {
+    margin-top: 28px;
+    max-width: 800px;
+    font-size: 34px; font-weight: 500;
+    line-height: 1.4;
+    color: var(--muted-foreground);
+    text-wrap: pretty;
+  }
+
+  /* ---------- Telefono Android ---------- */
+  .phone {
+    position: absolute; left: 50%;
+    transform: translateX(-50%);
+    --bezel: 14px;
+    --scale: 1.85;
+    width: calc(390px * var(--scale) + var(--bezel) * 2);
+    padding: var(--bezel);
+    border-radius: 74px;
+    background: linear-gradient(160deg, #2C2F36 0%, #121418 60%, #1D2027 100%);
+    box-shadow:
+      inset 0 0 0 1.5px rgba(255,255,255,.16),
+      inset 0 0 0 4px #0B0C0E,
+      0 4px 8px rgba(11,60,95,.20),
+      0 70px 110px -30px rgba(8,52,86,.55);
+  }
+  .board.dispari .phone { top: 640px; }
+  .board.pari .phone { bottom: 560px; }
+  .phone::before, .phone::after {
+    content: ""; position: absolute; right: -4px; width: 4px; border-radius: 0 3px 3px 0;
+    background: #2A2D33;
+  }
+  .phone::before { top: 330px; height: 96px; }
+  .phone::after { top: 470px; height: 170px; }
+
+  .screen {
+    position: relative;
+    width: calc(390px * var(--scale)); height: calc(844px * var(--scale));
+    border-radius: 60px;
+    overflow: hidden;
+    background: var(--background);
+  }
+  .screen img.cattura { display: block; width: 100%; height: 100%; }
+
+  /* Barra di stato e barra dei gesti di Android, alle misure logiche dell'app
+     (32px in alto, 20px in basso: gli stessi margini usati nella cattura). */
+  .sistema { position: absolute; inset: 0; zoom: var(--scale); pointer-events: none; }
+  .stato {
+    position: absolute; left: 0; right: 0; top: 0; height: 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 2px 26px 0 30px;
+    color: #fff; font: 600 13px/1 var(--sans);
+  }
+  .stato .cam {
+    position: absolute; left: 50%; top: 9px; width: 13px; height: 13px; transform: translateX(-50%);
+    border-radius: 50%; background: radial-gradient(circle at 40% 40%, #2B2F36 0%, #050607 70%);
+  }
+  .stato .icone { display: flex; gap: 5px; align-items: center; }
+  .stato svg { width: 15px; height: 15px; fill: #fff; }
+  .gesti {
+    position: absolute; left: 50%; bottom: 7px; transform: translateX(-50%);
+    width: 108px; height: 4px; border-radius: 4px; background: rgba(255,255,255,.85);
+  }
+
+  /* ---------- Feature graphic 1024x500 ---------- */
+  .feature {
+    position: relative;
+    width: 1024px; height: 500px;
+    overflow: hidden;
+    background: var(--gradiente);
+    font-family: var(--sans);
+    color: #fff;
+  }
+  .feature .alone {
+    position: absolute; right: -120px; top: -160px; width: 640px; height: 640px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,.22) 0%, rgba(255,255,255,0) 68%);
+  }
+  .feature .testo { position: absolute; left: 64px; top: 0; bottom: 0; width: 470px; display: flex; flex-direction: column; justify-content: center; }
+  .feature .logo { width: 230px; filter: brightness(0) invert(1); }
+  .feature h1 {
+    margin-top: 34px;
+    font-family: var(--display); font-size: 46px; font-weight: 700; line-height: 1.06; letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+  .feature p { margin-top: 16px; font-size: 20px; font-weight: 500; line-height: 1.4; color: rgba(255,255,255,.88); }
+  .feature .phone { --scale: 0.62; --bezel: 7px; border-radius: 32px; left: auto; transform: rotate(-6deg); }
+  .feature .phone .screen { border-radius: 26px; }
+  .feature .phone.a { right: 190px; top: 58px; }
+  .feature .phone.b { right: 0px; top: 124px; transform: rotate(5deg); }
+</style>
+
+<body>
+
+<!-- 1 · ristorante, cruscotto -->
+<section class="board dispari" data-out="01-ristorante.png" data-i="0">
+  <div class="copy">
+    <h2 class="headline">La cucina sotto controllo, <em>dal telefono</em></h2>
+    <p class="sub">Scadenze, controlli HACCP e temperature del giorno in una schermata sola.</p>
+  </div>
+  <div class="phone"><div class="screen" data-cattura="r1-home"></div></div>
+</section>
+
+<!-- 2 · registro HACCP -->
+<section class="board pari" data-out="02-haccp.png" data-i="1">
+  <div class="phone"><div class="screen" data-cattura="r2-haccp"></div></div>
+  <div class="copy">
+    <h2 class="headline">Il registro HACCP <em>si compila mentre lavori</em></h2>
+    <p class="sub">Ogni controllo si spunta quando viene fatto. Quelli saltati restano in evidenza.</p>
+  </div>
+</section>
+
+<!-- 3 · etichette di preparazione -->
+<section class="board dispari" data-out="03-etichette.png" data-i="2">
+  <div class="copy">
+    <h2 class="headline">Etichette con lotto <em>e QR</em></h2>
+    <p class="sub">Produzione, scadenza e lotto sull'etichetta. Il QR apre la tracciabilità della preparazione.</p>
+  </div>
+  <div class="phone"><div class="screen" data-cattura="r3-etichetta"></div></div>
+</section>
+
+<!-- 4 · magazzino -->
+<section class="board pari" data-out="04-magazzino.png" data-i="3">
+  <div class="phone"><div class="screen" data-cattura="r4-magazzino"></div></div>
+  <div class="copy">
+    <h2 class="headline">Il magazzino <em>sa quando stai finendo</em></h2>
+    <p class="sub">Giacenze, lotti e consumo medio: vedi cosa finisce e cosa scade prima.</p>
+  </div>
+</section>
+
+<!-- 5 · casa, scadenze -->
+<section class="board dispari" data-out="05-casa.png" data-i="4">
+  <div class="copy">
+    <h2 class="headline">A casa, il cibo <em>resta in prima fila</em></h2>
+    <p class="sub">Cibarius ti ricorda cosa scade prima che finisca in fondo al frigo. Per la casa è gratis.</p>
+  </div>
+  <div class="phone"><div class="screen" data-cattura="u1-home"></div></div>
+</section>
+
+<!-- 6 · ricette anti-spreco -->
+<section class="board pari" data-out="06-ricette.png" data-i="5">
+  <div class="phone"><div class="screen" data-cattura="u2-antispreco"></div></div>
+  <div class="copy">
+    <h2 class="headline">Cucina <em>quello che hai già</em></h2>
+    <p class="sub">Ricette che usano per primi gli ingredienti in scadenza.</p>
+  </div>
+</section>
+
+<!-- Feature graphic -->
+<section class="feature" data-out="feature-graphic-1024x500.png">
+  <div class="alone"></div>
+  <div class="testo">
+    <img class="logo" src="../src/assets/cibarius-logo.png" alt="Cibarius">
+    <h1>Scadenze, magazzino e HACCP in un'unica app</h1>
+    <p>Per la cucina del ristorante e per quella di casa.</p>
+  </div>
+  <div class="phone a"><div class="screen" data-cattura="r1-home"></div></div>
+  <div class="phone b"><div class="screen" data-cattura="u1-home"></div></div>
+</section>
+
+<template id="sistema">
+  <div class="sistema">
+    <div class="stato">
+      <span>9:41</span>
+      <span class="cam"></span>
+      <span class="icone">
+        <svg viewBox="0 0 24 24"><path d="M2 22h20V2z"/></svg>
+        <svg viewBox="0 0 24 24"><path d="M12 21 1 9.5a15.5 15.5 0 0 1 22 0z"/></svg>
+        <svg viewBox="0 0 24 24"><path d="M9 2h6v2h2.5c.8 0 1.5.7 1.5 1.5v15c0 .8-.7 1.5-1.5 1.5h-11c-.8 0-1.5-.7-1.5-1.5v-15C5 4.7 5.7 4 6.5 4H9z"/></svg>
+      </span>
+    </div>
+    <div class="gesti"></div>
+  </div>
+</template>
+
+<script>
+  // Schermate: cattura vera + barre di sistema disegnate sopra.
+  const sistema = document.getElementById("sistema");
+  for (const s of document.querySelectorAll("[data-cattura]")) {
+    const img = new Image();
+    img.className = "cattura";
+    img.src = `play-store/schermate/${s.dataset.cattura}.png`;
+    s.append(img, sistema.content.cloneNode(true));
+  }
+
+  // Fascia a onda: una sola curva per tutta la scena, ogni tavola ne mostra il
+  // suo tratto. Passa dietro al telefono: bassa nelle dispari, alta nelle pari.
+  const W = 1080, H = 1920, N = 6, SPESSORE = 640;
+  const centri = Array.from({ length: N + 2 }, (_, i) => {
+    const k = i - 1;
+    return [k * W + W / 2, k % 2 === 0 ? 1330 : 640];
+  });
+  // Curva a S fra un centro e l'altro, piatta sotto ogni telefono: le maniglie
+  // orizzontali lunghe mezzo passo danno un'onda morbida invece di uno zig-zag.
+  const curva = (pts) => {
+    let d = `M${pts[0][0]},${pts[0][1]}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const [x1, y1] = pts[i], [x2, y2] = pts[i + 1], m = (x2 - x1) * 0.5;
+      d += ` C${x1 + m},${y1} ${x2 - m},${y2} ${x2},${y2}`;
+    }
+    return d;
+  };
+  const sopra = centri.map(([x, y]) => [x, y - SPESSORE / 2]);
+  const sotto = centri.map(([x, y]) => [x, y + SPESSORE / 2]).reverse();
+  const tracciato = curva(sopra) + " L" + curva(sotto).slice(1) + " Z";
+
+  for (const b of document.querySelectorAll(".board")) {
+    const i = Number(b.dataset.i);
+    b.insertAdjacentHTML("afterbegin", `
+      <svg class="fascia" viewBox="${i * W} 0 ${W} ${H}" preserveAspectRatio="none">
+        <defs><linearGradient id="g${i}" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="${N * W}" y2="${H}">
+          <stop offset="0" stop-color="#22B6F2"/><stop offset="1" stop-color="#0B7DBE"/>
+        </linearGradient></defs>
+        <path d="${tracciato}" fill="url(#g${i})"/>
+      </svg>`);
+  }
+
+  Promise.all([document.fonts.ready, ...[...document.images].map((i) => i.decode().catch(() => {}))])
+    .then(() => document.body.setAttribute("data-pronto", ""));
+</script>
+</body>
