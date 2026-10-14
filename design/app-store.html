@@ -1,0 +1,265 @@
+<!-- Sorgente delle immagini per la scheda sull'App Store (iPhone 6,9").
+
+     Si rigenera con:
+
+       node scripts/render-app-store.mjs
+
+     che apre questo file in Chromium (Playwright) e salva ogni tavola in
+     design/app-store/finali/, a 1320x2868 come chiede App Store Connect per
+     gli iPhone 6,9".
+
+     Gemella di design/play-store.html: stesse catture vere dell'app
+     (design/play-store/schermate/, da scripts/cattura-play-store.mjs), stessi
+     titoli, stessa fascia a onda che continua da una tavola all'altra. Cambia
+     il telefono: un iPhone con Dynamic Island, barra di stato di iOS e
+     indicatore Home.
+
+     Le catture hanno 32px di margine in alto (quello di Android); sotto la
+     Dynamic Island ne servono di piu', quindi la cattura scende di 24px e la
+     fascia sopra ripete l'inizio dell'intestazione blu, che li' e' solo
+     gradiente. Su iOS non si cita niente da comprare (App Store Review
+     Guidelines 3.1.1): le catture scelte non ne mostrano. -->
+<meta charset="utf-8">
+<title>Cibarius — tavole App Store</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600;700&display=block">
+<style>
+  :root {
+    --background: #F3F5F8;
+    --foreground: #1E2530;
+    --muted-foreground: #5E6878;
+    --blu: #22B6F2;
+    --blu-scuro: #0B7DBE;
+    --display: "Fredoka", "Baloo 2", system-ui, sans-serif;
+    --sans: "Inter", system-ui, sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: #3b4250; }
+  body { display: flex; flex-wrap: wrap; gap: 24px 8px; padding: 60px; align-items: flex-start; width: 8100px; }
+
+  /* ---------- Tavola 1320x2868 ---------- */
+  .board {
+    position: relative;
+    width: 1320px; height: 2868px;
+    background: var(--background);
+    overflow: hidden;
+    font-family: var(--sans);
+    color: var(--foreground);
+  }
+  .board > svg.fascia { position: absolute; inset: 0; width: 1320px; height: 2868px; }
+
+  .copy { position: absolute; left: 118px; width: 1084px; }
+  .board.dispari .copy { top: 220px; }
+  .board.pari .copy { top: 2150px; }
+
+  .headline {
+    font-family: var(--display);
+    font-size: 118px; font-weight: 700;
+    letter-spacing: -0.015em; line-height: 1.0;
+    text-wrap: balance;
+  }
+  .headline em { font-style: normal; color: var(--blu-scuro); }
+  .sub {
+    margin-top: 34px;
+    max-width: 980px;
+    font-size: 42px; font-weight: 500;
+    line-height: 1.4;
+    color: var(--muted-foreground);
+    text-wrap: pretty;
+  }
+
+  /* ---------- iPhone ---------- */
+  .phone {
+    position: absolute; left: 50%;
+    transform: translateX(-50%);
+    --scale: 2.45;
+    --bezel: 18px;
+    --spinta: 24px; /* discesa della cattura sotto la Dynamic Island */
+    width: calc(390px * var(--scale) + var(--bezel) * 2);
+    padding: var(--bezel);
+    border-radius: calc(55px * var(--scale) + var(--bezel));
+    background: linear-gradient(150deg, #4A4D52 0%, #1C1D20 22%, #2B2D31 60%, #141518 100%);
+    box-shadow:
+      inset 0 0 0 2px rgba(255,255,255,.22),
+      inset 0 0 0 6px #0A0B0D,
+      0 6px 10px rgba(11,60,95,.22),
+      0 90px 140px -40px rgba(8,52,86,.55);
+  }
+  .board.dispari .phone { top: 855px; }
+  .board.pari .phone { bottom: 855px; }
+
+  /* tasti: azione e volume a sinistra, accensione e Controllo fotocamera a destra */
+  .tasto { position: absolute; width: 6px; background: linear-gradient(90deg, #3A3C41, #222326); }
+  .tasto.sx { left: -5px; border-radius: 4px 0 0 4px; }
+  .tasto.dx { right: -5px; border-radius: 0 4px 4px 0; }
+  .tasto.azione { top: 300px; height: 80px; }
+  .tasto.su { top: 440px; height: 150px; }
+  .tasto.giu { top: 620px; height: 150px; }
+  .tasto.accensione { top: 500px; height: 230px; }
+  .tasto.fotocamera { top: 1180px; height: 120px; }
+
+  .screen {
+    position: relative;
+    width: calc(390px * var(--scale));
+    height: calc((844px + var(--spinta)) * var(--scale));
+    border-radius: calc(55px * var(--scale));
+    overflow: hidden;
+    background-color: var(--background);
+    background-repeat: no-repeat;
+    background-position: top center;
+    background-size: 100% auto;
+  }
+  .screen img.cattura {
+    position: absolute; left: 0; top: calc(var(--spinta) * var(--scale));
+    display: block; width: 100%; height: calc(844px * var(--scale));
+  }
+
+  /* Barra di stato e indicatore Home di iOS, alle misure logiche di un
+     iPhone Pro (Dynamic Island 125x37 a 11px dal bordo). */
+  .sistema { position: absolute; inset: 0; zoom: var(--scale); pointer-events: none; }
+  .stato { position: absolute; left: 0; right: 0; top: 0; height: 54px; color: #fff; }
+  .stato .ora {
+    position: absolute; left: 0; width: 132px; top: 17px;
+    text-align: center; font: 600 17px/20px var(--sans); letter-spacing: -0.01em;
+  }
+  .stato .isola {
+    position: absolute; left: 50%; top: 11px; width: 125px; height: 37px; transform: translateX(-50%);
+    border-radius: 20px; background: #000;
+  }
+  .stato .icone {
+    position: absolute; right: 0; width: 132px; top: 19px;
+    display: flex; gap: 6px; align-items: center; justify-content: center;
+  }
+  .stato svg { display: block; fill: #fff; }
+  .home {
+    position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%);
+    width: 140px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.9);
+  }
+</style>
+
+<body>
+
+<!-- 1 · ristorante, cruscotto -->
+<section class="board dispari" data-out="01-ristorante.png" data-i="0">
+  <div class="copy">
+    <h2 class="headline">La cucina sotto controllo, <em>dal telefono</em></h2>
+    <p class="sub">Scadenze, controlli HACCP e temperature del giorno in una schermata sola.</p>
+  </div>
+  <div class="phone"><div class="screen" data-cattura="r1-home"></div></div>
+</section>
+
+<!-- 2 · registro HACCP -->
+<section class="board pari" data-out="02-haccp.png" data-i="1">
+  <div class="phone"><div class="screen" data-cattura="r2-haccp"></div></div>
+  <div class="copy">
+    <h2 class="headline">Il registro HACCP <em>si compila mentre lavori</em></h2>
+    <p class="sub">Ogni controllo si spunta quando viene fatto. Quelli saltati restano in evidenza.</p>
+  </div>
+</section>
+
+<!-- 3 · etichette di preparazione -->
+<section class="board dispari" data-out="03-etichette.png" data-i="2">
+  <div class="copy">
+    <h2 class="headline">Etichette con lotto <em>e QR</em></h2>
+    <p class="sub">Produzione, scadenza e lotto sull'etichetta. Il QR apre la tracciabilità della preparazione.</p>
+  </div>
+  <div class="phone"><div class="screen" data-cattura="r3-etichetta"></div></div>
+</section>
+
+<!-- 4 · magazzino -->
+<section class="board pari" data-out="04-magazzino.png" data-i="3">
+  <div class="phone"><div class="screen" data-cattura="r4-magazzino"></div></div>
+  <div class="copy">
+    <h2 class="headline">Il magazzino <em>sa quando stai finendo</em></h2>
+    <p class="sub">Giacenze, lotti e consumo medio: vedi cosa finisce e cosa scade prima.</p>
+  </div>
+</section>
+
+<!-- 5 · casa, scadenze -->
+<section class="board dispari" data-out="05-casa.png" data-i="4">
+  <div class="copy">
+    <h2 class="headline">A casa, il cibo <em>resta in prima fila</em></h2>
+    <p class="sub">Cibarius ti ricorda cosa scade prima che finisca in fondo al frigo. Per la casa è gratis.</p>
+  </div>
+  <div class="phone"><div class="screen" data-cattura="u1-home"></div></div>
+</section>
+
+<!-- 6 · ricette anti-spreco -->
+<section class="board pari" data-out="06-ricette.png" data-i="5">
+  <div class="phone"><div class="screen" data-cattura="u2-antispreco"></div></div>
+  <div class="copy">
+    <h2 class="headline">Cucina <em>quello che hai già</em></h2>
+    <p class="sub">Ricette che usano per primi gli ingredienti in scadenza.</p>
+  </div>
+</section>
+
+<template id="sistema">
+  <div class="sistema">
+    <div class="stato">
+      <span class="ora">9:41</span>
+      <span class="isola"></span>
+      <span class="icone">
+        <!-- campo -->
+        <svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg>
+        <!-- Wi-Fi -->
+        <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 2.2c2.4 0 4.6.9 6.3 2.5l1.2-1.3A10.8 10.8 0 0 0 8 .4 10.8 10.8 0 0 0 .5 3.4l1.2 1.3A9 9 0 0 1 8 2.2zm0 3.6c1.4 0 2.7.5 3.7 1.4l1.2-1.3A7.2 7.2 0 0 0 8 4a7.2 7.2 0 0 0-4.9 1.9l1.2 1.3c1-.9 2.3-1.4 3.7-1.4zm0 3.6c-.5 0-1 .2-1.3.5L8 11.6l1.3-1.7c-.3-.3-.8-.5-1.3-.5z"/></svg>
+        <!-- batteria -->
+        <svg width="27" height="13" viewBox="0 0 27 13"><rect x=".5" y=".5" width="23" height="12" rx="3.8" fill="none" stroke="#fff" stroke-opacity=".4"/><rect x="2.5" y="2.5" width="19" height="8" rx="2.2"/><path d="M25 4.5v4c.8-.3 1.3-1.1 1.3-2s-.5-1.7-1.3-2z" fill-opacity=".45"/></svg>
+      </span>
+    </div>
+    <div class="home"></div>
+  </div>
+</template>
+
+<script>
+  // Schermate: cattura vera + barre di iOS disegnate sopra.
+  const sistema = document.getElementById("sistema");
+  for (const s of document.querySelectorAll("[data-cattura]")) {
+    const src = `play-store/schermate/${s.dataset.cattura}.png`;
+    const img = new Image();
+    img.className = "cattura";
+    img.src = src;
+    s.style.backgroundImage = `url(${src})`; // fascia sopra la cattura: l'inizio del blu dell'intestazione
+    s.append(img, sistema.content.cloneNode(true));
+  }
+  for (const p of document.querySelectorAll(".phone")) {
+    p.insertAdjacentHTML("afterbegin",
+      '<i class="tasto sx azione"></i><i class="tasto sx su"></i><i class="tasto sx giu"></i>' +
+      '<i class="tasto dx accensione"></i><i class="tasto dx fotocamera"></i>');
+  }
+
+  // Fascia a onda come in play-store.html: una curva per tutta la scena, ogni
+  // tavola ne mostra il suo tratto, dietro al telefono.
+  const W = 1320, H = 2868, N = 6, SPESSORE = 860;
+  const centri = Array.from({ length: N + 2 }, (_, i) => {
+    const k = i - 1;
+    return [k * W + W / 2, k % 2 === 0 ? 1980 : 900];
+  });
+  const curva = (pts) => {
+    let d = `M${pts[0][0]},${pts[0][1]}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const [x1, y1] = pts[i], [x2, y2] = pts[i + 1], m = (x2 - x1) * 0.5;
+      d += ` C${x1 + m},${y1} ${x2 - m},${y2} ${x2},${y2}`;
+    }
+    return d;
+  };
+  const sopra = centri.map(([x, y]) => [x, y - SPESSORE / 2]);
+  const sotto = centri.map(([x, y]) => [x, y + SPESSORE / 2]).reverse();
+  const tracciato = curva(sopra) + " L" + curva(sotto).slice(1) + " Z";
+
+  for (const b of document.querySelectorAll(".board")) {
+    const i = Number(b.dataset.i);
+    b.insertAdjacentHTML("afterbegin", `
+      <svg class="fascia" viewBox="${i * W} 0 ${W} ${H}" preserveAspectRatio="none">
+        <defs><linearGradient id="g${i}" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="${N * W}" y2="${H}">
+          <stop offset="0" stop-color="#22B6F2"/><stop offset="1" stop-color="#0B7DBE"/>
+        </linearGradient></defs>
+        <path d="${tracciato}" fill="url(#g${i})"/>
+      </svg>`);
+  }
+
+  Promise.all([document.fonts.ready, ...[...document.images].map((i) => i.decode().catch(() => {}))])
+    .then(() => document.body.setAttribute("data-pronto", ""));
+</script>
+</body>
