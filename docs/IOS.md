@@ -28,8 +28,13 @@ home. Impaginazione e regole sono quelle di Android; qui solo le differenze.
 - **Plugin nativi.** Stessi nomi e stesso JavaScript di Android, in Swift in
   `ios/App/App/CibariusNativo.swift`: `Stampa` (dialogo di stampa di iOS,
   AirPrint o PDF), `Salva` ("Salva in File" per CSV e PDF), `Condividi`
-  (pannello di condivisione). Li registra `ViewController`, la classe che
-  `Main.storyboard` usa al posto di `CAPBridgeViewController`.
+  (pannello di condivisione). Li registra `ViewController`, che
+  `SceneDelegate.swift` mette come radice della finestra: il template di
+  Capacitor 8 li' crea un `CAPBridgeViewController` e ignora `Main.storyboard`,
+  e con quello i plugin risultano "not implemented on ios".
+- **Zoom.** iOS ingrandisce la pagina quando si tocca un campo con il testo
+  sotto i 16px. Nell'app `bloccaZoomIos()` (`src/lib/native.ts`) aggiunge
+  `maximum-scale=1` al viewport; sul web e su Android resta com'e'.
 - **Barre di sistema.** La WebView va da bordo a bordo (`contentInset` è
   `never`, il default) e `--sat`/`--sab` prendono i valori da
   `env(safe-area-inset-*)`, la riserva già prevista in `src/index.css`.
@@ -94,8 +99,10 @@ git add ios && git commit && git push
 
 ## 5. Punti aperti
 
-- **Mai compilata da qui.** Il progetto è stato preparato su Windows: il primo
-  build su Xcode va controllato (plugin Swift, storyboard, firma).
+- **Primo build fatto (Xcode 27, simulatore iPhone 18 Pro).** Provati accesso,
+  intestazioni e barre, stampa, "Salva in File", condivisione, assenza degli
+  acquisti. Restano da provare su un iPhone vero: schermata di avvio (il
+  simulatore non la disegna), fotocamera, firma e archivio.
 - **Stampa delle etichette.** Il formato 62×40 mm si sceglie nel dialogo di
   AirPrint, come su Android.
 - **Link delle email.** Reset password e inviti aprono Safari: servono gli

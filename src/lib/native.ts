@@ -19,6 +19,22 @@ export const isNativeApp = (): boolean => Capacitor.isNativePlatform();
 export const vendeAbbonamenti = (): boolean => Capacitor.getPlatform() !== "ios";
 
 /**
+ * Nell'app iOS la pagina non si ingrandisce piu' da sola.
+ *
+ * iOS ingrandisce la pagina quando si tocca un campo con il testo sotto i 16px
+ * (molti dei nostri hanno text-sm) e poi la lascia ingrandita e spostata.
+ * maximum-scale=1 lo evita. Solo su iOS: su Android e sul web bloccherebbe
+ * anche lo zoom con due dita.
+ */
+export function bloccaZoomIos() {
+  if (Capacitor.getPlatform() !== "ios") return;
+  const viewport = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
+  if (viewport && !viewport.content.includes("maximum-scale")) {
+    viewport.content += ", maximum-scale=1";
+  }
+}
+
+/**
  * Icone scure nella barra di stato finche' il componente e' montato.
  *
  * Di base sono chiare (capacitor.config.ts), per l'intestazione blu. Le
