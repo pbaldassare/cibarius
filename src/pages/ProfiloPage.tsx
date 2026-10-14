@@ -107,12 +107,13 @@ const ProfiloPage = () => {
   useEffect(() => {
     if (!user) return;
     // Load profile
-    supabase.from("profiles").select("full_name, phone, avatar_url").eq("id", user.id).single().then(({ data }) => {
+    supabase.from("profiles").select("full_name, phone, avatar_url").eq("id", user.id).maybeSingle().then(({ data }) => {
       if (data) setProfile(data as any);
     });
 
-    // Load email preferences
-    supabase.from("email_preferences").select("*").eq("user_id", user.id).single().then(({ data }) => {
+    // Load email preferences: la riga nasce al primo salvataggio, prima
+    // valgono i default (maybeSingle, altrimenti PostgREST risponde 406)
+    supabase.from("email_preferences").select("*").eq("user_id", user.id).maybeSingle().then(({ data }) => {
       if (data) setEmailPrefs({ receive_verification: data.receive_verification, receive_password_reset: data.receive_password_reset, receive_expiry_alerts: data.receive_expiry_alerts });
     });
 
