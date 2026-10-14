@@ -3,6 +3,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Clock, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { vendeAbbonamenti } from "@/lib/native";
 
 /**
  * Shows trial countdown or expiry warning on restaurant pages.
@@ -13,7 +14,8 @@ const RestaurantSubscriptionBanner = () => {
 
   if (isLoading) return null;
 
-  const invito = (testo: string, className: string) => (
+  // Nell'app iOS resta solo lo stato della prova: niente invito ad attivare.
+  const invito = (testo: string, className: string) => vendeAbbonamenti() && (
     <>
       {testo}
       <Button variant="link" className={`${className} px-1 h-auto`} onClick={() => navigate("/restaurant/subscription")}>

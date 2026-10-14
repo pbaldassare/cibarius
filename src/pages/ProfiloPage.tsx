@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { vendeAbbonamenti } from "@/lib/native";
 import { useTour, TourRole } from "@/components/AppTourContext";
 import cibariusLogo from "@/assets/cibarius-logo.png";
 import MobileHeader from "@/components/MobileHeader";
@@ -458,7 +459,7 @@ const ProfiloPage = () => {
             { icon: Heart, label: "Preferiti", path: "/favorites", badge: 0 },
             { icon: Sparkles, label: "Abbonamento Premium", path: "/subscription", badge: 0 },
             { icon: Bell, label: "Promemoria scadenze", path: "/reminders", badge: 0 },
-          ]).map((item, i) => (
+          ]).filter((item) => vendeAbbonamenti() || item.path !== "/subscription").map((item, i) => (
             <button
               key={item.label}
               onClick={() => item.path ? navigate(item.path) : toast({ title: "In arrivo!", description: `${item.label} sarà disponibile a breve.` })}

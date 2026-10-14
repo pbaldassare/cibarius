@@ -10,6 +10,15 @@ import { Capacitor, SystemBars, SystemBarsStyle, SystemBarType } from "@capacito
 export const isNativeApp = (): boolean => Capacitor.isNativePlatform();
 
 /**
+ * Falso nell'app iOS: Apple (App Store Review Guidelines 3.1.1) rifiuta le app
+ * che vendono servizi digitali senza il suo In-App Purchase, e anche pulsanti,
+ * link o inviti a comprare altrove. Li' l'abbonamento non si vende ne' si cita:
+ * chi l'ha comprato sul sito lo usa e basta. Su Android e sul web si compra
+ * con Stripe.
+ */
+export const vendeAbbonamenti = (): boolean => Capacitor.getPlatform() !== "ios";
+
+/**
  * Icone scure nella barra di stato finche' il componente e' montato.
  *
  * Di base sono chiare (capacitor.config.ts), per l'intestazione blu. Le

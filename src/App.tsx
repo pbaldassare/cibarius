@@ -117,7 +117,7 @@ const SupplierInvitePage = lazy(() => import("./pages/supplier/SupplierInvitePag
 const NotFound = lazy(() => import("./pages/NotFound"));
 import PwaInstallBanner from "./components/PwaInstallBanner";
 import { USER_HOME, LOGIN_PATH } from "@/lib/routes";
-import { isNativeApp } from "@/lib/native";
+import { isNativeApp, vendeAbbonamenti } from "@/lib/native";
 
 // Sito pubblico: caricato subito perche' e' la prima cosa che vede un
 // visitatore e la pagina che i motori di ricerca devono trovare.
@@ -128,6 +128,9 @@ import { PwaInstallProvider } from "./hooks/usePwaInstall";
 import { TourProvider } from "./components/AppTourContext";
 
 const queryClient = new QueryClient();
+
+/** Nell'app iOS le pagine d'acquisto non ci sono (vedi vendeAbbonamenti). */
+const ABBONAMENTO = vendeAbbonamenti() ? <SubscriptionPage /> : <Navigate to={LOGIN_PATH} replace />;
 
 const RG = ({ roles, children }: { roles: string[]; children: React.ReactNode }) => (
   <RoleGuard allowedRoles={roles as any}>{children}</RoleGuard>
@@ -203,7 +206,7 @@ const App = () => (
                 <Route path="/recipes/:recipeId" element={<RecipeDetailPage />} />
                 <Route path="/preparations" element={<PreparationsPage />} />
                 <Route path="/shopping-list" element={<ShoppingListPage />} />
-                <Route path="/subscription" element={<SubscriptionPage />} />
+                <Route path="/subscription" element={ABBONAMENTO} />
                 <Route path="/favorites" element={<UserFavoritesPage />} />
                 <Route path="/item/:itemId" element={<UserItemDetailPage />} />
                 <Route path="/compare" element={<CompareProductsPage />} />
@@ -236,7 +239,7 @@ const App = () => (
                 <Route path="/restaurant/item/:id" element={<RestaurantItemPage />} />
                 <Route path="/restaurant/profile" element={<ProfiloPage />} />
                 {/* /subscription e' dell'app consumer: il ristoratore verrebbe rimandato alla home. */}
-                <Route path="/restaurant/subscription" element={<SubscriptionPage />} />
+                <Route path="/restaurant/subscription" element={ABBONAMENTO} />
                 <Route path="/restaurant/haccp" element={<RestaurantHaccpPage />} />
                 <Route path="/restaurant/haccp/setup" element={<RestaurantHaccpSetupPage />} />
                 <Route path="/restaurant/haccp/history" element={<RestaurantHaccpHistoryPage />} />

@@ -1,0 +1,72 @@
+# Cibarius
+
+> Applicazione web italiana per la gestione di scadenze alimentari, magazzino e
+> controlli HACCP. Si usa in tre modi: a casa per la dispensa, al ristorante per
+> autocontrollo e tracciabilità, come nutrizionista per i piani alimentari dei
+> propri assistiti.
+
+Cibarius è un'unica applicazione con aree separate per ruolo dell'account:
+utente domestico, titolare di ristorante, professionista della nutrizione,
+fornitore. Il sito pubblico sta sulla radice del dominio, l'applicazione vive
+dietro l'accesso all'area riservata.
+
+Sito: https://cibarius.online
+Lingua: italiano
+Contatti: info@cibarius.online
+
+## Cosa fa al ristorante
+
+- Controlli HACCP ricorrenti, giornalieri, settimanali, mensili o a intervallo
+  scelto, con registrazione di chi li ha fatti e quando
+- I controlli saltati restano visibili come arretrati finché non vengono registrati
+- Registro temperature con soglia per tipo di attrezzatura e segnalazione automatica
+  delle letture fuori soglia
+- Etichette di preparazione con codice lotto e QR, che apre una pagina pubblica di
+  tracciabilità con ingredienti, allergeni e documento di provenienza
+- Magazzino a lotti con registro append-only di carico, consumo, spreco e rettifica
+- Lettura automatica di bolle e documenti di trasporto tramite AI, con carico
+  diretto della merce a magazzino e collegamento al documento di origine
+- Stima di quando finisce la merce, calcolata sui consumi reali registrati
+- Esportazione stampabile dello storico controlli e del registro temperature
+
+## Cosa fa a casa
+
+- Dispensa, frigorifero e congelatore gestiti separatamente, ognuno con le sue scadenze
+- Aggiunta dei prodotti per scansione del codice a barre o fotografia
+- Avvisi via email prima che i prodotti scadano
+- Ricette costruite su ciò che è già in casa, con precedenza agli ingredienti in scadenza
+- Lista della spesa alimentata da ciò che sta finendo
+
+## Cosa fa per i nutrizionisti
+
+- Piani alimentari organizzati per giorno e pasto, con obiettivi di macronutrienti
+- Importazione di schemi alimentari esistenti da file PDF
+- Diario alimentare degli assistiti e verifica dell'aderenza al piano
+- Note, suggerimenti e appuntamenti collegati alla scheda del cliente
+- Pagina personale del professionista da cui i nuovi clienti si registrano già collegati
+
+## Prezzi
+
+- Uso domestico: gratuito, senza scadenza
+- Ristorante: 19,90 euro al mese oppure 199 euro all'anno, con 30 giorni di prova
+  gratuita e senza carta di credito
+- Professionisti: su richiesta
+
+## Tecnologia
+
+Applicazione web installabile sulla schermata principale del telefono, senza
+passare dagli store. Le operazioni fatte senza collegamento vengono messe in coda
+e inviate quando la rete torna. I dati stanno su infrastruttura Postgres gestita,
+con regole di accesso a livello di riga: ogni ristorante vede soltanto i propri
+dati e ogni utente soltanto la propria dispensa.
+
+## Pagine
+
+- https://cibarius.online/ — presentazione generale
+- https://cibarius.online/ristoranti — HACCP, magazzino e tracciabilità per la ristorazione
+- https://cibarius.online/utenti — dispensa e scadenze per uso domestico
+- https://cibarius.online/nutrizionisti — piani alimentari e monitoraggio assistiti
+- https://cibarius.online/come-funziona — i tre percorsi d'uso passo per passo
+- https://cibarius.online/prezzi — piani e condizioni
+- https://cibarius.online/faq — domande frequenti
+- https://cibarius.online/contatti — come metterci in contatto

@@ -42,7 +42,7 @@ Tutto passa da `isNativeApp()` in `src/lib/native.ts`:
 - **Condividi**: nella WebView non c'è `navigator.share`. `src/lib/native-share.ts`
   lo definisce sopra `CondividiPlugin.java`, che apre il pannello di condivisione
   di Android (solo testo e link).
-- **Abbonamenti**: si comprano con Stripe come sul sito. Il checkout si apre nel
+- **Abbonamenti**: si comprano con Stripe come sul sito (su iOS no, vedi `docs/IOS.md`). Il checkout si apre nel
   browser di sistema (Capacitor apre fuori dall'app ogni indirizzo esterno), il
   ritorno va su `SITE_URL` perché `https://localhost` nel browser non esiste, e
   `useSubscription` rilegge lo stato quando si torna nell'app.
