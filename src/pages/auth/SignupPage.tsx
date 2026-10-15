@@ -14,6 +14,7 @@ import AuthFeatureCarousel from "@/components/AuthFeatureCarousel";
 import ReferralBadge from "@/components/ReferralBadge";
 import { LOGIN_PATH, USER_HOME } from "@/lib/routes";
 import { getRoleHomePath } from "@/hooks/useRole";
+import { vendeAbbonamenti } from "@/lib/native";
 
 
 type AccountType = "user" | "restaurant_owner" | "professional";
@@ -44,8 +45,12 @@ const SignupPage = () => {
     }
   }, [searchParams]);
 
-  const [step, setStep] = useState(1);
-  const [accountType, setAccountType] = useState<AccountType | null>(null);
+  // Nell'app iOS ci si registra solo come utente (vedi vendeAbbonamenti):
+  // niente "Chi sei?", si parte dai dati.
+  const soloUtente = !vendeAbbonamenti();
+  const primoPasso = soloUtente ? 2 : 1;
+  const [step, setStep] = useState(primoPasso);
+  const [accountType, setAccountType] = useState<AccountType | null>(soloUtente ? "user" : null);
 
   // Step 2 - base
   const [email, setEmail] = useState("");
@@ -205,11 +210,11 @@ const SignupPage = () => {
           <CardHeader className="items-center text-center">
             {/* Progress dots */}
             <div className="flex gap-2 mb-3">
-              {Array.from({ length: totalSteps }).map((_, i) => (
+              {Array.from({ length: totalSteps - primoPasso + 1 }).map((_, i) => (
                 <div
                   key={i}
                   className={`h-2 rounded-full transition-all ${
-                    i + 1 <= step ? "w-8 bg-primary" : "w-2 bg-muted"
+                    i + primoPasso <= step ? "w-8 bg-primary" : "w-2 bg-muted"
                   }`}
                 />
               ))}
@@ -383,7 +388,7 @@ const SignupPage = () => {
 
             {/* Navigation buttons */}
             <div className="flex gap-3 mt-6">
-              {step > 1 && (
+              {step > primoPasso && (
                 <Button variant="outline" className="flex-1" onClick={() => setStep(step - 1)}>
                   <ArrowLeft className="mr-2 h-4 w-4" /> Indietro
                 </Button>

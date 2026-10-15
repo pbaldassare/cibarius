@@ -15,6 +15,11 @@ export const isNativeApp = (): boolean => Capacitor.isNativePlatform();
  * link o inviti a comprare altrove. Li' l'abbonamento non si vende ne' si cita:
  * chi l'ha comprato sul sito lo usa e basta. Su Android e sul web si compra
  * con Stripe.
+ *
+ * Per Apple anche registrare un account ristorante o professionista e' un
+ * acquisto fuori dall'App Store (revisione del 14/10/2026): su iOS ci si
+ * registra solo come utente, gli altri account si creano sul sito e
+ * nell'app si accede e basta.
  */
 export const vendeAbbonamenti = (): boolean => Capacitor.getPlatform() !== "ios";
 

@@ -25,6 +25,12 @@ home. Impaginazione e regole sono quelle di Android; qui solo le differenze.
   "Abbonamento Premium" del profilo sparisce e il banner di prova del ristorante
   mostra solo lo stato, senza "Attiva ora". Chi ha comprato sul sito usa le
   funzioni e basta. Su Android e sul web si compra con Stripe.
+- **Registrazione solo come utente.** Alla prima revisione (1.0 build 1,
+  14/10/2026) Apple ha respinto l'app per la 3.1.1: registrare un account
+  ristorante o professionista dall'app conta come accesso a un acquisto
+  esterno. Su iOS la registrazione parte dai dati e crea solo account utente
+  (casa, gratis); ristoranti, professionisti e fornitori si registrano sul
+  sito e nell'app accedono e basta (3.1.3(c), servizi venduti a imprese).
 - **Plugin nativi.** Stessi nomi e stesso JavaScript di Android, in Swift in
   `ios/App/App/CibariusNativo.swift`: `Stampa` (dialogo di stampa di iOS,
   AirPrint o PDF), `Salva` ("Salva in File" per CSV e PDF), `Condividi`
