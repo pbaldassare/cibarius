@@ -28,6 +28,7 @@ const SupplierPage = () => {
   // Stats
   const [restaurantCount, setRestaurantCount] = useState(0);
   const [catalogCount, setCatalogCount] = useState(0);
+  const [newOrders, setNewOrders] = useState(0);
 
   useEffect(() => {
     if (!user) return;
@@ -41,12 +42,14 @@ const SupplierPage = () => {
       if (data) {
         setSupplier(data);
         // Load stats
-        const [restRes, catRes] = await Promise.all([
+        const [restRes, catRes, ordRes] = await Promise.all([
           supabase.from("supplier_restaurants").select("id", { count: "exact" }).eq("supplier_id", data.id).eq("status", "active"),
           supabase.from("supplier_products").select("id", { count: "exact" }).eq("supplier_id", data.id),
+          supabase.from("supplier_orders").select("id", { count: "exact", head: true }).eq("supplier_id", data.id).eq("status", "inviato"),
         ]);
         setRestaurantCount(restRes.count ?? 0);
         setCatalogCount(catRes.count ?? 0);
+        setNewOrders(ordRes.count ?? 0);
       } else {
         setOnboarding(true);
       }
@@ -141,10 +144,11 @@ const SupplierPage = () => {
           </Card>
         </div>
 
-        <Card>
+        <Card className="cursor-pointer" onClick={() => navigate("/supplier/orders")}>
           <CardContent className="flex flex-col items-center py-5">
             <TrendingUp className="h-8 w-8 text-primary mb-2" />
-            <span className="text-sm text-muted-foreground">Report — prossimamente</span>
+            <span className="text-2xl font-bold text-foreground">{newOrders}</span>
+            <span className="text-xs text-muted-foreground">Ordini nuovi da confermare</span>
           </CardContent>
         </Card>
       </main>

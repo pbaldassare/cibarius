@@ -57,6 +57,8 @@ const RestaurantExpiryPage = lazy(() => import("./pages/restaurant/RestaurantExp
 const RestaurantRecipesPage = lazy(() => import("./pages/restaurant/RestaurantRecipesPage"));
 const RestaurantSettingsPage = lazy(() => import("./pages/restaurant/RestaurantSettingsPage"));
 const RestaurantInvoicesPage = lazy(() => import("./pages/restaurant/RestaurantInvoicesPage"));
+const RestaurantSuppliersPage = lazy(() => import("./pages/restaurant/RestaurantSuppliersPage"));
+const RestaurantOrdersPage = lazy(() => import("./pages/restaurant/RestaurantOrdersPage"));
 const RestaurantStockPage = lazy(() => import("./pages/restaurant/RestaurantStockPage"));
 const RestaurantPreparationsPage = lazy(() => import("./pages/restaurant/RestaurantPreparationsPage"));
 const RestaurantItemPage = lazy(() => import("./pages/restaurant/RestaurantItemPage"));
@@ -113,6 +115,7 @@ const SupplierPage = lazy(() => import("./pages/supplier/SupplierPage"));
 const SupplierRestaurantsPage = lazy(() => import("./pages/supplier/SupplierRestaurantsPage"));
 const SupplierCatalogPage = lazy(() => import("./pages/supplier/SupplierCatalogPage"));
 const SupplierReportsPage = lazy(() => import("./pages/supplier/SupplierReportsPage"));
+const SupplierOrdersPage = lazy(() => import("./pages/supplier/SupplierOrdersPage"));
 const SupplierInvitePage = lazy(() => import("./pages/supplier/SupplierInvitePage"));
 
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -252,6 +255,10 @@ const App = () => (
                 <Route path="/restaurant/haccp-labels/:id" element={<RestaurantHaccpLabelDetailPage />} />
                 {/* Archivio documenti unico: stessa pagina di /restaurant/invoices */}
                 <Route path="/restaurant/haccp-documents" element={<RestaurantInvoicesPage />} />
+                <Route path="/restaurant/suppliers" element={<RestaurantSuppliersPage />} />
+                <Route path="/restaurant/suppliers/:supplierId" element={<RestaurantSuppliersPage />} />
+                <Route path="/restaurant/orders" element={<RestaurantOrdersPage />} />
+                <Route path="/restaurant/orders/:orderId" element={<RestaurantOrdersPage />} />
               </Route>
 
               {/* Supplier invite (restaurant context) */}
@@ -290,6 +297,7 @@ const App = () => (
                 <Route path="/supplier/restaurants" element={<RG roles={["supplier", "admin"]}><SupplierRestaurantsPage /></RG>} />
                 <Route path="/supplier/catalog" element={<RG roles={["supplier", "admin"]}><SupplierCatalogPage /></RG>} />
                 <Route path="/supplier/reports" element={<RG roles={["supplier", "admin"]}><SupplierReportsPage /></RG>} />
+                <Route path="/supplier/orders" element={<RG roles={["supplier", "admin"]}><SupplierOrdersPage /></RG>} />
                 <Route path="/supplier/profile" element={<RG roles={["supplier", "admin"]}><ProfiloPage /></RG>} />
               </Route>
 

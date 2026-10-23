@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
+import SupplierSpendReport from "@/components/SupplierSpendReport";
 import type { SchedulableTask } from "@/lib/haccp-schedule";
 import {
   buildMonthlyHaccpReport, type ReportLog, type ReportTemperature,
@@ -27,6 +28,7 @@ const RestaurantAdminReportsPage = () => {
   const [logs, setLogs] = useState<ReportLog[]>([]);
   const [temperatures, setTemperatures] = useState<ReportTemperature[]>([]);
   const [loading, setLoading] = useState(true);
+  const [section, setSection] = useState<"haccp" | "spesa">("haccp");
 
   const monthDate = useMemo(() => {
     const [y, m] = month.split("-").map(Number);
@@ -126,7 +128,20 @@ ${report.anomalies.map((a) => `<tr><td>${format(new Date(a.recorded_at), "dd/MM/
   return (
     <RestaurantAdminLayout>
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-bold text-foreground">Report HACCP</h1>
+        <h1 className="text-2xl font-bold text-foreground">Report</h1>
+        <div className="flex gap-1 rounded-lg bg-muted p-1" role="tablist">
+          {([["haccp", "HACCP"], ["spesa", "Spesa fornitori"]] as const).map(([key, label]) => (
+            <button
+              key={key}
+              role="tab"
+              aria-selected={section === key}
+              onClick={() => setSection(key)}
+              className={`rounded-md px-3 py-1 text-sm font-medium ${section === key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground"}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
         <div className="ml-auto flex items-center gap-2">
           <Input
             type="month"
@@ -136,13 +151,17 @@ ${report.anomalies.map((a) => `<tr><td>${format(new Date(a.recorded_at), "dd/MM/
             className="w-44"
             aria-label="Mese del report"
           />
-          <Button variant="outline" onClick={printReport} disabled={loading}>
-            <Printer className="mr-2 h-4 w-4" /> Stampa / PDF
-          </Button>
+          {section === "haccp" && (
+            <Button variant="outline" onClick={printReport} disabled={loading}>
+              <Printer className="mr-2 h-4 w-4" /> Stampa / PDF
+            </Button>
+          )}
         </div>
       </div>
 
-      {loading ? (
+      {section === "spesa" && restaurant ? (
+        <SupplierSpendReport restaurantId={restaurant.id} month={monthDate} />
+      ) : loading ? (
         <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
       ) : (
         <>

@@ -37,7 +37,8 @@ const tabsByRole: Record<string, TabItem[]> = {
     { to: "/supplier", icon: LayoutDashboard, label: "Dashboard" },
     { to: "/supplier/restaurants", icon: Building2, label: "Ristoranti" },
     { to: "/supplier/catalog", icon: Package, label: "Catalogo" },
-    { to: "/supplier/reports", icon: FileText, label: "Report" },
+    // Il report fornitore e' ancora vuoto: al suo posto gli ordini ricevuti.
+    { to: "/supplier/orders", icon: ClipboardList, label: "Ordini" },
     // /profile e' dell'app consumer: il fornitore verrebbe rimandato alla dashboard.
     { to: "/supplier/profile", icon: User, label: "Profilo" },
   ],

@@ -43,6 +43,16 @@ interface AiResult {
 
 interface EditItem extends AiItem {
   itemType: "product" | "preparation";
+  /** Prodotto gia' noto (es. da un ordine al fornitore): niente duplicato in `products`. */
+  productId?: string | null;
+}
+
+/** Riga di carico precompilata: scadenza e lotto li inserisce chi riceve la merce. */
+export interface PrefilledStockItem {
+  name: string;
+  quantity: number;
+  unit: string | null;
+  productId: string | null;
 }
 
 type Step = "choice" | "photo" | "results" | "edit" | "label";
@@ -53,6 +63,10 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   restaurantId: string;
   onComplete: () => void;
+  /** Se presenti, il flusso parte dai dettagli di queste righe invece che dalla scelta. */
+  initialItems?: PrefilledStockItem[];
+  /** Nota sui movimenti di carico, es. "Da ordine a Fornitore X". */
+  movementNotes?: string;
 }
 
 const storageOptions = [
@@ -75,7 +89,10 @@ const fileToImageFile = async (file: File): Promise<ImageFile> => {
   });
 };
 
-const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Props) => {
+// Le unita' del catalogo fornitori usano "pezzi", il magazzino "pz".
+const stockUnit = (unit: string | null) => (!unit || unit === "pezzi" ? "pz" : unit);
+
+const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete, initialItems, movementNotes }: Props) => {
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -116,6 +133,30 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
       }, 300);
     }
   }, [open]);
+
+  // Carico precompilato (da ordine): si va subito alla revisione riga per riga.
+  useEffect(() => {
+    if (!open || !initialItems?.length) return;
+    setItemTypeChoice("product");
+    setEditItems(initialItems.map((i) => ({
+      name: i.name,
+      brand: null,
+      quantity: i.quantity,
+      unit: stockUnit(i.unit),
+      lot_number: null,
+      expiry_date: format(addDays(new Date(), 3), "yyyy-MM-dd"),
+      production_date: null,
+      storage_hint: "frigo",
+      chef_life_hours: null,
+      allergens: [],
+      category: null,
+      itemType: "product",
+      productId: i.productId,
+    })));
+    setEditIndex(0);
+    setSelectedAllergens([]);
+    setStep("edit");
+  }, [open, initialItems]);
 
   const startManual = (type: ItemTypeChoice) => {
     setItemTypeChoice(type);
@@ -283,11 +324,13 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
           }
         } else {
           // Save as product + inventory_item
-          const { data: product, error: pErr } = await supabase.from("products").insert({
-            name: item.name,
-            brand: item.brand || null,
-            category: item.category || null,
-          }).select("id").single();
+          const { data: product, error: pErr } = item.productId
+            ? { data: { id: item.productId }, error: null }
+            : await supabase.from("products").insert({
+              name: item.name,
+              brand: item.brand || null,
+              category: item.category || null,
+            }).select("id").single();
 
           if (pErr) throw pErr;
           if (product) {
@@ -319,6 +362,7 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
                 unit: item.unit || "pz",
                 lotNumber: item.lot_number || null,
                 expiryDate: item.expiry_date || null,
+                notes: movementNotes,
               });
 
               // Save allergens for inventory items
@@ -387,7 +431,8 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
                   setSelectedAllergens(editItems[editIndex - 1]?.allergens || []);
                 } else if (step === "edit") {
                   // Manual flow has no results; go back to choice
-                  if (aiResult) setStep("results");
+                  if (initialItems?.length) onOpenChange(false);
+                  else if (aiResult) setStep("results");
                   else setStep("choice");
                 }
               }}>

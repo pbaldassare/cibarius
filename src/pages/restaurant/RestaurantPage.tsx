@@ -16,7 +16,7 @@ import {
   Loader2, Clock, AlertCircle, Package, Plus, ChevronRight,
   ChefHat, FileText, Upload, User, Settings, Zap,
   ClipboardCheck, CheckCircle2, AlertTriangle, Circle,
-  Thermometer, Wind, Flame, Trash2, UtensilsCrossed, QrCode, BookOpen,
+  Thermometer, Wind, Flame, Trash2, UtensilsCrossed, QrCode, BookOpen, Truck,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -116,6 +116,7 @@ const QUICK_ACTIONS = [
   { label: "Magazzino", icon: Package, to: "/restaurant/stock", color: "text-indigo-600", bg: "bg-indigo-500/10" },
   { label: "Etichette HACCP", icon: QrCode, to: "/restaurant/haccp-labels", color: "text-emerald-600", bg: "bg-emerald-500/10" },
   { label: "Ricette", icon: BookOpen, to: "/restaurant/recipes", color: "text-rose-600", bg: "bg-rose-500/10" },
+  { label: "Ordini fornitori", icon: Truck, to: "/restaurant/orders", color: "text-teal-600", bg: "bg-teal-500/10" },
 ];
 
 const RestaurantPage = () => {

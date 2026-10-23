@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
-import { Bell, Gift, CheckCircle2, XCircle, Thermometer } from "lucide-react";
+import { Bell, Gift, CheckCircle2, XCircle, Thermometer, Truck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -76,6 +76,8 @@ export default function UserNotificationsBell() {
       case "link_rejected": return <XCircle className="h-4 w-4 text-destructive" />;
       case "link_request": return <Bell className="h-4 w-4 text-primary" />;
       case "temperature_alert": return <Thermometer className="h-4 w-4 text-destructive" />;
+      case "supplier_order_new":
+      case "supplier_order_update": return <Truck className="h-4 w-4 text-primary" />;
       default: return <Bell className="h-4 w-4 text-muted-foreground" />;
     }
   };
@@ -134,6 +136,12 @@ export default function UserNotificationsBell() {
                     } else if (n.type === "temperature_alert") {
                       setOpen(false);
                       navigate("/restaurant-admin/temperatures");
+                    } else if (n.type === "supplier_order_new" || (n.type === "supplier_order_update" && n.metadata?.for === "supplier")) {
+                      setOpen(false);
+                      navigate("/supplier/orders");
+                    } else if (n.type === "supplier_order_update" && n.metadata?.order_id) {
+                      setOpen(false);
+                      navigate(`/restaurant/orders/${n.metadata.order_id}`);
                     }
                   }}
                 >
