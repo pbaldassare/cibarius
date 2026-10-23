@@ -3,6 +3,7 @@ import RestaurantAdminLayout from "@/components/RestaurantAdminLayout";
 import { useRestaurant } from "@/hooks/useRestaurant";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { formatRegisteredAt } from "@/lib/haccp-schedule";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,7 +44,7 @@ const STATUS_MAP: Record<string, { label: string; icon: typeof CheckCircle2; cls
   completata: { label: "Completata", icon: CheckCircle2, cls: "bg-emerald-500/10 text-emerald-700 border-emerald-200" },
   da_fare: { label: "Da fare", icon: Clock, cls: "bg-blue-500/10 text-blue-700 border-blue-200" },
   non_controllata: { label: "Non controllata", cls: "bg-muted text-muted-foreground", icon: XCircle },
-  in_ritardo: { label: "In ritardo", icon: AlertTriangle, cls: "bg-amber-500/10 text-amber-700 border-amber-200" },
+  in_ritardo: { label: "Registrato in ritardo", icon: AlertTriangle, cls: "bg-amber-500/10 text-amber-700 border-amber-200" },
   annullata: { label: "Annullata", icon: Ban, cls: "bg-red-500/10 text-red-700 border-red-200" },
 };
 
@@ -214,7 +215,7 @@ const RestaurantHaccpControlPage = () => {
 
   // Export functions
   const exportCSV = () => {
-    const headers = ["Data", "Attività", "Area", "Stato", "Temperatura", "Foto", "Operatore", "Ora", "Note", "Motivo annullamento"];
+    const headers = ["Data", "Attività", "Area", "Stato", "Temperatura", "Foto", "Operatore", "Registrato", "Note", "Motivo annullamento"];
     const rows = filtered.map(l => [
       format(new Date(l.log_date), "dd/MM/yyyy"),
       l.task_name, l.area,
@@ -222,7 +223,7 @@ const RestaurantHaccpControlPage = () => {
       l.temperature !== null ? `${l.temperature}°C${l.temperature_anomaly ? " ANOMALA" : ""}` : "",
       l.has_photos ? "Sì" : "",
       l.completed_by_name,
-      format(new Date(l.completed_at), "HH:mm"),
+      formatRegisteredAt(l.log_date, l.completed_at),
       l.notes || "", l.cancelled_reason || "",
     ]);
     const csv = [headers.join(";"), ...rows.map(r => r.join(";"))].join("\n");
@@ -255,7 +256,7 @@ tr:nth-child(even){background:#fafafa}
 </style></head><body>
 <h1>📋 Registro Controlli HACCP</h1>
 <h2>${restaurant?.name ?? ""} — Generato il ${format(new Date(), "dd/MM/yyyy 'alle' HH:mm", { locale: it })}</h2>
-<table><thead><tr><th>Data</th><th>Attività</th><th>Area</th><th>Freq.</th><th>Stato</th><th>Temp.</th><th>Foto</th><th>Operatore</th><th>Ora</th><th>Note</th></tr></thead>
+<table><thead><tr><th>Data</th><th>Attività</th><th>Area</th><th>Freq.</th><th>Stato</th><th>Temp.</th><th>Foto</th><th>Operatore</th><th>Registrato</th><th>Note</th></tr></thead>
 <tbody>${filtered.map(l => `<tr>
 <td>${format(new Date(l.log_date), "dd/MM/yyyy")}</td>
 <td><strong>${l.task_name}</strong></td>
@@ -265,7 +266,7 @@ tr:nth-child(even){background:#fafafa}
 <td class="${l.temperature_anomaly ? "anomaly" : "ok"}">${l.temperature !== null ? `${l.temperature}°C${l.temperature_anomaly ? " ⚠️" : ""}` : "—"}</td>
 <td>${l.has_photos ? "📷" : "—"}</td>
 <td>${l.completed_by_name}</td>
-<td>${format(new Date(l.completed_at), "HH:mm")}</td>
+<td>${formatRegisteredAt(l.log_date, l.completed_at)}</td>
 <td>${l.notes || "—"}</td>
 </tr>`).join("")}</tbody></table>
 <div class="footer">
@@ -308,14 +309,14 @@ td{padding:6px 8px;border-bottom:1px solid #f0f0f0}
 <div class="stat"><div class="stat-num" style="color:#92400e">${monthLogs.filter(l => l.status === "in_ritardo").length}</div><div class="stat-label">In ritardo</div></div>
 <div class="stat"><div class="stat-num" style="color:#991b1b">${monthLogs.filter(l => l.status === "annullata").length}</div><div class="stat-label">Annullati</div></div>
 </div>
-<table><thead><tr><th>Data</th><th>Attività</th><th>Area</th><th>Stato</th><th>Operatore</th><th>Ora</th><th>Note</th></tr></thead>
+<table><thead><tr><th>Data</th><th>Attività</th><th>Area</th><th>Stato</th><th>Operatore</th><th>Registrato</th><th>Note</th></tr></thead>
 <tbody>${monthLogs.map(l => `<tr>
 <td>${format(new Date(l.log_date), "dd/MM/yyyy")}</td>
 <td><strong>${l.task_name}</strong></td>
 <td>${l.area}</td>
 <td><span class="badge ${l.status}">${STATUS_MAP[l.status]?.label || l.status}</span></td>
 <td>${l.completed_by_name}</td>
-<td>${format(new Date(l.completed_at), "HH:mm")}</td>
+<td>${formatRegisteredAt(l.log_date, l.completed_at)}</td>
 <td>${l.notes || "—"}</td>
 </tr>`).join("")}</tbody></table>
 <div class="footer">Report generato da Cibarius il ${format(now, "dd/MM/yyyy HH:mm")} · Documento ufficiale HACCP</div>
@@ -449,7 +450,7 @@ td{padding:6px 8px;border-bottom:1px solid #f0f0f0}
                   <TableHead className="font-semibold">Temp.</TableHead>
                   <TableHead className="font-semibold">Foto</TableHead>
                   <TableHead className="font-semibold">Operatore</TableHead>
-                  <TableHead className="font-semibold">Ora</TableHead>
+                  <TableHead className="font-semibold">Registrato</TableHead>
                   <TableHead className="font-semibold">Note</TableHead>
                   <TableHead className="font-semibold w-[80px]">Azioni</TableHead>
                 </TableRow>
@@ -496,7 +497,7 @@ td{padding:6px 8px;border-bottom:1px solid #f0f0f0}
                       </TableCell>
                       <TableCell className="text-sm">{l.completed_by_name}</TableCell>
                       <TableCell className="text-sm whitespace-nowrap">
-                        {format(new Date(l.completed_at), "HH:mm")}
+                        {formatRegisteredAt(l.log_date, l.completed_at)}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground max-w-[180px] truncate">
                         {l.notes || "—"}

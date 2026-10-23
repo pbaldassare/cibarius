@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useRestaurant } from "@/hooks/useRestaurant";
 import { supabase } from "@/integrations/supabase/client";
+import { formatRegisteredAt } from "@/lib/haccp-schedule";
 import MobileHeader from "@/components/MobileHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -49,7 +50,7 @@ interface PhotoRow {
 const STATUS_LABELS: Record<string, string> = {
   completata: "Completata",
   non_controllata: "Non controllata",
-  in_ritardo: "In ritardo",
+  in_ritardo: "Registrato in ritardo",
   annullata: "Annullata",
 };
 
@@ -169,7 +170,7 @@ const RestaurantHaccpHistoryPage = () => {
   });
 
   const exportCSV = () => {
-    const headers = ["Data", "Attività", "Stato", "Temperatura", "Foto", "Operatore", "Ora", "Note"];
+    const headers = ["Data", "Attività", "Stato", "Temperatura", "Foto", "Operatore", "Registrato", "Note"];
     const rows = filtered.map(l => [
       format(new Date(l.log_date), "dd/MM/yyyy"),
       l.task_name,
@@ -177,7 +178,7 @@ const RestaurantHaccpHistoryPage = () => {
       l.temperature !== null ? `${l.temperature}°C${l.temperature_anomaly ? " ANOMALA" : ""}` : "",
       l.has_photos ? "Sì" : "",
       l.completed_by_name,
-      format(new Date(l.completed_at), "HH:mm"),
+      formatRegisteredAt(l.log_date, l.completed_at),
       l.notes || "",
     ]);
     const csv = [headers.join(";"), ...rows.map(r => r.join(";"))].join("\n");
@@ -199,7 +200,7 @@ const RestaurantHaccpHistoryPage = () => {
       .anomaly{color:#dc2626;font-weight:700}.ok{color:#16a34a}</style></head><body>
       <h1>Storico Controlli HACCP</h1>
       <h2>${restaurant?.name ?? ""} — Generato il ${format(new Date(), "dd/MM/yyyy HH:mm")}</h2>
-      <table><thead><tr><th>Data</th><th>Attività</th><th>Stato</th><th>Temp.</th><th>Foto</th><th>Operatore</th><th>Ora</th><th>Note</th></tr></thead>
+      <table><thead><tr><th>Data</th><th>Attività</th><th>Stato</th><th>Temp.</th><th>Foto</th><th>Operatore</th><th>Registrato</th><th>Note</th></tr></thead>
       <tbody>${filtered.map(l => `<tr>
         <td>${format(new Date(l.log_date), "dd/MM/yyyy")}</td>
         <td>${l.task_name}</td>
@@ -207,7 +208,7 @@ const RestaurantHaccpHistoryPage = () => {
         <td class="${l.temperature_anomaly ? "anomaly" : "ok"}">${l.temperature !== null ? `${l.temperature}°C${l.temperature_anomaly ? " ⚠️" : ""}` : "—"}</td>
         <td>${l.has_photos ? "📷 Sì" : "—"}</td>
         <td>${l.completed_by_name}</td>
-        <td>${format(new Date(l.completed_at), "HH:mm")}</td>
+        <td>${formatRegisteredAt(l.log_date, l.completed_at)}</td>
         <td>${l.notes || ""}</td>
       </tr>`).join("")}</tbody></table></body></html>`;
     const w = window.open("", "_blank");
@@ -249,7 +250,7 @@ const RestaurantHaccpHistoryPage = () => {
             <SelectItem value="all">Tutti gli stati</SelectItem>
             <SelectItem value="completata">Completata</SelectItem>
             <SelectItem value="non_controllata">Non controllata</SelectItem>
-            <SelectItem value="in_ritardo">In ritardo</SelectItem>
+            <SelectItem value="in_ritardo">Registrato in ritardo</SelectItem>
             <SelectItem value="annullata">Annullata</SelectItem>
           </SelectContent>
         </Select>
@@ -284,7 +285,7 @@ const RestaurantHaccpHistoryPage = () => {
                 <TableHead>Temp.</TableHead>
                 <TableHead>Foto</TableHead>
                 <TableHead>Operatore</TableHead>
-                <TableHead>Ora</TableHead>
+                <TableHead>Registrato</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
@@ -328,7 +329,7 @@ const RestaurantHaccpHistoryPage = () => {
                   </TableCell>
                   <TableCell className="text-sm">{l.completed_by_name}</TableCell>
                   <TableCell className="text-sm whitespace-nowrap">
-                    {format(new Date(l.completed_at), "HH:mm")}
+                    {formatRegisteredAt(l.log_date, l.completed_at)}
                   </TableCell>
                   <TableCell>
                     <ChevronRight className="h-4 w-4 text-muted-foreground" />
@@ -375,10 +376,10 @@ const RestaurantHaccpHistoryPage = () => {
                   </div>
                   <div className="rounded-[14px] bg-secondary/50 p-3">
                     <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-1">
-                      <Clock className="h-3 w-3" /> Ora completamento
+                      <Clock className="h-3 w-3" /> Registrato
                     </div>
                     <p className="text-[14px] font-semibold text-foreground">
-                      {format(new Date(selectedLog.completed_at), "HH:mm")}
+                      {formatRegisteredAt(selectedLog.log_date, selectedLog.completed_at)}
                     </p>
                   </div>
                   <div className="rounded-[14px] bg-secondary/50 p-3">

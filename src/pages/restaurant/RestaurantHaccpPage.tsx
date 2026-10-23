@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import {
   Loader2, CheckCircle2, Circle, AlertTriangle, ChevronLeft, ChevronRight,
-  Settings2, Camera, Thermometer, X, Image,
+  Settings2, Camera, Thermometer, X, Image, Clock,
 } from "lucide-react";
 import { format, startOfWeek, addDays, isSameDay } from "date-fns";
 import { it } from "date-fns/locale";
@@ -211,7 +211,7 @@ const RestaurantHaccpPage = () => {
     }
 
     setSaving(false);
-    toast({ title: "Controllo registrato ✓" });
+    toast({ title: isSameDay(completeDialog.date, new Date()) ? "Controllo registrato ✓" : "Controllo registrato in ritardo" });
     setCompleteDialog(null);
     setNotes("");
     setTemperature("");
@@ -225,6 +225,7 @@ const RestaurantHaccpPage = () => {
   const getCellIcon = (task: HaccpTask, date: Date) => {
     if (!isTaskDueOn(task, date)) return null;
     const log = getLogForCell(task.id, date);
+    if (log?.status === "in_ritardo") return <Clock className="h-5 w-5 text-amber-500" />;
     if (log) return <CheckCircle2 className="h-5 w-5 text-emerald-500" />;
     const isPast = date < today && !isSameDay(date, today);
     if (isPast) return <AlertTriangle className="h-5 w-5 text-amber-500" />;
@@ -340,12 +341,12 @@ const RestaurantHaccpPage = () => {
                           <button
                             className={`inline-flex h-11 w-11 items-center justify-center rounded-lg transition-colors ${
                               canComplete ? "hover:bg-primary/10 active:bg-primary/20 cursor-pointer" : ""
-                            } ${log ? "bg-emerald-500/10" : ""}`}
+                            } ${log ? (log.status === "in_ritardo" ? "bg-amber-500/10" : "bg-emerald-500/10") : ""}`}
                             disabled={!canComplete}
                             /* Ogni cella era un pulsante con la sola icona: uno
                                screen reader leggeva "pulsante" e basta. */
                             aria-label={`${task.name}, ${format(d, "EEEE d MMMM", { locale: it })}: ${
-                              log ? "completata" : canComplete ? "da registrare" : "non ancora disponibile"
+                              log ? (log.status === "in_ritardo" ? "registrato in ritardo" : "completata") : canComplete ? "da registrare" : "non ancora disponibile"
                             }`}
                             onClick={() => canComplete && setCompleteDialog({ task, date: d })}
                           >
@@ -368,7 +369,8 @@ const RestaurantHaccpPage = () => {
       <div className="flex flex-wrap gap-4 text-xs text-muted-foreground pt-2">
         <span className="flex items-center gap-1"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> Completata</span>
         <span className="flex items-center gap-1"><Circle className="h-3.5 w-3.5 text-muted-foreground/40" /> Da fare</span>
-        <span className="flex items-center gap-1"><AlertTriangle className="h-3.5 w-3.5 text-amber-500" /> In ritardo</span>
+        <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5 text-amber-500" /> Registrato in ritardo</span>
+        <span className="flex items-center gap-1"><AlertTriangle className="h-3.5 w-3.5 text-amber-500" /> Non registrato</span>
         <span className="flex items-center gap-1"><Thermometer className="h-3.5 w-3.5 text-sky-500" /> Temperatura</span>
       </div>
 
@@ -385,6 +387,13 @@ const RestaurantHaccpPage = () => {
                 <br />
                 <span className="text-muted-foreground">{format(completeDialog.date, "EEEE d MMMM yyyy", { locale: it })}</span>
               </p>
+
+              {!isSameDay(completeDialog.date, today) && (
+                <p className="flex gap-2 rounded-lg border border-amber-200 bg-amber-500/10 p-3 text-xs text-amber-800">
+                  <Clock className="h-4 w-4 shrink-0" />
+                  Il controllo è di un giorno passato: nel registro e negli export risulterà "Registrato in ritardo", con la data e l'ora di oggi.
+                </p>
+              )}
 
               {/* Temperature input for temp tasks */}
               {needsTemp && (

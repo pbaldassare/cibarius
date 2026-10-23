@@ -50,6 +50,21 @@ export const toLogDate = (date: Date): string => {
 };
 
 /**
+ * Quando e' stato registrato un controllo, per registro ed export.
+ *
+ * Se la registrazione e' avvenuta il giorno stesso basta l'ora; se e' arrivata
+ * dopo (controllo "in ritardo") serve anche la data, altrimenti nel registro
+ * sembrerebbe fatto in tempo.
+ */
+export const formatRegisteredAt = (logDate: string, completedAt: string): string => {
+  const at = new Date(completedAt);
+  const time = `${String(at.getHours()).padStart(2, "0")}:${String(at.getMinutes()).padStart(2, "0")}`;
+  if (toLogDate(at) === logDate) return time;
+  const [y, m, d] = toLogDate(at).split("-");
+  return `${d}/${m}/${y} ${time}`;
+};
+
+/**
  * Dice se il controllo cade in quel giorno.
  *
  * Settimanale resta ancorato al lunedi' e mensile al primo del mese: sono le
@@ -85,9 +100,12 @@ export const frequencyLabel = (task: SchedulableTask): string => {
   return interval === 1 ? "ogni giorno" : `ogni ${interval} giorni`;
 };
 
+/** Stati che contano come controllo eseguito: "in_ritardo" e' fatto, solo registrato tardi. */
+const DONE_STATUSES = ["completata", "in_ritardo"];
+
 const isCompletedOn = (logs: TaskLog[], taskId: string, date: Date): boolean => {
   const dateStr = toLogDate(date);
-  return logs.some((l) => l.task_id === taskId && l.log_date === dateStr && l.status === "completata");
+  return logs.some((l) => l.task_id === taskId && l.log_date === dateStr && DONE_STATUSES.includes(l.status));
 };
 
 export interface DueTask {

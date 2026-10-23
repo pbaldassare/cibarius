@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  isTaskDueOn, frequencyLabel, buildAgenda, groupCategories, toLogDate,
+  isTaskDueOn, frequencyLabel, buildAgenda, groupCategories, toLogDate, formatRegisteredAt,
   type SchedulableTask, type TaskLog,
 } from "@/lib/haccp-schedule";
 
@@ -116,6 +116,17 @@ describe("buildAgenda", () => {
     expect(agenda.overdue).toHaveLength(0);
   });
 
+  it("non segnala arretrato un controllo registrato in ritardo", () => {
+    const settimanale = task({
+      id: "w",
+      frequency: "settimanale",
+      created_at: lunedi.toISOString(),
+    });
+    const martedi = new Date(2026, 8, 8);
+    const late: TaskLog = { ...done("w", lunedi), status: "in_ritardo" };
+    expect(buildAgenda([settimanale], [late], martedi, 14).overdue).toHaveLength(0);
+  });
+
   it("non considera in ritardo le date precedenti alla creazione", () => {
     // Un controllo configurato oggi non ha due settimane di arretrato.
     const nuovo = task({ id: "n", created_at: mercoledi.toISOString() });
@@ -178,5 +189,15 @@ describe("groupCategories", () => {
   it("restituisce vuoto per un gruppo sconosciuto", () => {
     expect(groupCategories("cappe")).toEqual([]);
     expect(groupCategories(null)).toEqual([]);
+  });
+});
+
+describe("formatRegisteredAt", () => {
+  it("mostra solo l'ora se registrato il giorno del controllo", () => {
+    expect(formatRegisteredAt("2026-10-12", new Date(2026, 9, 12, 9, 5).toISOString())).toBe("09:05");
+  });
+
+  it("mostra anche la data se registrato in un giorno successivo", () => {
+    expect(formatRegisteredAt("2026-10-08", new Date(2026, 9, 14, 18, 4).toISOString())).toBe("14/10/2026 18:04");
   });
 });
