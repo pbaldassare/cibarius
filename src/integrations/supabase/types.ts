@@ -3865,27 +3865,112 @@ export type Database = {
           },
         ]
       }
-      supplier_orders: {
+      supplier_order_items: {
         Row: {
-          created_at: string
           id: string
-          restaurant_id: string | null
-          supplier_id: string | null
-          total: number | null
+          line_total: number | null
+          order_id: string
+          product_id: string | null
+          product_name: string
+          quantity: number
+          supplier_product_id: string | null
+          unit: string | null
+          unit_price: number | null
         }
         Insert: {
-          created_at?: string
           id?: string
-          restaurant_id?: string | null
-          supplier_id?: string | null
-          total?: number | null
+          line_total?: number | null
+          order_id: string
+          product_id?: string | null
+          product_name: string
+          quantity: number
+          supplier_product_id?: string | null
+          unit?: string | null
+          unit_price?: number | null
         }
         Update: {
-          created_at?: string
           id?: string
+          line_total?: number | null
+          order_id?: string
+          product_id?: string | null
+          product_name?: string
+          quantity?: number
+          supplier_product_id?: string | null
+          unit?: string | null
+          unit_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_order_items_supplier_product_id_fkey"
+            columns: ["supplier_product_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supplier_orders: {
+        Row: {
+          confirmed_at: string | null
+          created_at: string
+          created_by: string | null
+          delivered_at: string | null
+          id: string
+          notes: string | null
+          requested_delivery_date: string | null
+          restaurant_id: string | null
+          status: string
+          stock_loaded_at: string | null
+          supplier_id: string | null
+          supplier_note: string | null
+          total: number | null
+          updated_at: string
+        }
+        Insert: {
+          confirmed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivered_at?: string | null
+          id?: string
+          notes?: string | null
+          requested_delivery_date?: string | null
           restaurant_id?: string | null
+          status?: string
+          stock_loaded_at?: string | null
           supplier_id?: string | null
+          supplier_note?: string | null
           total?: number | null
+          updated_at?: string
+        }
+        Update: {
+          confirmed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivered_at?: string | null
+          id?: string
+          notes?: string | null
+          requested_delivery_date?: string | null
+          restaurant_id?: string | null
+          status?: string
+          stock_loaded_at?: string | null
+          supplier_id?: string | null
+          supplier_note?: string | null
+          total?: number | null
+          updated_at?: string
         }
         Relationships: [
           {
@@ -4306,7 +4391,17 @@ export type Database = {
     }
     Functions: {
       accept_restaurant_invite: { Args: { _token: string }; Returns: string }
+      accept_supplier_invite: { Args: { _code: string }; Returns: string }
       complete_oauth_signup: { Args: { p_payload: Json }; Returns: Json }
+      create_supplier_order: {
+        Args: {
+          _items: Json
+          _notes?: string
+          _requested_delivery_date?: string
+          _supplier_id: string
+        }
+        Returns: string
+      }
       current_user_is_admin: { Args: never; Returns: boolean }
       get_resend_api_key: { Args: never; Returns: string }
       get_user_role: { Args: { _user_id: string }; Returns: string }
@@ -4336,6 +4431,10 @@ export type Database = {
         Args: { _restaurant_id: string }
         Returns: boolean
       }
+      mark_supplier_order_stock_loaded: {
+        Args: { _order_id: string }
+        Returns: undefined
+      }
       merge_restaurant_products: {
         Args: {
           p_restaurant_id: string
@@ -4360,6 +4459,16 @@ export type Database = {
         }[]
       }
       seed_francesca_biazzi: { Args: never; Returns: string }
+      supplier_invite_preview: {
+        Args: { _code: string }
+        Returns: {
+          supplier_name: string
+        }[]
+      }
+      update_supplier_order_status: {
+        Args: { _note?: string; _order_id: string; _status: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

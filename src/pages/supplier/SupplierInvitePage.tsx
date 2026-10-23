@@ -18,27 +18,25 @@ const SupplierInvitePage = () => {
   const [searchParams] = useSearchParams();
   const [code, setCode] = useState(searchParams.get("code") ?? "");
   const [loading, setLoading] = useState(false);
-  const [supplierInfo, setSupplierInfo] = useState<any>(null);
+  const [supplierInfo, setSupplierInfo] = useState<{ name: string } | null>(null);
   const [step, setStep] = useState<"input" | "confirm" | "done">("input");
 
+  // Il collegamento passa dalle funzioni del database: il codice non e' piu'
+  // leggibile da chiunque e viene consumato da accept_supplier_invite.
   const validateCode = async () => {
     if (!code.trim() || !user) return;
     setLoading(true);
 
-    const { data: invite } = await supabase
-      .from("supplier_invites")
-      .select("*, suppliers(id, name, email, phone)")
-      .eq("invite_code", code.trim().toUpperCase())
-      .eq("status", "active")
-      .single();
+    const { data } = await supabase.rpc("supplier_invite_preview", { _code: code });
+    const row = Array.isArray(data) ? data[0] : null;
 
-    if (!invite) {
+    if (!row) {
       toast({ variant: "destructive", title: "Codice non valido", description: "Il codice invito non esiste o è già stato usato." });
       setLoading(false);
       return;
     }
 
-    setSupplierInfo({ ...invite.suppliers, invite_id: invite.id, invite_code: invite.invite_code });
+    setSupplierInfo({ name: row.supplier_name });
     setStep("confirm");
     setLoading(false);
   };
@@ -47,30 +45,14 @@ const SupplierInvitePage = () => {
     if (!user || !supplierInfo || !restaurant) return;
     setLoading(true);
 
-    const { error } = await supabase.from("supplier_restaurants").insert({
-      supplier_id: supplierInfo.id,
-      restaurant_id: restaurant.id,
-      status: "active",
-      invite_code: supplierInfo.invite_code,
-    });
-
+    const { error } = await supabase.rpc("accept_supplier_invite", { _code: code });
+    setLoading(false);
     if (error) {
-      if (error.code === "23505") {
-        await supabase
-          .from("supplier_restaurants")
-          .update({ status: "active" })
-          .eq("supplier_id", supplierInfo.id)
-          .eq("restaurant_id", restaurant.id);
-      } else {
-        toast({ variant: "destructive", title: "Errore", description: error.message });
-        setLoading(false);
-        return;
-      }
+      toast({ variant: "destructive", title: "Errore", description: error.message });
+      return;
     }
 
-    await supabase.from("supplier_invites").update({ status: "used" }).eq("id", supplierInfo.invite_id);
     setStep("done");
-    setLoading(false);
     toast({ title: "Fornitore collegato!" });
   };
 
@@ -127,10 +109,9 @@ const SupplierInvitePage = () => {
             <CardContent className="space-y-4">
               <div className="rounded-xl bg-secondary p-4 text-center">
                 <p className="text-sm font-medium text-foreground">{supplierInfo.name}</p>
-                {supplierInfo.email && <p className="text-xs text-muted-foreground">{supplierInfo.email}</p>}
               </div>
               <p className="text-xs text-muted-foreground text-center">
-                Il fornitore potrà vedere il tuo ristorante nell'elenco. Potrai accedere al suo catalogo prezzi.
+                Il fornitore potrà vedere il tuo ristorante nell'elenco. Potrai vedere il suo catalogo e inviargli ordini.
               </p>
               <div className="flex gap-2">
                 <Button variant="outline" className="flex-1" onClick={() => setStep("input")} disabled={loading}>Annulla</Button>
@@ -153,8 +134,8 @@ const SupplierInvitePage = () => {
               <p className="text-sm text-muted-foreground">
                 Il fornitore è ora collegato al tuo ristorante.
               </p>
-              <Button className="w-full" onClick={() => navigate("/restaurant/settings")}>
-                Vai alle impostazioni
+              <Button className="w-full" onClick={() => navigate("/restaurant/suppliers")}>
+                Vai ai fornitori
               </Button>
             </CardContent>
           </Card>

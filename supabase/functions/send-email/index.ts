@@ -234,6 +234,72 @@ function temperatureAlertEmail(
   };
 }
 
+interface SupplierOrderEmail {
+  created_at: string;
+  total: number;
+  notes: string | null;
+  requested_delivery_date: string | null;
+  restaurant_address: string | null;
+  restaurant_phone: string | null;
+  items: { name: string; unit: string | null; quantity: number; unit_price: number | null; line_total: number | null }[];
+}
+
+const euro = (n: number) => n.toLocaleString("it-IT", { style: "currency", currency: "EUR" });
+
+/**
+ * Nuovo ordine per il fornitore.
+ *
+ * Nomi, note e indirizzo li scrive il ristorante: vanno escapati.
+ */
+function supplierOrderEmail(
+  restaurantName: string,
+  o: SupplierOrderEmail,
+  appUrl: string,
+): { subject: string; html: string; text: string } {
+  const restaurant = escapeHtml(restaurantName);
+  const ordersUrl = `${appUrl.replace(/\/$/, "")}/supplier/orders`;
+  const delivery = o.requested_delivery_date
+    ? new Date(`${o.requested_delivery_date}T12:00:00`).toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" })
+    : null;
+  const rows = o.items
+    .map((i) => `<tr>
+        <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;font-size:14px;color:${TEXT_DARK};">${escapeHtml(i.name)}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;font-size:14px;color:${TEXT_DARK};text-align:right;">${i.quantity} ${escapeHtml(i.unit ?? "")}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;font-size:14px;color:${TEXT_DARK};text-align:right;">${i.line_total === null ? "—" : euro(i.line_total)}</td>
+      </tr>`)
+    .join("");
+  const details = [
+    delivery ? `<strong>Consegna richiesta:</strong> ${delivery}` : "",
+    o.restaurant_address ? `<strong>Indirizzo:</strong> ${escapeHtml(o.restaurant_address)}` : "",
+    o.restaurant_phone ? `<strong>Telefono:</strong> ${escapeHtml(o.restaurant_phone)}` : "",
+    o.notes ? `<strong>Note:</strong> ${escapeHtml(o.notes)}` : "",
+  ].filter(Boolean).join("<br>");
+
+  return {
+    subject: `Nuovo ordine da ${restaurantName} (${euro(o.total)})`,
+    html: baseHtml("Nuovo ordine", `
+      <h1 style="font-size:22px;color:${TEXT_DARK};margin:0 0 8px;font-family:'Fredoka',Arial,sans-serif;">Nuovo ordine da ${restaurant}</h1>
+      ${details ? `<p style="font-size:14px;color:${TEXT_DARK};line-height:1.6;margin:0 0 20px;">${details}</p>` : ""}
+      <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;margin-bottom:16px;">
+        <tr style="background:#f9fafb;">
+          <th style="padding:8px 12px;text-align:left;font-size:13px;color:${TEXT_MUTED};font-weight:600;">Prodotto</th>
+          <th style="padding:8px 12px;text-align:right;font-size:13px;color:${TEXT_MUTED};font-weight:600;">Quantità</th>
+          <th style="padding:8px 12px;text-align:right;font-size:13px;color:${TEXT_MUTED};font-weight:600;">Importo</th>
+        </tr>
+        ${rows}
+        <tr><td colspan="2" style="padding:10px 12px;font-size:14px;font-weight:700;color:${TEXT_DARK};">Totale</td>
+          <td style="padding:10px 12px;text-align:right;font-size:14px;font-weight:700;color:${TEXT_DARK};">${euro(o.total)}</td></tr>
+      </table>
+      <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
+        <a href="${ordersUrl}" style="display:inline-block;background:${PRIMARY};color:#ffffff;padding:14px 32px;border-radius:12px;font-size:16px;font-weight:600;text-decoration:none;">
+          Conferma l'ordine
+        </a>
+      </td></tr></table>
+    `),
+    text: `Nuovo ordine da ${restaurantName}: ${o.items.map((i) => `${i.quantity} ${i.unit ?? ""} ${i.name}`).join(", ")}. Totale ${euro(o.total)}.${delivery ? ` Consegna richiesta: ${delivery}.` : ""}${o.notes ? ` Note: ${o.notes}.` : ""} Conferma su Cibarius: ${ordersUrl}`,
+  };
+}
+
 async function resolveResendApiKey(supabase: ReturnType<typeof createClient>): Promise<string> {
   const { data, error } = await supabase.rpc("get_resend_api_key");
   if (!error && typeof data === "string" && data.length > 0) return data;
@@ -276,7 +342,7 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const RESEND_API_KEY = await resolveResendApiKey(supabase);
 
-    const { type, email, name, link, products, app_url, user_id, restaurant_name, temperature } = await req.json();
+    const { type, email, name, link, products, app_url, user_id, restaurant_name, temperature, order } = await req.json();
 
     let emailData: { subject: string; html: string; text: string };
 
@@ -301,6 +367,13 @@ Deno.serve(async (req) => {
         emailData = temperatureAlertEmail(
           restaurant_name || "Il tuo ristorante",
           temperature,
+          app_url || "https://cibarius.online",
+        );
+        break;
+      case "supplier_order":
+        emailData = supplierOrderEmail(
+          restaurant_name || "Un ristorante",
+          order,
           app_url || "https://cibarius.online",
         );
         break;

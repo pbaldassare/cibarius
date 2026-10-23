@@ -65,3 +65,6 @@ verify_jwt = false
 
 [functions.send-temperature-alert]
 verify_jwt = false
+
+[functions.send-supplier-order]
+verify_jwt = false
