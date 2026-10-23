@@ -15,7 +15,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Search, Plus, Camera, Bot, ScanBarcode, PenLine, Package, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Plus, Camera, Bot, ScanBarcode, PenLine, Package, ChevronLeft, ChevronRight, Database, Receipt, HelpCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
@@ -33,16 +33,24 @@ type Product = {
   unit: string | null;
   created_at: string;
   template_id: string | null;
+  data_source: string;
 };
 
 const PAGE_SIZE = 25;
 
-const sourceIcon = (p: Product) => {
-  if (p.barcode) return { icon: ScanBarcode, label: "Barcode", color: "bg-blue-100 text-blue-700" };
-  if (p.image_url) return { icon: Camera, label: "Foto/AI", color: "bg-purple-100 text-purple-700" };
-  if (p.template_id) return { icon: Bot, label: "Template AI", color: "bg-emerald-100 text-emerald-700" };
-  return { icon: PenLine, label: "Manuale", color: "bg-amber-100 text-amber-700" };
+/** Valori di `products.data_source` scritti dall'app; "unknown" è il default a database. */
+const SOURCES: Record<string, { icon: typeof Bot; label: string; color: string }> = {
+  barcode: { icon: ScanBarcode, label: "Barcode", color: "bg-blue-100 text-blue-700" },
+  openfoodfacts: { icon: Database, label: "Open Food Facts", color: "bg-sky-100 text-sky-700" },
+  usda: { icon: Database, label: "USDA", color: "bg-indigo-100 text-indigo-700" },
+  ai_search: { icon: Bot, label: "Ricerca AI", color: "bg-purple-100 text-purple-700" },
+  ai_compare: { icon: Camera, label: "Confronto AI", color: "bg-fuchsia-100 text-fuchsia-700" },
+  receipt: { icon: Receipt, label: "Scontrino", color: "bg-emerald-100 text-emerald-700" },
+  manual: { icon: PenLine, label: "Manuale", color: "bg-amber-100 text-amber-700" },
+  unknown: { icon: HelpCircle, label: "Sconosciuta", color: "bg-muted text-muted-foreground" },
 };
+
+const sourceIcon = (p: Product) => SOURCES[p.data_source] ?? { ...SOURCES.unknown, label: p.data_source };
 
 const AdminProductsDbPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -74,10 +82,7 @@ const AdminProductsDbPage = () => {
       query = query.or(`name.ilike.%${search}%,brand.ilike.%${search}%,barcode.ilike.%${search}%`);
     }
 
-    if (sourceFilter === "barcode") query = query.not("barcode", "is", null);
-    else if (sourceFilter === "photo") query = query.not("image_url", "is", null).is("barcode", null);
-    else if (sourceFilter === "template") query = query.not("template_id", "is", null).is("barcode", null).is("image_url", null);
-    else if (sourceFilter === "manual") query = query.is("barcode", null).is("image_url", null).is("template_id", null);
+    if (sourceFilter !== "all") query = query.eq("data_source", sourceFilter);
 
     const { data, count, error } = await query;
     if (!error) {
@@ -108,6 +113,7 @@ const AdminProductsDbPage = () => {
       serving_size_g: values.serving_size_g || null,
       unit: values.unit || "g",
       image_url: values.image_url || null,
+      data_source: "manual",
     });
     if (error) {
       toast.error("Errore nel salvataggio");
@@ -156,10 +162,9 @@ const AdminProductsDbPage = () => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Tutte le fonti</SelectItem>
-            <SelectItem value="barcode">Barcode</SelectItem>
-            <SelectItem value="photo">Foto / AI</SelectItem>
-            <SelectItem value="template">Template AI</SelectItem>
-            <SelectItem value="manual">Manuale</SelectItem>
+            {Object.entries(SOURCES).map(([value, s]) => (
+              <SelectItem key={value} value={value}>{s.label}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
