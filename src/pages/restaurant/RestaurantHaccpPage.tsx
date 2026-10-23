@@ -195,14 +195,14 @@ const RestaurantHaccpPage = () => {
     if (photos.length > 0) {
       for (const photo of photos) {
         const ext = photo.name.split(".").pop() || "jpg";
-        const path = `haccp/${restaurant.id}/${logId}/${Date.now()}.${ext}`;
-        const { data: uploadData } = await supabase.storage.from("media").upload(path, photo);
+        const path = `${restaurant.id}/${logId}/${Date.now()}.${ext}`;
+        // Private bucket: photo_url holds the object path, read back via signed URL
+        const { data: uploadData } = await supabase.storage.from("haccp-photos").upload(path, photo);
         if (uploadData) {
-          const { data: urlData } = supabase.storage.from("media").getPublicUrl(uploadData.path);
           await supabase.from("haccp_task_photos" as any).insert({
             restaurant_id: restaurant.id,
             task_log_id: logId,
-            photo_url: urlData.publicUrl,
+            photo_url: uploadData.path,
             uploaded_by_user_id: user.id,
             uploaded_by_name: operatorName,
           });

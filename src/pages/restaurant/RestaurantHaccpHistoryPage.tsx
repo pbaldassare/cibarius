@@ -150,7 +150,12 @@ const RestaurantHaccpHistoryPage = () => {
         .eq("task_log_id", log.id)
         .eq("restaurant_id", restaurant.id)
         .order("created_at", { ascending: true });
-      setDetailPhotos((data ?? []) as PhotoRow[]);
+      const rows = (data ?? []) as PhotoRow[];
+      // photo_url is a path in the private haccp-photos bucket
+      const { data: signed } = rows.length
+        ? await supabase.storage.from("haccp-photos").createSignedUrls(rows.map(r => r.photo_url), 3600)
+        : { data: [] };
+      setDetailPhotos(rows.map((r, i) => ({ ...r, photo_url: signed?.[i]?.signedUrl ?? "" })).filter(r => r.photo_url));
       setLoadingDetail(false);
     }
   };
