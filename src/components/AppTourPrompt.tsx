@@ -3,14 +3,12 @@ import { useTour, TourRole } from "./AppTourContext";
 import { useRole } from "@/hooks/useRole";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Sparkles, Map } from "lucide-react";
 
 const AppTourPrompt = () => {
   const { startTour } = useTour();
   const { role } = useRole();
   const [open, setOpen] = useState(false);
-  const [dontShow, setDontShow] = useState(false);
 
   useEffect(() => {
     const done = localStorage.getItem("cibarius_tour_done");
@@ -20,19 +18,20 @@ const AppTourPrompt = () => {
     }
   }, []);
 
-  const handleStart = () => {
+  // Si chiede una volta sola: qualunque risposta chiude per sempre, il tour
+  // resta disponibile dal profilo ("Rivedi il tour dell'app").
+  const close = () => {
     setOpen(false);
-    if (dontShow) localStorage.setItem("cibarius_tour_done", "1");
+    localStorage.setItem("cibarius_tour_done", "1");
+  };
+
+  const handleStart = () => {
+    close();
     startTour((role as TourRole) ?? "user");
   };
 
-  const handleSkip = () => {
-    setOpen(false);
-    if (dontShow) localStorage.setItem("cibarius_tour_done", "1");
-  };
-
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(o) => { if (!o) close(); }}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <div className="flex justify-center mb-2">
@@ -46,19 +45,8 @@ const AppTourPrompt = () => {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex items-center gap-2 px-1 py-1">
-          <Checkbox
-            id="dont-show"
-            checked={dontShow}
-            onCheckedChange={(v) => setDontShow(v === true)}
-          />
-          <label htmlFor="dont-show" className="text-[12px] text-muted-foreground cursor-pointer">
-            Non mostrare più
-          </label>
-        </div>
-
         <DialogFooter className="flex gap-2 sm:gap-2">
-          <Button variant="outline" onClick={handleSkip} className="flex-1">
+          <Button variant="outline" onClick={close} className="flex-1">
             Salta
           </Button>
           <Button onClick={handleStart} className="flex-1 gap-1.5">
