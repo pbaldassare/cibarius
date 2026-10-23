@@ -6,13 +6,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Users, Store, Loader2, ClipboardCheck, Settings2, FileText,
-  Package, AlertTriangle, CheckCircle2, Clock, ShieldCheck, Thermometer,
+  Package, AlertTriangle, CheckCircle2, Clock, ShieldCheck, Thermometer, CreditCard,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useSubscription } from "@/hooks/useSubscription";
+import { vendeAbbonamenti } from "@/lib/native";
 import { format } from "date-fns";
 
 const RestaurantAdminPage = () => {
   const { restaurant, isLoading } = useRestaurant();
+  const { isActive, isTrial, trialDaysLeft, isLoading: subLoading } = useSubscription("restaurant");
   const [stats, setStats] = useState({
     totalTasks: 0, completedToday: 0, pendingToday: 0,
     totalInventory: 0, expiringItems: 0, staffCount: 0,
@@ -100,6 +103,25 @@ const RestaurantAdminPage = () => {
             </CardContent>
           </Card>
         </Link>
+
+        {vendeAbbonamenti() && (
+          <Link to="/restaurant/subscription">
+            <Card className="transition-shadow hover:shadow-md">
+              <CardHeader className="flex flex-row items-center gap-3 pb-2">
+                <CreditCard className="h-5 w-5 text-primary" />
+                <CardTitle className="text-base">Abbonamento</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  {subLoading ? "…"
+                    : isTrial ? `Prova gratuita · ${trialDaysLeft} giorni rimasti`
+                    : isActive ? "Attivo"
+                    : "Non attivo · 30 giorni di prova gratuita"}
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+        )}
 
         <Link to="/restaurant-admin/settings">
           <Card className="transition-shadow hover:shadow-md">

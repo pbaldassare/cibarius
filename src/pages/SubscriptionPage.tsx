@@ -10,10 +10,9 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
-import { useRole } from "@/hooks/useRole";
+import { useRole, getRoleHomePath } from "@/hooks/useRole";
 import { useToast } from "@/hooks/use-toast";
 import { Check, Crown, Loader2, Shield, Sparkles, Store, Zap } from "lucide-react";
-import { USER_HOME } from "@/lib/routes";
 
 interface Plan {
   id: string;
@@ -106,7 +105,7 @@ const SubscriptionPage = () => {
             <h1 className="text-2xl font-bold text-foreground">Pagamento completato!</h1>
             <p className="text-muted-foreground">Il tuo abbonamento è ora attivo.</p>
           </div>
-          <Button className="w-full" onClick={() => navigate(USER_HOME)}>
+          <Button className="w-full" onClick={() => navigate(getRoleHomePath(role))}>
             Vai alla Home
           </Button>
         </main>

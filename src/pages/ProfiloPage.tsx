@@ -458,9 +458,11 @@ const ProfiloPage = () => {
             { icon: Sparkles, label: "Abbonamenti clienti", path: "/pro/clients", badge: 0 },
           ] : [
             { icon: Heart, label: "Preferiti", path: "/favorites", badge: 0 },
-            { icon: Sparkles, label: "Abbonamento Premium", path: "/subscription", badge: 0 },
+            role === "restaurant_owner"
+              ? { icon: Sparkles, label: "Abbonamento", path: "/restaurant/subscription", badge: 0 }
+              : { icon: Sparkles, label: "Abbonamento Premium", path: "/subscription", badge: 0 },
             { icon: Bell, label: "Promemoria scadenze", path: "/reminders", badge: 0 },
-          ]).filter((item) => vendeAbbonamenti() || item.path !== "/subscription").map((item, i) => (
+          ]).filter((item) => vendeAbbonamenti() || !item.path.endsWith("/subscription")).map((item, i) => (
             <button
               key={item.label}
               onClick={() => item.path ? navigate(item.path) : toast({ title: "In arrivo!", description: `${item.label} sarà disponibile a breve.` })}
