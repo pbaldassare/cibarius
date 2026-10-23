@@ -195,7 +195,7 @@ const RestaurantAdminPage = () => {
               <CardTitle className="text-base">Report</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">Scadenze e attività</p>
+              <p className="text-sm text-muted-foreground">Riepilogo HACCP mensile, stampabile</p>
             </CardContent>
           </Card>
         </Link>
