@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
-import { Bell, Gift, CheckCircle2, XCircle } from "lucide-react";
+import { Bell, Gift, CheckCircle2, XCircle, Thermometer } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -75,6 +75,7 @@ export default function UserNotificationsBell() {
       case "link_approved": return <CheckCircle2 className="h-4 w-4 text-primary" />;
       case "link_rejected": return <XCircle className="h-4 w-4 text-destructive" />;
       case "link_request": return <Bell className="h-4 w-4 text-primary" />;
+      case "temperature_alert": return <Thermometer className="h-4 w-4 text-destructive" />;
       default: return <Bell className="h-4 w-4 text-muted-foreground" />;
     }
   };
@@ -130,6 +131,9 @@ export default function UserNotificationsBell() {
                     } else if (n.type === "link_approved") {
                       setOpen(false);
                       navigate(USER_HOME);
+                    } else if (n.type === "temperature_alert") {
+                      setOpen(false);
+                      navigate("/restaurant-admin/temperatures");
                     }
                   }}
                 >

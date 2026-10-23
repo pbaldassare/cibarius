@@ -182,6 +182,58 @@ function restaurantExpiryAlertEmail(
   };
 }
 
+interface TemperatureReading {
+  equipment_name: string;
+  value: number;
+  max: number;
+  recorded_by: string | null;
+  recorded_at: string;
+}
+
+const escapeHtml = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+/**
+ * Avviso temperatura fuori soglia per il titolare.
+ *
+ * Nome dell'attrezzatura e operatore li scrive lo staff: vanno escapati.
+ */
+function temperatureAlertEmail(
+  restaurantName: string,
+  t: TemperatureReading,
+  appUrl: string,
+): { subject: string; html: string; text: string } {
+  const equipment = escapeHtml(t.equipment_name);
+  const restaurant = escapeHtml(restaurantName);
+  const operator = escapeHtml(t.recorded_by || "staff");
+  const when = new Date(t.recorded_at).toLocaleString("it-IT", { timeZone: "Europe/Rome", dateStyle: "short", timeStyle: "short" });
+  const temperaturesUrl = `${appUrl.replace(/\/$/, "")}/restaurant-admin/temperatures`;
+
+  return {
+    subject: `${restaurantName}: temperatura fuori soglia (${t.equipment_name} ${t.value} °C)`,
+    html: baseHtml("Temperatura fuori soglia", `
+      <h1 style="font-size:22px;color:${TEXT_DARK};margin:0 0 8px;font-family:'Fredoka',Arial,sans-serif;">${restaurant}</h1>
+      <p style="font-size:15px;color:${TEXT_DARK};line-height:1.6;margin:0 0 20px;">
+        <strong>${equipment}</strong> ha registrato una temperatura oltre il limite.
+      </p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;margin-bottom:24px;">
+        <tr><td style="padding:10px 12px;font-size:13px;color:${TEXT_MUTED};">Temperatura</td>
+          <td style="padding:10px 12px;text-align:right;font-size:14px;font-weight:700;color:#EF4444;">${t.value} °C</td></tr>
+        <tr><td style="padding:10px 12px;font-size:13px;color:${TEXT_MUTED};border-top:1px solid #f0f0f0;">Massimo consentito</td>
+          <td style="padding:10px 12px;text-align:right;font-size:14px;color:${TEXT_DARK};border-top:1px solid #f0f0f0;">${t.max} °C</td></tr>
+        <tr><td style="padding:10px 12px;font-size:13px;color:${TEXT_MUTED};border-top:1px solid #f0f0f0;">Registrata da</td>
+          <td style="padding:10px 12px;text-align:right;font-size:14px;color:${TEXT_DARK};border-top:1px solid #f0f0f0;">${operator}, ${when}</td></tr>
+      </table>
+      <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
+        <a href="${temperaturesUrl}" style="display:inline-block;background:${PRIMARY};color:#ffffff;padding:14px 32px;border-radius:12px;font-size:16px;font-weight:600;text-decoration:none;">
+          Apri le temperature
+        </a>
+      </td></tr></table>
+    `),
+    text: `${restaurantName}: ${t.equipment_name} a ${t.value} °C (massimo ${t.max} °C), registrata da ${t.recorded_by || "staff"} il ${when}. Apri Cibarius: ${temperaturesUrl}`,
+  };
+}
+
 async function resolveResendApiKey(supabase: ReturnType<typeof createClient>): Promise<string> {
   const { data, error } = await supabase.rpc("get_resend_api_key");
   if (!error && typeof data === "string" && data.length > 0) return data;
@@ -224,7 +276,7 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const RESEND_API_KEY = await resolveResendApiKey(supabase);
 
-    const { type, email, name, link, products, app_url, user_id, restaurant_name } = await req.json();
+    const { type, email, name, link, products, app_url, user_id, restaurant_name, temperature } = await req.json();
 
     let emailData: { subject: string; html: string; text: string };
 
@@ -242,6 +294,13 @@ Deno.serve(async (req) => {
         emailData = restaurantExpiryAlertEmail(
           restaurant_name || name || "Il tuo ristorante",
           products || [],
+          app_url || "https://cibarius.online",
+        );
+        break;
+      case "temperature_alert":
+        emailData = temperatureAlertEmail(
+          restaurant_name || "Il tuo ristorante",
+          temperature,
           app_url || "https://cibarius.online",
         );
         break;

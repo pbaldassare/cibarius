@@ -62,3 +62,6 @@ verify_jwt = false
 
 [functions.get-haccp-label]
 verify_jwt = false
+
+[functions.send-temperature-alert]
+verify_jwt = false
