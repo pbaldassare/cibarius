@@ -170,7 +170,7 @@ const RestaurantAdminPage = () => {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">
-                Gestisci il team · implementazione a breve
+                Invita collaboratori per l'HACCP
               </p>
             </CardContent>
           </Card>

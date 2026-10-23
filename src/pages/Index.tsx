@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import MobileHeader from "@/components/MobileHeader";
+import StaffKitchenBanner from "@/components/StaffKitchenBanner";
 import { useRole, getRoleHomePath } from "@/hooks/useRole";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -393,6 +394,7 @@ const Index = () => {
       <MobileHeader title="" showBack={false} right={headerRight} />
 
       <main className="space-y-5 px-4 pt-1 pb-28">
+        <StaffKitchenBanner />
 
         {/* ─── Greeting ─── */}
         <div data-tour="home-greeting">

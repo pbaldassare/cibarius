@@ -15,6 +15,7 @@ import ReferralBadge from "@/components/ReferralBadge";
 import { LOGIN_PATH, USER_HOME } from "@/lib/routes";
 import { getRoleHomePath } from "@/hooks/useRole";
 import { vendeAbbonamenti } from "@/lib/native";
+import { pendingInvitePath } from "@/lib/staff-invite";
 
 
 type AccountType = "user" | "restaurant_owner" | "professional";
@@ -47,7 +48,8 @@ const SignupPage = () => {
 
   // Nell'app iOS ci si registra solo come utente (vedi vendeAbbonamenti):
   // niente "Chi sei?", si parte dai dati.
-  const soloUtente = !vendeAbbonamenti();
+  // Su iOS, e per chi arriva da un invito nello staff, si crea solo un account utente.
+  const soloUtente = !vendeAbbonamenti() || !!pendingInvitePath();
   const primoPasso = soloUtente ? 2 : 1;
   const [step, setStep] = useState(primoPasso);
   const [accountType, setAccountType] = useState<AccountType | null>(soloUtente ? "user" : null);
@@ -82,7 +84,7 @@ const SignupPage = () => {
     );
   }
 
-  if (session) return <Navigate to={USER_HOME} replace />;
+  if (session) return <Navigate to={pendingInvitePath() ?? USER_HOME} replace />;
 
   const totalSteps = accountType === "user" ? 2 : 3;
 
@@ -173,7 +175,7 @@ const SignupPage = () => {
         title: "Registrazione completata! 🎉",
         description: "Benvenuto in Cibarius! Puoi iniziare subito ad usare l'app.",
       });
-      navigate(getRoleHomePath(accountType), { replace: true });
+      navigate(pendingInvitePath() ?? getRoleHomePath(accountType), { replace: true });
       return;
     }
 

@@ -24,7 +24,7 @@ interface Label {
 }
 
 const RestaurantHaccpLabelsPage = () => {
-  const { restaurant } = useRestaurant();
+  const { restaurant, isStaff } = useRestaurant();
   const [labels, setLabels] = useState<Label[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<"finalized" | "draft" | "cancelled">("finalized");
@@ -74,9 +74,11 @@ const RestaurantHaccpLabelsPage = () => {
         <Link to="/restaurant/haccp-labels/new" className="flex-1">
           <Button className="w-full gap-2"><Plus className="h-4 w-4" /> Nuova etichetta</Button>
         </Link>
-        <Link to="/restaurant/haccp-documents">
-          <Button variant="outline" className="gap-2"><FileText className="h-4 w-4" /> Bolle</Button>
-        </Link>
+        {!isStaff && (
+          <Link to="/restaurant/haccp-documents">
+            <Button variant="outline" className="gap-2"><FileText className="h-4 w-4" /> Bolle</Button>
+          </Link>
+        )}
       </div>
 
       <div className="relative">

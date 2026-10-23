@@ -1,8 +1,11 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { RESTAURANT_TABS } from "@/lib/restaurant-tabs";
+import { RESTAURANT_TABS, STAFF_TABS } from "@/lib/restaurant-tabs";
+import { useRestaurant } from "@/hooks/useRestaurant";
 
 const RestaurantBottomNav = () => {
   const location = useLocation();
+  const { isStaff } = useRestaurant();
+  const tabs = isStaff ? STAFF_TABS : RESTAURANT_TABS;
 
   return (
     <nav
@@ -12,7 +15,7 @@ const RestaurantBottomNav = () => {
       }}
     >
       <div className="mx-auto flex h-16 max-w-2xl items-center justify-around px-1">
-        {RESTAURANT_TABS.map(({ to, icon: Icon, label, tourId }) => {
+        {tabs.map(({ to, icon: Icon, label, tourId }) => {
           const isActive = location.pathname === to;
           return (
             <NavLink

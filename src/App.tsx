@@ -67,6 +67,7 @@ const RestaurantHaccpLabelsPage = lazy(() => import("./pages/restaurant/Restaura
 const RestaurantHaccpLabelNewPage = lazy(() => import("./pages/restaurant/RestaurantHaccpLabelNewPage"));
 const RestaurantHaccpLabelDetailPage = lazy(() => import("./pages/restaurant/RestaurantHaccpLabelDetailPage"));
 const PublicHaccpLabelPage = lazy(() => import("./pages/PublicHaccpLabelPage"));
+const StaffInvitePage = lazy(() => import("./pages/StaffInvitePage"));
 const AdminHaccpLabelsPage = lazy(() => import("./pages/admin/AdminHaccpLabelsPage"));
 
 // Restaurant admin pages
@@ -179,6 +180,8 @@ const App = () => (
             <Route path="/join/:code" element={<Navigate to={USER_HOME} replace />} />
             <Route path="/n/:slug" element={<Navigate to={USER_HOME} replace />} />
             <Route path="/haccp/label/:token" element={<PublicHaccpLabelPage />} />
+            {/* Invito nello staff: si apre anche senza sessione, il login riporta qui. */}
+            <Route path="/invito/:token" element={<StaffInvitePage />} />
             <Route element={<SiteLayout />}>
               {LEGAL_ROUTES.map(({ path, element }) => (
                 <Route key={path} path={path} element={element} />
@@ -228,7 +231,8 @@ const App = () => (
                 <Route index element={<RestaurantOnboardingPage />} />
               </Route>
 
-              <Route element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><RestaurantLayout /></RestaurantGuard></RG>}>
+              {/* Nessun RG qui: RestaurantGuard ammette anche lo staff, che di solito ha ruolo 'user'. */}
+              <Route element={<RestaurantGuard><RestaurantLayout /></RestaurantGuard>}>
                 <Route path="/restaurant" element={<RestaurantPage />} />
                 <Route path="/restaurant/products" element={<RestaurantExpiryPage />} />
                 <Route path="/restaurant/stock" element={<RestaurantStockPage />} />

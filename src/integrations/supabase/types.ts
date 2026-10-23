@@ -3449,6 +3449,50 @@ export type Database = {
           },
         ]
       }
+      restaurant_invites: {
+        Row: {
+          created_at: string
+          created_by: string
+          expires_at: string
+          id: string
+          restaurant_id: string
+          revoked_at: string | null
+          token: string
+          used_at: string | null
+          used_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string
+          expires_at?: string
+          id?: string
+          restaurant_id: string
+          revoked_at?: string | null
+          token?: string
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          expires_at?: string
+          id?: string
+          restaurant_id?: string
+          revoked_at?: string | null
+          token?: string
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_invites_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurant_members: {
         Row: {
           created_at: string
@@ -4261,11 +4305,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_restaurant_invite: { Args: { _token: string }; Returns: string }
       complete_oauth_signup: { Args: { p_payload: Json }; Returns: Json }
       current_user_is_admin: { Args: never; Returns: boolean }
       get_resend_api_key: { Args: never; Returns: string }
       get_user_role: { Args: { _user_id: string }; Returns: string }
       haccp_label_accessible: { Args: { _label_id: string }; Returns: boolean }
+      haccp_temperature_max: {
+        Args: { _equipment_type: string }
+        Returns: number
+      }
       has_active_client_link: {
         Args: { _client_id: string; _pro_id: string }
         Returns: boolean
@@ -4303,6 +4352,13 @@ export type Database = {
       owns_recipe_restaurant: { Args: { _recipe_id: string }; Returns: boolean }
       owns_supplier: { Args: { _supplier_id: string }; Returns: boolean }
       purge_unused_product: { Args: { p_product_id: string }; Returns: boolean }
+      restaurant_invite_preview: {
+        Args: { _token: string }
+        Returns: {
+          restaurant_name: string
+          status: string
+        }[]
+      }
       seed_francesca_biazzi: { Args: never; Returns: string }
     }
     Enums: {

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
+import { pendingInvitePath } from "@/lib/staff-invite";
 
 const OTP_TYPES: EmailOtpType[] = ["signup", "recovery", "invite", "email", "email_change"];
 
@@ -54,14 +55,14 @@ const AuthCallbackPage = () => {
         const nextPath = url.searchParams.get("next");
 
         if (session) {
-          navigate(nextPath || "/", { replace: true });
+          navigate(nextPath || pendingInvitePath() || "/", { replace: true });
           return;
         }
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
           if ((event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "USER_UPDATED" || event === "PASSWORD_RECOVERY") && nextSession) {
             subscription.unsubscribe();
-            navigate(nextPath || "/", { replace: true });
+            navigate(nextPath || pendingInvitePath() || "/", { replace: true });
           }
         });
 

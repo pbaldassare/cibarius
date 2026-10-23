@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, LogIn, Eye, EyeOff, ArrowRight } from "lucide-react";
 import cibariusLogo from "@/assets/cibarius-logo.png";
 import AuthFeatureCarousel from "@/components/AuthFeatureCarousel";
+import { pendingInvitePath } from "@/lib/staff-invite";
 
 const LoginPage = () => {
   const { session, loading } = useAuth();
@@ -28,6 +29,8 @@ const LoginPage = () => {
     );
   }
 
+  // Un invito nello staff aperto da sloggati ha la precedenza sulla home del ruolo.
+  if (session && pendingInvitePath()) return <Navigate to={pendingInvitePath()!} replace />;
   if (session && role) return <Navigate to={getRoleHomePath(role)} replace />;
   if (session && !role) return <Navigate to={USER_HOME} replace />;
 

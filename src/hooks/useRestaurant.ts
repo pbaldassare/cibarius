@@ -18,14 +18,21 @@ export interface Restaurant {
   longitude: number | null;
 }
 
+/**
+ * Il ristorante dell'utente: quello di cui e' titolare oppure, se non ne ha,
+ * quello in cui e' staff. `isStaff` dice quale dei due: lo staff vede solo
+ * le pagine HACCP (vedi `isStaffPath`).
+ */
 export const useRestaurant = () => {
   const { user, loading: authLoading } = useAuth();
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
+  const [isStaff, setIsStaff] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchRestaurant = async () => {
     if (!user) {
       setRestaurant(null);
+      setIsStaff(false);
       setIsLoading(false);
       return;
     }
@@ -38,9 +45,23 @@ export const useRestaurant = () => {
 
     if (!error && data) {
       setRestaurant(data as Restaurant);
-    } else {
-      setRestaurant(null);
+      setIsStaff(false);
+      setIsLoading(false);
+      return;
     }
+
+    const { data: membership } = await supabase
+      .from("restaurant_members")
+      .select("restaurant:restaurants(*)")
+      .eq("user_id", user.id)
+      .eq("member_role", "staff")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const staffRestaurant = (membership?.restaurant ?? null) as Restaurant | null;
+    setRestaurant(staffRestaurant);
+    setIsStaff(!!staffRestaurant);
     setIsLoading(false);
   };
 
@@ -51,6 +72,7 @@ export const useRestaurant = () => {
 
   return {
     restaurant,
+    isStaff,
     isLoading: authLoading || isLoading,
     refetch: fetchRestaurant,
   };
