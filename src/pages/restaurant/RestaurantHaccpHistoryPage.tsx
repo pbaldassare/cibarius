@@ -150,7 +150,16 @@ const RestaurantHaccpHistoryPage = () => {
         .eq("task_log_id", log.id)
         .eq("restaurant_id", restaurant.id)
         .order("created_at", { ascending: true });
-      setDetailPhotos((data ?? []) as PhotoRow[]);
+      // photo_url e' il percorso nel bucket privato haccp-photos: per mostrarlo
+      // serve un URL firmato (le vecchie righe con URL pubblico restano com'erano).
+      const rows = (data ?? []) as PhotoRow[];
+      const paths = rows.filter(p => !p.photo_url.startsWith("http")).map(p => p.photo_url);
+      if (paths.length) {
+        const { data: signed } = await supabase.storage.from("haccp-photos").createSignedUrls(paths, 3600);
+        const byPath = new Map((signed ?? []).map(s => [s.path, s.signedUrl]));
+        rows.forEach(p => { p.photo_url = byPath.get(p.photo_url) ?? p.photo_url; });
+      }
+      setDetailPhotos(rows);
       setLoadingDetail(false);
     }
   };
