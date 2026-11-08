@@ -15,10 +15,12 @@ export async function deductPantryFromMeal(userId: string, mealItems: Array<{
   if (!userId || mealItems.length === 0) return;
 
   // Get user's inventory
-  const { data: inventory } = await supabase
+  // Le operazioni sulla dispensa lanciano in caso di errore: chi chiama non deve dire "dispensa aggiornata" se non lo è.
+  const { data: inventory, error: readError } = await supabase
     .from("inventory_items")
     .select("id, quantity, unit, product_id, expiry_date, product:products(id, name)")
     .eq("owner_user_id", userId);
+  if (readError) throw readError;
 
   if (!inventory || inventory.length === 0) return;
 
@@ -68,7 +70,8 @@ export async function deductPantryFromMeal(userId: string, mealItems: Array<{
         } as any);
       }
 
-      await supabase.from("inventory_items").delete().eq("id", invItem.id);
+      const { error } = await supabase.from("inventory_items").delete().eq("id", invItem.id);
+      if (error) throw error;
     } else {
       if (!isExpired) {
         await supabase.from("waste_savings" as any).insert({
@@ -80,10 +83,11 @@ export async function deductPantryFromMeal(userId: string, mealItems: Array<{
         } as any);
       }
 
-      await supabase
+      const { error } = await supabase
         .from("inventory_items")
         .update({ quantity: newQty })
         .eq("id", invItem.id);
+      if (error) throw error;
     }
   }
 }

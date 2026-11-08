@@ -225,7 +225,8 @@ const RestaurantHaccpSetupPage = () => {
   };
 
   const handleToggleTask = async (id: string, active: boolean) => {
-    await supabase.from("haccp_tasks").update({ is_active: active } as any).eq("id", id);
+    const { error } = await supabase.from("haccp_tasks").update({ is_active: active } as any).eq("id", id);
+    if (error) { toast({ variant: "destructive", title: "Errore", description: error.message }); return; }
     setTasks(t => t.map(x => x.id === id ? { ...x, is_active: active } : x));
   };
 
@@ -233,12 +234,19 @@ const RestaurantHaccpSetupPage = () => {
     if (!restaurant) return;
     setSaving(true);
 
+    // Al primo errore ci si ferma: "Configurazione salvata" solo se è stato salvato tutto.
+    const fallito = (error: { message: string }) => {
+      setSaving(false);
+      toast({ variant: "destructive", title: "Errore", description: error.message });
+    };
+
     for (const eq of equipment) {
-      await supabase.from("haccp_equipment").upsert({
+      const { error } = await supabase.from("haccp_equipment").upsert({
         restaurant_id: restaurant.id,
         equipment_type: eq.equipment_type,
         count: eq.count,
       } as any, { onConflict: "restaurant_id,equipment_type" });
+      if (error) return fallito(error);
     }
 
     // Auto-generate temperature check tasks for cold storage units
@@ -256,13 +264,14 @@ const RestaurantHaccpSetupPage = () => {
           const taskName = `Controllo ${typeLabel} ${i}`;
           const existing = tasks.find(t => t.name === taskName);
           if (!existing) {
-            await supabase.from("haccp_tasks").insert({
+            const { error } = await supabase.from("haccp_tasks").insert({
               name: taskName,
               category: taskCat,
               frequency: "giornaliera",
               restaurant_id: restaurant.id,
               sort_order: tasks.length + i,
             } as any);
+            if (error) return fallito(error);
           }
         }
     }

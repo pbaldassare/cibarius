@@ -34,27 +34,10 @@ const ShoppingListPage = () => {
   useEffect(() => {
     if (!user) return;
     const load = async () => {
-      // Get active diet plan
-      const { data: plans } = await supabase
-        .from("diet_plans")
-        .select("id, professional_id")
-        .eq("client_user_id", user.id)
-        .eq("is_active", true)
-        .limit(1);
-
-      if (!plans || plans.length === 0) {
-        setLoading(false);
-        return;
-      }
-
-      const plan = plans[0];
-
-      // Get generated recipes for this client
       const { data: recipes } = await supabase
         .from("generated_recipes")
         .select("ingredients")
-        .eq("client_user_id", user.id)
-        .eq("professional_id", plan.professional_id);
+        .eq("client_user_id", user.id);
 
       // Extract ingredients
       const ingredientMap = new Map<string, ShoppingItem>();
@@ -182,7 +165,8 @@ const ShoppingListPage = () => {
                   onClick={() => toggleItem(item.name)}
                 >
                   <CardContent className="py-2.5 flex items-center gap-3">
-                    <Checkbox checked={isChecked} onCheckedChange={() => toggleItem(item.name)} />
+                    {/* Il tocco sulla casella non deve risalire alla Card: verrebbe contato due volte */}
+                    <Checkbox checked={isChecked} onCheckedChange={() => toggleItem(item.name)} onClick={(e) => e.stopPropagation()} />
                     <span className={`text-sm flex-1 ${isChecked ? "line-through text-muted-foreground" : "text-foreground"}`}>
                       {item.name}
                     </span>

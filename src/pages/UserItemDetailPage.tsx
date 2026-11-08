@@ -588,7 +588,8 @@ const UserItemDetailPage = () => {
                     size="sm"
                     className="flex-1 gap-1 text-xs"
                     onClick={async () => {
-                      await supabase.from("inventory_items").update({ storage_type: s.value }).eq("id", item.id);
+                      const { error } = await supabase.from("inventory_items").update({ storage_type: s.value }).eq("id", item.id);
+                      if (error) { toast({ variant: "destructive", title: "Errore", description: error.message }); return; }
                       setStorageType(s.value);
                       toast({ title: `Spostato in ${s.label}` });
                     }}
