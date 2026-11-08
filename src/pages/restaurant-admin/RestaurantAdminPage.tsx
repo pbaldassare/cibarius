@@ -3,7 +3,6 @@ import { useRestaurant } from "@/hooks/useRestaurant";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
   Users, Store, Loader2, ClipboardCheck, Settings2, FileText,
   Package, AlertTriangle, CheckCircle2, Clock, ShieldCheck, Thermometer, CreditCard,
@@ -159,23 +158,6 @@ const RestaurantAdminPage = () => {
           </Card>
         </Link>
 
-        <Link to="/restaurant-admin/staff">
-          <Card className="transition-shadow hover:shadow-md">
-            <CardHeader className="flex flex-row items-center gap-3 pb-2">
-              <Users className="h-5 w-5 text-primary" />
-              <CardTitle className="text-base flex items-center gap-2">
-                Staff
-                <Badge variant="secondary" className="text-xs">{stats.staffCount}</Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Gestisci il team · implementazione a breve
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
-
         <Link to="/restaurant-admin/temperatures">
           <Card className="transition-shadow hover:shadow-md">
             <CardHeader className="flex flex-row items-center gap-3 pb-2">
@@ -188,17 +170,7 @@ const RestaurantAdminPage = () => {
           </Card>
         </Link>
 
-        <Link to="/restaurant-admin/reports">
-          <Card className="transition-shadow hover:shadow-md">
-            <CardHeader className="flex flex-row items-center gap-3 pb-2">
-              <FileText className="h-5 w-5 text-primary" />
-              <CardTitle className="text-base">Report</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">Scadenze e attività</p>
-            </CardContent>
-          </Card>
-        </Link>
+        {/* Staff e Report restano nascosti finché non funzionano (le pagine esistono già). */}
       </div>
     </RestaurantAdminLayout>
   );

@@ -1,7 +1,6 @@
 import HomePage from "@/pages/site/HomePage";
 import RistorantiPage from "@/pages/site/RistorantiPage";
 import UtentiPage from "@/pages/site/UtentiPage";
-import NutrizionistiPage from "@/pages/site/NutrizionistiPage";
 import ComeFunzionaPage from "@/pages/site/ComeFunzionaPage";
 import PrezziPage from "@/pages/site/PrezziPage";
 import FaqPage from "@/pages/site/FaqPage";
@@ -22,7 +21,6 @@ export const SITE_ROUTES: { path: string; element: React.ReactElement }[] = [
   { path: "/", element: <HomePage /> },
   { path: "/ristoranti", element: <RistorantiPage /> },
   { path: "/utenti", element: <UtentiPage /> },
-  { path: "/nutrizionisti", element: <NutrizionistiPage /> },
   { path: "/come-funziona", element: <ComeFunzionaPage /> },
   { path: "/prezzi", element: <PrezziPage /> },
   { path: "/faq", element: <FaqPage /> },

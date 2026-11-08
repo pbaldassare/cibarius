@@ -3,8 +3,8 @@ import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useRestaurant } from "@/hooks/useRestaurant";
 import {
-  LayoutDashboard, Store, Users, FileText, LogOut, ArrowLeft, ChevronLeft,
-  ClipboardCheck, Settings2, Package, ShieldCheck, Thermometer,
+  LayoutDashboard, Store, FileText, LogOut, ArrowLeft, ChevronLeft,
+  ClipboardCheck, Settings2, ShieldCheck, Thermometer,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import cibariusLogo from "@/assets/cibarius-logo.png";
@@ -16,8 +16,7 @@ const sidebarItems = [
   { to: "/restaurant-admin/settings", icon: Store, label: "Dati ristorante" },
   { to: "/restaurant/haccp/setup", icon: Settings2, label: "Configura HACCP" },
   { to: "/restaurant/haccp/history", icon: FileText, label: "Storico HACCP" },
-  { to: "/restaurant-admin/staff", icon: Users, label: "Staff" },
-  { to: "/restaurant-admin/reports", icon: Package, label: "Report" },
+  // Staff e Report restano nascosti finché non funzionano (le pagine esistono già).
 ];
 
 const RestaurantAdminLayout = ({ children }: { children: ReactNode }) => {

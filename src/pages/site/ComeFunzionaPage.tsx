@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, Store, Utensils, HeartPulse } from "lucide-react";
+import { ArrowRight, Store, Utensils } from "lucide-react";
 import Seo from "@/components/site/Seo";
 import { Section, SectionHeading, Steps, CallToAction } from "@/components/site/sections";
 import { pageByPath, absoluteUrl } from "@/lib/site";
@@ -25,17 +25,6 @@ const PERCORSI = [
       { title: "Indica dove li metti", text: "Dispensa, frigo o congelatore, con la data di scadenza che trovi sulla confezione." },
       { title: "Guarda la home", text: "Quello che scade presto sta in cima. Un avviso per email ti arriva prima che sia tardi." },
       { title: "Cucina quello che hai", text: "Le ricette proposte partono dagli ingredienti in scadenza, non da una lista della spesa nuova." },
-    ],
-  },
-  {
-    icon: HeartPulse,
-    titolo: "Con il nutrizionista",
-    to: "/nutrizionisti",
-    passi: [
-      { title: "Collegamento", text: "Ti registri dal link del professionista e il collegamento si crea da solo." },
-      { title: "Ricevi il piano", text: "I pasti previsti compaiono nella tua app, giorno per giorno." },
-      { title: "Segni cosa mangi", text: "Il diario si compila in pochi tocchi, anche partendo da quello che hai in dispensa." },
-      { title: "La visita è più utile", text: "Il professionista arriva all'appuntamento sapendo già come è andata la settimana." },
     ],
   },
 ];

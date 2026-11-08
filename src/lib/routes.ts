@@ -13,7 +13,6 @@ export const USER_HOME = "/app";
 
 /** Home delle altre app, per ruolo. */
 export const RESTAURANT_HOME = "/restaurant";
-export const PRO_HOME = "/pro";
 export const SUPPLIER_HOME = "/supplier";
 export const ADMIN_HOME = "/admin";
 

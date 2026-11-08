@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import {
   ArrowRight, LogIn, ClipboardCheck, Thermometer, QrCode, Boxes,
-  Clock, ChefHat, FileText, Utensils, Store, HeartPulse,
+  Clock, ChefHat, FileText, Utensils, Store,
 } from "lucide-react";
 import Seo from "@/components/site/Seo";
 import { Section, SectionHeading, FeatureGrid, Steps, CallToAction } from "@/components/site/sections";
@@ -23,13 +23,6 @@ const PUBBLICO = [
     testo:
       "Scansiona la spesa, tieni d'occhio le scadenze e trova ricette con quello che hai già in dispensa.",
     to: "/utenti",
-  },
-  {
-    icon: HeartPulse,
-    titolo: "Nutrizionisti",
-    testo:
-      "Piani alimentari per i tuoi assistiti, diario condiviso e verifica dell'aderenza senza rincorrere nessuno.",
-    to: "/nutrizionisti",
   },
 ];
 
@@ -67,7 +60,7 @@ const FUNZIONI = [
 ];
 
 const PASSI = [
-  { title: "Crea l'account", text: "Scegli se usare Cibarius a casa, al ristorante o come professionista. Bastano email e password." },
+  { title: "Crea l'account", text: "Scegli se usare Cibarius a casa o al ristorante. Bastano email e password." },
   { title: "Porta dentro i dati", text: "Scansiona un codice a barre, fotografa una bolla o aggiungi a mano. L'inventario si popola in pochi minuti." },
   { title: "Lavora ogni giorno", text: "Spunti i controlli, scarichi la merce usata, stampi le etichette. Tutto resta registrato da solo." },
   { title: "Esci con i documenti", text: "Storico controlli, registro temperature e movimenti pronti da esportare quando serve." },
@@ -158,11 +151,11 @@ const HomePage = () => {
       {/* ── Tre modi di usarla ── */}
       <Section className="pt-0">
         <SectionHeading
-          eyebrow="Un'app, tre profili"
+          eyebrow="Un'app, due profili"
           title="Chi usa Cibarius"
-          lead="Lo stesso impianto, tre interfacce diverse. Ognuno vede solo quello che gli serve."
+          lead="Lo stesso impianto, due interfacce diverse. Ognuno vede solo quello che gli serve."
         />
-        <div className="mt-10 grid gap-4 sm:grid-cols-3">
+        <div className="mt-10 grid gap-4 sm:grid-cols-2">
           {PUBBLICO.map(({ icon: Icon, titolo, testo, to }) => (
             <Link
               key={titolo}

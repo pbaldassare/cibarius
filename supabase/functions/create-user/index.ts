@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
     const { email, password, full_name, role } = await req.json();
     if (!email || !password) throw new Error("email and password required");
 
-    const validRoles = ["user", "restaurant_owner", "admin", "professional", "supplier"];
+    const validRoles = ["user", "restaurant_owner", "admin", "supplier"];
     const userRole = validRoles.includes(role) ? role : "user";
 
     // Create auth user with email confirmed

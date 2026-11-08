@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "./useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { USER_HOME, RESTAURANT_HOME, PRO_HOME, SUPPLIER_HOME, ADMIN_HOME } from "@/lib/routes";
+import { USER_HOME, RESTAURANT_HOME, SUPPLIER_HOME, ADMIN_HOME } from "@/lib/routes";
 
-export type AppRole = "user" | "restaurant_owner" | "admin" | "professional" | "supplier";
+export type AppRole = "user" | "restaurant_owner" | "admin" | "supplier";
 
 export interface Profile {
   id: string;
@@ -58,8 +58,11 @@ export const useRole = () => {
   // Il ruolo e' attendibile solo quando il profilo caricato e' quello in sessione.
   const resolved = user ? loadedFor === user.id : true;
 
+  // L'area nutrizionisti non esiste piu': i vecchi account "professional" usano l'app consumer.
+  const role = (profile?.role as string) === "professional" ? "user" : profile?.role ?? null;
+
   return {
-    role: resolved ? profile?.role ?? null : null,
+    role: resolved ? role : null,
     profile: resolved ? profile : null,
     isLoading: authLoading || !resolved,
   };
@@ -69,7 +72,6 @@ export const getRoleHomePath = (role: AppRole | null): string => {
   switch (role) {
     case "admin": return ADMIN_HOME;
     case "restaurant_owner": return RESTAURANT_HOME;
-    case "professional": return PRO_HOME;
     case "supplier": return SUPPLIER_HOME;
     // La radice ora e' il sito pubblico: l'utente consumer va su /app.
     default: return USER_HOME;

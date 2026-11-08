@@ -13,7 +13,7 @@
 
 export interface PublicPlan {
   /** Chiave corrispondente a `subscription_plans.role_type`. */
-  roleType: "user" | "user_plus" | "restaurant" | "professional";
+  roleType: "user" | "user_plus" | "restaurant";
   monthly: number | null;
   yearly: number | null;
   trialDays: number;

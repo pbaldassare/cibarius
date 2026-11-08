@@ -8,15 +8,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Loader2, Store, Sparkles, Users, Clock, CheckCircle, XCircle,
-  CreditCard, Gift, Settings, TrendingUp, Plus, Shield, Ticket, Copy, Search, Trash2,
+  Loader2, Store, Sparkles, Users, Clock, XCircle,
+  CreditCard, Gift, Settings, TrendingUp, Plus, Shield,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -37,27 +36,15 @@ const AdminPaymentsPage = () => {
   const [loading, setLoading] = useState(true);
   const [subs, setSubs] = useState<any[]>([]);
   const [plans, setPlans] = useState<any[]>([]);
-  const [coupons, setCoupons] = useState<any[]>([]);
   const [settings, setSettings] = useState<any>(null);
   const [payments, setPayments] = useState<any[]>([]);
   const [overrides, setOverrides] = useState<any[]>([]);
   const [stats, setStats] = useState<any>({});
   const [filter, setFilter] = useState("all");
 
-  // Nutritionist coupons & commissions (from old CouponsPage)
-  const [nutriCoupons, setNutriCoupons] = useState<any[]>([]);
-  const [commissions, setCommissions] = useState<any[]>([]);
-
   // Dialogs
-  const [showCouponDialog, setShowCouponDialog] = useState(false);
   const [showOverrideDialog, setShowOverrideDialog] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
-
-  // Coupon form
-  const [couponForm, setCouponForm] = useState({
-    code: "", description: "", discount_type: "percent", discount_value: "10",
-    applies_to_role_type: "", max_uses: "", valid_until: "", assigned_to_email: "",
-  });
 
   // Override form
   const [overrideForm, setOverrideForm] = useState({
@@ -69,22 +56,14 @@ const AdminPaymentsPage = () => {
     publishable_key: "", secret_key: "", webhook_secret: "",
   });
 
-  // User search for coupon assignment
-  const [userSearchQuery, setUserSearchQuery] = useState("");
-  const [userSearchResults, setUserSearchResults] = useState<any[]>([]);
-  const [searchingUsers, setSearchingUsers] = useState(false);
-
   const fetchAll = async () => {
     setLoading(true);
-    const [subsRes, plansRes, couponsRes, settingsRes, paymentsRes, overridesRes, nutriRes, comRes] = await Promise.all([
+    const [subsRes, plansRes, settingsRes, paymentsRes, overridesRes] = await Promise.all([
       supabase.from("subscriptions").select("*").order("created_at", { ascending: false }),
       supabase.from("subscription_plans").select("*").order("local_price"),
-      supabase.from("custom_coupons").select("*").order("created_at", { ascending: false }),
       supabase.from("stripe_settings").select("*").limit(1).maybeSingle(),
       supabase.from("stripe_payments").select("*").order("created_at", { ascending: false }).limit(50),
       supabase.from("manual_subscription_overrides").select("*").order("created_at", { ascending: false }),
-      supabase.from("nutritionist_coupons" as any).select("*, profiles:nutritionist_user_id(full_name, email)").order("created_at", { ascending: false }),
-      supabase.from("nutritionist_commissions" as any).select("*, nutri_profile:nutritionist_user_id(full_name, email), client_profile:client_user_id(full_name, email)").order("created_at", { ascending: false }),
     ]);
 
     // Enrich subs with profiles
@@ -97,27 +76,11 @@ const AdminPaymentsPage = () => {
     }
     const enriched = subData.map((s: any) => ({ ...s, profile: profileMap.get(s.user_id) }));
 
-    // Enrich custom coupons with assigned user profile
-    const couponData = couponsRes.data || [];
-    const assignedIds = couponData.filter((c: any) => c.assigned_to_user_id).map((c: any) => c.assigned_to_user_id);
-    let assignedMap = new Map();
-    if (assignedIds.length > 0) {
-      const { data: assignedProfiles } = await supabase.from("profiles").select("id, email, full_name").in("id", assignedIds);
-      assignedMap = new Map((assignedProfiles || []).map((p: any) => [p.id, p]));
-    }
-    const enrichedCoupons = couponData.map((c: any) => ({
-      ...c,
-      assigned_profile: c.assigned_to_user_id ? assignedMap.get(c.assigned_to_user_id) : null,
-    }));
-
     setSubs(enriched);
     setPlans(plansRes.data || []);
-    setCoupons(enrichedCoupons);
     setSettings(settingsRes.data);
     setPayments(paymentsRes.data || []);
     setOverrides(overridesRes.data || []);
-    setNutriCoupons((nutriRes.data as any[]) || []);
-    setCommissions((comRes.data as any[]) || []);
 
     // Stats
     const restTrial = enriched.filter((s: any) => s.plan_type === "restaurant" && s.status === "trial").length;
@@ -133,57 +96,13 @@ const AdminPaymentsPage = () => {
     setStats({
       restaurantTrial: restTrial, restaurantActive: restActive, restaurantExpired: restExpired,
       userPlus: uPlus, freeUsers: (totalUsers ?? 0) - uPlus, mrr: mrr.toFixed(2),
-      freeOverrides, activeCoupons: enrichedCoupons.filter((c: any) => c.is_active).length,
+      freeOverrides,
     });
 
     setLoading(false);
   };
 
   useEffect(() => { fetchAll(); }, []);
-
-  // Search users for coupon assignment
-  const handleSearchUsers = async (q: string) => {
-    setUserSearchQuery(q);
-    if (q.length < 2) { setUserSearchResults([]); return; }
-    setSearchingUsers(true);
-    const { data } = await supabase.from("profiles").select("id, email, full_name").or(`email.ilike.%${q}%,full_name.ilike.%${q}%`).limit(5);
-    setUserSearchResults(data || []);
-    setSearchingUsers(false);
-  };
-
-  const handleCreateCoupon = async () => {
-    let assignedUserId: string | null = null;
-    if (couponForm.assigned_to_email) {
-      const { data: profile } = await supabase.from("profiles").select("id").eq("email", couponForm.assigned_to_email).maybeSingle();
-      if (!profile) { toast({ variant: "destructive", title: "Utente non trovato con questa email" }); return; }
-      assignedUserId = profile.id;
-    }
-    const { error } = await supabase.from("custom_coupons").insert({
-      code: couponForm.code.toUpperCase(),
-      description: couponForm.description,
-      discount_type: couponForm.discount_type,
-      discount_value: Number(couponForm.discount_value),
-      applies_to_role_type: couponForm.applies_to_role_type && couponForm.applies_to_role_type !== "all" ? couponForm.applies_to_role_type : null,
-      max_uses: couponForm.max_uses ? Number(couponForm.max_uses) : null,
-      valid_until: couponForm.valid_until || null,
-      created_by_admin_id: user?.id,
-      assigned_to_user_id: assignedUserId,
-    });
-    if (error) {
-      toast({ variant: "destructive", title: "Errore", description: error.message.includes("unique") ? "Codice già esistente" : error.message });
-      return;
-    }
-    await supabase.from("admin_audit_log").insert({
-      admin_id: user!.id, action: "create_coupon", entity_type: "custom_coupons",
-      details: { code: couponForm.code.toUpperCase(), assigned_to: couponForm.assigned_to_email || null },
-    });
-    toast({ title: "Coupon creato ✓" });
-    setShowCouponDialog(false);
-    setCouponForm({ code: "", description: "", discount_type: "percent", discount_value: "10", applies_to_role_type: "", max_uses: "", valid_until: "", assigned_to_email: "" });
-    setUserSearchQuery("");
-    setUserSearchResults([]);
-    fetchAll();
-  };
 
   const handleCreateOverride = async () => {
     const { data: profile } = await supabase.from("profiles").select("id").eq("email", overrideForm.user_email).maybeSingle();
@@ -244,60 +163,18 @@ const AdminPaymentsPage = () => {
     fetchAll();
   };
 
-  const handleToggleCoupon = async (couponId: string, currentActive: boolean) => {
-    await supabase.from("custom_coupons").update({ is_active: !currentActive }).eq("id", couponId);
-    fetchAll();
-  };
-
-  const handleDeleteCoupon = async (couponId: string, code: string) => {
-    if (!confirm(`Eliminare il coupon ${code}?`)) return;
-    const { error } = await supabase.from("custom_coupons").delete().eq("id", couponId);
-    if (error) {
-      toast({ title: "Errore", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Coupon eliminato 🗑️" });
-      await supabase.from("admin_audit_log").insert({
-        admin_id: user!.id, action: "delete_coupon", entity_type: "custom_coupons",
-        entity_id: couponId, details: { code },
-      });
-      fetchAll();
-    }
-  };
-
-  const handleToggleNutriCoupon = async (id: string, currentActive: boolean) => {
-    await supabase.from("nutritionist_coupons" as any).update({ is_active: !currentActive }).eq("id", id);
-    fetchAll();
-  };
-
-  const updateNutriPercent = async (id: string, field: string, value: string) => {
-    const num = parseFloat(value);
-    if (isNaN(num) || num < 0 || num > 100) return;
-    await supabase.from("nutritionist_coupons" as any).update({ [field]: num }).eq("id", id);
-    toast({ title: "Percentuale aggiornata" });
-    fetchAll();
-  };
-
-  const markPaid = async (commissionId: string) => {
-    await supabase.from("nutritionist_commissions" as any).update({ status: "paid", paid_at: new Date().toISOString() }).eq("id", commissionId);
-    toast({ title: "Commissione segnata come pagata" });
-    fetchAll();
-  };
-
   const handleManualActivate = async (subId: string) => {
-    await supabase.from("subscriptions").update({ status: "active", updated_at: new Date().toISOString() }).eq("id", subId);
+    const { error } = await supabase.from("subscriptions").update({ status: "active", updated_at: new Date().toISOString() }).eq("id", subId);
+    if (error) { toast({ variant: "destructive", title: "Errore", description: error.message }); return; }
     toast({ title: "Abbonamento attivato manualmente" });
     fetchAll();
   };
 
   const handleCancelSub = async (subId: string) => {
-    await supabase.from("subscriptions").update({ status: "cancelled", updated_at: new Date().toISOString() }).eq("id", subId);
+    const { error } = await supabase.from("subscriptions").update({ status: "cancelled", updated_at: new Date().toISOString() }).eq("id", subId);
+    if (error) { toast({ variant: "destructive", title: "Errore", description: error.message }); return; }
     toast({ title: "Abbonamento cancellato" });
     fetchAll();
-  };
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast({ title: "Codice copiato! 📋" });
   };
 
   const filteredSubs = subs.filter((s: any) => {
@@ -312,10 +189,6 @@ const AdminPaymentsPage = () => {
     return true;
   });
 
-  const commissionStatusLabel: Record<string, string> = {
-    pending: "In attesa", approved: "Approvata", paid: "Pagata", cancelled: "Annullata",
-  };
-
   if (loading) {
     return (
       <AdminLayout>
@@ -327,7 +200,7 @@ const AdminPaymentsPage = () => {
   return (
     <AdminLayout>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Pagamenti & Coupon</h1>
+        <h1 className="text-2xl font-bold text-foreground">Pagamenti</h1>
         <div className="flex gap-2">
           <Dialog open={showSettingsDialog} onOpenChange={setShowSettingsDialog}>
             <DialogTrigger asChild>
@@ -377,7 +250,6 @@ const AdminPaymentsPage = () => {
           { label: "MRR stimato", value: `€${stats.mrr}`, icon: TrendingUp, color: "text-emerald-600" },
           { label: "Utenti gratuiti", value: stats.freeUsers, icon: Users, color: "text-muted-foreground" },
           { label: "Override gratis", value: stats.freeOverrides, icon: Gift, color: "text-primary" },
-          { label: "Coupon attivi", value: stats.activeCoupons, icon: Ticket, color: "text-amber-600" },
           { label: "Ristoranti scaduti", value: stats.restaurantExpired, icon: XCircle, color: "text-destructive" },
         ].map(({ label, value, icon: Icon, color }) => (
           <Card key={label}>
@@ -394,9 +266,6 @@ const AdminPaymentsPage = () => {
         <TabsList className="mb-4 flex-wrap">
           <TabsTrigger value="subscriptions">Abbonamenti</TabsTrigger>
           <TabsTrigger value="plans">Piani</TabsTrigger>
-          <TabsTrigger value="coupons">Coupon</TabsTrigger>
-          <TabsTrigger value="nutri">Nutrizionisti</TabsTrigger>
-          <TabsTrigger value="commissions">Commissioni</TabsTrigger>
           <TabsTrigger value="overrides">Override</TabsTrigger>
           <TabsTrigger value="payments">Pagamenti</TabsTrigger>
         </TabsList>
@@ -499,178 +368,6 @@ const AdminPaymentsPage = () => {
           </div>
         </TabsContent>
 
-        {/* COUPONS TAB (custom + create) */}
-        <TabsContent value="coupons">
-          <div className="flex justify-end mb-4">
-            <Button size="sm" onClick={() => setShowCouponDialog(true)}>
-              <Plus className="h-4 w-4 mr-1.5" />Nuovo coupon
-            </Button>
-          </div>
-          <Card>
-            <CardContent className="pt-4">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Codice</TableHead>
-                      <TableHead>Descrizione</TableHead>
-                      <TableHead>Sconto</TableHead>
-                      <TableHead>Assegnato a</TableHead>
-                      <TableHead className="text-center">Utilizzi</TableHead>
-                      <TableHead>Scadenza</TableHead>
-                      <TableHead className="text-center">Attivo</TableHead>
-                      <TableHead></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {coupons.map((c: any) => (
-                      <TableRow key={c.id}>
-                        <TableCell className="font-mono font-bold text-primary">{c.code}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground max-w-[150px] truncate">{c.description || "—"}</TableCell>
-                        <TableCell className="text-sm font-semibold">
-                          {c.discount_type === "percent" ? `${c.discount_value}%` : `€${Number(c.discount_value).toFixed(2)}`}
-                        </TableCell>
-                        <TableCell className="text-xs">
-                          {c.assigned_profile ? (
-                            <span className="text-foreground">{c.assigned_profile.full_name || c.assigned_profile.email}</span>
-                          ) : c.applies_to_role_type ? (
-                            <Badge variant="secondary" className="text-[10px]">{c.applies_to_role_type}</Badge>
-                          ) : (
-                            <span className="text-muted-foreground">Tutti</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-center text-sm">
-                          {c.current_uses}{c.max_uses ? ` / ${c.max_uses}` : ""}
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
-                          {c.valid_until ? new Date(c.valid_until).toLocaleDateString("it-IT") : "—"}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Switch checked={c.is_active} onCheckedChange={() => handleToggleCoupon(c.id, c.is_active)} />
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-1">
-                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => copyToClipboard(c.code)}>
-                              <Copy className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:text-destructive" onClick={() => handleDeleteCoupon(c.id, c.code)}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {coupons.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={8} className="text-center py-6 text-muted-foreground">Nessun coupon creato</TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* NUTRI COUPONS TAB */}
-        <TabsContent value="nutri">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Coupon nutrizionisti</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nutrizionista</TableHead>
-                      <TableHead>Codice</TableHead>
-                      <TableHead>Sconto %</TableHead>
-                      <TableHead>Commissione %</TableHead>
-                      <TableHead className="text-center">Utilizzi</TableHead>
-                      <TableHead className="text-center">Attivo</TableHead>
-                      <TableHead></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {nutriCoupons.map((c: any) => (
-                      <TableRow key={c.id}>
-                        <TableCell className="text-sm">{(c.profiles as any)?.full_name || (c.profiles as any)?.email || "—"}</TableCell>
-                        <TableCell className="font-mono font-bold text-primary">{c.coupon_code}</TableCell>
-                        <TableCell>
-                          <Input type="number" className="w-20 h-8 text-xs" defaultValue={c.client_discount_percent}
-                            onBlur={(e) => updateNutriPercent(c.id, "client_discount_percent", e.target.value)} />
-                        </TableCell>
-                        <TableCell>
-                          <Input type="number" className="w-20 h-8 text-xs" defaultValue={c.nutritionist_commission_percent}
-                            onBlur={(e) => updateNutriPercent(c.id, "nutritionist_commission_percent", e.target.value)} />
-                        </TableCell>
-                        <TableCell className="text-center text-sm">
-                          {c.current_uses}{c.max_uses ? ` / ${c.max_uses}` : ""}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Switch checked={c.is_active} onCheckedChange={() => handleToggleNutriCoupon(c.id, c.is_active)} />
-                        </TableCell>
-                        <TableCell>
-                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => copyToClipboard(c.coupon_code)}>
-                            <Copy className="h-3.5 w-3.5" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* COMMISSIONS TAB */}
-        <TabsContent value="commissions">
-          <Card>
-            <CardContent className="pt-4">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nutrizionista</TableHead>
-                      <TableHead>Cliente</TableHead>
-                      <TableHead>Data</TableHead>
-                      <TableHead className="text-right">Importo</TableHead>
-                      <TableHead className="text-right">Commissione</TableHead>
-                      <TableHead>Stato</TableHead>
-                      <TableHead></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {commissions.map((c: any) => (
-                      <TableRow key={c.id}>
-                        <TableCell className="text-xs">{(c.nutri_profile as any)?.full_name || "—"}</TableCell>
-                        <TableCell className="text-xs">{(c.client_profile as any)?.full_name || (c.client_profile as any)?.email || "—"}</TableCell>
-                        <TableCell className="text-xs">{new Date(c.created_at).toLocaleDateString("it-IT")}</TableCell>
-                        <TableCell className="text-right text-xs">€{Number(c.final_paid_amount).toFixed(2)}</TableCell>
-                        <TableCell className="text-right text-xs font-semibold">€{Number(c.commission_amount).toFixed(2)}</TableCell>
-                        <TableCell>
-                          <Badge variant={c.status === "paid" ? "default" : c.status === "cancelled" ? "destructive" : "secondary"} className="text-[10px]">
-                            {commissionStatusLabel[c.status] || c.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {(c.status === "pending" || c.status === "approved") && (
-                            <Button size="sm" variant="outline" className="gap-1 text-xs" onClick={() => markPaid(c.id)}>
-                              <CheckCircle className="h-3 w-3" /> Paga
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
         {/* OVERRIDES TAB */}
         <TabsContent value="overrides">
           <div className="flex justify-end mb-4">
@@ -767,111 +464,6 @@ const AdminPaymentsPage = () => {
           </Card>
         </TabsContent>
       </Tabs>
-
-      {/* Create coupon dialog */}
-      <Dialog open={showCouponDialog} onOpenChange={setShowCouponDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Nuovo coupon</DialogTitle></DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-1.5">
-              <Label>Codice *</Label>
-              <Input value={couponForm.code} onChange={e => setCouponForm(f => ({ ...f, code: e.target.value.toUpperCase() }))} placeholder="es. PROMO2026" className="font-mono" />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Tipo sconto</Label>
-                <Select value={couponForm.discount_type} onValueChange={v => setCouponForm(f => ({ ...f, discount_type: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="percent">Percentuale (%)</SelectItem>
-                    <SelectItem value="fixed">Fisso (€)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Valore sconto</Label>
-                <Input type="number" min={0} value={couponForm.discount_value} onChange={e => setCouponForm(f => ({ ...f, discount_value: e.target.value }))} />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Descrizione</Label>
-              <Input value={couponForm.description} onChange={e => setCouponForm(f => ({ ...f, description: e.target.value }))} placeholder="Descrizione opzionale" />
-            </div>
-
-            {/* User assignment with search */}
-            <div className="space-y-1.5">
-              <Label>Assegna a utente specifico (opzionale)</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                <Input
-                  placeholder="Cerca per nome o email..."
-                  value={userSearchQuery}
-                  onChange={e => handleSearchUsers(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-              {userSearchResults.length > 0 && (
-                <div className="border border-border rounded-lg overflow-hidden bg-card">
-                  {userSearchResults.map((u: any) => (
-                    <button
-                      key={u.id}
-                      onClick={() => {
-                        setCouponForm(f => ({ ...f, assigned_to_email: u.email }));
-                        setUserSearchQuery(u.full_name ? `${u.full_name} (${u.email})` : u.email);
-                        setUserSearchResults([]);
-                      }}
-                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-secondary transition-colors"
-                    >
-                      <div>
-                        <p className="font-medium text-foreground text-xs">{u.full_name || "—"}</p>
-                        <p className="text-[10px] text-muted-foreground">{u.email}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-              {couponForm.assigned_to_email && (
-                <div className="flex items-center gap-2 mt-1">
-                  <Badge variant="secondary" className="text-xs">{couponForm.assigned_to_email}</Badge>
-                  <Button size="sm" variant="ghost" className="h-5 w-5 p-0" onClick={() => {
-                    setCouponForm(f => ({ ...f, assigned_to_email: "" }));
-                    setUserSearchQuery("");
-                  }}>×</Button>
-                </div>
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Max utilizzi</Label>
-                <Input type="number" min={0} value={couponForm.max_uses} onChange={e => setCouponForm(f => ({ ...f, max_uses: e.target.value }))} placeholder="Illimitati" />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Valido fino a</Label>
-                <Input type="date" value={couponForm.valid_until} onChange={e => setCouponForm(f => ({ ...f, valid_until: e.target.value }))} />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Applica a ruolo</Label>
-              <Select value={couponForm.applies_to_role_type || "all"} onValueChange={v => setCouponForm(f => ({ ...f, applies_to_role_type: v }))}>
-                <SelectTrigger><SelectValue placeholder="Tutti i ruoli" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tutti i ruoli</SelectItem>
-                  <SelectItem value="user">Utente</SelectItem>
-                  <SelectItem value="professional">Professionista</SelectItem>
-                  <SelectItem value="restaurant_owner">Ristorante</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCouponDialog(false)}>Annulla</Button>
-            <Button onClick={handleCreateCoupon} disabled={!couponForm.code.trim()}>
-              <Plus className="mr-2 h-4 w-4" /> Crea coupon
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </AdminLayout>
   );
 };

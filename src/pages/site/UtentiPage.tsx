@@ -94,25 +94,6 @@ const UtentiPage = () => {
         <FeatureGrid items={FUNZIONI} />
       </Section>
 
-      <Section className="pt-0">
-        <div className="rounded-[18px] bg-card p-6 shadow-card sm:p-8">
-          <h2 className="text-[20px] font-bold text-foreground sm:text-[24px]">
-            Se segui un piano alimentare
-          </h2>
-          <p className="mt-3 text-[15px] leading-relaxed text-muted-foreground">
-            Quando il tuo nutrizionista usa Cibarius, il piano arriva direttamente nell'app: vedi
-            i pasti previsti, segni quello che mangi e lui vede l'andamento senza doverti chiedere
-            niente.
-          </p>
-          <Link
-            to="/nutrizionisti"
-            className="mt-5 inline-flex items-center gap-1 text-[15px] font-semibold text-primary"
-          >
-            Come funziona per i professionisti <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
-      </Section>
-
       <CallToAction
         title="L'uso in casa è gratuito"
         text="Crei l'account e cominci ad aggiungere prodotti, senza carta di credito. Il piano Premium, con anti-spreco avanzato, resta facoltativo."

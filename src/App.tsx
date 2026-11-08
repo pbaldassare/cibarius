@@ -41,7 +41,6 @@ const AdminSettingsPage = lazy(() => import("./pages/admin/AdminSettingsPage"));
 const AdminSeedPage = lazy(() => import("./pages/admin/AdminSeedPage"));
 const AdminProductReviewPage = lazy(() => import("./pages/admin/AdminProductReviewPage"));
 const AdminSupportPage = lazy(() => import("./pages/admin/AdminSupportPage"));
-// AdminCouponsPage merged into AdminPaymentsPage
 const AdminRestaurantsPage = lazy(() => import("./pages/admin/AdminRestaurantsPage"));
 const AdminStatsPage = lazy(() => import("./pages/admin/AdminStatsPage"));
 const AdminHaccpTemplatesPage = lazy(() => import("./pages/admin/AdminHaccpTemplatesPage"));
@@ -77,28 +76,7 @@ const RestaurantAdminReportsPage = lazy(() => import("./pages/restaurant-admin/R
 const RestaurantHaccpControlPage = lazy(() => import("./pages/restaurant-admin/RestaurantHaccpControlPage"));
 const RestaurantTemperaturesPage = lazy(() => import("./pages/restaurant-admin/RestaurantTemperaturesPage"));
 
-// Pro pages
-const ProPage = lazy(() => import("./pages/pro/ProPage"));
-const ProClientsPage = lazy(() => import("./pages/pro/ProClientsPage"));
-const ProClientDetailPage = lazy(() => import("./pages/pro/ProClientDetailPage"));
-const ProClientPlanPage = lazy(() => import("./pages/pro/ProClientPlanPage"));
-const ProClientMonitorPage = lazy(() => import("./pages/pro/ProClientMonitorPage"));
-const ProClientSuggestPage = lazy(() => import("./pages/pro/ProClientSuggestPage"));
-const ProClientPantryPage = lazy(() => import("./pages/pro/ProClientPantryPage"));
-const ProClientPantryRecipesPage = lazy(() => import("./pages/pro/ProClientPantryRecipesPage"));
-const ProReportsPage = lazy(() => import("./pages/pro/ProReportsPage"));
-const ProNotesPage = lazy(() => import("./pages/pro/ProNotesPage"));
-const ProClientPlanHistoryPage = lazy(() => import("./pages/pro/ProClientPlanHistoryPage"));
-const ProTemplatesPage = lazy(() => import("./pages/pro/ProTemplatesPage"));
-const ProTemplateEditorPage = lazy(() => import("./pages/pro/ProTemplateEditorPage"));
-const ProWeeklyReportPage = lazy(() => import("./pages/pro/ProWeeklyReportPage"));
-const ProClientMessagesPage = lazy(() => import("./pages/pro/ProClientMessagesPage"));
-const ProAppointmentsPage = lazy(() => import("./pages/pro/ProAppointmentsPage"));
-const ProClientPlanPdfPage = lazy(() => import("./pages/pro/ProClientPlanPdfPage"));
-const ProWeeklyPlanPage = lazy(() => import("./pages/pro/ProWeeklyPlanPage"));
 
-const ProClientMeasurementsPage = lazy(() => import("./pages/pro/ProClientMeasurementsPage"));
-const ProCouponPage = lazy(() => import("./pages/pro/ProCouponPage"));
 const UserPantryRecipesPage = lazy(() => import("./pages/UserPantryRecipesPage"));
 const ShoppingListPage = lazy(() => import("./pages/ShoppingListPage"));
 const AntiWastePage = lazy(() => import("./pages/AntiWastePage"));
@@ -176,8 +154,6 @@ const App = () => (
             <Route path="/auth/forgot" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/auth/callback" element={<AuthCallbackPage />} />
-            <Route path="/join/:code" element={<Navigate to={USER_HOME} replace />} />
-            <Route path="/n/:slug" element={<Navigate to={USER_HOME} replace />} />
             <Route path="/haccp/label/:token" element={<PublicHaccpLabelPage />} />
             <Route element={<SiteLayout />}>
               {LEGAL_ROUTES.map(({ path, element }) => (
@@ -255,31 +231,6 @@ const App = () => (
                 <Route path="/supplier-invite" element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><SupplierInvitePage /></RestaurantGuard></RG>} />
               </Route>
 
-              {/* ═══ PROFESSIONAL ═══ */}
-              <Route element={<MobileLayout />}>
-                <Route path="/pro" element={<RG roles={["professional", "admin"]}><ProPage /></RG>} />
-                <Route path="/pro/clients" element={<RG roles={["professional", "admin"]}><ProClientsPage /></RG>} />
-                <Route path="/pro/client/:clientId" element={<RG roles={["professional", "admin"]}><ProClientDetailPage /></RG>} />
-                <Route path="/pro/client/:clientId/plan" element={<RG roles={["professional", "admin"]}><ProClientPlanPage /></RG>} />
-                <Route path="/pro/client/:clientId/plan-history" element={<RG roles={["professional", "admin"]}><ProClientPlanHistoryPage /></RG>} />
-                <Route path="/pro/client/:clientId/monitor" element={<RG roles={["professional", "admin"]}><ProClientMonitorPage /></RG>} />
-                <Route path="/pro/client/:clientId/suggest" element={<RG roles={["professional", "admin"]}><ProClientSuggestPage /></RG>} />
-                <Route path="/pro/client/:clientId/pantry" element={<RG roles={["professional", "admin"]}><ProClientPantryPage /></RG>} />
-                <Route path="/pro/client/:clientId/pantry-recipes" element={<RG roles={["professional", "admin"]}><ProClientPantryRecipesPage /></RG>} />
-                <Route path="/pro/reports" element={<RG roles={["professional", "admin"]}><ProReportsPage /></RG>} />
-                <Route path="/pro/notes" element={<RG roles={["professional", "admin"]}><ProNotesPage /></RG>} />
-                <Route path="/pro/templates" element={<RG roles={["professional", "admin"]}><ProTemplatesPage /></RG>} />
-                <Route path="/pro/template/:templateId" element={<RG roles={["professional", "admin"]}><ProTemplateEditorPage /></RG>} />
-                <Route path="/pro/weekly-report" element={<RG roles={["professional", "admin"]}><ProWeeklyReportPage /></RG>} />
-                <Route path="/pro/client/:clientId/messages" element={<RG roles={["professional", "admin"]}><ProClientMessagesPage /></RG>} />
-                <Route path="/pro/client/:clientId/plan-pdf" element={<RG roles={["professional", "admin"]}><ProClientPlanPdfPage /></RG>} />
-                <Route path="/pro/client/:clientId/weekly-plan" element={<RG roles={["professional", "admin"]}><ProWeeklyPlanPage /></RG>} />
-                <Route path="/pro/appointments" element={<RG roles={["professional", "admin"]}><ProAppointmentsPage /></RG>} />
-                <Route path="/pro/client/:clientId/measurements" element={<RG roles={["professional", "admin"]}><ProClientMeasurementsPage /></RG>} />
-                <Route path="/pro/coupon" element={<RG roles={["professional", "admin"]}><ProCouponPage /></RG>} />
-                <Route path="/pro/profile" element={<RG roles={["professional", "admin"]}><ProfiloPage /></RG>} />
-              </Route>
-
               {/* ═══ SUPPLIER ═══ */}
               <Route element={<MobileLayout />}>
                 <Route path="/supplier" element={<RG roles={["supplier", "admin"]}><SupplierPage /></RG>} />
@@ -298,7 +249,6 @@ const App = () => (
               <Route path="/admin/seed" element={<RG roles={["admin"]}><AdminPwaGuard><AdminSeedPage /></AdminPwaGuard></RG>} />
               <Route path="/admin/product-review" element={<RG roles={["admin"]}><AdminPwaGuard><AdminProductReviewPage /></AdminPwaGuard></RG>} />
               <Route path="/admin/support" element={<RG roles={["admin"]}><AdminPwaGuard><AdminSupportPage /></AdminPwaGuard></RG>} />
-              {/* /admin/coupons removed — merged into /admin/payments */}
               <Route path="/admin/haccp-templates" element={<RG roles={["admin"]}><AdminPwaGuard><AdminHaccpTemplatesPage /></AdminPwaGuard></RG>} />
               <Route path="/admin/subscriptions" element={<RG roles={["admin"]}><AdminPwaGuard><AdminSubscriptionsPage /></AdminPwaGuard></RG>} />
               <Route path="/admin/payments" element={<RG roles={["admin"]}><AdminPwaGuard><AdminPaymentsPage /></AdminPwaGuard></RG>} />

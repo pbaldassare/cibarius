@@ -1,7 +1,7 @@
-import { LOGIN_PATH, PRO_HOME, RESTAURANT_HOME, SUPPLIER_HOME, USER_HOME } from "@/lib/routes";
+import { LOGIN_PATH, RESTAURANT_HOME, SUPPLIER_HOME, USER_HOME } from "@/lib/routes";
 
 /** Da qui il tasto indietro manda l'app in secondo piano invece di tornare all'accesso. */
-const RADICI = [LOGIN_PATH, USER_HOME, RESTAURANT_HOME, PRO_HOME, SUPPLIER_HOME];
+const RADICI = [LOGIN_PATH, USER_HOME, RESTAURANT_HOME, SUPPLIER_HOME];
 
 /** Sheet, dialog, menu e select di Radix aperti: si chiudono tutti con Esc. */
 const APERTO = ["dialog", "alertdialog", "menu", "listbox"].map((r) => `[role="${r}"][data-state="open"]`).join(",");

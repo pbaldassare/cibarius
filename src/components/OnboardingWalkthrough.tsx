@@ -1,6 +1,8 @@
 import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, X, ScanLine, Clock, UtensilsCrossed, ShoppingCart, Users, ClipboardList, BarChart3, Sparkles, Refrigerator, BookOpen, MessageSquare, Package } from "lucide-react";
+import {
+  ArrowRight, X, ScanLine, Clock, UtensilsCrossed, ShoppingCart, Users, ClipboardList, Sparkles, Refrigerator, BookOpen, Package,
+} from "lucide-react";
 import cibariusLogo from "@/assets/cibarius-logo.png";
 import type { AppRole } from "@/hooks/useRole";
 import { useIconeBarraScure } from "@/lib/native";
@@ -64,33 +66,6 @@ const SLIDES_BY_ROLE: Record<string, Slide[]> = {
       icon: <Users className="h-10 w-10" />,
       title: "Gestisci il team",
       text: "Aggiungi collaboratori con ruoli diversi. Tutto tracciato e sotto controllo.",
-    },
-  ],
-  professional: [
-    {
-      icon: <Sparkles className="h-10 w-10" />,
-      title: "Benvenuto in Cibarius!",
-      text: "La piattaforma per nutrizionisti: segui i tuoi clienti, crea piani alimentari e monitora i progressi.",
-    },
-    {
-      icon: <Users className="h-10 w-10" />,
-      title: "Gestisci i clienti",
-      text: "Invita i tuoi clienti con un codice, visualizza la loro dispensa e i pasti registrati.",
-    },
-    {
-      icon: <ClipboardList className="h-10 w-10" />,
-      title: "Piani alimentari",
-      text: "Crea piani personalizzati con macro target per pasto. I clienti li vedono in tempo reale.",
-    },
-    {
-      icon: <BarChart3 className="h-10 w-10" />,
-      title: "Monitora i progressi",
-      text: "Controlla aderenza al piano, misurazioni corporee e report settimanali automatici.",
-    },
-    {
-      icon: <MessageSquare className="h-10 w-10" />,
-      title: "Comunica con i clienti",
-      text: "Messaggi diretti, suggerimenti e ricette personalizzate, tutto dentro l'app.",
     },
   ],
 };

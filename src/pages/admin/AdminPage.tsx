@@ -3,7 +3,7 @@ import AdminLayout from "@/components/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Users, ShieldCheck, Activity, Package, MessageSquareWarning, Ticket,
-  Store, Stethoscope, AlertTriangle, CheckCircle2, Clock, TrendingUp, Key,
+  Store, AlertTriangle, CheckCircle2, Clock, TrendingUp, Key,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,7 +13,6 @@ import { format } from "date-fns";
 interface PlatformStats {
   totalUsers: number;
   totalRestaurants: number;
-  totalProfessionals: number;
   pendingProducts: number;
   openSupport: number;
   expiringItems: number;
@@ -21,7 +20,7 @@ interface PlatformStats {
 
 const AdminPage = () => {
   const [stats, setStats] = useState<PlatformStats>({
-    totalUsers: 0, totalRestaurants: 0, totalProfessionals: 0,
+    totalUsers: 0, totalRestaurants: 0,
     pendingProducts: 0, openSupport: 0, expiringItems: 0,
   });
   const [loading, setLoading] = useState(true);
@@ -31,10 +30,9 @@ const AdminPage = () => {
       const today = format(new Date(), "yyyy-MM-dd");
       const in3days = format(new Date(Date.now() + 3 * 86400000), "yyyy-MM-dd");
 
-      const [users, restaurants, professionals, pending, support, expiring] = await Promise.all([
+      const [users, restaurants, pending, support, expiring] = await Promise.all([
         supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "user"),
         supabase.from("restaurants").select("id", { count: "exact", head: true }),
-        supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "professional"),
         supabase.from("product_submissions").select("id", { count: "exact", head: true }).eq("status", "pending"),
         supabase.from("support_requests").select("id", { count: "exact", head: true }).eq("status", "open"),
         supabase.from("inventory_items").select("id", { count: "exact", head: true }).lte("expiry_date", in3days).gte("expiry_date", today),
@@ -43,7 +41,6 @@ const AdminPage = () => {
       setStats({
         totalUsers: users.count ?? 0,
         totalRestaurants: restaurants.count ?? 0,
-        totalProfessionals: professionals.count ?? 0,
         pendingProducts: pending.count ?? 0,
         openSupport: support.count ?? 0,
         expiringItems: expiring.count ?? 0,
@@ -56,7 +53,6 @@ const AdminPage = () => {
   const statCards = [
     { label: "Utenti", value: stats.totalUsers, icon: Users, color: "text-blue-600" },
     { label: "Ristoranti", value: stats.totalRestaurants, icon: Store, color: "text-orange-600" },
-    { label: "Nutrizionisti", value: stats.totalProfessionals, icon: Stethoscope, color: "text-emerald-600" },
     { label: "In scadenza (3gg)", value: stats.expiringItems, icon: AlertTriangle, color: "text-amber-600" },
     { label: "Prodotti in attesa", value: stats.pendingProducts, icon: Clock, color: "text-violet-600" },
     { label: "Segnalazioni aperte", value: stats.openSupport, icon: MessageSquareWarning, color: "text-red-600" },
@@ -146,10 +142,10 @@ const AdminPage = () => {
           <Card className="transition-shadow hover:shadow-md">
             <CardHeader className="flex flex-row items-center gap-3 pb-2">
               <Ticket className="h-5 w-5 text-primary" />
-              <CardTitle className="text-base">Pagamenti & Coupon</CardTitle>
+              <CardTitle className="text-base">Pagamenti</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">Abbonamenti, coupon e pagamenti</p>
+              <p className="text-sm text-muted-foreground">Abbonamenti e pagamenti</p>
             </CardContent>
           </Card>
         </Link>

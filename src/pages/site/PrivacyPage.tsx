@@ -17,10 +17,10 @@ const PrivacyPage = () => (
         <section>
           <h2>2. Dati trattati</h2>
           <ul>
-            <li>Dati dell’account: nome, email, password cifrata e ruolo (utente, ristoratore, nutrizionista, fornitore).</li>
+            <li>Dati dell’account: nome, email, password cifrata e ruolo (utente, ristoratore, fornitore).</li>
             <li>Dati inseriti nell’app: prodotti, dispensa, scadenze, ricette, liste della spesa, registri HACCP, temperature, preparazioni, documenti e bolle caricate.</li>
             <li>Foto scattate con la fotocamera: codici a barre, prodotti, etichette, scontrini e bolle.</li>
-            <li>Dati sulla salute e sull’alimentazione forniti volontariamente: preferenze alimentari, allergie e intolleranze, misure corporee, piani alimentari, diario e messaggi con il nutrizionista.</li>
+            <li>Dati sulla salute e sull’alimentazione forniti volontariamente: preferenze alimentari, allergie e intolleranze.</li>
             <li>Posizione approssimativa: indirizzo o città del locale inseriti dall’utente.</li>
             <li>Dati di abbonamento e pagamento, gestiti da Stripe: Cibarius non memorizza i dati della carta.</li>
             <li>Dati tecnici e log necessari al funzionamento e alla sicurezza.</li>
@@ -38,7 +38,7 @@ const PrivacyPage = () => (
         </section>
         <section>
           <h2>4. Condivisione e responsabili del trattamento</h2>
-          <p>I dati sanitari del cliente sono visibili solo al nutrizionista che l’utente collega volontariamente. I dati del ristorante sono accessibili solo allo staff autorizzato.</p>
+          <p>I dati del ristorante sono accessibili solo allo staff autorizzato.</p>
           <p className="mt-3">I responsabili del trattamento comprendono Supabase (database, autenticazione e archiviazione), Stripe (pagamenti), Resend (email transazionali) e i fornitori di servizi di intelligenza artificiale utilizzati per riconoscere testo e prodotti dalle foto.</p>
           <p className="mt-3">Eventuali trasferimenti di dati al di fuori dell’Unione Europea avvengono con Clausole Contrattuali Standard.</p>
         </section>

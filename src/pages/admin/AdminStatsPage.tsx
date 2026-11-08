@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Users, Store, Stethoscope, Package, TrendingUp, AlertTriangle, Brain, Zap } from "lucide-react";
+import { Loader2, Users, Store, Package, TrendingUp, AlertTriangle, Brain, Zap } from "lucide-react";
 import { format, subDays } from "date-fns";
 
 const AdminStatsPage = () => {
@@ -10,7 +10,6 @@ const AdminStatsPage = () => {
   const [data, setData] = useState({
     totalUsers: 0,
     totalRestaurants: 0,
-    totalProfessionals: 0,
     totalProducts: 0,
     totalInventory: 0,
     expiredItems: 0,
@@ -25,10 +24,9 @@ const AdminStatsPage = () => {
       const weekAgo = subDays(new Date(), 7).toISOString();
       const today = format(new Date(), "yyyy-MM-dd");
 
-      const [users, rests, pros, prods, inv, expired, newUsers, newRests, aiCallsRes, aiSavedRes] = await Promise.all([
+      const [users, rests, prods, inv, expired, newUsers, newRests, aiCallsRes, aiSavedRes] = await Promise.all([
         supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "user"),
         supabase.from("restaurants").select("id", { count: "exact", head: true }),
-        supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "professional"),
         supabase.from("products").select("id", { count: "exact", head: true }),
         supabase.from("inventory_items").select("id", { count: "exact", head: true }),
         supabase.from("inventory_items").select("id", { count: "exact", head: true }).lt("expiry_date", today),
@@ -41,7 +39,6 @@ const AdminStatsPage = () => {
       setData({
         totalUsers: users.count ?? 0,
         totalRestaurants: rests.count ?? 0,
-        totalProfessionals: pros.count ?? 0,
         totalProducts: prods.count ?? 0,
         totalInventory: inv.count ?? 0,
         expiredItems: expired.count ?? 0,
@@ -69,7 +66,6 @@ const AdminStatsPage = () => {
   const cards = [
     { label: "Utenti totali", value: data.totalUsers, icon: Users, sub: `+${data.newUsersWeek} questa settimana` },
     { label: "Ristoranti totali", value: data.totalRestaurants, icon: Store, sub: `+${data.newRestaurantsWeek} questa settimana` },
-    { label: "Nutrizionisti", value: data.totalProfessionals, icon: Stethoscope },
     { label: "Prodotti catalogo", value: data.totalProducts, icon: Package },
     { label: "Articoli in inventario", value: data.totalInventory, icon: TrendingUp },
     { label: "Articoli scaduti", value: data.expiredItems, icon: AlertTriangle },

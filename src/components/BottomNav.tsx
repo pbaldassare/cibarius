@@ -3,9 +3,7 @@ import { useRole } from "@/hooks/useRole";
 import { RESTAURANT_TABS } from "@/lib/restaurant-tabs";
 import { USER_HOME } from "@/lib/routes";
 import {
-  Home, User, UtensilsCrossed,
-  BookOpen, LayoutDashboard, Users, FileText,
-  MessageSquare, Building2, Package, Archive, Clock, ChefHat, ClipboardList,
+  Home, User, UtensilsCrossed, BookOpen, LayoutDashboard, Users, Building2, Package, Clock, ChefHat, ClipboardList,
 } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
@@ -26,25 +24,16 @@ const tabsByRole: Record<string, TabItem[]> = {
   ],
   // Stessa lista della barra operativa: una sola definizione, nessuna deriva.
   restaurant_owner: RESTAURANT_TABS,
-  professional: [
-    { to: "/pro", icon: LayoutDashboard, label: "Dashboard", tourId: "pro-nav-dashboard" },
-    { to: "/pro/clients", icon: Users, label: "Clienti", tourId: "pro-nav-clients" },
-    { to: "/pro/reports", icon: FileText, label: "Report", tourId: "pro-nav-reports" },
-    { to: "/pro/notes", icon: MessageSquare, label: "Note", tourId: "pro-nav-notes" },
-    { to: "/pro/profile", icon: User, label: "Profilo", tourId: "pro-nav-profile" },
-  ],
   supplier: [
     { to: "/supplier", icon: LayoutDashboard, label: "Dashboard" },
     { to: "/supplier/restaurants", icon: Building2, label: "Ristoranti" },
     { to: "/supplier/catalog", icon: Package, label: "Catalogo" },
-    { to: "/supplier/reports", icon: FileText, label: "Report" },
     // /profile e' dell'app consumer: il fornitore verrebbe rimandato alla dashboard.
     { to: "/supplier/profile", icon: User, label: "Profilo" },
   ],
   admin: [
     { to: "/admin", icon: LayoutDashboard, label: "Dashboard" },
     { to: "/admin/users", icon: Users, label: "Utenti" },
-    { to: "/admin/settings", icon: Archive, label: "Impostazioni" },
     { to: "/profile", icon: User, label: "Profilo" },
   ],
 };

@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import {
-  LayoutDashboard, Users, Settings, LogOut, Sprout, ChevronLeft,
+  LayoutDashboard, Users, LogOut, Sprout, ChevronLeft,
   Store, Package, MessageSquareWarning, Ticket, TrendingUp, ClipboardCheck, CreditCard, Database, Key,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,11 +17,10 @@ const sidebarItems = [
   { to: "/admin/haccp-labels", icon: ClipboardCheck, label: "Etichette HACCP" },
   { to: "/admin/product-review", icon: Package, label: "Revisione Prodotti" },
   { to: "/admin/support", icon: MessageSquareWarning, label: "Segnalazioni" },
-  { to: "/admin/payments", icon: CreditCard, label: "Pagamenti & Coupon" },
+  { to: "/admin/payments", icon: CreditCard, label: "Pagamenti" },
   { to: "/admin/products-db", icon: Database, label: "Database Prodotti" },
   { to: "/admin/api", icon: Key, label: "API Cibarius" },
   { to: "/admin/stats", icon: TrendingUp, label: "Statistiche" },
-  { to: "/admin/settings", icon: Settings, label: "Impostazioni" },
   { to: "/admin/seed", icon: Sprout, label: "Dati Demo" },
 ];
 

@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
 import { isNativeApp } from "@/lib/native";
 import { SITE_URL } from "@/lib/site";
-import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import MobileHeader from "@/components/MobileHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
@@ -29,13 +28,11 @@ const SubscriptionPage = () => {
   const { user } = useAuth();
   const { role } = useRole();
   const navigate = useNavigate();
-  const location = useLocation();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);
-  const [couponCode, setCouponCode] = useState((location.state as any)?.couponCode || "");
 
   // Determine which tab to show based on role
   const isRestaurant = role === "restaurant_owner";
@@ -76,7 +73,6 @@ const SubscriptionPage = () => {
       const { data, error } = await supabase.functions.invoke("create-checkout-session", {
         body: {
           plan_id: plan.id,
-          coupon_code: couponCode || undefined,
           success_url: `${ritorno}?success=true`,
           cancel_url: `${ritorno}?cancelled=true`,
         },
@@ -298,16 +294,6 @@ const SubscriptionPage = () => {
           </div>
         )}
 
-        {/* Coupon */}
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-muted-foreground">Hai un codice sconto?</p>
-          <Input
-            placeholder="Inserisci codice coupon"
-            value={couponCode}
-            onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-            className="text-center font-mono"
-          />
-        </div>
 
         <div className="flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground">
           <Shield className="h-3.5 w-3.5" />

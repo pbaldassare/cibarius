@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { Check, ArrowRight } from "lucide-react";
 import Seo from "@/components/site/Seo";
 import { Section, SectionHeading, CallToAction } from "@/components/site/sections";
-import { pageByPath, absoluteUrl, CONTACT_EMAIL } from "@/lib/site";
+import { pageByPath, absoluteUrl } from "@/lib/site";
 import { SIGNUP_PATH } from "@/lib/routes";
 import { PLAN_PLUS, PLAN_RESTAURANT, formatPrice } from "@/lib/pricing";
 
@@ -39,22 +39,6 @@ const PIANI = [
     cta: `Prova ${PLAN_RESTAURANT.trialDays} giorni`,
     to: SIGNUP_PATH,
     evidenza: true,
-  },
-  {
-    nome: "Professionisti",
-    prezzo: "Su misura",
-    periodo: "",
-    descrizione: "Per nutrizionisti e dietisti che seguono più assistiti.",
-    voci: [
-      "Piani alimentari e import da PDF",
-      "Diario dei clienti e aderenza",
-      "Note, suggerimenti e appuntamenti",
-      "Pagina personale per i nuovi clienti",
-    ],
-    cta: "Parlane con noi",
-    to: `mailto:${CONTACT_EMAIL}?subject=Piano%20professionisti`,
-    esterno: true,
-    evidenza: false,
   },
 ];
 
@@ -125,7 +109,7 @@ const PrezziPage = () => {
           lead="L'uso domestico è gratuito e resta tale. Chi vuole di più ha il piano Premium, e il piano ristorante si prova per trenta giorni senza carta di credito."
         />
 
-        <div className="mt-10 grid gap-4 lg:grid-cols-3">
+        <div className="mt-10 grid gap-4 lg:grid-cols-2">
           {PIANI.map((p) => (
             <div
               key={p.nome}
@@ -158,25 +142,16 @@ const PrezziPage = () => {
               {p.nota && <p className="mt-4 text-[12px] text-muted-foreground">{p.nota}</p>}
 
               <div className="mt-6 pt-2">
-                {p.esterno ? (
-                  <a
-                    href={p.to}
-                    className="flex h-12 w-full items-center justify-center gap-2 rounded-[14px] border border-border text-[15px] font-semibold text-foreground active:scale-[0.98] transition-transform"
-                  >
-                    {p.cta}
-                  </a>
-                ) : (
-                  <Link
-                    to={p.to}
-                    className={`flex h-12 w-full items-center justify-center gap-2 rounded-[14px] text-[15px] font-semibold active:scale-[0.98] transition-transform ${
-                      p.evidenza
-                        ? "bg-primary text-primary-foreground"
-                        : "border border-border text-foreground"
-                    }`}
-                  >
-                    {p.cta} <ArrowRight className="h-4 w-4" />
-                  </Link>
-                )}
+                <Link
+                  to={p.to}
+                  className={`flex h-12 w-full items-center justify-center gap-2 rounded-[14px] text-[15px] font-semibold active:scale-[0.98] transition-transform ${
+                    p.evidenza
+                      ? "bg-primary text-primary-foreground"
+                      : "border border-border text-foreground"
+                  }`}
+                >
+                  {p.cta} <ArrowRight className="h-4 w-4" />
+                </Link>
               </div>
             </div>
           ))}

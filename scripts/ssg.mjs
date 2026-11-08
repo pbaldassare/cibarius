@@ -28,7 +28,7 @@ const META = {
   "/": {
     title: "Cibarius — Scadenze, magazzino e HACCP in un'unica app",
     description:
-      "Scadenze e dispensa a casa, magazzino e controlli HACCP al ristorante, piani alimentari dal nutrizionista. Un'unica app, tre modi di usarla.",
+      "Scadenze e dispensa a casa, magazzino e controlli HACCP al ristorante. Un'unica app, due modi di usarla.",
   },
   "/ristoranti": {
     title: "HACCP digitale e magazzino per ristoranti | Cibarius",
@@ -39,11 +39,6 @@ const META = {
     title: "Gestione dispensa e scadenze a casa | Cibarius",
     description:
       "Scansiona la spesa, tieni d'occhio le scadenze e cucina con quello che hai. Cibarius ti avvisa prima che il cibo vada buttato.",
-  },
-  "/nutrizionisti": {
-    title: "Piani alimentari e monitoraggio clienti | Cibarius",
-    description:
-      "Crea piani alimentari, segui il diario dei clienti e verifica l'aderenza. I tuoi assistiti usano l'app, tu vedi i risultati.",
   },
   "/come-funziona": {
     title: "Come funziona Cibarius, passo per passo",
@@ -58,7 +53,7 @@ const META = {
   "/faq": {
     title: "Domande frequenti su Cibarius",
     description:
-      "Risposte su HACCP, privacy dei dati, dispositivi supportati, prova gratuita e differenze fra i tre profili d'uso.",
+      "Risposte su HACCP, privacy dei dati, dispositivi supportati, prova gratuita e differenze fra i due profili d'uso.",
   },
   "/contatti": {
     title: "Contatta Cibarius",

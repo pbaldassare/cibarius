@@ -1,49 +1,30 @@
-import { useState, useEffect } from "react";
-import { Link, Navigate, useSearchParams, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { getSavedReferralCode, saveReferralCode } from "@/pages/JoinReferralPage";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, UserPlus, Eye, EyeOff, User, UtensilsCrossed, Stethoscope, ArrowLeft, ArrowRight, Check } from "lucide-react";
+import { Loader2, UserPlus, Eye, EyeOff, User, UtensilsCrossed, ArrowLeft, ArrowRight, Check } from "lucide-react";
 import cibariusLogo from "@/assets/cibarius-logo.png";
 import AuthFeatureCarousel from "@/components/AuthFeatureCarousel";
-import ReferralBadge from "@/components/ReferralBadge";
 import { LOGIN_PATH, USER_HOME } from "@/lib/routes";
 import { getRoleHomePath } from "@/hooks/useRole";
 import { vendeAbbonamenti } from "@/lib/native";
 
 
-type AccountType = "user" | "restaurant_owner" | "professional";
+type AccountType = "user" | "restaurant_owner";
 
 const ACCOUNT_TYPES: { value: AccountType; label: string; desc: string; icon: typeof User }[] = [
   { value: "user", label: "Utente", desc: "Gestisci la tua alimentazione e dispensa", icon: User },
   { value: "restaurant_owner", label: "Ristorante", desc: "Gestisci il tuo ristorante e il magazzino", icon: UtensilsCrossed },
-  { value: "professional", label: "Professionista", desc: "Segui i tuoi clienti come nutrizionista", icon: Stethoscope },
 ];
 
 const SignupPage = () => {
   const { session, loading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-
-  // Check for referral from URL param or localStorage
-  const [refCode, setRefCode] = useState<string | null>(null);
-
-  useEffect(() => {
-    const urlRef = searchParams.get("ref");
-    if (urlRef) {
-      saveReferralCode(urlRef);
-      setRefCode(urlRef.toUpperCase());
-    } else {
-      const saved = getSavedReferralCode();
-      if (saved) setRefCode(saved);
-    }
-  }, [searchParams]);
 
   // Nell'app iOS ci si registra solo come utente (vedi vendeAbbonamenti):
   // niente "Chi sei?", si parte dai dati.
@@ -65,12 +46,6 @@ const SignupPage = () => {
   const [restaurantName, setRestaurantName] = useState("");
   const [restaurantAddress, setRestaurantAddress] = useState("");
   const [restaurantPhone, setRestaurantPhone] = useState("");
-
-  // Step 3 - professional
-  const [displayName, setDisplayName] = useState("");
-  const [specialization, setSpecialization] = useState("");
-  const [city, setCity] = useState("");
-  const [bio, setBio] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -95,7 +70,6 @@ const SignupPage = () => {
     }
     if (step === 3) {
       if (accountType === "restaurant_owner") return restaurantName && restaurantPhone;
-      if (accountType === "professional") return displayName && specialization;
     }
     return true;
   };
@@ -117,22 +91,10 @@ const SignupPage = () => {
       role: accountType!,
       phone: phone || "",
     };
-    // Include referral code in metadata if present
-    if (refCode) {
-      metadata.ref_coupon_code = refCode;
-    }
-
     if (accountType === "restaurant_owner") {
       metadata.restaurant_name = restaurantName;
       metadata.restaurant_address = restaurantAddress;
       metadata.restaurant_phone = restaurantPhone;
-    }
-
-    if (accountType === "professional") {
-      metadata.display_name = displayName;
-      metadata.specialization = specialization;
-      metadata.city = city;
-      metadata.bio = bio;
     }
 
     const { data: signUpData, error } = await supabase.auth.signUp({
@@ -200,11 +162,6 @@ const SignupPage = () => {
         </div>
       </div>
 
-      {/* Referral badge */}
-      <div className="px-4 pt-4">
-        <ReferralBadge className="max-w-md mx-auto" />
-      </div>
-
       <div className="flex flex-1 items-start justify-center px-4 pt-2 pb-8">
         <Card className="w-full max-w-md border-0 shadow-lg">
           <CardHeader className="items-center text-center">
@@ -223,7 +180,6 @@ const SignupPage = () => {
               {step === 1 && "Chi sei?"}
               {step === 2 && "I tuoi dati"}
               {step === 3 && accountType === "restaurant_owner" && "Il tuo ristorante"}
-              {step === 3 && accountType === "professional" && "Il tuo profilo professionale"}
             </CardTitle>
             <CardDescription>
               {step === 1 && "Scegli il tipo di account per iniziare"}
@@ -350,38 +306,6 @@ const SignupPage = () => {
                   value={restaurantPhone}
                   onChange={(e) => setRestaurantPhone(e.target.value)}
                   required
-                />
-              </div>
-            )}
-
-            {/* ─── STEP 3: Professional ─── */}
-            {step === 3 && accountType === "professional" && (
-              <div className="space-y-4">
-                <Input
-                  type="text"
-                  placeholder="Nome professionale (es: Dott. Rossi)"
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  required
-                />
-                <Input
-                  type="text"
-                  placeholder="Specializzazione (es: Nutrizionista)"
-                  value={specialization}
-                  onChange={(e) => setSpecialization(e.target.value)}
-                  required
-                />
-                <Input
-                  type="text"
-                  placeholder="Città (opzionale)"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                />
-                <Textarea
-                  placeholder="Breve bio (opzionale)"
-                  value={bio}
-                  onChange={(e) => setBio(e.target.value)}
-                  rows={3}
                 />
               </div>
             )}

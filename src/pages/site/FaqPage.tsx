@@ -24,7 +24,7 @@ const DOMANDE: { d: string; r: string }[] = [
   },
   {
     d: "Posso usare lo stesso account a casa e al ristorante?",
-    r: "No, sono due profili diversi. Ogni account ha un ruolo, e il ruolo decide quale applicazione si apre dopo l'accesso: dispensa personale, area ristorante, suite per professionisti o portale fornitori.",
+    r: "No, sono due profili diversi. Ogni account ha un ruolo, e il ruolo decide quale applicazione si apre dopo l'accesso: dispensa personale, area ristorante o portale fornitori.",
   },
   {
     d: "Come entra la merce a magazzino?",

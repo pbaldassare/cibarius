@@ -1,13 +1,11 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useNavigate } from "react-router-dom";
-import { Bell, Gift, CheckCircle2, XCircle } from "lucide-react";
+import { Bell } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { USER_HOME } from "@/lib/routes";
 
 interface Notification {
   id: string;
@@ -21,7 +19,6 @@ interface Notification {
 
 export default function UserNotificationsBell() {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [open, setOpen] = useState(false);
 
@@ -70,15 +67,6 @@ export default function UserNotificationsBell() {
     setNotifications((prev) => prev.map((n) => ({ ...n, read_at: n.read_at || new Date().toISOString() })));
   };
 
-  const getIcon = (type: string) => {
-    switch (type) {
-      case "link_approved": return <CheckCircle2 className="h-4 w-4 text-primary" />;
-      case "link_rejected": return <XCircle className="h-4 w-4 text-destructive" />;
-      case "link_request": return <Bell className="h-4 w-4 text-primary" />;
-      default: return <Bell className="h-4 w-4 text-muted-foreground" />;
-    }
-  };
-
   const timeAgo = (date: string) => {
     const diff = Date.now() - new Date(date).getTime();
     const mins = Math.floor(diff / 60000);
@@ -123,30 +111,13 @@ export default function UserNotificationsBell() {
                   className={`w-full text-left p-4 hover:bg-muted/50 transition-colors ${!n.read_at ? "bg-primary/5" : ""}`}
                   onClick={() => {
                     if (!n.read_at) markRead(n.id);
-                    // Navigate based on notification type
-                    if (n.type === "link_request") {
-                      setOpen(false);
-                      navigate("/pro/clients");
-                    } else if (n.type === "link_approved") {
-                      setOpen(false);
-                      navigate(USER_HOME);
-                    }
                   }}
                 >
                   <div className="flex gap-3">
-                    <div className="mt-0.5">{getIcon(n.type)}</div>
+                    <div className="mt-0.5"><Bell className="h-4 w-4 text-muted-foreground" /></div>
                     <div className="flex-1 min-w-0">
                       <p className={`text-sm ${!n.read_at ? "font-semibold text-foreground" : "text-foreground"}`}>{n.title}</p>
                       {n.body && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-3">{n.body}</p>}
-                      {n.metadata?.coupon_code && (
-                        <div className="mt-1.5 inline-flex items-center gap-1 bg-accent/20 border border-accent/30 rounded-md px-2 py-1">
-                          <Gift className="h-3 w-3 text-primary" />
-                          <span className="text-xs font-mono font-bold text-primary">{n.metadata.coupon_code}</span>
-                          {n.metadata.discount_percent && (
-                            <span className="text-[10px] text-muted-foreground">(-{n.metadata.discount_percent}%)</span>
-                          )}
-                        </div>
-                      )}
                       <p className="text-[10px] text-muted-foreground mt-1">{timeAgo(n.created_at)}</p>
                     </div>
                     {!n.read_at && <div className="h-2 w-2 rounded-full bg-primary mt-1.5 flex-shrink-0" />}

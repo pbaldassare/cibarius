@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { Building2, Package, TrendingUp, Loader2, Save } from "lucide-react";
+import { Building2, Package, Loader2, Save } from "lucide-react";
 
 const SupplierPage = () => {
   const { user } = useAuth();
@@ -140,13 +140,6 @@ const SupplierPage = () => {
             </CardContent>
           </Card>
         </div>
-
-        <Card>
-          <CardContent className="flex flex-col items-center py-5">
-            <TrendingUp className="h-8 w-8 text-primary mb-2" />
-            <span className="text-sm text-muted-foreground">Report — prossimamente</span>
-          </CardContent>
-        </Card>
       </main>
     </div>
   );

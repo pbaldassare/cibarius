@@ -13,7 +13,7 @@ import { USER_HOME } from "@/lib/routes";
  * rendeva inutilizzabili gli interruttori delle attivita'). Resta solo sulle
  * home, dove sotto non c'e' nulla da toccare.
  */
-const HOME_PATHS = [USER_HOME, "/restaurant", "/pro", "/supplier"];
+const HOME_PATHS = [USER_HOME, "/restaurant", "/supplier"];
 
 /** Un rifiuto vale una settimana: prima tornava dopo due ore. */
 const DISMISS_MS = 7 * 24 * 60 * 60 * 1000;
