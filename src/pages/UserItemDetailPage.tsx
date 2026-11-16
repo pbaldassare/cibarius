@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { addToShoppingList } from "@/lib/shopping-list";
 import MobileHeader from "@/components/MobileHeader";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ import {
   ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
   Home, Refrigerator, Snowflake, Pencil, Check, X,
   UtensilsCrossed, Camera, FileText, Image as ImageIcon,
+  ShoppingCart,
 } from "lucide-react";
 import { getFoodEmoji } from "@/lib/food-images";
 
@@ -560,6 +562,14 @@ const UserItemDetailPage = () => {
         <div className="grid grid-cols-2 gap-2">
           <Button variant="outline" className="gap-2" onClick={handleMarkConsumed}>
             <Check className="h-4 w-4" /> Consumato
+          </Button>
+          <Button variant="outline" className="gap-2" onClick={async () => {
+            const error = await addToShoppingList(name || item.product?.name || "Prodotto");
+            toast(error
+              ? { variant: "destructive", title: "Non aggiunto alla lista", description: error.message }
+              : { title: "Aggiunto alla lista della spesa ✓" });
+          }}>
+            <ShoppingCart className="h-4 w-4" /> Lista spesa
           </Button>
           {!editing && (
             <Button variant="outline" className="gap-2" onClick={() => setEditing(true)}>

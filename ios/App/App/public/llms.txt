@@ -1,12 +1,11 @@
 # Cibarius
 
 > Applicazione web italiana per la gestione di scadenze alimentari, magazzino e
-> controlli HACCP. Si usa in tre modi: a casa per la dispensa, al ristorante per
-> autocontrollo e tracciabilità, come nutrizionista per i piani alimentari dei
-> propri assistiti.
+> controlli HACCP. Si usa in due modi: a casa per la dispensa e al ristorante per
+> autocontrollo e tracciabilità.
 
 Cibarius è un'unica applicazione con aree separate per ruolo dell'account:
-utente domestico, titolare di ristorante, professionista della nutrizione,
+utente domestico, titolare di ristorante,
 fornitore. Il sito pubblico sta sulla radice del dominio, l'applicazione vive
 dietro l'accesso all'area riservata.
 
@@ -37,20 +36,11 @@ Contatti: info@cibarius.online
 - Ricette costruite su ciò che è già in casa, con precedenza agli ingredienti in scadenza
 - Lista della spesa alimentata da ciò che sta finendo
 
-## Cosa fa per i nutrizionisti
-
-- Piani alimentari organizzati per giorno e pasto, con obiettivi di macronutrienti
-- Importazione di schemi alimentari esistenti da file PDF
-- Diario alimentare degli assistiti e verifica dell'aderenza al piano
-- Note, suggerimenti e appuntamenti collegati alla scheda del cliente
-- Pagina personale del professionista da cui i nuovi clienti si registrano già collegati
-
 ## Prezzi
 
 - Uso domestico: gratuito, senza scadenza
 - Ristorante: 19,90 euro al mese oppure 199 euro all'anno, con 30 giorni di prova
   gratuita e senza carta di credito
-- Professionisti: su richiesta
 
 ## Tecnologia
 
@@ -65,8 +55,7 @@ dati e ogni utente soltanto la propria dispensa.
 - https://cibarius.online/ — presentazione generale
 - https://cibarius.online/ristoranti — HACCP, magazzino e tracciabilità per la ristorazione
 - https://cibarius.online/utenti — dispensa e scadenze per uso domestico
-- https://cibarius.online/nutrizionisti — piani alimentari e monitoraggio assistiti
-- https://cibarius.online/come-funziona — i tre percorsi d'uso passo per passo
+- https://cibarius.online/come-funziona — i due percorsi d'uso passo per passo
 - https://cibarius.online/prezzi — piani e condizioni
 - https://cibarius.online/faq — domande frequenti
 - https://cibarius.online/contatti — come metterci in contatto

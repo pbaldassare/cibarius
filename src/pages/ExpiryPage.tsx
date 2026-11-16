@@ -6,6 +6,7 @@ import MobileHeader from "@/components/MobileHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { addToShoppingList } from "@/lib/shopping-list";
 import { Checkbox } from "@/components/ui/checkbox";
 import SearchBar from "@/components/SearchBar";
 import AddFoodFlow from "@/components/AddFoodFlow";
@@ -13,6 +14,7 @@ import SwipeableItem from "@/components/SwipeableItem";
 import {
   Package, Clock, AlertCircle, Check, Trash2, CalendarClock,
   Plus, ChefHat, CheckSquare, Flame, Refrigerator, Snowflake, Home,
+  ShoppingCart,
 } from "lucide-react";
 import { getFoodEmoji } from "@/lib/food-images";
 import { formatExpiryDate, getCoarseExpiryStatus } from "@/lib/expiry-status";
@@ -557,6 +559,19 @@ const ExpiryPage = () => {
               onClick={() => actionSheet && handleTrash(actionSheet)}
             >
               <Trash2 className="h-4 w-4 text-destructive" /> Buttato
+            </Button>
+            <Button
+              className="w-full justify-start gap-3 h-12 rounded-xl"
+              variant="outline"
+              onClick={async () => {
+                if (!actionSheet) return;
+                const error = await addToShoppingList(actionSheet.name);
+                toast(error
+                  ? { variant: "destructive", title: "Non aggiunto alla lista", description: error.message }
+                  : { title: "Aggiunto alla lista della spesa ✓" });
+              }}
+            >
+              <ShoppingCart className="h-4 w-4 text-primary" /> Aggiungi alla lista della spesa
             </Button>
             <div className="flex gap-2">
               <Input
