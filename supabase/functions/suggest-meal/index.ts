@@ -690,13 +690,6 @@ serve(async (req) => {
       .eq("user_id", user.id)
       .maybeSingle();
 
-    const { data: activePlan } = await supabase
-      .from("diet_plans")
-      .select("kcal_day, protein_g_day, carbs_g_day, fats_g_day, title")
-      .eq("client_user_id", user.id)
-      .eq("is_active", true)
-      .maybeSingle();
-
     const pantryList = (pantry || []).map((p: any) => {
       const daysToExpiry = p.expiry_date
         ? Math.ceil((new Date(p.expiry_date).getTime() - new Date().setHours(0, 0, 0, 0)) / 864e5)
@@ -749,7 +742,7 @@ serve(async (req) => {
       consumedToday.totalFats += m.fats || 0;
     }
 
-    const dailyTarget = activePlan || targets || { kcal_day: 2000, protein_g: 120, carbs_g: 220, fats_g: 70 };
+    const dailyTarget = targets || { kcal_day: 2000, protein_g: 120, carbs_g: 220, fats_g: 70 };
 
     if (pantryNames.length === 0) {
       return new Response(JSON.stringify({

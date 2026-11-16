@@ -63,7 +63,7 @@ const statusTabs = [
 ] as const;
 
 const RestaurantExpiryPage = () => {
-  const { restaurant } = useRestaurant();
+  const { restaurant, isOwner } = useRestaurant();
   const { toast } = useToast();
   const [items, setItems] = useState<ExpiryItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -284,7 +284,7 @@ const RestaurantExpiryPage = () => {
           <button onClick={selectAll} className="text-[12px] font-medium text-white px-2 py-1 rounded-lg active:bg-white/10">Tutti</button>
           <button onClick={exitSelectionMode} className="text-[12px] font-medium text-white px-2 py-1 rounded-lg active:bg-white/10">Annulla</button>
         </>
-      ) : (
+      ) : isOwner && (
         <button onClick={() => setSelectionMode(true)} className="p-1.5 rounded-lg active:bg-white/10 transition-colors" aria-label="Seleziona">
           <CheckSquare className="h-[18px] w-[18px] text-white" strokeWidth={2} />
         </button>

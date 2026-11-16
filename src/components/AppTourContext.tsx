@@ -19,7 +19,7 @@ export interface TourStep {
   duration?: number;
 }
 
-export type TourRole = "user" | "restaurant_owner";
+export type TourRole = "user" | "restaurant_owner" | "restaurant_staff";
 
 interface TourContextType {
   isActive: boolean;
@@ -123,6 +123,8 @@ export const TOUR_STEPS = USER_TOUR_STEPS;
 export function getTourSteps(role: TourRole): TourStep[] {
   switch (role) {
     case "restaurant_owner": return RESTAURANT_TOUR_STEPS;
+    // L'operatore non configura l'HACCP: niente passi sulla pagina di setup.
+    case "restaurant_staff": return RESTAURANT_TOUR_STEPS.filter((s) => s.page !== "/restaurant/haccp/setup");
     default: return USER_TOUR_STEPS;
   }
 }

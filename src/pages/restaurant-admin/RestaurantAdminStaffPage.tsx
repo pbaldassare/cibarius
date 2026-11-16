@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, UserPlus, Trash2, Clock, Info } from "lucide-react";
+import { Loader2, UserPlus, Trash2, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface MemberWithProfile {
@@ -24,6 +24,7 @@ const RestaurantAdminStaffPage = () => {
   const [members, setMembers] = useState<MemberWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState("");
+  const [fullName, setFullName] = useState("");
   const [adding, setAdding] = useState(false);
 
   const fetchMembers = async () => {
@@ -67,35 +68,24 @@ const RestaurantAdminStaffPage = () => {
     e.preventDefault();
     if (!restaurant) return;
     setAdding(true);
-
-    // Find user by email in profiles
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("email", email.trim().toLowerCase())
-      .maybeSingle();
-
-    if (profileError || !profile) {
-      toast({ variant: "destructive", title: "Utente non trovato", description: "Nessun utente registrato con questa email." });
-      setAdding(false);
-      return;
-    }
-
-    const { error } = await supabase
-      .from("restaurant_members")
-      .insert({ restaurant_id: restaurant.id, user_id: profile.id, member_role: "staff" });
-
+    const { data, error } = await supabase.functions.invoke("invite-staff", {
+      body: { email: email.trim(), full_name: fullName.trim() },
+    });
     setAdding(false);
-    if (error) {
-      toast({ variant: "destructive", title: "Errore", description: error.message });
+    // Con status != 2xx il messaggio della funzione sta nel corpo della risposta.
+    const message = data?.error ?? (error && (await (error as { context?: Response }).context?.json?.().catch(() => null))?.error) ?? error?.message;
+    if (message) {
+      toast({ variant: "destructive", title: "Invito non riuscito", description: message });
     } else {
-      toast({ title: "Membro aggiunto" });
+      toast({ title: "Invito inviato", description: `${email.trim()} riceverà una mail per scegliere la password.` });
       setEmail("");
+      setFullName("");
       fetchMembers();
     }
   };
 
   const handleRemove = async (memberId: string) => {
+    if (!window.confirm("Togliere l'accesso a questo operatore?")) return;
     const { error } = await supabase
       .from("restaurant_members")
       .delete()
@@ -122,44 +112,37 @@ const RestaurantAdminStaffPage = () => {
   return (
     <RestaurantAdminLayout>
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-bold text-foreground">Staff</h1>
-        <Badge variant="secondary" className="gap-1.5">
-          <Clock className="h-3 w-3" /> Implementazione a breve
-        </Badge>
+        <h1 className="text-2xl font-bold text-foreground">Operatori</h1>
       </div>
 
-      {/*
-        L'accesso dei collaboratori non e' ancora operativo: `useRestaurant`
-        risolve il ristorante solo per proprietario, quindi un membro aggiunto
-        qui verrebbe comunque rimandato all'onboarding. Il modulo resta
-        disabilitato finche' il percorso non e' completo, invece di aggiungere
-        righe che non producono nessun accesso.
-      */}
       <Card className="mb-6 max-w-lg">
         <CardHeader>
-          <CardTitle className="text-base">Aggiungi membro</CardTitle>
+          <CardTitle className="text-base">Invita un operatore</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-start gap-2 rounded-xl bg-muted/60 p-3">
             <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
-              La gestione dei collaboratori è in arrivo. Per ora l'accesso all'app
-              del ristorante è riservato al titolare.
+              L'operatore riceve una mail per scegliere la password. Vede solo l'app operativa
+              (scadenze, magazzino, HACCP, etichette) e i controlli che registra portano il suo nome.
             </p>
           </div>
-          <form onSubmit={handleAdd} className="flex gap-2">
-            <Input
-              type="email"
-              placeholder="Email utente"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              disabled
-              className="flex-1"
-            />
-            <Button type="submit" disabled>
-              {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
-            </Button>
+          <form onSubmit={handleAdd} className="space-y-2">
+            <Input placeholder="Nome e cognome" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+            <div className="flex gap-2">
+              <Input
+                type="email"
+                placeholder="Email operatore"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="flex-1"
+              />
+              <Button type="submit" disabled={adding} className="gap-2">
+                {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+                Invita
+              </Button>
+            </div>
           </form>
         </CardContent>
       </Card>
@@ -187,7 +170,7 @@ const RestaurantAdminStaffPage = () => {
                   <TableCell className="text-sm">{m.full_name || "—"}</TableCell>
                   <TableCell>
                     <Badge variant={m.member_role === "owner" ? "default" : "secondary"}>
-                      {m.member_role}
+                      {m.member_role === "owner" ? "Titolare" : "Operatore"}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -207,7 +190,7 @@ const RestaurantAdminStaffPage = () => {
               {members.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
-                    Nessun membro
+                    Nessun operatore
                   </TableCell>
                 </TableRow>
               )}

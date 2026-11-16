@@ -60,7 +60,8 @@ const CATEGORIES = ["Antipasto", "Primo", "Secondo", "Contorno", "Dolce", "Bevan
 const DIFFICULTIES = ["Facile", "Media", "Difficile"];
 
 const RestaurantRecipesPage = () => {
-  const { restaurant } = useRestaurant();
+  // Le ricette le gestisce il titolare: l'operatore le consulta soltanto.
+  const { restaurant, isOwner } = useRestaurant();
   const { toast } = useToast();
 
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -430,9 +431,9 @@ const RestaurantRecipesPage = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Cerca ricetta…" aria-label="Cerca ricetta" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
           </div>
-          <Button className="gap-2" onClick={() => openEditor()}>
+          {isOwner && <Button className="gap-2" onClick={() => openEditor()}>
             <Plus className="h-4 w-4" /> Nuova
-          </Button>
+          </Button>}
         </div>
 
         <Select value={filterCat} onValueChange={setFilterCat}>
@@ -450,7 +451,7 @@ const RestaurantRecipesPage = () => {
             icon={BookOpen}
             title="Nessuna ricetta"
             description="Crea la tua prima ricetta con ingredienti, allergeni e foto."
-            actions={[{ label: "Crea ricetta", icon: Plus, onClick: () => openEditor() }]}
+            actions={isOwner ? [{ label: "Crea ricetta", icon: Plus, onClick: () => openEditor() }] : []}
           />
         ) : (
           <div className="space-y-1.5">
@@ -484,7 +485,7 @@ const RestaurantRecipesPage = () => {
                 {/* Bersagli da 40px e nomi accessibili: erano due icone da
                     32px senza etichetta, con l'eliminazione appiccicata alla
                     modifica e nessuna conferma. */}
-                <div className="flex gap-1.5 shrink-0">
+                {isOwner && <div className="flex gap-1.5 shrink-0">
                   <Button
                     size="icon" variant="ghost" className="h-10 w-10"
                     aria-label={`Modifica ${r.title}`}
@@ -499,7 +500,7 @@ const RestaurantRecipesPage = () => {
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
-                </div>
+                </div>}
               </div>
             ))}
           </div>

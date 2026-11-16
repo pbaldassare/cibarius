@@ -24,6 +24,7 @@ const tabsByRole: Record<string, TabItem[]> = {
   ],
   // Stessa lista della barra operativa: una sola definizione, nessuna deriva.
   restaurant_owner: RESTAURANT_TABS,
+  restaurant_staff: RESTAURANT_TABS,
   supplier: [
     { to: "/supplier", icon: LayoutDashboard, label: "Dashboard" },
     { to: "/supplier/restaurants", icon: Building2, label: "Ristoranti" },

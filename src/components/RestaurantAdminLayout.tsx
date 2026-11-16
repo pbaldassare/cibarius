@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRestaurant } from "@/hooks/useRestaurant";
 import {
   LayoutDashboard, Store, FileText, LogOut, ArrowLeft, ChevronLeft,
-  ClipboardCheck, Settings2, ShieldCheck, Thermometer,
+  ClipboardCheck, Settings2, ShieldCheck, Thermometer, Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import cibariusLogo from "@/assets/cibarius-logo.png";
@@ -16,7 +16,8 @@ const sidebarItems = [
   { to: "/restaurant-admin/settings", icon: Store, label: "Dati ristorante" },
   { to: "/restaurant/haccp/setup", icon: Settings2, label: "Configura HACCP" },
   { to: "/restaurant/haccp/history", icon: FileText, label: "Storico HACCP" },
-  // Staff e Report restano nascosti finché non funzionano (le pagine esistono già).
+  { to: "/restaurant-admin/staff", icon: Users, label: "Operatori" },
+  // Report resta nascosto finché non funziona (la pagina esiste già).
 ];
 
 const RestaurantAdminLayout = ({ children }: { children: ReactNode }) => {

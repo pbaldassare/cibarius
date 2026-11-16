@@ -110,6 +110,7 @@ const queryClient = new QueryClient();
 /** Nell'app iOS le pagine d'acquisto non ci sono (vedi vendeAbbonamenti). */
 const ABBONAMENTO = vendeAbbonamenti() ? <SubscriptionPage /> : <Navigate to={LOGIN_PATH} replace />;
 
+const OWNER = ["restaurant_owner", "admin"];
 const RG = ({ roles, children }: { roles: string[]; children: React.ReactNode }) => (
   <RoleGuard allowedRoles={roles as any}>{children}</RoleGuard>
 );
@@ -204,20 +205,21 @@ const App = () => (
                 <Route index element={<RestaurantOnboardingPage />} />
               </Route>
 
-              <Route element={<RG roles={["restaurant_owner", "admin"]}><RestaurantGuard><RestaurantLayout /></RestaurantGuard></RG>}>
+              {/* Operatori (restaurant_staff): solo app operativa; le pagine del titolare hanno un RG in piu'. */}
+              <Route element={<RG roles={["restaurant_owner", "restaurant_staff", "admin"]}><RestaurantGuard><RestaurantLayout /></RestaurantGuard></RG>}>
                 <Route path="/restaurant" element={<RestaurantPage />} />
                 <Route path="/restaurant/products" element={<RestaurantExpiryPage />} />
                 <Route path="/restaurant/stock" element={<RestaurantStockPage />} />
                 <Route path="/restaurant/recipes" element={<RestaurantRecipesPage />} />
-                <Route path="/restaurant/settings" element={<RestaurantSettingsPage />} />
+                <Route path="/restaurant/settings" element={<RG roles={OWNER}><RestaurantSettingsPage /></RG>} />
                 <Route path="/restaurant/invoices" element={<RestaurantInvoicesPage />} />
                 <Route path="/restaurant/preparations" element={<RestaurantPreparationsPage />} />
                 <Route path="/restaurant/item/:id" element={<RestaurantItemPage />} />
                 <Route path="/restaurant/profile" element={<ProfiloPage />} />
                 {/* /subscription e' dell'app consumer: il ristoratore verrebbe rimandato alla home. */}
-                <Route path="/restaurant/subscription" element={ABBONAMENTO} />
+                <Route path="/restaurant/subscription" element={<RG roles={OWNER}>{ABBONAMENTO}</RG>} />
                 <Route path="/restaurant/haccp" element={<RestaurantHaccpPage />} />
-                <Route path="/restaurant/haccp/setup" element={<RestaurantHaccpSetupPage />} />
+                <Route path="/restaurant/haccp/setup" element={<RG roles={OWNER}><RestaurantHaccpSetupPage /></RG>} />
                 <Route path="/restaurant/haccp/history" element={<RestaurantHaccpHistoryPage />} />
                 <Route path="/restaurant/haccp-labels" element={<RestaurantHaccpLabelsPage />} />
                 <Route path="/restaurant/haccp-labels/new" element={<RestaurantHaccpLabelNewPage />} />

@@ -119,7 +119,7 @@ const QUICK_ACTIONS = [
 ];
 
 const RestaurantPage = () => {
-  const { restaurant, isLoading: restLoading } = useRestaurant();
+  const { restaurant, isOwner, isLoading: restLoading } = useRestaurant();
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -331,7 +331,7 @@ const RestaurantPage = () => {
     <div className="min-h-screen bg-background" data-tour="rest-greeting">
       <MobileHeader title={restaurant?.name ?? "Dashboard"} />
       <main className="space-y-3 px-4 pt-1 pb-28">
-        <RestaurantSubscriptionBanner />
+        {isOwner && <RestaurantSubscriptionBanner />}
 
         {/* Top bar */}
         <div className="flex gap-2" data-tour="rest-topbar">
@@ -342,13 +342,13 @@ const RestaurantPage = () => {
             <User className="h-4 w-4 text-muted-foreground" />
             <span className="text-[13px] font-medium text-foreground">Profilo</span>
           </button>
-          <Link
+          {isOwner && <Link
             to="/restaurant-admin"
             className="flex items-center gap-2 rounded-[12px] bg-card shadow-card px-3 py-2 flex-1 active:scale-[0.98] transition-transform"
           >
             <Settings className="h-4 w-4 text-muted-foreground" />
             <span className="text-[13px] font-medium text-foreground">Backoffice</span>
-          </Link>
+          </Link>}
         </div>
 
         {/* ═══ Expiry counters (moved up) ═══ */}
@@ -401,9 +401,9 @@ const RestaurantPage = () => {
           {haccpTasks.length === 0 ? (
             <div className="text-center py-4">
               <p className="text-sm text-muted-foreground mb-2">Nessuna attività configurata</p>
-              <Link to="/restaurant/haccp/setup">
+              {isOwner && <Link to="/restaurant/haccp/setup">
                 <button className="text-sm font-medium text-primary">Configura HACCP →</button>
-              </Link>
+              </Link>}
             </div>
           ) : (
             <>

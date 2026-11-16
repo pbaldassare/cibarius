@@ -30,11 +30,22 @@ export const useRestaurant = () => {
       return;
     }
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from("restaurants")
       .select("*")
       .eq("owner_id", user.id)
       .maybeSingle();
+
+    // Operatore: il ristorante e' quello a cui il titolare l'ha collegato.
+    if (!error && !data) {
+      const { data: member } = await supabase
+        .from("restaurant_members")
+        .select("restaurants(*)")
+        .eq("user_id", user.id)
+        .limit(1)
+        .maybeSingle();
+      data = (member?.restaurants as typeof data) ?? null;
+    }
 
     if (!error && data) {
       setRestaurant(data as Restaurant);
@@ -51,6 +62,8 @@ export const useRestaurant = () => {
 
   return {
     restaurant,
+    /** false per gli operatori: niente backoffice, abbonamento, dati ristorante, cancellazioni. */
+    isOwner: !!restaurant && restaurant.owner_id === user?.id,
     isLoading: authLoading || isLoading,
     refetch: fetchRestaurant,
   };

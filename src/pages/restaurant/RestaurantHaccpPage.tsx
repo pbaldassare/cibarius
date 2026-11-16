@@ -59,7 +59,7 @@ const TEMP_THRESHOLDS: Record<string, { max: number; label: string; eqType: stri
 const isTemperatureTask = (category: string): boolean => TEMP_CATEGORIES.includes(category);
 
 const RestaurantHaccpPage = () => {
-  const { restaurant } = useRestaurant();
+  const { restaurant, isOwner } = useRestaurant();
   const { user } = useAuth();
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -272,11 +272,11 @@ const RestaurantHaccpPage = () => {
 
       {/* Config link */}
       <div className="flex justify-end gap-2">
-        <Link to="/restaurant/haccp/setup">
+        {isOwner && <Link to="/restaurant/haccp/setup">
           <Button variant="outline" size="sm" className="gap-1.5">
             <Settings2 className="h-4 w-4" /> Configura
           </Button>
-        </Link>
+        </Link>}
         <Link to="/restaurant/haccp/history">
           <Button variant="outline" size="sm">Storico</Button>
         </Link>
@@ -297,9 +297,9 @@ const RestaurantHaccpPage = () => {
             ) : (
               <>
                 <p className="text-muted-foreground mb-3">Nessuna attività HACCP configurata</p>
-                <Link to="/restaurant/haccp/setup">
+                {isOwner && <Link to="/restaurant/haccp/setup">
                   <Button>Configura attività</Button>
-                </Link>
+                </Link>}
               </>
             )}
           </CardContent>

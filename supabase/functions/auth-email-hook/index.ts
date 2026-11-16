@@ -95,6 +95,27 @@ function recoveryEmail(name: string, confirmUrl: string): EmailResult {
   };
 }
 
+function inviteEmail(name: string, confirmUrl: string): EmailResult {
+  return {
+    subject: "Sei stato aggiunto come operatore su Cibarius",
+    html: baseHtml("Invito operatore", `
+      <h1 style="font-size:22px;color:${TEXT_DARK};margin:0 0 16px;font-family:'Fredoka',Arial,sans-serif;">Ciao, ${name}</h1>
+      <p style="font-size:15px;color:${TEXT_DARK};line-height:1.6;margin:0 0 24px;">
+        Il tuo ristorante ti ha aggiunto come operatore su Cibarius. Scegli una password e potrai registrare scadenze, controlli HACCP ed etichette.
+      </p>
+      <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
+        <a href="${confirmUrl}" style="display:inline-block;background:${PRIMARY};color:#ffffff;padding:14px 32px;border-radius:12px;font-size:16px;font-weight:600;text-decoration:none;">
+          Scegli la password
+        </a>
+      </td></tr></table>
+      <p style="font-size:13px;color:${TEXT_MUTED};margin:24px 0 0;line-height:1.5;">
+        Poi accedi all'app Cibarius con questa email e la password scelta.
+      </p>
+    `),
+    text: `Ciao ${name}, il tuo ristorante ti ha aggiunto come operatore su Cibarius. Scegli la password: ${confirmUrl}`,
+  };
+}
+
 function emailChangeEmail(name: string, confirmUrl: string): EmailResult {
   return {
     subject: "Conferma il cambio email su Cibarius",
@@ -237,6 +258,11 @@ Deno.serve(async (req) => {
       case "recovery": {
         const confirmUrl = buildConfirmUrl(tokenHash, "recovery", redirectTo || "/reset-password");
         emailContent = recoveryEmail(name, confirmUrl);
+        break;
+      }
+      case "invite": {
+        const confirmUrl = buildConfirmUrl(tokenHash, "invite", "/reset-password");
+        emailContent = inviteEmail(name, confirmUrl);
         break;
       }
       case "email_change": {

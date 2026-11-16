@@ -22,6 +22,7 @@ const ROLES: AppRole[] = ["user", "restaurant_owner", "admin", "supplier"];
 const ROLE_LABELS: Record<AppRole, string> = {
   user: "Utente",
   restaurant_owner: "Ristoratore",
+  restaurant_staff: "Operatore ristorante",
   admin: "Amministratore",
   supplier: "Fornitore",
 };

@@ -86,7 +86,7 @@ interface Props {
 }
 
 const OnboardingWalkthrough = ({ role, onComplete }: Props) => {
-  const slides = SLIDES_BY_ROLE[role || "user"] || SLIDES_BY_ROLE.user;
+  const slides = SLIDES_BY_ROLE[role === "restaurant_staff" ? "restaurant_owner" : role || "user"] || SLIDES_BY_ROLE.user;
   const [current, setCurrent] = useState(0);
   useIconeBarraScure();
 

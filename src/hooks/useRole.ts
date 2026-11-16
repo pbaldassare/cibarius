@@ -3,7 +3,8 @@ import { useAuth } from "./useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { USER_HOME, RESTAURANT_HOME, SUPPLIER_HOME, ADMIN_HOME } from "@/lib/routes";
 
-export type AppRole = "user" | "restaurant_owner" | "admin" | "supplier";
+/** restaurant_staff: operatore invitato dal titolare, vede solo l'app operativa del ristorante. */
+export type AppRole = "user" | "restaurant_owner" | "restaurant_staff" | "admin" | "supplier";
 
 export interface Profile {
   id: string;
@@ -71,7 +72,8 @@ export const useRole = () => {
 export const getRoleHomePath = (role: AppRole | null): string => {
   switch (role) {
     case "admin": return ADMIN_HOME;
-    case "restaurant_owner": return RESTAURANT_HOME;
+    case "restaurant_owner":
+    case "restaurant_staff": return RESTAURANT_HOME;
     case "supplier": return SUPPLIER_HOME;
     // La radice ora e' il sito pubblico: l'utente consumer va su /app.
     default: return USER_HOME;

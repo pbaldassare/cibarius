@@ -17,14 +17,13 @@ import { lookupBarcode, calcNutrition, type ProductData } from "@/lib/barcode";
 import { searchFoodProgressive, type FoodSearchResult, type SearchPhase } from "@/lib/search-food";
 import { analyzeFoodPhotos, fuseWithOFF, fileToImageFile, lookupProductInDB, type ImageFile, type FusedFoodData } from "@/lib/ai-food";
 import { Switch } from "@/components/ui/switch";
-import MealRecipeCard from "@/components/MealRecipeCard";
 import { Slider } from "@/components/ui/slider";
 import { addDays, format } from "date-fns";
 import {
   ArrowLeft, Search, ScanLine, Keyboard, Camera, Loader2,
   Package, Plus, Minus, Check, Flame, Archive, Thermometer, Snowflake,
   CalendarSearch, AlertTriangle, Sparkles, X, ImagePlus, ChevronDown, ChevronUp, ChefHat,
-  CheckCircle2, HelpCircle, Zap, ShieldCheck, ShieldAlert, ShieldX, UtensilsCrossed,
+  CheckCircle2, HelpCircle, Zap, ShieldCheck, ShieldAlert, ShieldX,
   Receipt, ShoppingCart,
 } from "lucide-react";
 import { getFoodEmoji } from "@/lib/food-images";
@@ -35,7 +34,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 export type AddFoodContext = "inventory" | "meal" | "recipe" | "preparation";
 type MealType = "colazione" | "pranzo" | "cena" | "spuntino";
 type Method = "photo_ai" | "search" | "scan" | "manual";
-type Step = "method" | "photo_ai" | "scan" | "search" | "summary" | "recipes" | "receipt" | "receipt_photo" | "receipt_qr";
+type Step = "method" | "photo_ai" | "scan" | "search" | "summary" | "receipt" | "receipt_photo" | "receipt_qr";
 
 interface SearchProduct {
   id: string;
@@ -153,13 +152,10 @@ const AddFoodFlow = ({
   const [editingChip, setEditingChip] = useState<"qty" | "storage" | "expiry" | "serving" | null>(null);
 
   // Plan recipes state
-  const [planRecipes, setPlanRecipes] = useState<any[]>([]);
-  const [planRecipesLoading, setPlanRecipesLoading] = useState(false);
 
   // Manual name autocomplete
   const [manualSuggestions, setManualSuggestions] = useState<SearchProduct[]>([]);
   const debouncedName = useDebounce(name, 300);
-  const [activePlanTitle, setActivePlanTitle] = useState<string>("");
 
   // Dedup state
   const [dedupOpen, setDedupOpen] = useState(false);
@@ -225,22 +221,6 @@ const AddFoodFlow = ({
   const receiptPhotoInputRef = useRef<HTMLInputElement>(null);
   const [receiptPhotoPreview, setReceiptPhotoPreview] = useState<string | null>(null);
 
-  // Detect diet category from plan title
-  const CATEGORY_MAP: Record<string, string> = {
-    mediterranea: "mediterranea", keto: "keto", ketogenica: "keto",
-    digiuno: "digiuno", intermittente: "digiuno",
-    massa: "massa", muscolare: "massa",
-    dimagrimento: "dimagrimento", moderato: "dimagrimento",
-  };
-  const detectDietCategory = (title: string) => {
-    const lower = title.toLowerCase();
-    for (const [kw, cat] of Object.entries(CATEGORY_MAP)) {
-      if (lower.includes(kw)) return cat;
-    }
-    return "mediterranea";
-  };
-  const detectIsFemale = (title: string) => title.toLowerCase().includes("donna");
-
   // Manual name autocomplete: suggest similar products while typing
   useEffect(() => {
     if (method !== "manual" || !debouncedName || debouncedName.length < 2 || step !== "summary") {
@@ -269,101 +249,6 @@ const AddFoodFlow = ({
       setManualSuggestions(results.slice(0, 8));
     });
   }, [debouncedName, method, step]);
-
-  // Fetch plan recipes when opening in meal context
-  useEffect(() => {
-    if (!open || context !== "meal" || !user) return;
-    const fetchPlanRecipes = async () => {
-      setPlanRecipesLoading(true);
-      const { data: plans } = await supabase
-        .from("diet_plans")
-        .select("title")
-        .eq("client_user_id", user.id)
-        .eq("is_active", true)
-        .order("created_at", { ascending: false })
-        .limit(1);
-      if (!plans || plans.length === 0) {
-        setPlanRecipes([]);
-        setPlanRecipesLoading(false);
-        return;
-      }
-      const planTitle = plans[0].title;
-      setActivePlanTitle(planTitle);
-      const cat = detectDietCategory(planTitle);
-      const { data: recipes } = await supabase
-        .from("template_recipes")
-        .select("*")
-        .eq("diet_category", cat)
-        .order("meal_type")
-        .order("title");
-      setPlanRecipes(recipes || []);
-      setPlanRecipesLoading(false);
-    };
-    fetchPlanRecipes();
-  }, [open, context, user]);
-
-  // Register recipe as meal
-  const handleRegisterRecipeFromFlow = async (ingredients: any[], title: string) => {
-    if (!user || !(selectedMealType || preselectedMealType)) return;
-    setSaving(true);
-    try {
-      const today = new Date().toISOString().slice(0, 10);
-      let { data: dayData } = await supabase
-        .from("meal_days").select("id")
-        .eq("user_id", user.id).eq("day_date", today).maybeSingle();
-      if (!dayData) {
-        const { data: nd, error: de } = await supabase
-          .from("meal_days").insert({ user_id: user.id, day_date: today })
-          .select("id").single();
-        if (de) throw de;
-        dayData = nd;
-      }
-      const mealTypeToUse = selectedMealType || preselectedMealType!;
-      let { data: mealData } = await supabase
-        .from("meals").select("id")
-        .eq("meal_day_id", dayData!.id).eq("meal_type", mealTypeToUse).maybeSingle();
-      if (!mealData) {
-        const { data: nm, error: me } = await supabase
-          .from("meals").insert({ meal_day_id: dayData!.id, meal_type: mealTypeToUse })
-          .select("id").single();
-        if (me) throw me;
-        mealData = nm;
-      }
-      const totalKcal = ingredients.reduce((s, i) => s + i.kcal, 0);
-      const totalP = ingredients.reduce((s, i) => s + i.protein_g, 0);
-      const totalC = ingredients.reduce((s, i) => s + i.carbs_g, 0);
-      const totalF = ingredients.reduce((s, i) => s + i.fats_g, 0);
-      const { error: itemErr } = await supabase.from("meal_items").insert({
-        meal_id: mealData!.id,
-        source_type: "custom",
-        custom_name: title,
-        dish_name: title,
-        calories: totalKcal,
-        quantity: 1,
-        unit: "porzione",
-        macros: { protein: totalP, carbs: totalC, fats: totalF },
-      });
-      if (itemErr) throw itemErr;
-      // Auto-deduct from pantry
-      const pantryItems = ingredients.map(i => ({
-        custom_name: i.name,
-        dish_name: i.name,
-        quantity: i.grams,
-        unit: "g" as const,
-      }));
-      await deductPantryFromMeal(user.id, pantryItems);
-      toast({ title: `"${title}" registrato! ✅` });
-      setSaved(true);
-      if (navigator.vibrate) navigator.vibrate(50);
-      await new Promise((r) => setTimeout(r, 600));
-      onComplete();
-      onOpenChange(false);
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Errore", description: e.message });
-    } finally {
-      setSaving(false);
-    }
-  };
 
   // Reset on close
   useEffect(() => {
@@ -1141,7 +1026,6 @@ const AddFoodFlow = ({
 
   const goBack = () => {
     if (step === "summary") setStep(method === "manual" ? "method" : method === "photo_ai" ? "photo_ai" : method === "scan" ? "scan" : "search");
-    else if (step === "recipes") setStep("method");
     else if (step === "receipt") setStep("receipt_qr");
     else if (step === "receipt_qr") setStep("method");
     else if (step === "search" || step === "scan" || step === "photo_ai") setStep("method");
@@ -1155,7 +1039,6 @@ const AddFoodFlow = ({
     if (step === "search") return "Cerca prodotto";
     if (step === "receipt") return "Scontrino QR";
     if (step === "receipt_qr") return "Scansiona QR scontrino";
-    if (step === "recipes") return "Ricette dal piano";
     return "Riepilogo";
   };
 
@@ -1322,28 +1205,6 @@ const AddFoodFlow = ({
                     </div>
                   </button>
 
-                  {/* Ricette dal piano – only for meal context with active plan */}
-                  {context === "meal" && planRecipes.length > 0 && (
-                    <button
-                      onClick={() => {
-                        if (!preselectedMealType && !selectedMealType) {
-                          toast({ variant: "destructive", title: "Seleziona prima il tipo di pasto" });
-                          return;
-                        }
-                        setStep("recipes");
-                      }}
-                      className="flex items-center gap-3 rounded-2xl border-2 border-dashed border-success/30 bg-success/5 p-4 text-left active:scale-[0.98] transition-transform"
-                    >
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-success/20">
-                        <UtensilsCrossed className="h-5 w-5 text-success" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-foreground">🍽️ Ricette dal piano</p>
-                        <p className="text-xs text-muted-foreground">Scegli tra le ricette suggerite</p>
-                      </div>
-                    </button>
-                  )}
-
                   {/* Crea Preparazione link – only for restaurants */}
                   {(context === "inventory" || context === "preparation") && defaultRestaurantId && (
                     <button
@@ -1363,48 +1224,6 @@ const AddFoodFlow = ({
                     </button>
                   )}
                 </div>
-              </div>
-            )}
-
-            {/* ─── STEP: Recipes from plan ─── */}
-            {step === "recipes" && (
-              <div className="space-y-3">
-                {(() => {
-                  const mealType = selectedMealType || preselectedMealType;
-                  const filtered = planRecipes.filter((r) => r.meal_type === mealType);
-                  const isFemale = detectIsFemale(activePlanTitle);
-                  const portionScale = isFemale ? (filtered[0]?.portion_scale_female ?? 0.8) : 1;
-
-                  if (filtered.length === 0) {
-                    return (
-                      <div className="text-center py-10 text-muted-foreground">
-                        <UtensilsCrossed className="h-8 w-8 mx-auto mb-2 opacity-40" />
-                        <p className="text-sm">Nessuna ricetta per questo pasto</p>
-                      </div>
-                    );
-                  }
-
-                  return filtered.map((recipe) => (
-                    <MealRecipeCard
-                      key={recipe.id}
-                      title={recipe.title}
-                      instructions={recipe.instructions}
-                      prep_time_min={recipe.prep_time_min ?? 10}
-                      ingredients={recipe.ingredients as any[]}
-                      kcal_total={recipe.kcal_total}
-                      protein_total={recipe.protein_total}
-                      carbs_total={recipe.carbs_total}
-                      fats_total={recipe.fats_total}
-                      portionScale={portionScale}
-                      onRegister={(ings, title) => handleRegisterRecipeFromFlow(ings, title)}
-                    />
-                  ));
-                })()}
-                {saving && (
-                  <div className="flex justify-center py-4">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                  </div>
-                )}
               </div>
             )}
 
