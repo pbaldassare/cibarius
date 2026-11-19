@@ -9,6 +9,8 @@ import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import type { jsPDF } from "jspdf";
 import { toast } from "sonner";
+import HaccpLabelPdfView from "@/components/HaccpLabelPdfView";
+import { captureElementToPdf } from "@/lib/haccp-label-pdf";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
@@ -39,7 +41,9 @@ const PublicHaccpLabelPage = () => {
   if (error) return <div className="min-h-screen flex items-center justify-center p-4"><Card><CardContent className="p-8 text-center">{error}</CardContent></Card></div>;
   if (!data) return null;
 
-  const { label, restaurant, ingredients, documents, events = [] } = data;
+  const { label, restaurant, events = [] } = data;
+  const ingredients = data.ingredients ?? [];
+  const documents = data.documents ?? [];
 
   const eventMeta = (action: string) => {
     switch (action) {
@@ -61,41 +65,16 @@ const PublicHaccpLabelPage = () => {
     return <Badge className="bg-emerald-500 text-white gap-1"><CheckCircle2 className="h-3 w-3" /> Valido</Badge>;
   };
 
-  const buildPdf = async (): Promise<jsPDF | null> => {
-    if (!pdfRef.current) return null;
-    // html2canvas + jspdf pesano ~600 kB: caricali solo quando si genera il PDF
-    const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
-      import("html2canvas"),
-      import("jspdf"),
-    ]);
-    const canvas = await html2canvas(pdfRef.current, {
-      scale: 2,
-      backgroundColor: "#ffffff",
-      useCORS: true,
-      logging: false,
-    });
-    const imgData = canvas.toDataURL("image/jpeg", 0.92);
-    const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-    const pageW = pdf.internal.pageSize.getWidth();
-    const pageH = pdf.internal.pageSize.getHeight();
-    const margin = 10;
-    const usableW = pageW - margin * 2;
-    const imgH = (canvas.height * usableW) / canvas.width;
-    let heightLeft = imgH;
-    let position = margin;
-    pdf.addImage(imgData, "JPEG", margin, position, usableW, imgH);
-    heightLeft -= pageH - margin * 2;
-    while (heightLeft > 0) {
-      position = heightLeft - imgH + margin;
-      pdf.addPage();
-      pdf.addImage(imgData, "JPEG", margin, position, usableW, imgH);
-      heightLeft -= pageH - margin * 2;
-    }
-    return pdf;
-  };
-
   const pdfFilename = () =>
     `HACCP_${label.internal_lot_code || "etichetta"}_${label.preparation_name?.replace(/\s+/g, "_") || ""}.pdf`;
+
+  const buildPdf = async (): Promise<jsPDF | null> => {
+    if (!pdfRef.current) return null;
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    });
+    return captureElementToPdf(pdfRef.current, pdfFilename());
+  };
 
   const previewPdf = async () => {
     setGenerating(true);
@@ -141,8 +120,14 @@ const PublicHaccpLabelPage = () => {
           <DialogHeader className="p-4 border-b">
             <DialogTitle className="flex items-center gap-2"><Eye className="h-4 w-4" /> Anteprima PDF — {label.preparation_name}</DialogTitle>
           </DialogHeader>
-          <div className="flex-1 bg-muted overflow-hidden">
-            {previewUrl && <iframe src={previewUrl} title="Anteprima PDF" className="w-full h-full border-0" />}
+          <div className="flex-1 min-h-0 bg-white overflow-hidden">
+            {previewUrl && (
+              <iframe
+                src={`${previewUrl}#view=FitH`}
+                title="Anteprima PDF"
+                className="w-full h-full min-h-[480px] border-0 bg-white"
+              />
+            )}
           </div>
           <DialogFooter className="p-4 border-t flex-row justify-end gap-2">
             <Button variant="outline" onClick={closePreview}>Annulla</Button>
@@ -150,7 +135,22 @@ const PublicHaccpLabelPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <div ref={pdfRef} className="space-y-4">
+      <div
+        ref={pdfRef}
+        data-haccp-pdf-capture
+        className="fixed top-0 left-0 -z-50 w-[672px] opacity-0 pointer-events-none overflow-visible"
+        aria-hidden
+      >
+        <HaccpLabelPdfView
+          label={label}
+          restaurant={restaurant}
+          ingredients={ingredients}
+          documents={documents}
+          events={events}
+        />
+      </div>
+
+      <div className="space-y-4">
       <Card className="haccp-section print:shadow-none print:border-0">
         <CardContent className="p-6 space-y-3 print:p-2">
           <div className="flex items-center justify-between gap-2">
