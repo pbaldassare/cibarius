@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInputWithHint } from "@/components/DateInputWithHint";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
@@ -648,8 +649,7 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground">Scadenza</label>
-                  <Input
-                    type="date"
+                  <DateInputWithHint
                     value={currentItem.expiry_date || ""}
                     onChange={(e) => updateEditItem("expiry_date", e.target.value)}
                     className="mt-1"
@@ -657,8 +657,7 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
                 </div>
                 <div>
                   <label className="text-xs font-medium text-muted-foreground">Produzione</label>
-                  <Input
-                    type="date"
+                  <DateInputWithHint
                     value={currentItem.production_date || ""}
                     onChange={(e) => updateEditItem("production_date", e.target.value)}
                     className="mt-1"
@@ -705,43 +704,49 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground">Quantità</label>
+                  <label className="text-xs font-medium text-muted-foreground">Quantità in magazzino</label>
                   <div className="flex gap-1 mt-1">
                     <Input
                       type="number"
                       value={currentItem.quantity || ""}
                       onChange={(e) => updateEditItem("quantity", e.target.value ? parseFloat(e.target.value) : null)}
                       className="flex-1"
+                      aria-label="Quantità pezzi o confezioni in magazzino"
                     />
                     <Input
                       value={currentItem.unit || "pz"}
                       onChange={(e) => updateEditItem("unit", e.target.value)}
                       className="w-16"
+                      aria-label="Unità magazzino"
                     />
                   </div>
+                  <p className="text-[10px] text-muted-foreground mt-1">Quante unità stai caricando (es. 6 confezioni).</p>
                 </div>
               </div>
 
               {/* Net weight + Ingredients text */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground">Peso netto (g)</label>
+                  <label className="text-xs font-medium text-muted-foreground">Peso netto confezione (g)</label>
                   <Input
                     type="number"
                     value={(currentItem as any).netWeightG || ""}
                     onChange={(e) => updateEditItem("netWeightG", e.target.value ? parseFloat(e.target.value) : null)}
                     placeholder="Es: 500"
                     className="mt-1"
+                    aria-label="Peso netto di una singola confezione in grammi"
                   />
+                  <p className="text-[10px] text-muted-foreground mt-1">Per confezione, come in etichetta (non il totale di tutte le confezioni).</p>
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground">Ingredienti (etichetta)</label>
+                  <label className="text-xs font-medium text-muted-foreground">Ingredienti (testo etichetta)</label>
                   <Input
                     value={(currentItem as any).ingredientsText || ""}
                     onChange={(e) => updateEditItem("ingredientsText", e.target.value)}
-                    placeholder="farina, acqua, sale..."
+                    placeholder="Copia dalla confezione o cerca in catalogo al carico"
                     className="mt-1"
                   />
+                  <p className="text-[10px] text-muted-foreground mt-1">Testo libero per stampa HACCP; in ricette usa la ricerca catalogo.</p>
                 </div>
               </div>
 

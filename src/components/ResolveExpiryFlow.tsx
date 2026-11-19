@@ -12,7 +12,8 @@ import {
   Thermometer, Snowflake, Archive, SkipForward,
 } from "lucide-react";
 import { getFoodEmoji } from "@/lib/food-images";
-import { formatExpiryDate, getCoarseExpiryStatus } from "@/lib/expiry-status";
+import { getCoarseExpiryStatus } from "@/lib/expiry-status";
+import { formatExpiryDate } from "@/lib/format-date";
 
 type ExpiryStatus = "expired" | "expiring" | "nodate";
 

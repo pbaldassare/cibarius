@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useRestaurant } from "@/hooks/useRestaurant";
 import { supabase } from "@/integrations/supabase/client";
-import { consumeFromItem, consumeFromPreparation, fmtQty } from "@/lib/inventory-movements";
+import { consumeFromItem, consumeFromPreparation, consumeFromHaccpLabel, fmtQty } from "@/lib/inventory-movements";
 import MobileHeader from "@/components/MobileHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -22,13 +22,16 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { formatExpiryDate, getCoarseExpiryStatus } from "@/lib/expiry-status";
+import { DateInputWithHint } from "@/components/DateInputWithHint";
+import { getCoarseExpiryStatus } from "@/lib/expiry-status";
+import { formatExpiryDate } from "@/lib/format-date";
 import { matchesSearch } from "@/lib/text-match";
 
 interface ExpiryItem {
   id: string;
-  type: "product" | "preparation";
+  type: "product" | "preparation" | "haccp_label";
   product_id: string | null;
+  source_preparation_id?: string | null;
   name: string;
   image_url: string | null;
   expiry_date: string | null;
@@ -84,7 +87,7 @@ const RestaurantExpiryPage = () => {
   const fetchItems = async () => {
     if (!restaurant) return;
 
-    const [invRes, prepRes] = await Promise.all([
+    const [invRes, prepRes, labelRes] = await Promise.all([
       supabase
         .from("inventory_items")
         .select("id, product_id, expiry_date, storage_type, quantity, unit, lot_number, product:products(name, image_url)")
@@ -94,7 +97,18 @@ const RestaurantExpiryPage = () => {
         .from("preparations")
         .select("id, name, use_by_date, storage_type, portions, image_url, lot_number")
         .eq("restaurant_id", restaurant.id),
+      supabase
+        .from("haccp_preparation_labels")
+        .select("id, preparation_name, expiration_date, conservation_type, portions, internal_lot_code, source_preparation_id, status")
+        .eq("restaurant_id", restaurant.id)
+        .neq("status", "cancelled"),
     ]);
+
+    const linkedPrepIds = new Set(
+      (labelRes.data ?? [])
+        .map((l: { source_preparation_id: string | null }) => l.source_preparation_id)
+        .filter(Boolean),
+    );
 
     const result: ExpiryItem[] = [];
     if (invRes.data) {
@@ -113,6 +127,7 @@ const RestaurantExpiryPage = () => {
     }
     if (prepRes.data) {
       for (const p of prepRes.data as any[]) {
+        if (linkedPrepIds.has(p.id)) continue;
         result.push({
           id: p.id, type: "preparation",
           product_id: null,
@@ -122,6 +137,27 @@ const RestaurantExpiryPage = () => {
           storage_type: p.storage_type ?? "frigo",
           quantity: p.portions, unit: "porzioni",
           lot_number: p.lot_number ?? null,
+        });
+      }
+    }
+    if (labelRes.data) {
+      for (const l of labelRes.data as any[]) {
+        if (l.portions === 0) continue;
+        const storage = l.conservation_type === "frigo" || l.conservation_type === "freezer" || l.conservation_type === "ambiente"
+          ? l.conservation_type
+          : "frigo";
+        result.push({
+          id: l.id,
+          type: "haccp_label",
+          product_id: null,
+          source_preparation_id: l.source_preparation_id,
+          name: l.preparation_name,
+          image_url: null,
+          expiry_date: l.expiration_date,
+          storage_type: storage,
+          quantity: l.portions,
+          unit: "porzioni",
+          lot_number: l.internal_lot_code ?? null,
         });
       }
     }
@@ -179,9 +215,16 @@ const RestaurantExpiryPage = () => {
         title: movementType === "consumo" ? "Scaricato ✓" : "Segnato come buttato 🗑",
         description: remaining > 0 ? `Restano ${fmtQty(remaining, item.unit)}` : "Lotto esaurito",
       });
-    } else {
-      const { error, remaining } = await consumeFromPreparation(
-        { ...item, restaurant_id: restaurant.id },
+    } else if (item.type === "haccp_label") {
+      const { error, remaining } = await consumeFromHaccpLabel(
+        {
+          id: item.id,
+          restaurant_id: restaurant.id,
+          portions: item.quantity,
+          source_preparation_id: item.source_preparation_id,
+          internal_lot_code: item.lot_number,
+          expiration_date: item.expiry_date,
+        },
         item.name,
         movementType,
         qty,
@@ -192,7 +235,29 @@ const RestaurantExpiryPage = () => {
       }
       toast({
         title: movementType === "consumo" ? "Scaricata ✓" : "Segnata come buttata 🗑",
-        description: remaining > 0 ? `Restano ${fmtQty(remaining, item.unit)}` : "Preparazione esaurita",
+        description: remaining > 0 ? `${remaining} porzioni rimaste` : "Preparazione esaurita",
+      });
+    } else {
+      const { error, remaining } = await consumeFromPreparation(
+        {
+          id: item.id,
+          restaurant_id: restaurant.id,
+          portions: item.quantity,
+          unit: item.unit,
+          lot_number: item.lot_number,
+          expiry_date: item.expiry_date,
+        },
+        item.name,
+        movementType,
+        qty,
+      );
+      if (error) {
+        toast({ variant: "destructive", title: "Errore", description: error });
+        return;
+      }
+      toast({
+        title: movementType === "consumo" ? "Scaricata ✓" : "Segnata come buttata 🗑",
+        description: remaining > 0 ? `${remaining} porzioni rimaste` : "Preparazione esaurita",
       });
     }
 
@@ -208,6 +273,11 @@ const RestaurantExpiryPage = () => {
     if (!newDate) return;
     if (item.type === "product") {
       await supabase.from("inventory_items").update({ expiry_date: newDate }).eq("id", item.id);
+    } else if (item.type === "haccp_label") {
+      await supabase.from("haccp_preparation_labels").update({ expiration_date: newDate }).eq("id", item.id);
+      if (item.source_preparation_id) {
+        await supabase.from("preparations").update({ use_by_date: newDate }).eq("id", item.source_preparation_id);
+      }
     } else {
       await supabase.from("preparations").update({ use_by_date: newDate }).eq("id", item.id);
     }
@@ -221,6 +291,11 @@ const RestaurantExpiryPage = () => {
     if (item.storage_type === newStorage) return;
     if (item.type === "product") {
       await supabase.from("inventory_items").update({ storage_type: newStorage }).eq("id", item.id);
+    } else if (item.type === "haccp_label") {
+      await supabase.from("haccp_preparation_labels").update({ conservation_type: newStorage }).eq("id", item.id);
+      if (item.source_preparation_id) {
+        await supabase.from("preparations").update({ storage_type: newStorage }).eq("id", item.source_preparation_id);
+      }
     } else {
       await supabase.from("preparations").update({ storage_type: newStorage }).eq("id", item.id);
     }
@@ -241,21 +316,27 @@ const RestaurantExpiryPage = () => {
     if (next.has(itemKey)) next.delete(itemKey); else next.add(itemKey);
     setSelectedIds(next);
   };
-  const selectAll = () => setSelectedIds(new Set(filtered.map((i) => `${i.type}-${i.id}`)));
+  const selectAll = () => setSelectedIds(new Set(filtered.map((i) => `${i.type}:${i.id}`)));
   const exitSelectionMode = () => { setSelectionMode(false); setSelectedIds(new Set()); };
 
   const handleBulkDelete = async () => {
     setDeleting(true);
     const invIds: string[] = [];
     const prepIds: string[] = [];
+    const labelIds: string[] = [];
     selectedIds.forEach((key) => {
-      const [type, ...rest] = key.split("-");
-      const id = rest.join("-");
+      const sep = key.indexOf(":");
+      const type = key.slice(0, sep);
+      const id = key.slice(sep + 1);
       if (type === "preparation") prepIds.push(id);
-      else invIds.push(id);
+      else if (type === "haccp_label") labelIds.push(id);
+      else if (type === "product") invIds.push(id);
     });
     if (invIds.length) await supabase.from("inventory_items").delete().in("id", invIds);
     if (prepIds.length) await supabase.from("preparations").delete().in("id", prepIds);
+    if (labelIds.length) {
+      await supabase.from("haccp_preparation_labels").update({ status: "cancelled" }).in("id", labelIds);
+    }
     toast({ title: `${selectedIds.size} elementi eliminati ✓` });
     setConfirmDeleteOpen(false);
     setDeleting(false);
@@ -364,7 +445,7 @@ const RestaurantExpiryPage = () => {
             {filtered.map((item) => {
               const status = getStatus(item.expiry_date);
               const cfg = statusCfg[status];
-              const itemKey = `${item.type}-${item.id}`;
+              const itemKey = `${item.type}:${item.id}`;
               const isSelected = selectedIds.has(itemKey);
 
               return (
@@ -392,7 +473,7 @@ const RestaurantExpiryPage = () => {
                   <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px] bg-secondary overflow-hidden">
                     {item.image_url ? (
                       <img src={item.image_url} alt="" className="h-full w-full object-cover" />
-                    ) : item.type === "preparation" ? (
+                    ) : item.type === "preparation" || item.type === "haccp_label" ? (
                       <ChefHat className="h-5 w-5 text-muted-foreground" />
                     ) : (
                       <span className="text-xl">{getFoodEmoji(null, item.name)}</span>
@@ -401,7 +482,7 @@ const RestaurantExpiryPage = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
                       <p className="text-[15px] font-medium truncate text-foreground">{item.name}</p>
-                      {item.type === "preparation" && (
+                      {(item.type === "preparation" || item.type === "haccp_label") && (
                         <ChefHat className="h-3 w-3 text-muted-foreground shrink-0" />
                       )}
                     </div>
@@ -414,7 +495,11 @@ const RestaurantExpiryPage = () => {
                       )}
                       <span className="text-[11px] text-muted-foreground">
                         {storageLabel[item.storage_type] ?? item.storage_type}
-                        {item.quantity ? ` · ${item.quantity}${item.unit ? ` ${item.unit}` : ""}` : ""}
+                        {item.quantity != null && item.quantity > 0
+                          ? item.unit === "porzioni"
+                            ? ` · ${item.quantity} porz.`
+                            : ` · ${item.quantity}${item.unit ? ` ${item.unit}` : ""}`
+                          : ""}
                       </span>
                       {item.lot_number && (
                         <span className="text-[10px] text-muted-foreground">Lotto: {item.lot_number}</span>
@@ -483,7 +568,7 @@ const RestaurantExpiryPage = () => {
                 {actionSheet.lot_number && (
                   <p className="text-[11px] text-muted-foreground">Lotto: {actionSheet.lot_number}</p>
                 )}
-                {actionSheet.type === "preparation" && (
+                {(actionSheet.type === "preparation" || actionSheet.type === "haccp_label") && (
                   <p className="text-[11px] text-primary font-medium flex items-center gap-1"><ChefHat className="h-3 w-3" /> Preparazione interna</p>
                 )}
               </div>
@@ -523,24 +608,28 @@ const RestaurantExpiryPage = () => {
             {/* Scarico parziale: vuoto = scarica tutto il residuo */}
             <div className="rounded-xl bg-muted/40 p-3 space-y-1.5">
               <label className="text-[11px] font-medium text-muted-foreground">
-                Quantità da scaricare{actionSheet?.quantity ? ` — disponibili ${fmtQty(Number(actionSheet.quantity), actionSheet.unit)}` : ""}
+                {actionSheet?.unit === "porzioni"
+                  ? `Porzioni da scaricare${actionSheet?.quantity ? ` — disponibili ${actionSheet.quantity}` : ""}`
+                  : `Quantità da scaricare${actionSheet?.quantity ? ` — disponibili ${fmtQty(Number(actionSheet.quantity), actionSheet.unit)}` : ""}`}
               </label>
               <Input
                 type="number"
-                inputMode="decimal"
+                inputMode={actionSheet?.unit === "porzioni" ? "numeric" : "decimal"}
                 min="0"
-                step="any"
+                step={actionSheet?.unit === "porzioni" ? 1 : "any"}
                 value={scaricoQty}
                 onChange={(e) => setScaricoQty(e.target.value)}
                 placeholder="Tutto"
                 className="h-10 rounded-lg"
               />
               <p className="text-[10px] text-muted-foreground">
-                Lascia vuoto per scaricare l'intero lotto.
+                {actionSheet?.unit === "porzioni"
+                  ? "Lascia vuoto per scaricare tutte le porzioni rimaste."
+                  : "Lascia vuoto per scaricare l'intero lotto."}
               </p>
             </div>
             <div className="flex gap-2">
-              <Input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} className="flex-1 h-12 rounded-xl" />
+              <DateInputWithHint value={newDate} onChange={(e) => setNewDate(e.target.value)} className="flex-1 h-12 rounded-xl" />
               <Button className="h-12 rounded-xl" onClick={() => actionSheet && handleUpdateDate(actionSheet)}>
                 <CalendarClock className="h-4 w-4 mr-1" /> Aggiorna
               </Button>

@@ -16,6 +16,7 @@ import {
   FileText, Upload, ExternalLink, Link2,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { formatDisplayDate } from "@/lib/format-date";
 
 /** Documento di provenienza (bolla / DDT / fattura) collegato a un lotto */
 interface SourceDoc {
@@ -323,7 +324,7 @@ const RestaurantItemPage = () => {
   const storage = item.storage_type;
   const StorageIcon = storageIcons[storage] || Package;
   const expiryDate = isPrep ? item.use_by_date : item.expiry_date;
-  const fmtDate = (d?: string) => d ? new Date(d).toLocaleDateString("it-IT") : "—";
+  const fmtDate = (d?: string) => (d ? formatDisplayDate(d) : "—");
 
   const labelData: LabelData = {
     id: item.id,
@@ -511,7 +512,7 @@ const RestaurantItemPage = () => {
                       {sourceDoc.supplier_name && <p className="font-medium">{sourceDoc.supplier_name}</p>}
                       <p className="text-muted-foreground">
                         {sourceDoc.document_number ? `N° ${sourceDoc.document_number} · ` : ""}
-                        {sourceDoc.document_date ? new Date(sourceDoc.document_date).toLocaleDateString("it-IT") : ""}
+                        {sourceDoc.document_date ? formatDisplayDate(sourceDoc.document_date) : ""}
                       </p>
                     </div>
                     {(sourceDoc.file_url || sourceDoc.photo_url) && (
@@ -544,7 +545,7 @@ const RestaurantItemPage = () => {
                         <p className="text-sm font-medium truncate">{p.preparation_name}</p>
                         {p.production_date && (
                           <p className="text-[10px] text-muted-foreground">
-                            {new Date(p.production_date).toLocaleDateString("it-IT")}
+                            {formatDisplayDate(p.production_date)}
                           </p>
                         )}
                       </div>
@@ -604,7 +605,7 @@ const RestaurantItemPage = () => {
                         </p>
                         <p className="text-[10px] text-muted-foreground">
                           {doc.document_number ? `N° ${doc.document_number} · ` : ""}
-                          {doc.document_date ? new Date(doc.document_date).toLocaleDateString("it-IT") : ""}
+                          {doc.document_date ? formatDisplayDate(doc.document_date) : ""}
                         </p>
                       </div>
                       <ExternalLink className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -660,7 +661,7 @@ const RestaurantItemPage = () => {
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {doc.supplier_name || "Fornitore non indicato"}
-                    {doc.document_date ? ` · ${new Date(doc.document_date).toLocaleDateString("it-IT")}` : ""}
+                    {doc.document_date ? ` · ${formatDisplayDate(doc.document_date)}` : ""}
                   </p>
                 </button>
               ))
