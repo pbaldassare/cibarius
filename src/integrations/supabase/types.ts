@@ -4420,6 +4420,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      save_manual_restaurant_preparation: {
+        Args: { p_preparation: Json; p_ingredients: Json; p_allergen_ids: string[] };
+        Returns: string;
+      };
       accept_restaurant_invite: { Args: { _token: string }; Returns: string }
       accept_supplier_invite: { Args: { _code: string }; Returns: string }
       complete_oauth_signup: { Args: { p_payload: Json }; Returns: Json }

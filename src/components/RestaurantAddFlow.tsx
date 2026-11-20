@@ -10,7 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import RestaurantLabel, { type LabelData } from "@/components/RestaurantLabel";
 import { recordMovement } from "@/lib/inventory-movements";
-import { format, addDays } from "date-fns";
+import { format, addDays, addHours, parseISO } from "date-fns";
 import {
   ArrowLeft, Camera, Loader2, Plus, X, ImagePlus, Check,
   Archive, Thermometer, Snowflake, ChefHat, Package, Tag,
@@ -41,8 +41,19 @@ interface AiResult {
   items: AiItem[];
 }
 
+interface PreparationIngredient {
+  name: string;
+  quantity: string;
+  unit: string;
+}
+
 interface EditItem extends AiItem {
   itemType: "product" | "preparation";
+  ingredientsText?: string;
+  netWeightG?: number | null;
+  description?: string;
+  notes?: string;
+  preparationIngredients?: PreparationIngredient[];
 }
 
 type Step = "choice" | "photo" | "results" | "edit" | "label";
@@ -125,7 +136,7 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
       quantity: 1,
       unit: "pz",
       lot_number: null,
-      expiry_date: format(addDays(new Date(), 3), "yyyy-MM-dd"),
+      expiry_date: format(addDays(new Date(), type === "preparation" ? 2 : 3), "yyyy-MM-dd"),
       production_date: format(new Date(), "yyyy-MM-dd"),
       storage_hint: "frigo",
       chef_life_hours: type === "preparation" ? 48 : null,
@@ -198,7 +209,7 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
     setStep("edit");
   };
 
-  const updateEditItem = (field: string, value: any) => {
+  const updateEditItem = <K extends keyof EditItem,>(field: K, value: EditItem[K]) => {
     setEditItems((prev) => {
       const copy = [...prev];
       copy[editIndex] = { ...copy[editIndex], [field]: value };
@@ -236,51 +247,57 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
 
       for (const item of finalItems) {
         if (item.itemType === "preparation") {
-          // Save as preparation
-          const { data: prep, error } = await supabase.from("preparations").insert({
-            name: item.name,
-            restaurant_id: restaurantId,
-            storage_type: item.storage_hint || "frigo",
-            use_by_date: item.expiry_date || format(addDays(new Date(), 3), "yyyy-MM-dd"),
-            prepared_at: new Date().toISOString(),
-            lot_number: item.lot_number || null,
-            chef_life_hours: item.chef_life_hours || null,
-            production_date: item.production_date || null,
-            portions: item.quantity || 1,
-            description: item.brand || null,
-          }).select("id").single();
-
-          if (error) throw error;
-          if (prep) {
-            // Save allergens
-            if (item.allergens.length > 0) {
-              const allergenIds = allergensList
-                .filter((a) => item.allergens.some((name) =>
-                  a.name.toLowerCase().includes(name.toLowerCase()) ||
-                  name.toLowerCase().includes(a.name.toLowerCase())
-                ))
-                .map((a) => a.id);
-
-              if (allergenIds.length > 0) {
-                await supabase.from("preparation_allergens").insert(
-                  allergenIds.map((aid) => ({ preparation_id: prep.id, allergen_id: aid }))
-                );
-              }
-            }
-
-            labels.push({
-              id: prep.id,
-              type: "preparation",
+          const rows = (item.preparationIngredients ?? []).filter(row => row.name.trim());
+          const names = new Set(rows.map(row => row.name.trim().toLowerCase()));
+          const freeText = (item.ingredientsText ?? "").split(/[,;\n]+/).map(name => name.trim()).filter(Boolean);
+          const ingredients = [
+            ...rows.map(row => ({
+              name: row.name.trim(),
+              quantity: row.quantity === "" ? null : Number(row.quantity),
+              unit: row.unit.trim() || null,
+            })),
+            ...freeText.filter(name => !names.has(name.toLowerCase())).map(name => ({ name, quantity: null, unit: null })),
+          ];
+          const allergenIds = allergensList
+            .filter(allergen => item.allergens.some(name => name.toLowerCase() === allergen.code.toLowerCase()
+              || name.toLowerCase() === allergen.name.toLowerCase()
+              || (name.trim() && (name.toLowerCase().includes(allergen.name.toLowerCase())
+                || allergen.name.toLowerCase().includes(name.toLowerCase())))))
+            .map(allergen => allergen.id);
+          const productionDate = item.production_date || format(new Date(), "yyyy-MM-dd");
+          const expiryDate = item.expiry_date || format(addHours(parseISO(productionDate), item.chef_life_hours ?? 48), "yyyy-MM-dd");
+          const { data: prepId, error } = await supabase.rpc("save_manual_restaurant_preparation", {
+            p_preparation: {
               name: item.name,
-              ingredients: item.brand || undefined,
-              allergens: item.allergens.length > 0 ? item.allergens : undefined,
-              productionDate: item.production_date || format(new Date(), "yyyy-MM-dd"),
-              expiryDate: item.expiry_date || format(addDays(new Date(), 3), "yyyy-MM-dd"),
-              storageType: item.storage_hint,
-              lotNumber: item.lot_number || undefined,
-              chefLifeHours: item.chef_life_hours || undefined,
-            });
-          }
+              restaurant_id: restaurantId,
+              storage_type: item.storage_hint || "frigo",
+              use_by_date: expiryDate,
+              lot_number: item.lot_number || null,
+              chef_life_hours: item.chef_life_hours ?? null,
+              production_date: productionDate,
+              portions: item.quantity ?? 1,
+              description: item.description || item.brand || null,
+              notes: item.notes || null,
+              net_weight_g: item.netWeightG ?? item.weight_g ?? null,
+            },
+            p_ingredients: ingredients,
+            p_allergen_ids: allergenIds,
+          });
+          if (error || !prepId) throw error ?? new Error("Preparazione non salvata");
+
+          labels.push({
+            id: prepId,
+            type: "preparation",
+            name: item.name,
+            ingredients: ingredients.map(ingredient => ingredient.name).join(", ") || undefined,
+            allergens: item.allergens.length ? item.allergens : undefined,
+            productionDate,
+            expiryDate,
+            storageType: item.storage_hint,
+            lotNumber: item.lot_number || undefined,
+            chefLifeHours: item.chef_life_hours ?? undefined,
+            netWeightG: item.netWeightG ?? item.weight_g ?? undefined,
+          });
         } else {
           // Save as product + inventory_item
           const { data: product, error: pErr } = await supabase.from("products").insert({
@@ -301,8 +318,8 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
               lot_number: item.lot_number || null,
               chef_life_hours: item.chef_life_hours || null,
               production_date: item.production_date || null,
-              ingredients: (item as any).ingredientsText || null,
-              net_weight_g: (item as any).netWeightG || null,
+              ingredients: item.ingredientsText || null,
+              net_weight_g: item.netWeightG || null,
             }).select("id").single();
 
             if (iErr) throw iErr;
@@ -341,14 +358,14 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
                 id: inv.id,
                 type: "product",
                 name: item.name,
-                ingredients: (item as any).ingredientsText || undefined,
+                ingredients: item.ingredientsText || undefined,
                 allergens: item.allergens.length > 0 ? item.allergens : undefined,
                 productionDate: item.production_date || format(new Date(), "yyyy-MM-dd"),
                 expiryDate: item.expiry_date || format(addDays(new Date(), 3), "yyyy-MM-dd"),
                 storageType: item.storage_hint,
                 lotNumber: item.lot_number || undefined,
                 chefLifeHours: item.chef_life_hours || undefined,
-                netWeightG: (item as any).netWeightG || undefined,
+                netWeightG: item.netWeightG || undefined,
               });
             }
           }
@@ -728,7 +745,7 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
                   <label className="text-xs font-medium text-muted-foreground">Peso netto (g)</label>
                   <Input
                     type="number"
-                    value={(currentItem as any).netWeightG || ""}
+                    value={currentItem.netWeightG || ""}
                     onChange={(e) => updateEditItem("netWeightG", e.target.value ? parseFloat(e.target.value) : null)}
                     placeholder="Es: 500"
                     className="mt-1"
@@ -737,13 +754,46 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
                 <div>
                   <label className="text-xs font-medium text-muted-foreground">Ingredienti (etichetta)</label>
                   <Input
-                    value={(currentItem as any).ingredientsText || ""}
+                    value={currentItem.ingredientsText || ""}
                     onChange={(e) => updateEditItem("ingredientsText", e.target.value)}
                     placeholder="farina, acqua, sale..."
                     className="mt-1"
                   />
                 </div>
               </div>
+
+              {currentItem.itemType === "preparation" && (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className="text-xs font-medium text-muted-foreground">
+                      Descrizione
+                      <Input className="mt-1" value={currentItem.description ?? ""} onChange={event => updateEditItem("description", event.target.value)} />
+                    </label>
+                    <label className="text-xs font-medium text-muted-foreground">
+                      Note
+                      <Input className="mt-1" value={currentItem.notes ?? ""} onChange={event => updateEditItem("notes", event.target.value)} />
+                    </label>
+                  </div>
+                  {(currentItem.preparationIngredients ?? []).map((ingredient, index, ingredients) => (
+                    <div key={index} className="grid grid-cols-[2fr_1fr_1fr_auto] items-center gap-2">
+                      <Input aria-label="Nome ingrediente" placeholder="Ingrediente" value={ingredient.name}
+                        onChange={event => updateEditItem("preparationIngredients", ingredients.map((row, i) => i === index ? { ...row, name: event.target.value } : row))} />
+                      <Input aria-label="Quantità ingrediente" placeholder="Quantità" type="number" min="0" step="any" value={ingredient.quantity}
+                        onChange={event => updateEditItem("preparationIngredients", ingredients.map((row, i) => i === index ? { ...row, quantity: event.target.value } : row))} />
+                      <Input aria-label="Unità ingrediente" placeholder="Unità" value={ingredient.unit}
+                        onChange={event => updateEditItem("preparationIngredients", ingredients.map((row, i) => i === index ? { ...row, unit: event.target.value } : row))} />
+                      <Button type="button" variant="ghost" size="icon" aria-label="Rimuovi ingrediente"
+                        onClick={() => updateEditItem("preparationIngredients", ingredients.filter((_, i) => i !== index))}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button type="button" variant="outline" size="sm" onClick={() => updateEditItem("preparationIngredients",
+                    [...(currentItem.preparationIngredients ?? []), { name: "", quantity: "", unit: "g" }])}>
+                    <Plus className="h-4 w-4 mr-1" /> Aggiungi ingrediente con quantità
+                  </Button>
+                </div>
+              )}
 
               {/* Allergens */}
               <div>
