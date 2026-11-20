@@ -16,7 +16,7 @@ import { Printer, Copy, X, Loader2, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 
-const RestaurantHaccpLabelDetailPage = () => {
+const RestaurantHaccpLabelDetailPage = ({ readOnly = false }: { readOnly?: boolean }) => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const { restaurant } = useRestaurant();
@@ -216,7 +216,8 @@ const RestaurantHaccpLabelDetailPage = () => {
         )}
 
         {/* Actions */}
-        <div className="grid grid-cols-2 gap-2">
+        {readOnly ? <Button variant="outline" asChild><Link to="/admin/haccp-labels">Torna alle etichette</Link></Button>
+        : <div className="grid grid-cols-2 gap-2">
           {isDraft && (
             <Button onClick={handleFinalize} className="col-span-2">Finalizza</Button>
           )}
@@ -232,7 +233,7 @@ const RestaurantHaccpLabelDetailPage = () => {
           {isCancelled && (
             <Button variant="outline" onClick={handleDuplicate} className="col-span-2"><Copy className="h-4 w-4 mr-1" /> Duplica come bozza</Button>
           )}
-        </div>
+        </div>}
 
         {/* Audit log */}
         {audit.length > 0 && (

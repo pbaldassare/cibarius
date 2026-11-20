@@ -16,6 +16,7 @@
  */
 import { readFile, writeFile, mkdir, rm } from "node:fs/promises";
 import { join, dirname } from "node:path";
+import { pathToFileURL } from "node:url";
 import { build } from "vite";
 
 const RADICE = join(import.meta.dirname, "..");
@@ -121,7 +122,7 @@ const main = async () => {
     },
   });
 
-  const { render, paths } = await import(join(TEMP, "entry-server.js"));
+  const { render, paths } = await import(pathToFileURL(join(TEMP, "entry-server.js")).href);
 
   let scritte = 0;
   for (const path of paths()) {

@@ -261,7 +261,8 @@ const Index = () => {
   const aiSuggestion = useMemo((): SmartSuggestion | null => {
     if (items.length === 0 || !compatLoaded) return null;
 
-    const expiring = items.filter(i => needsAttention(i.expiry_date));
+    const usable = items.filter(i => getCoarseExpiryStatus(i.expiry_date) !== "expired");
+    const expiring = usable.filter(i => getCoarseExpiryStatus(i.expiry_date) === "expiring");
 
     // Priority 1: expiring items with compatible pairs
     if (expiring.length >= 2) {
@@ -277,8 +278,8 @@ const Index = () => {
     }
 
     // Priority 2: available ingredients
-    if (items.length >= 2) {
-      const names = items.slice(0, 10).map(i => i.product.name);
+    if (usable.length >= 2) {
+      const names = usable.slice(0, 10).map(i => i.product.name);
       const groups = buildGroups(names, 1);
       if (groups.length > 0 && groups[0].recipes.length > 0) {
         return { items: groups[0].items.slice(0, 2), recipes: groups[0].recipes.slice(0, 2), isExpiring: false };
@@ -550,7 +551,7 @@ const Index = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[13px] font-semibold text-foreground leading-snug">
-                        Hai {counts.total} prodott{counts.total === 1 ? "o" : "i"} da consumare presto
+                        {counts.expiring > 0 ? `${counts.expiring} in scadenza` : `${counts.expired} scaduti da verificare`}
                       </p>
                       <p className="text-[11px] text-muted-foreground mt-0.5">⏳ Controlla le scadenze</p>
                     </div>
@@ -607,7 +608,7 @@ const Index = () => {
           <div className="grid grid-cols-1 gap-2">
             {(() => {
               // Quick local recipe matching (top 3)
-              const pantryNames = items.map(i => i.product.name.toLowerCase());
+              const pantryNames = items.filter(i => getCoarseExpiryStatus(i.expiry_date) !== "expired").map(i => i.product.name.toLowerCase());
               const recipes = [
                 { title: "Frittata di verdure", ingredients: ["uova", "zucchine", "parmigiano"], emoji: "🍳" },
                 { title: "Pasta al pomodoro", ingredients: ["pasta", "pomodoro", "olio"], emoji: "🍝" },

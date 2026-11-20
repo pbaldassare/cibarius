@@ -24,6 +24,7 @@ const AdminPage = () => {
     pendingProducts: 0, openSupport: 0, expiringItems: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -38,6 +39,7 @@ const AdminPage = () => {
         supabase.from("inventory_items").select("id", { count: "exact", head: true }).lte("expiry_date", in3days).gte("expiry_date", today),
       ]);
 
+      setLoadError([users, restaurants, pending, support, expiring].some(result => !!result.error));
       setStats({
         totalUsers: users.count ?? 0,
         totalRestaurants: restaurants.count ?? 0,
@@ -62,6 +64,7 @@ const AdminPage = () => {
     <AdminLayout>
       <h1 className="mb-6 text-2xl font-bold text-foreground">Dashboard Piattaforma</h1>
 
+      {loadError && <p role="alert" className="mb-4">Impossibile caricare tutti i conteggi. Ricarica per riprovare.</p>}
       {/* Stats grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-8">
         {statCards.map(({ label, value, icon: Icon, color }) => (
@@ -72,7 +75,7 @@ const AdminPage = () => {
               </div>
               <div>
                 <p className="text-2xl font-bold text-foreground">
-                  {loading ? "—" : value}
+                  {loading || loadError ? "—" : value}
                 </p>
                 <p className="text-sm text-muted-foreground">{label}</p>
               </div>
@@ -112,7 +115,7 @@ const AdminPage = () => {
               <Package className="h-5 w-5 text-primary" />
               <CardTitle className="text-base flex items-center gap-2">
                 Prodotti da Revisione
-                {stats.pendingProducts > 0 && (
+                {!loadError && stats.pendingProducts > 0 && (
                   <Badge variant="destructive" className="text-xs">{stats.pendingProducts}</Badge>
                 )}
               </CardTitle>

@@ -179,9 +179,13 @@ const PublicHaccpLabelPage = () => {
             {label.quantity != null && <div><span className="text-muted-foreground">Qtà:</span> <b>{label.quantity} {label.unit}</b></div>}
             {label.operator_name && <div><span className="text-muted-foreground">Operatore:</span> <b>{label.operator_name}</b></div>}
           </div>
-          {label.allergens?.length > 0 && (
-            <div className="pt-2 text-sm"><b>Allergeni:</b> {label.allergens.join(", ")}</div>
-          )}
+          <div className="pt-2 text-sm">
+            <b>Allergeni:</b>{" "}
+            {label.allergens?.length ? label.allergens.join(", ") : events.some(
+              (event: { action: string; metadata?: { allergens_reviewed?: boolean } }) =>
+                event.action === "finalized" && event.metadata?.allergens_reviewed === true,
+            ) ? "Nessun allergene dichiarato" : "Informazione non registrata"}
+          </div>
           {label.notes && <div className="text-sm text-muted-foreground">{label.notes}</div>}
           {label.cancel_reason && (
             <div className="text-sm text-destructive bg-destructive/10 rounded p-2">
@@ -191,6 +195,7 @@ const PublicHaccpLabelPage = () => {
         </CardContent>
       </Card>
 
+      {ingredients.length === 0 && <p className="text-sm text-muted-foreground">Ingredienti non registrati.</p>}
       {ingredients.length > 0 && (
         <Card className="print:shadow-none print:border-0"><CardContent className="p-4 space-y-2 print:p-2">
           <h2 className="haccp-section-header font-semibold">Tracciabilità ingredienti</h2>

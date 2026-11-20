@@ -690,9 +690,10 @@ serve(async (req) => {
       .eq("user_id", user.id)
       .maybeSingle();
 
-    const pantryList = (pantry || []).map((p: any) => {
+    const today = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Rome" }).format(new Date());
+    const pantryList = (pantry || []).filter(p => !p.expiry_date || p.expiry_date >= today).map((p: any) => {
       const daysToExpiry = p.expiry_date
-        ? Math.ceil((new Date(p.expiry_date).getTime() - new Date().setHours(0, 0, 0, 0)) / 864e5)
+        ? (Date.parse(p.expiry_date) - Date.parse(today)) / 864e5
         : null;
       return {
         name: p.product?.name,

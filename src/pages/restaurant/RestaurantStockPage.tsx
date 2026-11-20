@@ -382,7 +382,7 @@ const RestaurantStockPage = () => {
                             className="gap-1 text-[10px] font-medium"
                           >
                             <TrendingDown className="h-3 w-3" />
-                            Finisce in ~{row.daysLeft} g
+                            Finisce in ~{row.daysLeft} giorni
                           </Badge>
                         ) : (
                           <Badge variant="outline" className="text-[10px] text-muted-foreground">
@@ -396,7 +396,7 @@ const RestaurantStockPage = () => {
                             className="gap-1 text-[10px] font-medium"
                           >
                             {expDays < 0 ? <AlertTriangle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
-                            {expDays < 0 ? `Scaduto da ${-expDays} g` : `Scade fra ${expDays} g`}
+                            {expDays < 0 ? `Scaduto da ${-expDays} giorni` : `Scade fra ${expDays} giorni`}
                           </Badge>
                         )}
                       </div>

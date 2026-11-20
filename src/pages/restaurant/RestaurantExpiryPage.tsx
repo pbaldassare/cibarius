@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { formatExpiryDate, getCoarseExpiryStatus } from "@/lib/expiry-status";
+import { fetchAllRows } from "@/lib/supabase-paging";
 import { matchesSearch } from "@/lib/text-match";
 
 interface ExpiryItem {
@@ -67,7 +68,7 @@ const RestaurantExpiryPage = () => {
   const { toast } = useToast();
   const [items, setItems] = useState<ExpiryItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<string>("expired");
+  const [activeTab, setActiveTab] = useState<string>("all");
   const [storageFilter, setStorageFilter] = useState("all");
   const [actionSheet, setActionSheet] = useState<ExpiryItem | null>(null);
   const [scaricoQty, setScaricoQty] = useState("");
@@ -85,17 +86,20 @@ const RestaurantExpiryPage = () => {
     if (!restaurant) return;
 
     const [invRes, prepRes] = await Promise.all([
-      supabase
+      fetchAllRows((from, to) => supabase
         .from("inventory_items")
         .select("id, product_id, expiry_date, storage_type, quantity, unit, lot_number, product:products(name, image_url)")
         .eq("restaurant_id", restaurant.id)
-        .order("expiry_date", { ascending: true, nullsFirst: false }),
-      supabase
+        .order("id").range(from, to)),
+      fetchAllRows((from, to) => supabase
         .from("preparations")
         .select("id, name, use_by_date, storage_type, portions, image_url, lot_number")
-        .eq("restaurant_id", restaurant.id),
+        .eq("restaurant_id", restaurant.id).order("id").range(from, to)),
     ]);
 
+    if (invRes.error || prepRes.error || invRes.truncated || prepRes.truncated) {
+      toast({ variant: "destructive", title: "Elenco scadenze incompleto", description: "Ricarica la pagina per riprovare." });
+    }
     const result: ExpiryItem[] = [];
     if (invRes.data) {
       for (const i of invRes.data as any[]) {
@@ -135,7 +139,8 @@ const RestaurantExpiryPage = () => {
   const filtered = useMemo(() => {
     let list = items;
     if (activeTab !== "all") list = list.filter((i) => getStatus(i.expiry_date) === activeTab);
-    if (storageFilter !== "all") list = list.filter((i) => i.storage_type === storageFilter);
+    if (storageFilter === "nodate") list = list.filter((i) => !i.expiry_date);
+    else if (storageFilter !== "all") list = list.filter((i) => i.storage_type === storageFilter);
     if (searchQuery.trim()) {
       list = list.filter((i) => matchesSearch(i.name, searchQuery));
     }
@@ -335,6 +340,7 @@ const RestaurantExpiryPage = () => {
         <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
           {([
             { key: "all", label: "Tutti", icon: null },
+            { key: "nodate", label: "Senza data", icon: CalendarClock },
             { key: "ambiente", label: "Dispensa", icon: Home },
             { key: "frigo", label: "Frigo", icon: Refrigerator },
             { key: "freezer", label: "Congelatore", icon: Snowflake },

@@ -366,7 +366,7 @@ const AntiWastePage = () => {
     pantry.filter(i => isExpiringSoon(i.expiry_date, ANTI_WASTE_WINDOW_DAYS)),
   [pantry]);
 
-  const pantryNames = useMemo(() => pantry.map(i => i.product.name.toLowerCase()), [pantry]);
+  const pantryNames = useMemo(() => pantry.filter(i => (daysUntilExpiry(i.expiry_date) ?? 0) >= 0).map(i => i.product.name.toLowerCase()), [pantry]);
   const expiringNames = useMemo(() => new Set(expiringItems.map(i => i.product.name.toLowerCase())), [expiringItems]);
 
   // Local suggestions — prefer cookable; allow at most 1 missing non-staple so list isn't empty

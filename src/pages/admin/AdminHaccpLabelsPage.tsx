@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import AdminLayout from "@/components/AdminLayout";
+import { fetchAllRows } from "@/lib/supabase-paging";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,33 +13,38 @@ const AdminHaccpLabelsPage = () => {
   const [labels, setLabels] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [incomplete, setIncomplete] = useState(false);
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase
+      const { data, error, truncated } = await fetchAllRows((from, to) => supabase
         .from("haccp_preparation_labels")
         .select("id, preparation_name, internal_lot_code, production_date, expiration_date, status, restaurant_id, restaurants(name)")
         .order("created_at", { ascending: false })
-        .limit(500);
-      setLabels(data || []);
+        .order("id").range(from, to));
+      setLabels(data);
+      setIncomplete(!!error || truncated);
       setLoading(false);
     })();
   }, []);
 
   const filtered = labels.filter(l =>
     !search || l.preparation_name.toLowerCase().includes(search.toLowerCase())
-    || l.internal_lot_code.toLowerCase().includes(search.toLowerCase())
+    || l.internal_lot_code?.toLowerCase().includes(search.toLowerCase())
     || (l as any).restaurants?.name?.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
+    <AdminLayout>
     <div className="p-6 max-w-5xl mx-auto space-y-4">
       <h1 className="text-2xl font-bold">Etichette HACCP — Tutti i ristoranti</h1>
       <Input placeholder="Cerca..." value={search} onChange={e => setSearch(e.target.value)} />
+      {incomplete && <p role="alert">Impossibile caricare tutte le etichette. Ricarica per riprovare.</p>}
+      {!loading && !incomplete && filtered.length === 0 && <p>Nessuna etichetta trovata.</p>}
       {loading ? <Loader2 className="h-6 w-6 animate-spin" /> :
         <div className="space-y-2">
           {filtered.map(l => (
-            <Link key={l.id} to={`/restaurant/haccp-labels/${l.id}`}>
+            <Link key={l.id} to={`/admin/haccp-labels/${l.id}`}>
               <Card className="hover:shadow-md transition-shadow"><CardContent className="p-3 flex items-center gap-3">
                 <QrCode className="h-5 w-5 text-primary" />
                 <div className="flex-1">
@@ -53,6 +60,7 @@ const AdminHaccpLabelsPage = () => {
         </div>
       }
     </div>
+    </AdminLayout>
   );
 };
 

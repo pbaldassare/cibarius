@@ -7,6 +7,7 @@ import { format, subDays } from "date-fns";
 
 const AdminStatsPage = () => {
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [data, setData] = useState({
     totalUsers: 0,
     totalRestaurants: 0,
@@ -36,6 +37,7 @@ const AdminStatsPage = () => {
         supabase.from("ai_usage_log" as any).select("id", { count: "exact", head: true }).in("source", ["server_cache", "db_enrichment"]),
       ]);
 
+      setLoadError([users, rests, prods, inv, expired, newUsers, newRests, aiCallsRes, aiSavedRes].some(result => !!result.error));
       setData({
         totalUsers: users.count ?? 0,
         totalRestaurants: rests.count ?? 0,
@@ -76,6 +78,7 @@ const AdminStatsPage = () => {
   return (
     <AdminLayout>
       <h1 className="mb-6 text-2xl font-bold text-foreground">Statistiche Piattaforma</h1>
+      {loadError && <p role="alert" className="mb-4">Impossibile caricare tutte le statistiche. Ricarica per riprovare.</p>}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {cards.map(({ label, value, icon: Icon, sub }) => (
           <Card key={label}>
@@ -84,8 +87,8 @@ const AdminStatsPage = () => {
               <CardTitle className="text-base">{label}</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-foreground">{value}</p>
-              {sub && <p className="text-sm text-muted-foreground mt-1">{sub}</p>}
+              <p className="text-3xl font-bold text-foreground">{loadError ? "—" : value}</p>
+              {!loadError && sub && <p className="text-sm text-muted-foreground mt-1">{sub}</p>}
             </CardContent>
           </Card>
         ))}

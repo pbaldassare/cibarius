@@ -17,7 +17,9 @@ import {
   ClipboardCheck, CheckCircle2, AlertTriangle, Clock, XCircle,
   Calendar, Filter, Download, Eye, Ban, Camera, Thermometer, Image,
 } from "lucide-react";
-import { format, subDays, startOfMonth, endOfMonth } from "date-fns";
+import { eachDayOfInterval, format, subDays, startOfMonth, endOfMonth } from "date-fns";
+import { fetchAllRows } from "@/lib/supabase-paging";
+import { isTaskDueOn, toLogDate } from "@/lib/haccp-schedule";
 import { it } from "date-fns/locale";
 
 interface LogRow {
@@ -47,10 +49,19 @@ const STATUS_MAP: Record<string, { label: string; icon: typeof CheckCircle2; cls
   annullata: { label: "Annullata", icon: Ban, cls: "bg-red-500/10 text-red-700 border-red-200" },
 };
 
+const escapeHtml = (value: string) => value.replace(/&/g, "&amp;").replace(/</g, "&lt;")
+  .replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+const csvCell = (value: string) => {
+  const safe = /^\s*[=+\-@]|^[\t\r\n]/.test(value) ? "'" + value : value;
+  return '"' + safe.replace(/"/g, '""') + '"';
+};
+
 const RestaurantHaccpControlPage = () => {
   const { restaurant } = useRestaurant();
   const { user } = useAuth();
   const [logs, setLogs] = useState<LogRow[]>([]);
+  const [monthlyLogs, setMonthlyLogs] = useState<LogRow[]>([]);
+  const [loadError, setLoadError] = useState(false);
   const [tasks, setTasks] = useState<{ id: string; name: string; category: string; frequency: string }[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -91,19 +102,24 @@ const RestaurantHaccpControlPage = () => {
       to = dateTo || undefined;
     }
 
+    const monthStart = toLogDate(startOfMonth(now));
+    const monthEnd = toLogDate(endOfMonth(now));
+    const today = toLogDate(now);
     const [tasksRes, logsRes, profilesRes, photosRes, tempsRes] = await Promise.all([
-      supabase.from("haccp_tasks").select("id, name, category, frequency").eq("restaurant_id", restaurant.id),
-      (() => {
-        let q = supabase.from("haccp_logs").select("*").eq("restaurant_id", restaurant.id).order("completed_at", { ascending: false }).limit(500);
-        if (from) q = q.gte("log_date", from);
-        if (to) q = q.lte("log_date", to);
-        return q;
-      })(),
+      supabase.from("haccp_tasks").select("id, name, category, frequency, is_active, created_at, custom_interval_days").eq("restaurant_id", restaurant.id),
+      fetchAllRows((start, end) => {
+        let query = supabase.from("haccp_logs").select("*").eq("restaurant_id", restaurant.id)
+          .order("completed_at", { ascending: false }).order("id").range(start, end);
+        if (from) query = query.gte("log_date", from < monthStart ? from : monthStart);
+        if (to) query = query.lte("log_date", to > monthEnd ? to : monthEnd);
+        return query;
+      }),
       supabase.from("profiles").select("id, full_name, email"),
       supabase.from("haccp_task_photos").select("task_log_id").eq("restaurant_id", restaurant.id),
       supabase.from("haccp_temperature_logs").select("task_log_id, temperature_value, equipment_type").eq("restaurant_id", restaurant.id),
     ]);
 
+    setLoadError(!!(tasksRes.error || logsRes.error || logsRes.truncated || profilesRes.error || photosRes.error || tempsRes.error));
     const taskMap: Record<string, { name: string; category: string; frequency: string }> = {};
     (tasksRes.data ?? []).forEach((t: any) => { taskMap[t.id] = { name: t.name, category: t.category, frequency: t.frequency }; });
     setTasks((tasksRes.data ?? []) as any);
@@ -143,18 +159,49 @@ const RestaurantHaccpControlPage = () => {
       };
     });
 
-    setLogs(mapped);
+    const monthLogs = mapped.filter(log => log.log_date >= monthStart && log.log_date <= monthEnd);
 
-    // Month stats
-    const monthStart = format(startOfMonth(now), "yyyy-MM-dd");
-    const monthEnd = format(endOfMonth(now), "yyyy-MM-dd");
-    const monthLogs = mapped.filter(l => l.log_date >= monthStart && l.log_date <= monthEnd);
+    const occurrences = new Map<string, LogRow>();
+    for (const log of monthLogs) {
+      const key = `${log.task_id}/${log.log_date}`;
+      if (!occurrences.has(key)) occurrences.set(key, log);
+    }
+    const activeTasks = (tasksRes.data ?? []).filter(task => task.is_active);
+    for (const day of eachDayOfInterval({ start: startOfMonth(now), end: now })) {
+      const date = toLogDate(day);
+      for (const task of activeTasks) {
+        if (date < toLogDate(new Date(task.created_at)) || !isTaskDueOn(task, day)) continue;
+        const key = `${task.id}/${date}`;
+        const log = occurrences.get(key);
+        if (!log || log.status === "da_fare" || log.status === "non_controllata") {
+          occurrences.set(key, {
+            id: key, task_id: task.id, task_name: task.name, area: task.category,
+            frequency: task.frequency, log_date: date, status: date === today ? "da_fare" : "in_ritardo",
+            completed_at: "", completed_by: "", completed_by_name: "—", notes: null,
+            cancelled_reason: null, is_rectification: false, has_photos: false,
+            temperature: null, temperature_anomaly: false,
+            ...log,
+            ...(log ? { status: date === today ? "da_fare" : "in_ritardo" } : {}),
+          });
+        }
+      }
+    }
+    const monthly = [...occurrences.values()].sort((a, b) => b.log_date.localeCompare(a.log_date));
+    const recordedById = new Set(mapped.map(log => log.id));
+    const normalizedById = new Map(monthly.map(log => [log.id, log]));
+    const registry = [
+      ...mapped.map(log => normalizedById.get(log.id) ?? log),
+      ...monthly.filter(log => !recordedById.has(log.id)),
+    ].sort((a, b) => b.log_date.localeCompare(a.log_date));
+    setMonthlyLogs(registry.filter(log => log.log_date >= monthStart && log.log_date <= monthEnd));
+    setLogs(registry.filter(log => (!from || log.log_date >= from) && (!to || log.log_date <= to)));
+    const statuses = monthly.map(log => log.status);
     setMonthStats({
-      total: monthLogs.length,
-      completed: monthLogs.filter(l => l.status === "completata").length,
-      pending: monthLogs.filter(l => l.status === "da_fare").length,
-      overdue: monthLogs.filter(l => l.status === "in_ritardo").length,
-      cancelled: monthLogs.filter(l => l.status === "annullata").length,
+      total: statuses.length,
+      completed: statuses.filter(status => status === "completata").length,
+      pending: statuses.filter(status => status === "da_fare").length,
+      overdue: statuses.filter(status => status === "in_ritardo" || status === "non_controllata").length,
+      cancelled: statuses.filter(status => status === "annullata").length,
     });
 
     setLoading(false);
@@ -222,10 +269,10 @@ const RestaurantHaccpControlPage = () => {
       l.temperature !== null ? `${l.temperature}°C${l.temperature_anomaly ? " ANOMALA" : ""}` : "",
       l.has_photos ? "Sì" : "",
       l.completed_by_name,
-      format(new Date(l.completed_at), "HH:mm"),
+      (l.completed_at ? format(new Date(l.completed_at), "HH:mm") : "—"),
       l.notes || "", l.cancelled_reason || "",
     ]);
-    const csv = [headers.join(";"), ...rows.map(r => r.join(";"))].join("\n");
+    const csv = [headers, ...rows].map(row => row.map(csvCell).join(";")).join("\r\n");
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -254,19 +301,19 @@ tr:nth-child(even){background:#fafafa}
 .footer{margin-top:24px;font-size:10px;color:#999;border-top:1px solid #eee;padding-top:8px}
 </style></head><body>
 <h1>📋 Registro Controlli HACCP</h1>
-<h2>${restaurant?.name ?? ""} — Generato il ${format(new Date(), "dd/MM/yyyy 'alle' HH:mm", { locale: it })}</h2>
+<h2>${escapeHtml(restaurant?.name ?? "")} — Generato il ${format(new Date(), "dd/MM/yyyy 'alle' HH:mm", { locale: it })}</h2>
 <table><thead><tr><th>Data</th><th>Attività</th><th>Area</th><th>Freq.</th><th>Stato</th><th>Temp.</th><th>Foto</th><th>Operatore</th><th>Ora</th><th>Note</th></tr></thead>
 <tbody>${filtered.map(l => `<tr>
 <td>${format(new Date(l.log_date), "dd/MM/yyyy")}</td>
-<td><strong>${l.task_name}</strong></td>
-<td>${l.area}</td>
-<td>${l.frequency}</td>
-<td><span class="badge ${l.status}">${STATUS_MAP[l.status]?.label || l.status}</span>${l.cancelled_reason ? `<br/><small>Motivo: ${l.cancelled_reason}</small>` : ""}</td>
+<td><strong>${escapeHtml(l.task_name)}</strong></td>
+<td>${escapeHtml(l.area)}</td>
+<td>${escapeHtml(l.frequency)}</td>
+<td><span class="badge ${escapeHtml(l.status)}">${escapeHtml(STATUS_MAP[l.status]?.label || l.status)}</span>${l.cancelled_reason ? `<br/><small>Motivo: ${escapeHtml(l.cancelled_reason)}</small>` : ""}</td>
 <td class="${l.temperature_anomaly ? "anomaly" : "ok"}">${l.temperature !== null ? `${l.temperature}°C${l.temperature_anomaly ? " ⚠️" : ""}` : "—"}</td>
 <td>${l.has_photos ? "📷" : "—"}</td>
-<td>${l.completed_by_name}</td>
-<td>${format(new Date(l.completed_at), "HH:mm")}</td>
-<td>${l.notes || "—"}</td>
+<td>${escapeHtml(l.completed_by_name)}</td>
+<td>${(l.completed_at ? format(new Date(l.completed_at), "HH:mm") : "—")}</td>
+<td>${escapeHtml(l.notes || "—")}</td>
 </tr>`).join("")}</tbody></table>
 <div class="footer">
 Documento generato automaticamente da Cibarius · ${filtered.length} registrazioni · Non modificabile
@@ -277,9 +324,7 @@ Documento generato automaticamente da Cibarius · ${filtered.length} registrazio
 
   const exportMonthlyReport = () => {
     const now = new Date();
-    const monthStart = format(startOfMonth(now), "yyyy-MM-dd");
-    const monthEnd = format(endOfMonth(now), "yyyy-MM-dd");
-    const monthLogs = logs.filter(l => l.log_date >= monthStart && l.log_date <= monthEnd);
+    const monthLogs = monthlyLogs;
 
     const html = `<html><head><title>Report Mensile HACCP</title>
 <style>
@@ -301,22 +346,22 @@ td{padding:6px 8px;border-bottom:1px solid #f0f0f0}
 .footer{margin-top:24px;font-size:10px;color:#999;border-top:1px solid #eee;padding-top:8px}
 </style></head><body>
 <h1>📋 Report Mensile HACCP — ${format(now, "MMMM yyyy", { locale: it })}</h1>
-<h2>${restaurant?.name ?? ""}</h2>
+<h2>${escapeHtml(restaurant?.name ?? "")}</h2>
 <div class="summary">
-<div class="stat"><div class="stat-num">${monthLogs.length}</div><div class="stat-label">Totale</div></div>
-<div class="stat"><div class="stat-num" style="color:#166534">${monthLogs.filter(l => l.status === "completata").length}</div><div class="stat-label">Completati</div></div>
-<div class="stat"><div class="stat-num" style="color:#92400e">${monthLogs.filter(l => l.status === "in_ritardo").length}</div><div class="stat-label">In ritardo</div></div>
-<div class="stat"><div class="stat-num" style="color:#991b1b">${monthLogs.filter(l => l.status === "annullata").length}</div><div class="stat-label">Annullati</div></div>
+<div class="stat"><div class="stat-num">${monthStats.total}</div><div class="stat-label">Totale</div></div>
+<div class="stat"><div class="stat-num" style="color:#166534">${monthStats.completed}</div><div class="stat-label">Completati</div></div>
+<div class="stat"><div class="stat-num" style="color:#92400e">${monthStats.overdue}</div><div class="stat-label">In ritardo</div></div>
+<div class="stat"><div class="stat-num" style="color:#991b1b">${monthStats.cancelled}</div><div class="stat-label">Annullati</div></div>
 </div>
 <table><thead><tr><th>Data</th><th>Attività</th><th>Area</th><th>Stato</th><th>Operatore</th><th>Ora</th><th>Note</th></tr></thead>
 <tbody>${monthLogs.map(l => `<tr>
 <td>${format(new Date(l.log_date), "dd/MM/yyyy")}</td>
-<td><strong>${l.task_name}</strong></td>
-<td>${l.area}</td>
-<td><span class="badge ${l.status}">${STATUS_MAP[l.status]?.label || l.status}</span></td>
-<td>${l.completed_by_name}</td>
-<td>${format(new Date(l.completed_at), "HH:mm")}</td>
-<td>${l.notes || "—"}</td>
+<td><strong>${escapeHtml(l.task_name)}</strong></td>
+<td>${escapeHtml(l.area)}</td>
+<td><span class="badge ${escapeHtml(l.status)}">${escapeHtml(STATUS_MAP[l.status]?.label || l.status)}</span></td>
+<td>${escapeHtml(l.completed_by_name)}</td>
+<td>${(l.completed_at ? format(new Date(l.completed_at), "HH:mm") : "—")}</td>
+<td>${escapeHtml(l.notes || "—")}</td>
 </tr>`).join("")}</tbody></table>
 <div class="footer">Report generato da Cibarius il ${format(now, "dd/MM/yyyy HH:mm")} · Documento ufficiale HACCP</div>
 </body></html>`;
@@ -339,18 +384,19 @@ td{padding:6px 8px;border-bottom:1px solid #f0f0f0}
             <p className="text-sm text-muted-foreground mt-1">Registro verificabile pronto per ispezioni</p>
           </div>
           <div className="flex gap-2 flex-wrap">
-            <Button variant="outline" size="sm" onClick={exportPDF} className="gap-1.5">
+            <Button variant="outline" size="sm" disabled={loading || loadError} onClick={exportPDF} className="gap-1.5">
               <FileText className="h-4 w-4" /> PDF
             </Button>
-            <Button variant="outline" size="sm" onClick={exportCSV} className="gap-1.5">
-              <FileSpreadsheet className="h-4 w-4" /> Excel
+            <Button variant="outline" size="sm" disabled={loading || loadError} onClick={exportCSV} className="gap-1.5">
+              <FileSpreadsheet className="h-4 w-4" /> CSV
             </Button>
-            <Button size="sm" onClick={exportMonthlyReport} className="gap-1.5">
+            <Button size="sm" disabled={loading || loadError} onClick={exportMonthlyReport} className="gap-1.5">
               <Download className="h-4 w-4" /> Report Mensile
             </Button>
           </div>
         </div>
 
+        {loadError && <p role="alert">Il registro è incompleto. Ricarica la pagina per riprovare.</p>}
         {/* Stats cards */}
         <div className="grid gap-3 grid-cols-2 sm:grid-cols-5">
           {[
@@ -364,7 +410,7 @@ td{padding:6px 8px;border-bottom:1px solid #f0f0f0}
               <CardContent className="flex items-center gap-3 p-4">
                 <Icon className={`h-5 w-5 ${color} shrink-0`} />
                 <div>
-                  <p className="text-xl font-bold text-foreground">{loading ? "—" : value}</p>
+                  <p className="text-xl font-bold text-foreground">{loading || loadError ? "—" : value}</p>
                   <p className="text-xs text-muted-foreground">{label}</p>
                 </div>
               </CardContent>
@@ -496,7 +542,7 @@ td{padding:6px 8px;border-bottom:1px solid #f0f0f0}
                       </TableCell>
                       <TableCell className="text-sm">{l.completed_by_name}</TableCell>
                       <TableCell className="text-sm whitespace-nowrap">
-                        {format(new Date(l.completed_at), "HH:mm")}
+                        {(l.completed_at ? format(new Date(l.completed_at), "HH:mm") : "—")}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground max-w-[180px] truncate">
                         {l.notes || "—"}

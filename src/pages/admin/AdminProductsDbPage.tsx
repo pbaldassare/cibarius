@@ -56,6 +56,7 @@ const AdminProductsDbPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [search, setSearch] = useState("");
   const [sourceFilter, setSourceFilter] = useState("all");
   const [page, setPage] = useState(0);
@@ -85,6 +86,7 @@ const AdminProductsDbPage = () => {
     if (sourceFilter !== "all") query = query.eq("data_source", sourceFilter);
 
     const { data, count, error } = await query;
+    setLoadError(!!error);
     if (!error) {
       setProducts(data ?? []);
       setTotalCount(count ?? 0);
@@ -138,7 +140,7 @@ const AdminProductsDbPage = () => {
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
             <Package className="h-6 w-6" /> Database Prodotti
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">{totalCount} prodotti totali</p>
+          <p className="text-sm text-muted-foreground mt-1">{loading ? "Caricamento catalogo?" : loadError ? "Impossibile caricare il catalogo" : `${totalCount} prodotti totali`}</p>
         </div>
         <Button onClick={() => setAddOpen(true)} className="gap-2">
           <Plus className="h-4 w-4" /> Aggiungi
