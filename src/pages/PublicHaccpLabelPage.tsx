@@ -18,7 +18,7 @@ const PublicHaccpLabelPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewPages, setPreviewPages] = useState<string[]>([]);
   const pdfDocRef = useRef<jsPDF | null>(null);
   const pdfRef = useRef<HTMLDivElement>(null);
 
@@ -72,7 +72,7 @@ const PublicHaccpLabelPage = () => {
     return <Badge className="bg-emerald-500 text-white gap-1"><CheckCircle2 className="h-3 w-3" /> Valido</Badge>;
   };
 
-  const buildPdf = async (): Promise<jsPDF | null> => {
+  const buildPdf = async () => {
     if (!pdfRef.current) return null;
     // html2canvas + jspdf pesano ~600 kB: caricali solo quando si genera il PDF
     const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
@@ -85,24 +85,34 @@ const PublicHaccpLabelPage = () => {
       useCORS: true,
       logging: false,
     });
-    const imgData = canvas.toDataURL("image/jpeg", 0.92);
+    if (!canvas.width || !canvas.height) throw new Error("Contenuto dell’etichetta non disponibile");
+
     const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-    const pageW = pdf.internal.pageSize.getWidth();
-    const pageH = pdf.internal.pageSize.getHeight();
-    const margin = 10;
-    const usableW = pageW - margin * 2;
-    const imgH = (canvas.height * usableW) / canvas.width;
-    let heightLeft = imgH;
-    let position = margin;
-    pdf.addImage(imgData, "JPEG", margin, position, usableW, imgH);
-    heightLeft -= pageH - margin * 2;
-    while (heightLeft > 0) {
-      position = heightLeft - imgH + margin;
-      pdf.addPage();
-      pdf.addImage(imgData, "JPEG", margin, position, usableW, imgH);
-      heightLeft -= pageH - margin * 2;
+    const widthMm = pdf.internal.pageSize.getWidth();
+    const heightMm = pdf.internal.pageSize.getHeight();
+    const marginMm = 10;
+    const pixelsPerMm = canvas.width / (widthMm - marginMm * 2);
+    const margin = Math.max(1, Math.round(marginMm * pixelsPerMm));
+    const page = document.createElement("canvas");
+    page.width = canvas.width + margin * 2;
+    page.height = Math.round(heightMm * page.width / widthMm);
+    const pageContentHeight = page.height - margin * 2;
+    const context = page.getContext("2d");
+    if (!context || pageContentHeight <= 0) throw new Error("Impossibile renderizzare la pagina");
+
+    const pages: string[] = [];
+    for (let top = 0; top < canvas.height; top += pageContentHeight) {
+      const height = Math.min(pageContentHeight, canvas.height - top);
+      context.fillStyle = "#ffffff";
+      context.fillRect(0, 0, page.width, page.height);
+      context.drawImage(canvas, 0, top, canvas.width, height, margin, margin, canvas.width, height);
+      const image = page.toDataURL("image/jpeg", 0.92);
+      if (pages.length) pdf.addPage();
+      pdf.addImage(image, "JPEG", 0, 0, widthMm, heightMm);
+      pages.push(image);
     }
-    return pdf;
+
+    return { pdf, pages };
   };
 
   const pdfFilename = () =>
@@ -111,11 +121,10 @@ const PublicHaccpLabelPage = () => {
   const previewPdf = async () => {
     setGenerating(true);
     try {
-      const pdf = await buildPdf();
-      if (!pdf) return;
-      pdfDocRef.current = pdf;
-      const blobUrl = URL.createObjectURL(pdf.output("blob"));
-      setPreviewUrl(blobUrl);
+      const result = await buildPdf();
+      if (!result) return;
+      pdfDocRef.current = result.pdf;
+      setPreviewPages(result.pages);
     } catch (e: any) {
       toast.error("Errore anteprima PDF: " + (e?.message || ""));
     } finally {
@@ -124,8 +133,7 @@ const PublicHaccpLabelPage = () => {
   };
 
   const closePreview = () => {
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setPreviewUrl(null);
+    setPreviewPages([]);
     pdfDocRef.current = null;
   };
 
@@ -147,13 +155,16 @@ const PublicHaccpLabelPage = () => {
         </Button>
       </div>
 
-      <Dialog open={!!previewUrl} onOpenChange={(o) => { if (!o) closePreview(); }}>
+      <Dialog open={previewPages.length > 0} onOpenChange={(o) => { if (!o) closePreview(); }}>
         <DialogContent className="max-w-5xl w-[95vw] h-[90vh] flex flex-col p-0 gap-0">
           <DialogHeader className="p-4 border-b">
             <DialogTitle className="flex items-center gap-2"><Eye className="h-4 w-4" /> Anteprima PDF — {label.preparation_name}</DialogTitle>
           </DialogHeader>
-          <div className="flex-1 bg-muted overflow-hidden">
-            {previewUrl && <iframe src={previewUrl} title="Anteprima PDF" className="w-full h-full border-0" />}
+          <div className="min-h-0 flex-1 space-y-4 overflow-auto bg-muted p-3 sm:p-6">
+            {previewPages.map((image, index) => (
+              <img key={index} src={image} alt={`Pagina ${index + 1} di ${previewPages.length} del PDF`}
+                className="mx-auto block h-auto w-full max-w-2xl bg-white shadow-sm" />
+            ))}
           </div>
           <DialogFooter className="p-4 border-t flex-row justify-end gap-2">
             <Button variant="outline" onClick={closePreview}>Annulla</Button>
