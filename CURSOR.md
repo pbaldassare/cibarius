@@ -31,7 +31,7 @@ Redirect post-login: `getRoleHomePath(role)` in `src/hooks/useRole.ts`.
 - **Package manager**: `bun` (lockfile committato).
 - **Backend**: **Supabase esterno** (progetto ref `dqhzopbjhxyhgcpedskl`) — Postgres + Auth + Storage + Edge Functions (Deno).
 - **Pagamenti**: Stripe (checkout + webhook firmato).
-- **AI**: Lovable AI Gateway (Gemini / GPT), USDA + OpenFoodFacts per nutrizione.
+- **AI**: gateway AI configurato su Supabase, USDA + OpenFoodFacts per nutrizione.
 - **PWA**: `public/sw.js` + `public/manifest.json`, install prompt custom (`PwaInstallProvider`).
 - **App Android**: guscio Capacitor 8 in `android/`, avvio dall'accesso, margini di sistema con `--sat`/`--sab`. Vedi `docs/ANDROID.md`.
 - **PDF/immagini**: `jspdf`, `html2canvas`, `qrcode`.
@@ -208,7 +208,7 @@ Principali:
 ## 10. Integrazioni esterne
 
 - **Stripe** — subscription + one-off, webhook firmato. Config in `stripe_settings`.
-- **Lovable AI Gateway** — provider LLM/vision unificato per tutte le function AI.
+- **Gateway AI** — provider LLM/vision unificato per tutte le function AI.
 - **USDA FoodData Central + OpenFoodFacts** — nutrition fallback multi-layer (`nutritional-fallback-system`).
 
 ---
@@ -223,7 +223,7 @@ Principali:
 - **Preferire `line_replace`** rispetto a riscritture complete per file esistenti.
 - **Test**: Vitest (`bunx vitest run`), setup in `src/test/setup.ts`. Edge functions testabili con Deno (`*_test.ts` accanto a `index.ts`).
 - **Typecheck**: `tsgo` (non `tsc --noEmit`).
-- **Head metadata**: `index.html` deve avere `<title>` e `<meta description>` reali (no default "Lovable App"). Un solo `<h1>` per pagina.
+- **Head metadata**: `index.html` deve avere `<title>` e `<meta description>` reali. Un solo `<h1>` per pagina.
 
 ---
 
@@ -237,7 +237,7 @@ bunx vitest run             # test unit
 tsgo                        # typecheck
 ```
 
-Migrations e deploy edge functions sono automatici tramite l'agent Lovable, non serve `supabase db push` manuale.
+Applica le migrazioni e distribuisci le Edge Functions su Supabase. Cloudflare Pages distribuisce il frontend da GitHub.
 
 ---
 
@@ -246,7 +246,7 @@ Migrations e deploy edge functions sono automatici tramite l'agent Lovable, non 
 **Da leggere per primo** quando entri nel progetto:
 
 1. `AGENT.md` — panoramica generata precedentemente (più dettagliata sui componenti).
-2. `README.md` — quickstart Vite/Lovable.
+2. `README.md` — avvio locale e pubblicazione su Cloudflare Pages.
 3. `src/App.tsx` — mappa completa route + guard.
 4. `src/index.css` + `tailwind.config.ts` — design tokens.
 5. `src/integrations/supabase/types.ts` — schema DB (sola lettura).
