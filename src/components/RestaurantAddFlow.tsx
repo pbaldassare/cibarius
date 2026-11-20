@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import RestaurantLabel, { type LabelData } from "@/components/RestaurantLabel";
+import { fetchAllRows } from "@/lib/supabase-paging";
+import { matchesSearch } from "@/lib/text-match";
 import { recordMovement } from "@/lib/inventory-movements";
 import { format, addDays, addHours, parseISO } from "date-fns";
 import {
@@ -45,6 +47,16 @@ interface PreparationIngredient {
   name: string;
   quantity: string;
   unit: string;
+  pantryItemId?: string;
+  lotNumber?: string | null;
+}
+
+interface PantryLot {
+  id: string;
+  lot_number: string | null;
+  expiry_date: string | null;
+  unit: string | null;
+  products: { name: string } | null;
 }
 
 interface EditItem extends AiItem {
@@ -102,6 +114,11 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
   const [savedLabels, setSavedLabels] = useState<LabelData[]>([]);
   const [allergensList, setAllergensList] = useState<{ id: string; name: string; code: string }[]>([]);
   const [selectedAllergens, setSelectedAllergens] = useState<string[]>([]);
+  const [pantryOpen, setPantryOpen] = useState(false);
+  const [pantrySearch, setPantrySearch] = useState("");
+  const [pantryLots, setPantryLots] = useState<PantryLot[]>([]);
+  const [pantryLoading, setPantryLoading] = useState(false);
+  const [pantryError, setPantryError] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
   // Load allergens
@@ -123,6 +140,7 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
         setEditItems([]);
         setEditIndex(0);
         setSavedLabels([]);
+        setPantryOpen(false);
         setSelectedAllergens([]);
       }, 300);
     }
@@ -218,6 +236,7 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
   };
 
   const handleNextItem = () => {
+    setPantryOpen(false);
     // Save current allergens
     setEditItems((prev) => {
       const copy = [...prev];
@@ -255,8 +274,9 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
               name: row.name.trim(),
               quantity: row.quantity === "" ? null : Number(row.quantity),
               unit: row.unit.trim() || null,
+              pantry_item_id: row.pantryItemId ?? null,
             })),
-            ...freeText.filter(name => !names.has(name.toLowerCase())).map(name => ({ name, quantity: null, unit: null })),
+            ...freeText.filter(name => !names.has(name.toLowerCase())).map(name => ({ name, quantity: null, unit: null, pantry_item_id: null })),
           ];
           const allergenIds = allergensList
             .filter(allergen => item.allergens.some(name => name.toLowerCase() === allergen.code.toLowerCase()
@@ -384,6 +404,25 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
   };
 
   const currentItem = editItems[editIndex];
+
+  const openPantry = async () => {
+    setPantryOpen(true);
+    setPantrySearch("");
+    setPantryLoading(true);
+    setPantryError(false);
+    try {
+      const result = await fetchAllRows<PantryLot>((from, to) => supabase.from("inventory_items")
+        .select("id, lot_number, expiry_date, unit, products(name)")
+        .eq("restaurant_id", restaurantId).order("id").range(from, to));
+      setPantryLots(result.data.filter(lot => lot.products?.name));
+      setPantryError(!!result.error || result.truncated);
+    } catch {
+      setPantryLots([]);
+      setPantryError(true);
+    } finally {
+      setPantryLoading(false);
+    }
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -751,7 +790,7 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
                     className="mt-1"
                   />
                 </div>
-                <div>
+                {currentItem.itemType === "product" && <div>
                   <label className="text-xs font-medium text-muted-foreground">Ingredienti (etichetta)</label>
                   <Input
                     value={currentItem.ingredientsText || ""}
@@ -759,7 +798,7 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
                     placeholder="farina, acqua, sale..."
                     className="mt-1"
                   />
-                </div>
+                </div>}
               </div>
 
               {currentItem.itemType === "preparation" && (
@@ -774,10 +813,56 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
                       <Input className="mt-1" value={currentItem.notes ?? ""} onChange={event => updateEditItem("notes", event.target.value)} />
                     </label>
                   </div>
+                  <section aria-label="Ingredienti" className="space-y-3 rounded-xl border bg-card p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <h3 className="text-sm font-semibold">Ingredienti</h3>
+                      <div className="flex flex-wrap gap-2">
+                        <Button type="button" size="sm" variant="outline" aria-expanded={pantryOpen}
+                          onClick={() => pantryOpen ? setPantryOpen(false) : void openPantry()}>Da dispensa</Button>
+                        <Button type="button" size="sm" variant="outline" onClick={() => updateEditItem("preparationIngredients",
+                          [...(currentItem.preparationIngredients ?? []), { name: "", quantity: "", unit: "g" }])}>
+                          <Plus className="mr-1 h-4 w-4" /> Aggiungi a mano
+                        </Button>
+                      </div>
+                    </div>
+                    {pantryOpen && <div className="space-y-2 rounded-lg bg-secondary/40 p-2">
+                      <Input aria-label="Cerca in dispensa" placeholder="Cerca per prodotto o lotto" value={pantrySearch}
+                        onChange={event => setPantrySearch(event.target.value)} />
+                      {pantryLoading && <p role="status" className="text-sm">Caricamento dispensa…</p>}
+                      {pantryError && <button type="button" className="text-sm underline" onClick={() => void openPantry()}>Dispensa incompleta. Riprova</button>}
+                      {!pantryLoading && <div className="max-h-48 space-y-1 overflow-y-auto">
+                        {pantryLots.filter(lot => matchesSearch(lot.products?.name ?? "", pantrySearch)
+                          || (lot.lot_number ?? "").toLowerCase().includes(pantrySearch.trim().toLowerCase()))
+                          .map(lot => (
+                            <button key={lot.id} type="button" className="block w-full rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted"
+                              onClick={() => {
+                                updateEditItem("preparationIngredients", [...(currentItem.preparationIngredients ?? []), {
+                                  name: lot.products?.name ?? "", quantity: "", unit: lot.unit ?? "g",
+                                  pantryItemId: lot.id, lotNumber: lot.lot_number,
+                                }]);
+                                setPantryOpen(false);
+                              }}>
+                              <span className="block font-medium">{lot.products?.name}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {lot.lot_number ? `Lotto ${lot.lot_number}` : "Senza numero di lotto"}
+                                {lot.expiry_date && ` · Scad. ${format(parseISO(lot.expiry_date), "dd/MM/yyyy")}`}
+                              </span>
+                            </button>
+                          ))}
+                      </div>}
+                      {!pantryLoading && !pantryError && !pantryLots.some(lot =>
+                        matchesSearch(lot.products?.name ?? "", pantrySearch)
+                          || (lot.lot_number ?? "").toLowerCase().includes(pantrySearch.trim().toLowerCase())
+                      ) && <p className="text-sm text-muted-foreground">Nessun prodotto trovato.</p>}
+                    </div>}
+                    {!currentItem.preparationIngredients?.length && <p className="text-sm text-muted-foreground">Nessun ingrediente aggiunto</p>}
                   {(currentItem.preparationIngredients ?? []).map((ingredient, index, ingredients) => (
-                    <div key={index} className="grid grid-cols-[2fr_1fr_1fr_auto] items-center gap-2">
-                      <Input aria-label="Nome ingrediente" placeholder="Ingrediente" value={ingredient.name}
+                    <div key={index} className="grid grid-cols-[1fr_1fr_auto] items-end gap-2 sm:grid-cols-[2fr_1fr_1fr_auto]">
+                      <div className="col-span-3 sm:col-span-1">
+                      <Input aria-label="Nome ingrediente" placeholder="Ingrediente" value={ingredient.name} readOnly={!!ingredient.pantryItemId}
                         onChange={event => updateEditItem("preparationIngredients", ingredients.map((row, i) => i === index ? { ...row, name: event.target.value } : row))} />
+                      {ingredient.pantryItemId && <p className="mt-1 text-xs text-muted-foreground">{ingredient.lotNumber ? `Lotto ${ingredient.lotNumber}` : "Da dispensa"}</p>}
+                      </div>
                       <Input aria-label="Quantità ingrediente" placeholder="Quantità" type="number" min="0" step="any" value={ingredient.quantity}
                         onChange={event => updateEditItem("preparationIngredients", ingredients.map((row, i) => i === index ? { ...row, quantity: event.target.value } : row))} />
                       <Input aria-label="Unità ingrediente" placeholder="Unità" value={ingredient.unit}
@@ -788,10 +873,7 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
                       </Button>
                     </div>
                   ))}
-                  <Button type="button" variant="outline" size="sm" onClick={() => updateEditItem("preparationIngredients",
-                    [...(currentItem.preparationIngredients ?? []), { name: "", quantity: "", unit: "g" }])}>
-                    <Plus className="h-4 w-4 mr-1" /> Aggiungi ingrediente con quantità
-                  </Button>
+                  </section>
                 </div>
               )}
 
