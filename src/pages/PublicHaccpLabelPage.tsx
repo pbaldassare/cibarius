@@ -9,8 +9,8 @@ import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import type { jsPDF } from "jspdf";
 import { toast } from "sonner";
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+import { FunctionsHttpError } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
 
 const PublicHaccpLabelPage = () => {
   const { token } = useParams<{ token: string }>();
@@ -25,12 +25,23 @@ const PublicHaccpLabelPage = () => {
   useEffect(() => {
     if (!token) return;
     (async () => {
+      const fallbackError = "Impossibile caricare l’etichetta. Riprova tra poco.";
       try {
-        const res = await fetch(`${SUPABASE_URL}/functions/v1/get-haccp-label?token=${encodeURIComponent(token)}`);
-        const json = await res.json();
-        if (!res.ok) { setError(json.error || "Errore"); }
-        else { setData(json); }
-      } catch (e: any) { setError(e?.message || "Errore"); }
+        const { data: result, error: requestError } = await supabase.functions.invoke(
+          `get-haccp-label?token=${encodeURIComponent(token)}`,
+          { method: "GET" },
+        );
+        if (requestError instanceof FunctionsHttpError) {
+          const response = await requestError.context.json().catch(() => null);
+          setError(typeof response?.error === "string" ? response.error : fallbackError);
+        } else if (requestError || !result?.label) {
+          setError(fallbackError);
+        } else {
+          setData(result);
+        }
+      } catch {
+        setError(fallbackError);
+      }
       finally { setLoading(false); }
     })();
   }, [token]);
