@@ -1,3 +1,4 @@
+import { GOOGLE_MAPS_KEY } from "@/lib/google-maps";
 import { useState, useEffect, useRef } from "react";
 import MobileHeader from "@/components/MobileHeader";
 import { useRestaurant } from "@/hooks/useRestaurant";
@@ -15,7 +16,7 @@ import {
   Globe, Instagram, Facebook,
 } from "lucide-react";
 
-const GOOGLE_MAPS_KEY = "AIzaSyA76iVcQpSnl76_G6bJVnEeOUmWVd7278I";
+
 
 const RestaurantSettingsPage = () => {
   const { restaurant, isLoading, refetch } = useRestaurant();

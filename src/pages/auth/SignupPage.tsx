@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, UserPlus, Eye, EyeOff, User, UtensilsCrossed, ArrowLeft, ArrowRight, Check } from "lucide-react";
 import cibariusLogo from "@/assets/cibarius-logo.png";
 import AuthFeatureCarousel from "@/components/AuthFeatureCarousel";
+import RestaurantAddressInput from "@/components/RestaurantAddressInput";
 import { LOGIN_PATH, USER_HOME } from "@/lib/routes";
 import { getRoleHomePath } from "@/hooks/useRole";
 import { vendeAbbonamenti } from "@/lib/native";
@@ -90,6 +91,7 @@ const SignupPage = () => {
       email,
       role: accountType!,
       phone: phone || "",
+      welcome_email_requested: "v1",
     };
     if (accountType === "restaurant_owner") {
       metadata.restaurant_name = restaurantName;
@@ -294,12 +296,7 @@ const SignupPage = () => {
                   onChange={(e) => setRestaurantName(e.target.value)}
                   required
                 />
-                <Input
-                  type="text"
-                  placeholder="Indirizzo (consigliato)"
-                  value={restaurantAddress}
-                  onChange={(e) => setRestaurantAddress(e.target.value)}
-                />
+                <RestaurantAddressInput value={restaurantAddress} onChange={setRestaurantAddress} />
                 <Input
                   type="tel"
                   placeholder="Telefono ristorante"

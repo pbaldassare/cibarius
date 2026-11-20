@@ -131,7 +131,7 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
   // Reset on close
   useEffect(() => {
     if (!open) {
-      setTimeout(() => {
+      const resetTimer = window.setTimeout(() => {
         setStep("choice");
         setItemTypeChoice("product");
         setPhotos([]);
@@ -143,6 +143,7 @@ const RestaurantAddFlow = ({ open, onOpenChange, restaurantId, onComplete }: Pro
         setPantryOpen(false);
         setSelectedAllergens([]);
       }, 300);
+      return () => window.clearTimeout(resetTimer);
     }
   }, [open]);
 
