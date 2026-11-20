@@ -26,6 +26,7 @@ import {
 import { getFoodEmoji } from "@/lib/food-images";
 import { format } from "date-fns";
 import { getCoarseExpiryStatus } from "@/lib/expiry-status";
+import { formatDisplayDate } from "@/lib/format-date";
 
 /* ─── types ─── */
 interface InventoryItem {
@@ -269,11 +270,11 @@ const RestaurantPage = () => {
         return;
       }
     } else {
-      const { error } = await consumeFromPreparation(
+      const { error, remaining } = await consumeFromPreparation(
         {
           id: item.id,
           restaurant_id: restaurant.id,
-          quantity: item.quantity,
+          portions: item.quantity,
           unit: item.unit,
           lot_number: item.lot_number,
           expiry_date: item.date,
@@ -283,6 +284,14 @@ const RestaurantPage = () => {
       );
       if (error) {
         toast({ variant: "destructive", title: "Errore", description: error });
+        return;
+      }
+      if (remaining > 0) {
+        toast({
+          title: movementType === "consumo" ? "Segnato come utilizzato ✓" : "Segnato come buttato 🗑",
+          description: `${remaining} porzioni rimaste`,
+        });
+        fetchData();
         return;
       }
     }
@@ -730,7 +739,7 @@ const SwipeableUrgentItem = ({ item, onConsumed, onDiscarded }: SwipeableProps) 
             {item.date && (
               <span className="text-[11px] flex items-center gap-0.5 text-muted-foreground">
                 <Clock className="h-2.5 w-2.5" />
-                {new Date(item.date).toLocaleDateString("it-IT")}
+                {formatDisplayDate(item.date)}
               </span>
             )}
             <span className="text-[10px] text-muted-foreground">{storageLabel[item.storage] ?? item.storage}</span>

@@ -14,6 +14,12 @@ interface LabelData {
   qr_token: string;
 }
 
+export interface LabelIngredientLine {
+  ingredient_name: string;
+  quantity_used?: string | number | null;
+  unit?: string | null;
+}
+
 /** Documento di provenienza (bolla / DDT / fattura) collegato alla preparazione */
 export interface LabelSourceDoc {
   document_type?: string | null;
@@ -29,6 +35,8 @@ interface Props {
   publicUrl: string;
   /** Documenti di provenienza degli ingredienti, stampati per la tracciabilita' */
   sourceDocs?: LabelSourceDoc[];
+  /** Ingredienti (solo formato A4) */
+  ingredients?: LabelIngredientLine[];
 }
 
 const fmt = (d: string) => {
@@ -44,7 +52,7 @@ const ddtText = (doc: LabelSourceDoc): string => {
   return doc.supplier_name ? `${head} — ${doc.supplier_name}` : head;
 };
 
-const HaccpLabelPrintView = ({ label, restaurantName, size, publicUrl, sourceDocs = [] }: Props) => {
+const HaccpLabelPrintView = ({ label, restaurantName, size, publicUrl, sourceDocs = [], ingredients = [] }: Props) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -60,6 +68,46 @@ const HaccpLabelPrintView = ({ label, restaurantName, size, publicUrl, sourceDoc
   }[size];
 
   const qrSize = size === "small" ? 70 : size === "medium" ? 110 : 150;
+
+  if (size === "a4" && ingredients.length > 0) {
+    return (
+      <div className={`bg-white text-black border-2 border-black ${sizeClass} flex flex-col gap-3`}>
+        <div className="flex gap-2">
+          <div className="flex-1 min-w-0 flex flex-col">
+            <div className="font-bold uppercase break-words leading-tight" style={{ fontSize: 18, wordBreak: "break-word" }}>
+              {label.preparation_name}
+            </div>
+            <div className="text-[0.85em] opacity-70">{restaurantName}</div>
+            <div className="mt-1 space-y-0.5 leading-tight text-sm">
+              <div><b>Prod:</b> {fmt(label.production_date)}</div>
+              <div><b>Scad:</b> {fmt(label.expiration_date)}</div>
+              <div><b>Conserv:</b> {label.conservation_type}</div>
+              <div><b>Lotto:</b> {label.internal_lot_code}</div>
+              {label.quantity != null && <div><b>Qtà:</b> {label.quantity} {label.unit || ""}</div>}
+              {label.allergens && label.allergens.length > 0 && (
+                <div><b>Allergeni:</b> {label.allergens.join(", ")}</div>
+              )}
+              {sourceDocs.length > 0 && (
+                <div><b>Provenienza:</b> {sourceDocs.map(ddtText).join(" · ")}</div>
+              )}
+            </div>
+          </div>
+          <div className="shrink-0 flex items-start justify-center">
+            <canvas ref={canvasRef} width={qrSize} height={qrSize} />
+          </div>
+        </div>
+        <div className="border-t border-black pt-2 text-sm space-y-1">
+          <div className="font-bold uppercase text-xs">Ingredienti</div>
+          {ingredients.map((ing, idx) => (
+            <div key={idx}>
+              {ing.ingredient_name}
+              {ing.quantity_used ? ` · ${ing.quantity_used} ${ing.unit || ""}` : ""}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`bg-white text-black border-2 border-black ${sizeClass} flex gap-2`}>

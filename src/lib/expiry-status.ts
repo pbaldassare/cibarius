@@ -124,19 +124,6 @@ export function getExpiryBadgeLabel(value: string | null | undefined, now?: Date
   return "OK";
 }
 
-/**
- * Data di scadenza scritta per esteso. Passa dal parsing locale perché
- * `new Date("2026-10-03").toLocaleDateString()` a ovest di Greenwich stampa il
- * 2 ottobre.
- */
-export function formatExpiryDate(
-  value: string | null | undefined,
-  options: Intl.DateTimeFormatOptions = {},
-): string {
-  const date = parseExpiryDate(value);
-  return date ? date.toLocaleDateString("it-IT", options) : "";
-}
-
 /** Ordinamento per urgenza: prima gli scaduti, in fondo chi non ha data. */
 export function compareByExpiry(a: string | null | undefined, b: string | null | undefined): number {
   const da = daysUntilExpiry(a);

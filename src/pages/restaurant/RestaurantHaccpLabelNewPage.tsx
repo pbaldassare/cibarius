@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { useDebounce } from "@/hooks/useDebounce";
+import { searchFoodProgressive, type FoodSearchResult } from "@/lib/search-food";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useRestaurant } from "@/hooks/useRestaurant";
 import { useAuth } from "@/hooks/useAuth";
@@ -7,6 +9,7 @@ import MobileHeader from "@/components/MobileHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInputWithHint } from "@/components/DateInputWithHint";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -49,6 +52,7 @@ const RestaurantHaccpLabelNewPage = () => {
 
   const [name, setName] = useState("");
   const [quantity, setQuantity] = useState("");
+  const [portions, setPortions] = useState("1");
   const [unit, setUnit] = useState("kg");
   const [productionDate, setProductionDate] = useState(today);
   const [expirationDate, setExpirationDate] = useState(tomorrow);
@@ -63,6 +67,10 @@ const RestaurantHaccpLabelNewPage = () => {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [docPickerOpen, setDocPickerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [catalogQuery, setCatalogQuery] = useState("");
+  const debouncedCatalogQuery = useDebounce(catalogQuery, 300);
+  const [catalogResults, setCatalogResults] = useState<FoodSearchResult[]>([]);
+  const [catalogSearching, setCatalogSearching] = useState(false);
 
   useEffect(() => {
     const nameParam = searchParams.get("name");
@@ -70,12 +78,14 @@ const RestaurantHaccpLabelNewPage = () => {
     const conservationParam = searchParams.get("conservation");
     const expirationParam = searchParams.get("expiration");
     const quantityParam = searchParams.get("quantity");
+    const portionsParam = searchParams.get("portions");
 
     if (nameParam) setName(nameParam);
     if (notesParam) setNotes(notesParam);
     if (conservationParam) setConservation(conservationParam);
     if (expirationParam) setExpirationDate(expirationParam);
     if (quantityParam) setQuantity(quantityParam);
+    if (portionsParam) setPortions(portionsParam);
   }, [searchParams]);
 
   useEffect(() => {
@@ -97,6 +107,35 @@ const RestaurantHaccpLabelNewPage = () => {
       setDocs((dd as Doc[]) || []);
     })();
   }, [restaurant]);
+
+  useEffect(() => {
+    if (debouncedCatalogQuery.trim().length < 2) {
+      setCatalogResults([]);
+      setCatalogSearching(false);
+      return;
+    }
+    setCatalogSearching(true);
+    const abort = searchFoodProgressive(debouncedCatalogQuery.trim(), (results, _phase, done) => {
+      setCatalogResults(results.slice(0, 8));
+      if (done) setCatalogSearching(false);
+    });
+    return abort;
+  }, [debouncedCatalogQuery]);
+
+  const addFromCatalog = (result: FoodSearchResult) => {
+    setIngredients(prev => [...prev, {
+      pantry_item_id: null,
+      ingredient_name: result.name,
+      quantity_used: "",
+      unit: "g",
+      source_lot_code: "",
+      supplier_name: result.brand || "",
+      ingredient_expiration_date: "",
+      origin_document_id: null,
+    }]);
+    setCatalogQuery("");
+    setCatalogResults([]);
+  };
 
   const addManualIngredient = () => setIngredients(prev => [...prev, {
     pantry_item_id: null, ingredient_name: "", quantity_used: "", unit: "g",
@@ -142,6 +181,7 @@ const RestaurantHaccpLabelNewPage = () => {
         restaurant_id: restaurant.id,
         preparation_name: name.trim(),
         quantity: quantity ? parseFloat(quantity) : null,
+        portions: parseInt(portions, 10) > 0 ? parseInt(portions, 10) : 1,
         unit: unit || null,
         production_date: productionDate,
         expiration_date: expirationDate,
@@ -209,22 +249,28 @@ const RestaurantHaccpLabelNewPage = () => {
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label>Quantità prodotta</Label>
-            <Input type="number" step="0.01" value={quantity} onChange={e => setQuantity(e.target.value)} />
+            <Label>Quantità totale prodotta</Label>
+            <Input type="number" step="0.01" value={quantity} onChange={e => setQuantity(e.target.value)} aria-label="Peso o volume totale della preparazione" placeholder="es. 3.5" />
+            <p className="text-[11px] text-muted-foreground mt-1">Peso o volume dell&apos;intero lotto finito (es. 3 kg di ragù), non il peso di una singola porzione.</p>
           </div>
           <div>
             <Label>Unità</Label>
             <Select value={unit} onValueChange={setUnit}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {["kg", "g", "l", "ml", "pz", "porz."].map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                {["kg", "g", "l", "ml", "pz"].map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
         </div>
+        <div>
+          <Label>Porzioni fatte</Label>
+          <Input type="number" min={1} step={1} value={portions} onChange={e => setPortions(e.target.value)} aria-label="Numero di porzioni prodotte" />
+          <p className="text-[10px] text-muted-foreground mt-1">Quante porzioni servite puoi ricavare da questa produzione</p>
+        </div>
         <div className="grid grid-cols-2 gap-3">
-          <div><Label>Data produzione</Label><Input type="date" value={productionDate} onChange={e => setProductionDate(e.target.value)} /></div>
-          <div><Label>Data scadenza</Label><Input type="date" value={expirationDate} onChange={e => setExpirationDate(e.target.value)} /></div>
+          <div><Label>Data produzione</Label><DateInputWithHint value={productionDate} onChange={e => setProductionDate(e.target.value)} /></div>
+          <div><Label>Data scadenza</Label><DateInputWithHint value={expirationDate} onChange={e => setExpirationDate(e.target.value)} /></div>
         </div>
         <div>
           <Label>Conservazione</Label>
@@ -260,23 +306,51 @@ const RestaurantHaccpLabelNewPage = () => {
           <h3 className="font-semibold">Ingredienti</h3>
           <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={() => setPickerOpen(true)}>Da dispensa</Button>
-            <Button size="sm" variant="outline" onClick={addManualIngredient}><Plus className="h-4 w-4" /></Button>
+            <Button size="sm" variant="outline" onClick={addManualIngredient} aria-label="Riga ingrediente manuale"><Plus className="h-4 w-4" /></Button>
           </div>
         </div>
+        <p className="text-[11px] text-muted-foreground">
+          Cerca nel catalogo o importa dalla dispensa; puoi completare a mano solo ciò che manca (lotto, fornitore).
+        </p>
+        <Input
+          placeholder="Cerca nel catalogo (min. 2 lettere)…"
+          aria-label="Cerca ingrediente nel catalogo"
+          value={catalogQuery}
+          onChange={e => setCatalogQuery(e.target.value)}
+        />
+        {catalogSearching && catalogQuery.trim().length >= 2 && (
+          <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+            <Loader2 className="h-3 w-3 animate-spin" /> Ricerca nel catalogo…
+          </p>
+        )}
+        {catalogResults.length > 0 && (
+          <div className="max-h-36 overflow-y-auto space-y-1 rounded-lg border border-border p-2">
+            {catalogResults.map((r, idx) => (
+              <button
+                key={`${r.name}-${idx}`}
+                type="button"
+                className="w-full text-left px-3 py-1.5 rounded hover:bg-muted text-sm"
+                onClick={() => addFromCatalog(r)}
+              >
+                {r.name}{r.brand ? ` (${r.brand})` : ""}
+              </button>
+            ))}
+          </div>
+        )}
         {ingredients.length === 0 && <p className="text-sm text-muted-foreground">Nessun ingrediente aggiunto</p>}
         {ingredients.map((ing, i) => (
           <div key={i} className="border border-border rounded-lg p-3 space-y-2 relative">
             <button onClick={() => removeIng(i)} className="absolute top-2 right-2 text-muted-foreground"><Trash2 className="h-4 w-4" /></button>
             <Input placeholder="Nome ingrediente" value={ing.ingredient_name} onChange={e => updateIng(i, "ingredient_name", e.target.value)} />
             <div className="grid grid-cols-2 gap-2">
-              <Input placeholder="Quantità" type="number" step="0.01" value={ing.quantity_used} onChange={e => updateIng(i, "quantity_used", e.target.value)} />
+              <Input placeholder="Qtà usata (totale)" type="number" step="0.01" aria-label="Quantità ingrediente usata in questa preparazione" value={ing.quantity_used} onChange={e => updateIng(i, "quantity_used", e.target.value)} />
               <Input placeholder="Unità" value={ing.unit} onChange={e => updateIng(i, "unit", e.target.value)} />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <Input placeholder="Lotto origine" value={ing.source_lot_code} onChange={e => updateIng(i, "source_lot_code", e.target.value)} />
               <Input placeholder="Fornitore" value={ing.supplier_name} onChange={e => updateIng(i, "supplier_name", e.target.value)} />
             </div>
-            <Input type="date" value={ing.ingredient_expiration_date} onChange={e => updateIng(i, "ingredient_expiration_date", e.target.value)} />
+            <DateInputWithHint value={ing.ingredient_expiration_date} onChange={e => updateIng(i, "ingredient_expiration_date", e.target.value)} />
           </div>
         ))}
       </CardContent></Card>
