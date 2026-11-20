@@ -63,6 +63,11 @@ const RestaurantHaccpLabelNewPage = () => {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [docPickerOpen, setDocPickerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [allergensReviewed, setAllergensReviewed] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState(false);
+  const draftId = searchParams.get("draft");
+  const sourceId = searchParams.get("source");
 
   useEffect(() => {
     const nameParam = searchParams.get("name");
@@ -75,8 +80,75 @@ const RestaurantHaccpLabelNewPage = () => {
     if (notesParam) setNotes(notesParam);
     if (conservationParam) setConservation(conservationParam);
     if (expirationParam) setExpirationDate(expirationParam);
-    if (quantityParam) setQuantity(quantityParam);
+    if (quantityParam) { setQuantity(quantityParam); setUnit("pz"); }
   }, [searchParams]);
+
+  useEffect(() => {
+    if ((!sourceId && !draftId) || !restaurant) return;
+    let cancelled = false;
+    setImporting(true);
+    setImportError(false);
+    void (async () => {
+      try {
+        if (draftId) {
+          const [draft, ingredients, documents] = await Promise.all([
+            supabase.from("haccp_preparation_labels").select("*").eq("id", draftId).eq("restaurant_id", restaurant.id).eq("status", "draft").single(),
+            supabase.from("haccp_preparation_ingredients").select("*").eq("preparation_label_id", draftId),
+            supabase.from("haccp_preparation_documents").select("document_id").eq("preparation_label_id", draftId),
+          ]);
+          if (draft.error || ingredients.error || documents.error) throw draft.error || ingredients.error || documents.error;
+          if (cancelled) return;
+          const row = draft.data;
+          setName(row.preparation_name);
+          setQuantity(row.quantity == null ? "" : String(row.quantity));
+          setUnit(row.unit ?? "");
+          setProductionDate(row.production_date);
+          setExpirationDate(row.expiration_date);
+          setConservation(row.conservation_type);
+          setLotCode(row.internal_lot_code ?? "");
+          setNotes(row.notes ?? "");
+          setAllergens(row.allergens ?? []);
+          setIngredients((ingredients.data ?? []).map(i => ({
+            ...i,
+            quantity_used: i.quantity_used == null ? "" : String(i.quantity_used),
+            unit: i.unit ?? "",
+            source_lot_code: i.source_lot_code ?? "",
+            supplier_name: i.supplier_name ?? "",
+            ingredient_expiration_date: i.ingredient_expiration_date ?? "",
+          })));
+          setLinkedDocs((documents.data ?? []).map(d => d.document_id));
+          if (!sourceId) return;
+        }
+        if (!sourceId) return;
+        const prep = await supabase.from("preparations").select("id, production_date, prepared_at")
+          .eq("id", sourceId).eq("restaurant_id", restaurant.id).single();
+        if (prep.error) throw prep.error;
+        const [ingredients, allergens] = await Promise.all([
+          supabase.from("preparation_ingredients").select("custom_name, quantity, unit, products(name)").eq("preparation_id", sourceId),
+          supabase.from("preparation_allergens").select("allergens(name)").eq("preparation_id", sourceId),
+        ]);
+        if (ingredients.error || allergens.error) throw ingredients.error || allergens.error;
+        if (cancelled) return;
+        setProductionDate(prep.data.production_date || prep.data.prepared_at.slice(0, 10));
+        setAllergens((allergens.data ?? []).flatMap(row => row.allergens?.name ? [row.allergens.name.toLowerCase()] : []));
+        setIngredients((ingredients.data ?? []).map(row => ({
+          ingredient_name: row.products?.name ?? row.custom_name ?? "",
+          quantity_used: row.quantity == null ? "" : String(row.quantity),
+          unit: row.unit ?? "",
+          pantry_item_id: null,
+          source_lot_code: "",
+          supplier_name: "",
+          ingredient_expiration_date: "",
+          origin_document_id: null,
+        })));
+      } catch {
+        if (!cancelled) setImportError(true);
+      } finally {
+        if (!cancelled) setImporting(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [sourceId, draftId, restaurant]);
 
   useEffect(() => {
     if (!restaurant) return;
@@ -123,7 +195,10 @@ const RestaurantHaccpLabelNewPage = () => {
 
   const removeIng = (i: number) => setIngredients(prev => prev.filter((_, idx) => idx !== i));
 
-  const toggleAllergen = (a: string) => setAllergens(prev => prev.includes(a) ? prev.filter(x => x !== a) : [...prev, a]);
+  const toggleAllergen = (allergen: string) => {
+    setAllergensReviewed(false);
+    setAllergens(previous => previous.includes(allergen) ? previous.filter(value => value !== allergen) : [...previous, allergen]);
+  };
 
   const handleSave = async (finalize: boolean) => {
     if (!restaurant || !user) return;
@@ -131,71 +206,52 @@ const RestaurantHaccpLabelNewPage = () => {
       toast({ variant: "destructive", title: "Nome preparazione obbligatorio" });
       return;
     }
+    const namedIngredients = ingredients.filter(i => i.ingredient_name.trim());
+    if (!productionDate || !expirationDate || expirationDate < productionDate) {
+      toast({ variant: "destructive", title: "Controlla le date di produzione e scadenza" });
+      return;
+    }
+    if (finalize && (!allergensReviewed || namedIngredients.length === 0)) {
+      toast({ variant: "destructive", title: "Indica gli ingredienti e conferma la verifica degli allergeni" });
+      return;
+    }
     setSaving(true);
-
-    const { data: profile } = await supabase.from("profiles").select("full_name, email").eq("id", user.id).maybeSingle();
-    const operatorName = profile?.full_name || profile?.email || "—";
-
-    const { data: label, error } = await supabase
-      .from("haccp_preparation_labels")
-      .insert({
+    const { data: labelId, error } = await supabase.rpc("save_restaurant_haccp_label", {
+      p_label: {
+        id: draftId,
         restaurant_id: restaurant.id,
+        source_preparation_id: sourceId,
         preparation_name: name.trim(),
-        quantity: quantity ? parseFloat(quantity) : null,
+        quantity: quantity ? Number(quantity) : null,
         unit: unit || null,
         production_date: productionDate,
         expiration_date: expirationDate,
         conservation_type: conservation,
-        internal_lot_code: lotCode.trim() || (null as any),
-        operator_user_id: user.id,
-        operator_name: operatorName,
+        internal_lot_code: lotCode.trim() || null,
         notes: notes || null,
         allergens,
+        allergens_reviewed: allergensReviewed,
         status: finalize ? "finalized" : "draft",
-        finalized_at: finalize ? new Date().toISOString() : null,
-        created_by: user.id,
-      } as any)
-      .select("id")
-      .single();
-
-    if (error || !label) {
-      setSaving(false);
-      toast({ variant: "destructive", title: "Errore", description: error?.message });
+      },
+      p_ingredients: namedIngredients.map(i => ({
+        ingredient_name: i.ingredient_name.trim(),
+        pantry_item_id: i.pantry_item_id,
+        quantity_used: i.quantity_used ? Number(i.quantity_used) : null,
+        unit: i.unit || null,
+        source_lot_code: i.source_lot_code || null,
+        supplier_name: i.supplier_name || null,
+        ingredient_expiration_date: i.ingredient_expiration_date || null,
+        origin_document_id: i.origin_document_id,
+      })),
+      p_documents: linkedDocs,
+    });
+    setSaving(false);
+    if (error || !labelId) {
+      toast({ variant: "destructive", title: "Impossibile salvare l?etichetta", description: error?.message });
       return;
     }
-
-    if (ingredients.length > 0) {
-      await supabase.from("haccp_preparation_ingredients").insert(
-        ingredients.filter(i => i.ingredient_name.trim()).map(i => ({
-          preparation_label_id: label.id,
-          pantry_item_id: i.pantry_item_id,
-          ingredient_name: i.ingredient_name.trim(),
-          quantity_used: i.quantity_used ? parseFloat(i.quantity_used) : null,
-          unit: i.unit || null,
-          source_lot_code: i.source_lot_code || null,
-          supplier_name: i.supplier_name || null,
-          ingredient_expiration_date: i.ingredient_expiration_date || null,
-          origin_document_id: i.origin_document_id,
-        })) as any
-      );
-    }
-
-    if (linkedDocs.length > 0) {
-      await supabase.from("haccp_preparation_documents").insert(
-        linkedDocs.map(d => ({ preparation_label_id: label.id, document_id: d })) as any
-      );
-    }
-
-    await supabase.from("haccp_label_audit_log").insert({
-      preparation_label_id: label.id,
-      action: finalize ? "finalized" : "created",
-      user_id: user.id,
-      user_name: operatorName,
-    } as any);
-
-    setSaving(false);
-    toast({ title: finalize ? "Etichetta finalizzata ✓" : "Bozza salvata" });
-    navigate(`/restaurant/haccp-labels/${label.id}`);
+    toast({ title: finalize ? "Etichetta finalizzata" : "Bozza salvata" });
+    navigate(`/restaurant/haccp-labels/${labelId}`);
   };
 
   return (
@@ -242,7 +298,7 @@ const RestaurantHaccpLabelNewPage = () => {
         <div>
           <Label>Allergeni</Label>
           <div className="flex flex-wrap gap-1.5 mt-1">
-            {ALLERGENS_OPTS.map(a => (
+            {[...new Set([...ALLERGENS_OPTS, ...allergens])].map(a => (
               <Badge key={a} variant={allergens.includes(a) ? "default" : "outline"} className="cursor-pointer" onClick={() => toggleAllergen(a)}>
                 {a}
               </Badge>
@@ -301,11 +357,17 @@ const RestaurantHaccpLabelNewPage = () => {
         })}
       </CardContent></Card>
 
+      {importing && <p role="status">Caricamento dati della preparazione?</p>}
+      {importError && <p role="alert">Impossibile caricare i dati dell’etichetta. Ricarica la pagina per riprovare.</p>}
+      <label className="flex gap-2 text-sm">
+        <input type="checkbox" checked={allergensReviewed} onChange={event => setAllergensReviewed(event.target.checked)} />
+        {allergens.length ? "Confermo di aver verificato gli allergeni indicati" : "Confermo che non ci sono allergeni da dichiarare"}
+      </label>
       <div className="flex gap-2 sticky bottom-4">
-        <Button variant="outline" onClick={() => handleSave(false)} disabled={saving} className="flex-1">
+        <Button variant="outline" onClick={() => handleSave(false)} disabled={saving || importing || importError} className="flex-1">
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4 mr-1" /> Bozza</>}
         </Button>
-        <Button onClick={() => handleSave(true)} disabled={saving} className="flex-1">
+        <Button onClick={() => handleSave(true)} disabled={saving || importing || importError} className="flex-1">
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Finalizza & QR"}
         </Button>
       </div>

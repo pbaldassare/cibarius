@@ -104,34 +104,18 @@ export const consumeFromItem = async (
     lot_number?: string | null;
     expiry_date?: string | null;
   },
-  productName: string,
+  _productName: string,
   movementType: Extract<MovementType, "consumo" | "spreco">,
   quantity?: number,
 ): Promise<{ error: string | null; remaining: number }> => {
-  const available = Number(item.quantity ?? 0);
-  // Un lotto senza quantita' registrata vale 1: scaricarlo lo esaurisce.
-  const total = available > 0 ? available : 1;
-  const requested = quantity != null && quantity > 0 ? Math.min(quantity, total) : total;
-  const remaining = Number((total - requested).toFixed(3));
-
-  const { error: movErr } = await recordMovement({
-    restaurantId: item.restaurant_id,
-    inventoryItemId: item.id,
-    productId: item.product_id,
-    productName,
-    movementType,
-    quantity: requested,
-    unit: item.unit,
-    lotNumber: item.lot_number,
-    expiryDate: item.expiry_date,
+  const { data, error } = await supabase.rpc("consume_restaurant_stock", {
+    p_restaurant_id: item.restaurant_id,
+    p_item_id: item.id,
+    p_is_preparation: false,
+    p_movement_type: movementType,
+    p_quantity: quantity ?? null,
   });
-  if (movErr) return { error: movErr.message, remaining: total };
-
-  const { error: stockErr } = remaining > 0
-    ? await supabase.from("inventory_items").update({ quantity: remaining }).eq("id", item.id)
-    : await supabase.from("inventory_items").delete().eq("id", item.id);
-
-  return { error: stockErr?.message ?? null, remaining };
+  return { error: error?.message ?? null, remaining: data ?? Number(item.quantity ?? 0) };
 };
 
 /**
@@ -149,35 +133,18 @@ export const consumeFromPreparation = async (
     lot_number?: string | null;
     expiry_date?: string | null;
   },
-  name: string,
+  _name: string,
   movementType: Extract<MovementType, "consumo" | "spreco">,
   quantity?: number,
 ): Promise<{ error: string | null; remaining: number }> => {
-  const available = Number(prep.quantity ?? 0);
-  const total = available > 0 ? available : 1;
-  // `preparations.portions` e' un intero: una richiesta frazionaria verrebbe
-  // rifiutata dal database, quindi si scarica a porzioni intere (minimo una).
-  const asked = quantity != null && quantity > 0 ? Math.max(1, Math.round(quantity)) : total;
-  const requested = Math.min(asked, total);
-  const remaining = total - requested;
-
-  const { error: movErr } = await recordMovement({
-    restaurantId: prep.restaurant_id,
-    productName: name,
-    movementType,
-    quantity: requested,
-    unit: prep.unit ?? "porzioni",
-    lotNumber: prep.lot_number,
-    expiryDate: prep.expiry_date,
-    notes: "Preparazione",
+  const { data, error } = await supabase.rpc("consume_restaurant_stock", {
+    p_restaurant_id: prep.restaurant_id,
+    p_item_id: prep.id,
+    p_is_preparation: true,
+    p_movement_type: movementType,
+    p_quantity: quantity ?? null,
   });
-  if (movErr) return { error: movErr.message, remaining: total };
-
-  const { error: stockErr } = remaining > 0
-    ? await supabase.from("preparations").update({ portions: remaining }).eq("id", prep.id)
-    : await supabase.from("preparations").delete().eq("id", prep.id);
-
-  return { error: stockErr?.message ?? null, remaining };
+  return { error: error?.message ?? null, remaining: data ?? Number(prep.quantity ?? 0) };
 };
 
 /** Consumo medio giornaliero e giorni residui stimati, per prodotto. */

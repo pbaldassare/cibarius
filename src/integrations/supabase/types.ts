@@ -4424,6 +4424,17 @@ export type Database = {
         Args: { p_preparation: Json; p_ingredients: Json; p_allergen_ids: string[] };
         Returns: string;
       };
+      save_restaurant_haccp_label: {
+        Args: { p_label: Json; p_ingredients: Json; p_documents: string[] };
+        Returns: string;
+      };
+      consume_restaurant_stock: {
+        Args: {
+          p_restaurant_id: string; p_item_id: string; p_is_preparation: boolean;
+          p_movement_type: string; p_quantity: number | null;
+        };
+        Returns: number;
+      };
       accept_restaurant_invite: { Args: { _token: string }; Returns: string }
       accept_supplier_invite: { Args: { _code: string }; Returns: string }
       complete_oauth_signup: { Args: { p_payload: Json }; Returns: Json }

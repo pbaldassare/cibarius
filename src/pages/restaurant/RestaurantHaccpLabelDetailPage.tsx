@@ -72,16 +72,6 @@ const RestaurantHaccpLabelDetailPage = ({ readOnly = false }: { readOnly?: boole
     setTimeout(() => window.print(), 200);
   };
 
-  const handleFinalize = async () => {
-    if (!label) return;
-    await supabase.from("haccp_preparation_labels").update({
-      status: "finalized", finalized_at: new Date().toISOString(),
-    }).eq("id", label.id);
-    await logAction("finalized");
-    toast({ title: "Etichetta finalizzata ✓" });
-    fetchAll();
-  };
-
   const handleCancel = async () => {
     if (!label || !cancelReason.trim()) {
       toast({ variant: "destructive", title: "Inserisci un motivo" });
@@ -100,26 +90,29 @@ const RestaurantHaccpLabelDetailPage = ({ readOnly = false }: { readOnly?: boole
 
   const handleDuplicate = async () => {
     if (!label || !restaurant) return;
-    const { data: newL, error } = await supabase.from("haccp_preparation_labels").insert({
-      restaurant_id: label.restaurant_id,
-      preparation_name: label.preparation_name,
-      quantity: label.quantity, unit: label.unit,
-      production_date: new Date().toISOString().slice(0, 10),
-      expiration_date: new Date(Date.now() + 86400000).toISOString().slice(0, 10),
-      conservation_type: label.conservation_type,
-      operator_user_id: user?.id, operator_name: label.operator_name,
-      allergens: label.allergens, notes: label.notes,
-      status: "draft", created_by: user?.id,
-    } as any).select("id").single();
-    if (error || !newL) { toast({ variant: "destructive", title: "Errore", description: error?.message }); return; }
-    if (ingredients.length > 0) {
-      await supabase.from("haccp_preparation_ingredients").insert(
-        ingredients.map(i => ({ ...i, id: undefined, created_at: undefined, preparation_label_id: newL.id })) as any
-      );
+    const { data: labelId, error } = await supabase.rpc("save_restaurant_haccp_label", {
+      p_label: {
+        restaurant_id: restaurant.id,
+        preparation_name: label.preparation_name,
+        quantity: label.quantity,
+        unit: label.unit,
+        production_date: format(new Date(), "yyyy-MM-dd"),
+        expiration_date: format(new Date(Date.now() + 86400000), "yyyy-MM-dd"),
+        conservation_type: label.conservation_type,
+        allergens: label.allergens,
+        notes: label.notes,
+        status: "draft",
+      },
+      p_ingredients: ingredients.map(ingredient => ({ ...ingredient, pantry_item_id: null })),
+      p_documents: docs.map(doc => doc.id),
+    });
+    if (error || !labelId) {
+      toast({ variant: "destructive", title: "Impossibile duplicare l’etichetta", description: error?.message });
+      return;
     }
     await logAction("duplicated");
     toast({ title: "Duplicata come bozza" });
-    navigate(`/restaurant/haccp-labels/${newL.id}`);
+    navigate(`/restaurant/haccp-labels/${labelId}`);
   };
 
   if (loading) return <div className="p-8 flex justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
@@ -219,7 +212,9 @@ const RestaurantHaccpLabelDetailPage = ({ readOnly = false }: { readOnly?: boole
         {readOnly ? <Button variant="outline" asChild><Link to="/admin/haccp-labels">Torna alle etichette</Link></Button>
         : <div className="grid grid-cols-2 gap-2">
           {isDraft && (
-            <Button onClick={handleFinalize} className="col-span-2">Finalizza</Button>
+            <Button asChild className="col-span-2">
+              <Link to={`/restaurant/haccp-labels/new?draft=${label.id}`}>Modifica e finalizza</Link>
+            </Button>
           )}
           {isFinalized && (
             <>

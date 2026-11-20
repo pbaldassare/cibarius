@@ -174,8 +174,7 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
     const { data } = await query;
     let merged: Preparation[] = (data as unknown as Preparation[]) ?? [];
 
-    // Include HACCP preparation labels (restaurant only). Labels linked to a preparation REPLACE
-    // the legacy entry so the user opens the editable HACCP label (ingredients + documents).
+    // Keep editable preparations visible alongside finalized HACCP labels.
     if (isRestaurant && restaurant) {
       const { data: labels } = await supabase
         .from("haccp_preparation_labels")
@@ -186,12 +185,10 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
       if (labels) {
         const mapStorage = (c: string): string =>
           c === "frigo" || c === "freezer" || c === "ambiente" ? c : "ambiente";
-        const linkedPrepIds = new Set(
-          labels.map((l: any) => l.source_preparation_id).filter(Boolean)
-        );
-        // Drop legacy preparations that already have an auto-generated HACCP label
-        merged = merged.filter((p) => !linkedPrepIds.has(p.id));
-        const haccpItems: Preparation[] = labels.map((l: any) => ({
+        const preparationIds = new Set(merged.map(p => p.id));
+        const haccpItems: Preparation[] = labels
+          .filter(l => l.status !== "draft" || !preparationIds.has(l.source_preparation_id ?? ""))
+          .map(l => ({
           id: `haccp:${l.id}`,
           name: l.preparation_name,
           description: l.notes ?? null,
@@ -347,6 +344,7 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
   const createHaccpLabelFromPreparation = () => {
     if (!detailPrep || !isRestaurant) return;
     const params = new URLSearchParams();
+    params.set("source", detailPrep.id);
     params.set("name", detailPrep.name);
     params.set("notes", detailPrep.notes ?? detailPrep.description ?? "");
     params.set("conservation", detailPrep.storage_type);
@@ -501,15 +499,11 @@ const PreparationsPage = ({ isRestaurant = false }: Props) => {
       {/* FAB */}
       <div className="fixed bottom-[calc(68px+var(--sab)+0.75rem)] right-3.5 z-40">
         <button onClick={() => {
-            if (isRestaurant) {
-              navigate("/restaurant/haccp-labels/new");
-              return;
-            }
             resetForm();
             setCreateOpen(true);
           }}
           className="flex h-11 w-11 items-center justify-center rounded-full shadow-lg active:scale-95 transition-transform bg-primary"
-          aria-label={isRestaurant ? "Crea etichetta HACCP" : "Aggiungi preparazione"}>
+          aria-label="Aggiungi preparazione">
           <Plus className="h-5 w-5 text-white" />
         </button>
       </div>
